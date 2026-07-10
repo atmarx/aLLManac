@@ -1,0 +1,6 @@
+# Real credentials — never in git
+.env
+
+# Editor / OS noise
+.DS_Store
+*.swp

@@ -1,0 +1,45 @@
+# LiteLLM gateway config.
+# Chain: LibreChat -> LiteLLM (model_name) -> your inference (api_base).
+#
+# INFERENCE_BASE_URL decides where tokens come from (set in .env):
+#   http://vllm:8000/v1            local vLLM   (COMPOSE_PROFILES=gpu)
+#   http://gpu01.lab.edu:11434/v1  a campus Ollama box
+#   http://gpu02.lab.edu:8000/v1   a remote vLLM
+#   https://api.openai.com/v1      cloud, if you must (set INFERENCE_API_KEY)
+#
+# The string after "openai/" MUST equal the model name the endpoint actually
+# serves (VLLM_SERVED_NAME for the gpu profile; the model tag for Ollama).
+# "openai/" just means "OpenAI-compatible endpoint" — it is not OpenAI.
+model_list:
+  - model_name: almanac-chat
+    litellm_params:
+      model: openai/qwen2.5
+      api_base: os.environ/INFERENCE_BASE_URL
+      api_key: os.environ/INFERENCE_API_KEY
+
+  # More models = more blocks (or add them live in the admin UI — models added
+  # there persist in the database via STORE_MODEL_IN_DB).
+  # - model_name: almanac-code
+  #   litellm_params:
+  #     model: openai/qwen2.5-coder
+  #     api_base: http://gpu02.lab.edu:8000/v1
+  #     api_key: "dummy"
+
+  # Optional: route embeddings through the gateway instead of the RAG API's
+  # local CPU model — stand up an embed endpoint, then set
+  # EMBEDDINGS_PROVIDER=openai + RAG_OPENAI_BASEURL=http://litellm:4000/v1
+  # on the rag_api service.
+  # - model_name: almanac-embed
+  #   litellm_params:
+  #     model: openai/bge
+  #     api_base: http://vllm-embed:8000/v1
+  #     api_key: "dummy"
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+
+litellm_settings:
+  drop_params: true
+  num_retries: 2
+  request_timeout: 600

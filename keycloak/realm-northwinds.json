@@ -1,0 +1,108 @@
+{
+  "realm": "northwinds",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "faculty" },
+      { "name": "student" }
+    ]
+  },
+  "groups": [
+    { "name": "engr301-faculty", "path": "/engr301-faculty" },
+    { "name": "engr301-team-gust", "path": "/engr301-team-gust" }
+  ],
+  "users": [
+    {
+      "username": "prof.vex",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "prof.vex@northwinds.edu",
+      "firstName": "Torben",
+      "lastName": "Vex",
+      "credentials": [{ "type": "password", "value": "Demo123!", "temporary": false }],
+      "realmRoles": ["faculty"],
+      "groups": ["/engr301-faculty"]
+    },
+    {
+      "username": "stu.amaya",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "amaya@northwinds.edu",
+      "firstName": "Amaya",
+      "lastName": "Okafor",
+      "credentials": [{ "type": "password", "value": "Demo123!", "temporary": false }],
+      "realmRoles": ["student"],
+      "groups": ["/engr301-team-gust"]
+    },
+    {
+      "username": "stu.bram",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "bram@northwinds.edu",
+      "firstName": "Bram",
+      "lastName": "Halvorsen",
+      "credentials": [{ "type": "password", "value": "Demo123!", "temporary": false }],
+      "realmRoles": ["student"],
+      "groups": ["/engr301-team-gust"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "librechat",
+      "name": "LibreChat",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3080/oauth/openid/callback",
+        "http://*:3080/oauth/openid/callback"
+      ],
+      "webOrigins": ["+"],
+      "attributes": { "post.logout.redirect.uris": "+" },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "globus",
+      "displayName": "Globus",
+      "providerId": "oidc",
+      "enabled": false,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "config": {
+        "clientId": "",
+        "clientSecret": "",
+        "issuer": "https://auth.globus.org",
+        "authorizationUrl": "https://auth.globus.org/v2/oauth2/authorize",
+        "tokenUrl": "https://auth.globus.org/v2/oauth2/token",
+        "userInfoUrl": "https://auth.globus.org/v2/oauth2/userinfo",
+        "defaultScope": "openid profile email",
+        "validateSignature": "true",
+        "useJwksUrl": "true",
+        "jwksUrl": "https://auth.globus.org/jwk.json",
+        "syncMode": "IMPORT"
+      }
+    }
+  ]
+}

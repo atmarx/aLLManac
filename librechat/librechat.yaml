@@ -1,0 +1,29 @@
+# LibreChat config.  Docs: https://librechat.ai/docs/configuration/librechat_yaml
+# If LibreChat warns about the version, bump it to match your image.
+version: 1.2.8
+cache: true
+
+# Identity comes through Keycloak (the openid button).  Native email login is
+# controlled by ALLOW_EMAIL_LOGIN / ALLOW_REGISTRATION in .env — off by default.
+registration:
+  socialLogins: ["openid"]
+
+endpoints:
+  # Campus models, routed + metered by LiteLLM.  One endpoint, every backend —
+  # which GPU (or cloud) actually serves it is LiteLLM's business.
+  custom:
+    - name: "Almanac"
+      apiKey: "${LITELLM_MASTER_KEY}"
+      baseURL: "http://litellm:4000/v1"
+      models:
+        default: ["almanac-chat"]
+        fetch: true
+      titleConvo: true
+      titleModel: "almanac-chat"
+      modelDisplayLabel: "Almanac (campus models)"
+
+  # Custom GPTs = LibreChat Agents.  These capabilities let faculty/students
+  # attach knowledge files (RAG), tools, and actions to a shared agent — and an
+  # Editor-ACL grant to a group lets the group co-edit ONE agent (the #1 want).
+  agents:
+    capabilities: ["file_search", "tools", "actions", "artifacts"]

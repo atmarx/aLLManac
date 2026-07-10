@@ -1,0 +1,262 @@
+# The aLLManac — a self-hosted custom-GPT service for classes and labs.
+# LibreChat (UI) -> LiteLLM (keys + metering) -> your inference (local vLLM,
+# a campus GPU box, or a cloud endpoint), with Keycloak as the front door.
+#
+# Profiles (set COMPOSE_PROFILES in .env, comma-separated):
+#   (none)  core stack — UI, gateway, identity; inference is WHEREVER
+#           INFERENCE_BASE_URL points (a remote GPU box, a cloud API)
+#   gpu     add local vLLM on this box's GPU(s)
+#   edge    add the Caddy front door (TLS + hostnames) for real deployments
+#
+# Fast-moving images float by default so it pulls cold; PIN them in .env once
+# it works (LITELLM_IMAGE / LIBRECHAT_IMAGE / RAG_API_IMAGE / VLLM_IMAGE).
+name: almanac
+
+services:
+
+  # ---- Gateway: virtual keys, routing, metering — the ledger lives here -----
+  litellm-db:
+    image: postgres:16-alpine
+    container_name: alm-litellm-db
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: "${LITELLM_DB_PASSWORD}"
+      POSTGRES_DB: litellm
+    volumes:
+      - litellm-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  litellm:
+    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-stable}
+    container_name: alm-litellm
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY}"
+      DATABASE_URL: "postgresql://litellm:${LITELLM_DB_PASSWORD}@litellm-db:5432/litellm"
+      STORE_MODEL_IN_DB: "True"
+      # Where the tokens actually come from — see litellm/config.yaml.
+      INFERENCE_BASE_URL: "${INFERENCE_BASE_URL:-http://vllm:8000/v1}"
+      INFERENCE_API_KEY: "${INFERENCE_API_KEY:-dummy-local-endpoints-ignore-this}"
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml:ro
+    ports:
+      - "${GATEWAY_PORT:-4000}:4000"
+    depends_on:
+      litellm-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---- LibreChat + its data plane -------------------------------------------
+  mongodb:
+    image: mongo:7
+    container_name: alm-mongo
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: alm-meili
+    environment:
+      MEILI_MASTER_KEY: "${MEILI_MASTER_KEY}"
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meili-data:/meili_data
+    restart: unless-stopped
+
+  vectordb:
+    image: pgvector/pgvector:pg16
+    container_name: alm-vectordb
+    environment:
+      POSTGRES_DB: vectordb
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: "${RAG_DB_PASSWORD}"
+    volumes:
+      - vector-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag -d vectordb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rag_api:
+    image: ${RAG_API_IMAGE:-ghcr.io/danny-avila/librechat-rag-api-dev:latest}
+    container_name: alm-rag
+    environment:
+      DB_HOST: vectordb
+      DB_PORT: "5432"
+      POSTGRES_DB: vectordb
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: "${RAG_DB_PASSWORD}"
+      RAG_PORT: "8000"
+      # Local embeddings (CPU) — no second GPU model, no gateway coupling. To
+      # route embeddings through LiteLLM instead, set EMBEDDINGS_PROVIDER=openai
+      # and RAG_OPENAI_BASEURL=http://litellm:4000/v1 (see litellm/config.yaml).
+      EMBEDDINGS_PROVIDER: huggingface
+      EMBEDDINGS_MODEL: "BAAI/bge-small-en-v1.5"
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    depends_on:
+      vectordb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  librechat:
+    image: ${LIBRECHAT_IMAGE:-ghcr.io/danny-avila/librechat:latest}
+    container_name: alm-librechat
+    ports:
+      - "${CHAT_PORT:-3080}:3080"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      MONGO_URI: "mongodb://mongodb:27017/LibreChat"
+      MEILI_HOST: "http://meilisearch:7700"
+      RAG_API_URL: "http://rag_api:8000"
+      CONFIG_PATH: "/app/librechat.yaml"
+    volumes:
+      - ./librechat/librechat.yaml:/app/librechat.yaml:ro
+      - librechat-images:/app/client/public/images
+      - librechat-logs:/app/api/logs
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
+      rag_api:
+        condition: service_started
+      litellm:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    # The librechat container must resolve ALMANAC_HOST to reach Keycloak. If
+    # ALMANAC_HOST is a hostname (not an IP), uncomment to map it to the host:
+    # extra_hosts:
+    #   - "${ALMANAC_HOST}:host-gateway"
+    restart: unless-stopped
+
+  # ---- Identity: Keycloak OIDC — mocked campus groups now, Globus later -----
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: alm-keycloak-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: "${KC_DB_PASSWORD}"
+    volumes:
+      - keycloak-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1
+    container_name: alm-keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: "${KC_ADMIN}"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "${KC_ADMIN_PASSWORD}"
+      KC_DB: postgres
+      KC_DB_URL: "jdbc:postgresql://keycloak-db:5432/keycloak"
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: "${KC_DB_PASSWORD}"
+      KC_HOSTNAME: "${KC_HOSTNAME:-${ALMANAC_HOST:-localhost}}"
+      KC_HOSTNAME_PORT: "${KC_HOSTNAME_PORT:-8080}"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      # Behind the edge profile's Caddy, uncomment so KC trusts the proxy:
+      # KC_PROXY_HEADERS: xforwarded
+    volumes:
+      - ./keycloak/realm-northwinds.json:/opt/keycloak/data/import/realm-northwinds.json:ro
+    ports:
+      - "${AUTH_PORT:-8080}:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---- Local model engine (profile: gpu) -------------------------------------
+  vllm:
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
+    profiles: ["gpu"]
+    container_name: alm-vllm
+    command:
+      - "--model=${VLLM_MODEL}"
+      - "--served-model-name=${VLLM_SERVED_NAME}"
+      - "--max-model-len=${VLLM_MAX_MODEL_LEN}"
+      - "--gpu-memory-utilization=${VLLM_GPU_MEM_UTIL}"
+      - "--tensor-parallel-size=${VLLM_TP_SIZE}"
+      - "--port=8000"
+    environment:
+      HUGGING_FACE_HUB_TOKEN: "${HF_TOKEN:-}"
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    ports:
+      - "${VLLM_PORT:-8000}:8000"
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: ${GPU_COUNT:-1}
+              capabilities: ["gpu"]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 40
+      start_period: 600s
+    restart: unless-stopped
+
+  # ---- Front door (profile: edge): Caddy — TLS + one hostname per surface ----
+  edge:
+    build: ./caddy
+    profiles: ["edge"]
+    container_name: alm-edge
+    ports:
+      - "${EDGE_HTTP_PORT:-80}:80"
+      - "${EDGE_HTTPS_PORT:-443}:443"
+    environment:
+      CHAT_HOST: "${CHAT_HOST:-chat.localhost}"
+      AUTH_HOST: "${AUTH_HOST:-auth.localhost}"
+      GATEWAY_HOST: "${GATEWAY_HOST:-gateway.localhost}"
+      EDGE_TLS: "${EDGE_TLS:-internal}"
+      ACME_EMAIL: "${ACME_EMAIL:-ops@example.edu}"
+      # Only needed if you enable the acme_dns azure block in the Caddyfile:
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+      AZURE_SUBSCRIPTION_ID: "${AZURE_SUBSCRIPTION_ID:-}"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  hf-cache:
+  litellm-db:
+  mongo-data:
+  meili-data:
+  vector-data:
+  librechat-images:
+  librechat-logs:
+  keycloak-db:
+  caddy-data:
+  caddy-config:

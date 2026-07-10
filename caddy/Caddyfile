@@ -1,0 +1,41 @@
+# The aLLManac edge — one hostname per surface, TLS for all three.
+#
+# TLS modes (EDGE_TLS in .env):
+#   internal    Caddy's own local CA — LAN/dev default; browsers warn once
+#   you@email   real ACME.  Public box: works as-is (HTTP-01).  RFC 1918 box:
+#               also uncomment the acme_dns block below (DNS-01 — see README)
+{
+    email {$ACME_EMAIL:ops@example.edu}
+
+    # DNS-01 against a delegated Azure zone — for boxes a public CA can't
+    # reach on port 80.  Credentials come from .env; the role should be
+    # TXT-only scoped.  (The full pattern: root-cellar's DNS delegation guide.)
+    # acme_dns azure {
+    #     tenant_id           {env.AZURE_TENANT_ID}
+    #     client_id           {env.AZURE_CLIENT_ID}
+    #     client_secret       {env.AZURE_CLIENT_SECRET}
+    #     subscription_id     {env.AZURE_SUBSCRIPTION_ID}
+    #     resource_group_name rg-almanac-dns
+    # }
+
+    # Prove issuance on the LE staging CA first (no rate limits), then remove:
+    # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+# The chat — where everyone lives
+{$CHAT_HOST:chat.localhost} {
+    tls {$EDGE_TLS:internal}
+    reverse_proxy librechat:3080
+}
+
+# The front door — Keycloak (set KC_PROXY_HEADERS=xforwarded in compose.yml)
+{$AUTH_HOST:auth.localhost} {
+    tls {$EDGE_TLS:internal}
+    reverse_proxy keycloak:8080
+}
+
+# The ledger — LiteLLM admin UI + key API (admin-facing; consider IP-allowlisting)
+{$GATEWAY_HOST:gateway.localhost} {
+    tls {$EDGE_TLS:internal}
+    reverse_proxy litellm:4000
+}

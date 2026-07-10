@@ -1,0 +1,77 @@
+# The aLLManac — deploy to xdocker03 (10.10.1.15) on push to main.
+# =============================================================================
+# The pipeline is deliberately thin: ssh in, `just sync`, `just deploy`.
+# ALL deployment logic lives in the justfile — this file (and the GitLab/GitHub
+# equivalents in docs/ci.md) is just the wrapper that invokes it.
+#
+# Secrets needed (Woodpecker -> almanac repo -> Settings -> Secrets):
+#   deploy_ssh_key   — same deploy key used by the root-cellar pipeline
+#
+# First deploy (one-time manual steps on xdocker03):
+#   sudo apt install just                       # Debian 13 has it
+#   git clone ssh://git@git.dev.xram.net:2222/atmarx/almanac.git /opt/almanac
+#   cd /opt/almanac
+#   just setup
+#   # Edit .env — ALMANAC_HOST=10.10.1.15, INFERENCE_BASE_URL -> a real
+#   # endpoint (no GPU on this box), OPENID_ISSUER to match ALMANAC_HOST.
+#   just up
+#   # Then wire OPENID_CLIENT_SECRET from Keycloak (README "First boot").
+# =============================================================================
+
+labels:
+  platform: build
+
+when:
+  - branch: main
+    event: push
+
+steps:
+  - name: deploy-almanac
+    image: alpine
+    environment:
+      SSH_KEY:
+        from_secret: deploy_ssh_key
+    commands:
+      - apk add --no-cache openssh-client
+      - mkdir -p ~/.ssh
+      - echo "$SSH_KEY" > ~/.ssh/id_ed25519
+      - chmod 600 ~/.ssh/id_ed25519
+      - ssh-keyscan -p 22 10.10.1.15 >> ~/.ssh/known_hosts 2>/dev/null
+      - |
+        ssh -o StrictHostKeyChecking=no xram@10.10.1.15 << 'ENDSSH'
+        set -e
+
+        DEPLOY_DIR=/opt/almanac
+
+        # Guard: must be bootstrapped manually first (see header comment)
+        if [ ! -d "$DEPLOY_DIR/.git" ]; then
+          echo "ERROR: $DEPLOY_DIR is not a git repo."
+          echo "Bootstrap:"
+          echo "  git clone ssh://git@git.dev.xram.net:2222/atmarx/almanac.git $DEPLOY_DIR"
+          echo "  cd $DEPLOY_DIR && just setup   # then edit .env"
+          exit 1
+        fi
+
+        # Guard: just must be installed (the deployment logic lives in it)
+        if ! command -v just >/dev/null 2>&1; then
+          echo "ERROR: just not found on this host.  sudo apt install just"
+          exit 1
+        fi
+
+        # Guard: .env must exist (not in git, contains real credentials)
+        if [ ! -f "$DEPLOY_DIR/.env" ]; then
+          echo "ERROR: no .env in $DEPLOY_DIR.  cd $DEPLOY_DIR && just setup"
+          exit 1
+        fi
+
+        cd "$DEPLOY_DIR"
+        just sync
+        just deploy
+
+        echo "aLLManac deployed."
+        ENDSSH
+
+  - name: done
+    image: alpine
+    commands:
+      - echo "almanac pipeline complete"
