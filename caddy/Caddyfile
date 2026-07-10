@@ -7,6 +7,11 @@
 {
     email {$ACME_EMAIL:ops@example.edu}
 
+    # Clients hitting a bare IP send no SNI, and Caddy picks certs by SNI —
+    # name the IP site here or IP connections die with a TLS internal error.
+    # (LAN HTTPS mode: set EDGE_DEFAULT_SNI=<box-ip> in .env.)
+    default_sni {$EDGE_DEFAULT_SNI:localhost}
+
     # DNS-01 against a delegated Azure zone — for boxes a public CA can't
     # reach on port 80.  Credentials come from .env; the role should be
     # TXT-only scoped.  (The full pattern: root-cellar's DNS delegation guide.)

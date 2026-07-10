@@ -145,7 +145,7 @@ services:
       keycloak:
         condition: service_started
       edge:
-        condition: service_started
+        condition: service_healthy
         required: false
     # The librechat container must resolve ALMANAC_HOST to reach Keycloak. If
     # ALMANAC_HOST is a hostname (not an IP), uncomment to map it to the host:
@@ -241,14 +241,17 @@ services:
     ports:
       - "${EDGE_HTTP_PORT:-80}:80"
       - "${EDGE_HTTPS_PORT:-443}:443"
+      - "${EDGE_HTTPS_PORT:-443}:443/udp"    # HTTP/3
       # Keycloak's dedicated TLS listener when AUTH_HOST carries :8443 (the
       # no-DNS LAN mode — see .env.example "LAN HTTPS"):
       - "${EDGE_AUTH_PORT:-8443}:8443"
+      - "${EDGE_AUTH_PORT:-8443}:8443/udp"   # HTTP/3
     environment:
       CHAT_HOST: "${CHAT_HOST:-chat.localhost}"
       AUTH_HOST: "${AUTH_HOST:-auth.localhost}"
       GATEWAY_HOST: "${GATEWAY_HOST:-gateway.localhost}"
       EDGE_TLS: "${EDGE_TLS:-internal}"
+      EDGE_DEFAULT_SNI: "${EDGE_DEFAULT_SNI:-localhost}"
       ACME_EMAIL: "${ACME_EMAIL:-ops@example.edu}"
       # Only needed if you enable the acme_dns azure block in the Caddyfile:
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
@@ -259,6 +262,14 @@ services:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+    # Healthy = config loaded and serving (admin endpoint answers).  LibreChat
+    # waits on this so its one-shot OIDC discovery never races the edge's TLS.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:2019/config/ >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
     restart: unless-stopped
 
 volumes:
