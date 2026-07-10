@@ -121,11 +121,14 @@ logs svc="":
 # accounting/FOCUS export will consume later.  No owner, no key.
 
 # Mint a per-user virtual key:  just key stu.amaya engr301 [budget]
+# NOTE: the owner tag lives in metadata.tags — top-level `tags` is a LiteLLM
+# ENTERPRISE feature (403 license wall).  metadata.tags rolls up to
+# /spend/tags in OSS, a beat behind realtime (spend logs aggregate async).
 key user owner budget="5":
     @curl -sf http://localhost:${GATEWAY_PORT:-4000}/key/generate \
       -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
       -H "Content-Type: application/json" \
-      -d '{"models": ["almanac-chat"], "max_budget": {{budget}}, "user_id": "{{user}}", "tags": ["owner:{{owner}}"], "metadata": {"owner": "{{owner}}"}}' \
+      -d '{"models": ["almanac-chat"], "max_budget": {{budget}}, "user_id": "{{user}}", "metadata": {"owner": "{{owner}}", "tags": ["owner:{{owner}}"]}}' \
       | python3 -m json.tool
     @echo "minted for {{user}} — owner {{owner}}, budget \${{budget}}"
 
