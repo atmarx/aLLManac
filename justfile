@@ -125,7 +125,7 @@ key user owner budget="5":
     @curl -sf http://localhost:${GATEWAY_PORT:-4000}/key/generate \
       -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
       -H "Content-Type: application/json" \
-      -d '{"models": ["almanac-chat"], "max_budget": {{budget}}, "user_id": "{{user}}", "metadata": {"owner": "{{owner}}", "tags": ["owner:{{owner}}"]}}' \
+      -d '{"models": ["almanac-chat"], "max_budget": {{budget}}, "user_id": "{{user}}", "tags": ["owner:{{owner}}"], "metadata": {"owner": "{{owner}}"}}' \
       | python3 -m json.tool
     @echo "minted for {{user}} — owner {{owner}}, budget \${{budget}}"
 
