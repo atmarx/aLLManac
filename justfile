@@ -85,13 +85,17 @@ smoke:
     #!/usr/bin/env bash
     set -uo pipefail
     fail=0
-    check() {  # check NAME URL
-        if curl -fso /dev/null --max-time 10 "$2"; then
-            echo "  ok    $1"
-        else
-            echo "  FAIL  $1  ($2)"
-            fail=1
-        fi
+    check() {  # check NAME URL — retries ~90s so cold boots (Keycloak realm
+               # import, first pulls) don't read as failures
+        for i in $(seq 1 18); do
+            if curl -fso /dev/null --max-time 10 "$2"; then
+                echo "  ok    $1"
+                return
+            fi
+            sleep 5
+        done
+        echo "  FAIL  $1  ($2)"
+        fail=1
     }
     echo "smoke:"
     check "librechat (UI)"     "http://localhost:${CHAT_PORT:-3080}/"

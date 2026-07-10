@@ -84,7 +84,10 @@ The three `.env` lines that matter:
   inference box; a cloud endpoint if you must. The model name in
   [`litellm/config.yaml`](litellm/config.yaml) must match what that endpoint
   serves.
-- **`OPENID_ISSUER`** — `http://<ALMANAC_HOST>:8080/realms/northwinds`.
+- **`OPENID_ISSUER`** — must be **HTTPS** (LibreChat ≥ v0.8 refuses plain-http
+  issuers). No DNS on your LAN? The edge's internal CA mints IP certs — copy
+  the **"LAN HTTPS"** block from [`.env.example`](.env.example) and you're
+  done: `https://<box-ip>:8443/realms/northwinds`.
 
 Surfaces (direct-port mode): **LibreChat** `:3080` · **LiteLLM admin**
 `:4000/ui` (login = `LITELLM_MASTER_KEY`) · **Keycloak admin** `:8080`
