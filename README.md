@@ -188,6 +188,25 @@ LAN. For real certs on an RFC 1918 box, enable the `acme_dns azure` block in
 TXT-only role, the Networking pitch) is documented in Root Cellar's
 [DNS delegation guide](https://github.com/atmarx/root-cellar/blob/main/docs/guides/northstar-dns-delegation-guide.md).
 
+**Already have a front door?** If a reverse proxy with real certs (a campus
+wildcard, a homelab Caddy) already exists, skip the `edge` profile entirely
+and point two names at the direct ports — chat → `:3080`, and Keycloak gets
+its **own hostname** (not a port) → `:8080`:
+
+```caddyfile
+aiclassroom.example.edu       { reverse_proxy almanac-box:3080 }
+auth-aiclassroom.example.edu  { reverse_proxy almanac-box:8080 }
+```
+
+Then in `.env`: `OPENID_ISSUER=https://auth-aiclassroom.example.edu/realms/northwinds`,
+`KC_HOSTNAME=https://auth-aiclassroom.example.edu`, `KC_PROXY_HEADERS=xforwarded`,
+`DOMAIN_CLIENT`/`DOMAIN_SERVER` to the chat URL. Public CA means the
+`NODE_EXTRA_CA_CERTS` machinery isn't needed. (One hard-won note: if your
+front proxy bind-mounts its config as a single file, editors that rewrite
+inodes leave the container reading the **old** file — validate-and-reload
+will happily no-op. `grep` the file *inside* the container before trusting a
+reload.)
+
 ### Cautions
 
 - **`CREDS_KEY`/`CREDS_IV` are pinned for life.** They encrypt every user's
