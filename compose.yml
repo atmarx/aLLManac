@@ -266,7 +266,9 @@ services:
     # Healthy = config loaded and serving (admin endpoint answers).  LibreChat
     # waits on this so its one-shot OIDC discovery never races the edge's TLS.
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:2019/config/ >/dev/null || exit 1"]
+      # 127.0.0.1 explicitly — caddy's admin binds v4-only, and busybox wget
+      # resolves `localhost` to ::1 first (refused -> false unhealthy):
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2019/config/ >/dev/null || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 12
