@@ -143,7 +143,7 @@ services:
       litellm:
         condition: service_started
       keycloak:
-        condition: service_started
+        condition: service_healthy
       edge:
         condition: service_healthy
         required: false
@@ -197,6 +197,15 @@ services:
     depends_on:
       keycloak-db:
         condition: service_healthy
+    # Ready = realm served (management port 9000, KC_HEALTH_ENABLED).  The KC
+    # image ships no curl/wget, so bash's /dev/tcp does the HTTP by hand.
+    # LibreChat gates on this — its OIDC discovery is one-shot at boot.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: 127.0.0.1\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
     restart: unless-stopped
 
   # ---- Local model engine (profile: gpu) -------------------------------------
