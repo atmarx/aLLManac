@@ -8,8 +8,8 @@
 #   gpu     add local vLLM on this box's GPU(s)
 #   edge    add the Caddy front door (TLS + hostnames) for real deployments
 #
-# Fast-moving images float by default so it pulls cold; PIN them in .env once
-# it works (LITELLM_IMAGE / LIBRECHAT_IMAGE / RAG_API_IMAGE / VLLM_IMAGE).
+# Images are PINNED (here and in .env.example) — bump deliberately: edit,
+# deploy, verify, commit.  Override per-box via the *_IMAGE vars in .env.
 name: almanac
 
 services:
@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
 
   litellm:
-    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-stable}
+    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-stable@sha256:47afa74b495c802317712e5b8c8a65e7ca30c96636e9b618a5f8130eec72a8ee}
     container_name: alm-litellm
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     environment:
@@ -42,6 +42,7 @@ services:
       # Where the tokens actually come from — see litellm/config.yaml.
       INFERENCE_BASE_URL: "${INFERENCE_BASE_URL:-http://vllm:8000/v1}"
       INFERENCE_API_KEY: "${INFERENCE_API_KEY:-dummy-local-endpoints-ignore-this}"
+      INFERENCE_MODEL: "${INFERENCE_MODEL:-openai/qwen2.5}"
     volumes:
       - ./litellm/config.yaml:/app/config.yaml:ro
     ports:
@@ -91,7 +92,7 @@ services:
     restart: unless-stopped
 
   rag_api:
-    image: ${RAG_API_IMAGE:-ghcr.io/danny-avila/librechat-rag-api-dev:latest}
+    image: ${RAG_API_IMAGE:-ghcr.io/danny-avila/librechat-rag-api-dev:latest@sha256:c3e1a05bdd576b5000fa0e8a84a476e9858fa9219b2b5d78432ddce12c9fcf23}
     container_name: alm-rag
     environment:
       DB_HOST: vectordb
@@ -113,7 +114,7 @@ services:
     restart: unless-stopped
 
   librechat:
-    image: ${LIBRECHAT_IMAGE:-ghcr.io/danny-avila/librechat:latest}
+    image: ${LIBRECHAT_IMAGE:-ghcr.io/danny-avila/librechat:v0.8.7}
     container_name: alm-librechat
     ports:
       - "${CHAT_PORT:-3080}:3080"
@@ -192,7 +193,7 @@ services:
 
   # ---- Local model engine (profile: gpu) -------------------------------------
   vllm:
-    image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.24.0}
     profiles: ["gpu"]
     container_name: alm-vllm
     command:

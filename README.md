@@ -194,8 +194,9 @@ TXT-only role, the Networking pitch) is documented in Root Cellar's
 - The bundled realm is a **mock**: demo passwords, `sslRequired: none`,
   Keycloak in `start-dev`. Fine on a LAN behind a firewall; put real identity
   and `start` mode in front before real users.
-- Floating image tags pull newest on cold start — **pin the `*_IMAGE` vars**
-  in `.env` once the stack works.
+- Images are **pinned** (compose defaults + `.env.example`). Bump
+  deliberately: edit the pin, deploy, verify, commit. The LiteLLM and RAG API
+  pins are digests because their channels are moving tags.
 - Backups are yours: the named volumes (`mongo-data`, `litellm-db`,
   `keycloak-db`, `vector-data`) are the state.
 

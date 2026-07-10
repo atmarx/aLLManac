@@ -7,13 +7,14 @@
 #   http://gpu02.lab.edu:8000/v1   a remote vLLM
 #   https://api.openai.com/v1      cloud, if you must (set INFERENCE_API_KEY)
 #
-# The string after "openai/" MUST equal the model name the endpoint actually
-# serves (VLLM_SERVED_NAME for the gpu profile; the model tag for Ollama).
-# "openai/" just means "OpenAI-compatible endpoint" — it is not OpenAI.
+# INFERENCE_MODEL is "openai/<name the endpoint actually serves>" — the
+# VLLM_SERVED_NAME for the gpu profile, or the model tag for Ollama (e.g.
+# openai/qwen3:30b-a3b).  "openai/" just means "OpenAI-compatible endpoint" —
+# it is not OpenAI.  Both come from .env; this file stays generic.
 model_list:
   - model_name: almanac-chat
     litellm_params:
-      model: openai/qwen2.5
+      model: os.environ/INFERENCE_MODEL
       api_base: os.environ/INFERENCE_BASE_URL
       api_key: os.environ/INFERENCE_API_KEY
 
