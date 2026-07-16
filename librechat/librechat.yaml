@@ -11,7 +11,7 @@ registration:
 # Classroom permission posture.  This block seeds the default USER role (the
 # students) at startup; faculty arrive as ADMIN via OPENID_ADMIN_ROLE in .env
 # and get the full picker/marketplace controls that role carries.  Live edits
-# later happen in the admin panel (:3081), which overrides these seeds.
+# later happen in the admin panel (:3082), which overrides these seeds.
 #   - students can create agents and share them to people/groups — not
 #     instance-public; publishing to the whole class is the faculty's call
 #   - the people picker searches users + groups.  The groups here are

@@ -10,7 +10,7 @@ the free tier — verified against the exact pinned builds this stack runs.*
 |---|---|---|---|
 | Keycloak admin | `:8080` | `KC_ADMIN` / `KC_ADMIN_PASSWORD` | Identity: users, realm roles, the Globus broker, OIDC clients |
 | LiteLLM admin | `:4000/ui` | `LITELLM_MASTER_KEY` | The ledger: models, keys, budgets, spend |
-| LibreChat admin panel | `:3081` | faculty SSO (same button) | **Local groups** for agent sharing, role permissions, config overrides |
+| LibreChat admin panel | `:3082` | faculty SSO (same button) | **Local groups** for agent sharing, role permissions, config overrides |
 | LibreChat | `:3080` | SSO | The chat itself — mostly runs itself |
 
 Three things in this stack are called "groups," and confusing them costs an
@@ -68,7 +68,7 @@ login.  This works identically for local and Globus-federated users.
 Keycloak groups organize identity (`/engr301-faculty`,
 `/engr301-team-gust`) and flow into tokens as a `groups` claim — useful for
 your own audits and future integrations.  **They are not the share-dialog
-groups** — those are clicks in the admin panel (`:3081` → Groups).  Keep
+groups** — those are clicks in the admin panel (`:3082` → Groups).  Keep
 the same names in both places and nobody gets confused.
 
 ### The librechat client
@@ -275,7 +275,7 @@ with a different pair and every stored key decrypts to garbage.
 |---|---|
 | Login bounces with a redirect-URI error | Callback URL missing from the `librechat` client → add it (Keycloak → Clients) |
 | `[openidStrategy] only requests to HTTPS are allowed` | Plain-http `OPENID_ISSUER` — LibreChat ≥0.8 refuses it → README "LAN HTTPS" |
-| Share dialog can't find a group | It's looking at **LibreChat-local** groups — create it in the admin panel (`:3081`); and the person must have logged in once |
+| Share dialog can't find a group | It's looking at **LibreChat-local** groups — create it in the admin panel (`:3082`); and the person must have logged in once |
 | Faculty missing admin controls | `faculty` realm role not assigned, or assigned after login → assign, re-login |
 | `just spend` / tags look empty | Aggregation lag (~10 s batch + async rollup) → wait a beat |
 | Invitation link dead | 7-day expiry → `just invite` again |

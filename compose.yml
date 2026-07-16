@@ -183,7 +183,7 @@ services:
       # SSO PKCE callback dies; harmless when TLS terminates in front:
       SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"
     ports:
-      - "${ADMIN_PANEL_PORT:-3081}:3000"
+      - "${ADMIN_PANEL_PORT:-3082}:3000"
     depends_on:
       librechat:
         condition: service_started

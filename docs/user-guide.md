@@ -74,7 +74,7 @@ same instructions, same files, one body.
 ### What faculty set up (once per team)
 
 Group sharing uses groups that live **in the chat platform's admin panel**
-(`:3081` — same SSO button), not in the campus directory.  Two things
+(`:3082` — same SSO button), not in the campus directory.  Two things
 matter:
 
 1. **People must log in once before they can be added to a group** —
@@ -223,7 +223,7 @@ end to end.)*
 
 You sign in with the same SSO button — the platform recognizes faculty and
 hands you the sharing controls, the people picker, the marketplace curation
-tools, and the admin panel (`:3081`).
+tools, and the admin panel (`:3082`).
 
 **Day-zero checklist:**
 

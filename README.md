@@ -41,7 +41,7 @@ Six moving parts, each doing one job:
 | Part | Job |
 |---|---|
 | **LibreChat** | The chat UI. "Custom GPTs" are LibreChat **Agents**: a system prompt + knowledge files (RAG) + tools, shareable to a group with an **Editor** ACL — so the group co-edits ONE agent instead of emailing prompts around. |
-| **Admin panel** | LibreChat's bundled management GUI (`:3081`). The **local groups** agent sharing needs live here (Keycloak's groups claim doesn't reach LibreChat's ACLs — upstream [#10006](https://github.com/danny-avila/LibreChat/issues/10006)), plus role permissions and per-group config overrides. Faculty are ADMINs automatically (the realm's `faculty` role) and sign in with the same SSO button. |
+| **Admin panel** | LibreChat's bundled management GUI (`:3082`). The **local groups** agent sharing needs live here (Keycloak's groups claim doesn't reach LibreChat's ACLs — upstream [#10006](https://github.com/danny-avila/LibreChat/issues/10006)), plus role permissions and per-group config overrides. Faculty are ADMINs automatically (the realm's `faculty` role) and sign in with the same SSO button. |
 | **LiteLLM** | The gateway and **the ledger**. Every user gets a virtual API key with a budget; every request is metered. Models are routed here, so which GPU (or cloud) serves a request is nobody else's business. |
 | **Keycloak** | The front door. OIDC identity provider; ships with a mock campus realm (`northwinds`) — local demo accounts standing in for real campus groups. Later, it **brokers Globus** (or any SAML/OIDC IdP) without LibreChat changing at all. |
 | **vLLM** *(its own stack: `vllm/`)* | Local inference on this box's GPUs — deliberately a **separate compose project** (`just vllm-up`) so a loaded model survives app deploys. Optional — the gateway can just as easily point at a campus inference server or a cloud endpoint. |
@@ -92,7 +92,7 @@ The three `.env` lines that matter:
   the **"LAN HTTPS"** block from [`.env.example`](.env.example) and you're
   done: `https://<box-ip>:8443/realms/northwinds`.
 
-Surfaces (direct-port mode): **LibreChat** `:3080` · **admin panel** `:3081`
+Surfaces (direct-port mode): **LibreChat** `:3080` · **admin panel** `:3082`
 (faculty SSO) · **LiteLLM admin** `:4000/ui` (login = `LITELLM_MASTER_KEY`) ·
 **Keycloak admin** `:8080` (`KC_ADMIN` / `KC_ADMIN_PASSWORD`).
 
@@ -119,7 +119,7 @@ The whole point is a **group co-editing one GPT**. Prove it:
    LibreChat creates accounts at first login, and groups need accounts that
    exist.
 2. As `prof.vex` (ADMIN automatically, via the `faculty` realm role): open
-   the **admin panel** (`:3081`, same SSO button) → Groups → create
+   the **admin panel** (`:3082`, same SSO button) → Groups → create
    `engr301-team-gust` with amaya + bram as members.  Why here and not
    Keycloak?  Agent sharing uses **LibreChat-local groups** — the Keycloak
    groups claim never reaches the ACL system in v0.8.7 (upstream
