@@ -173,3 +173,18 @@ spend:
     @curl -sf "http://localhost:${GATEWAY_PORT:-4000}/spend/tags" \
       -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
       | python3 -m json.tool || echo "(older LiteLLM builds: use the admin UI -> Usage)"
+
+# ---- Coding harness (opencode, profile: workbench) ----------------------------
+# Run-on-demand, never a daemon.  Proves a vAPI key end to end from inside the
+# stack; students use the same provider block on their laptops (user guide).
+# NOTE: the key lands in shell history — fine for test keys; for real ones,
+# pass it from an env var:  just workbench "$MY_KEY"
+
+# Open the opencode TUI wired to the gateway:  just workbench sk-...
+workbench key:
+    ALMANAC_API_KEY="{{key}}" {{compose}} --profile workbench run --rm workbench
+
+# One-shot proof a key works (mints nothing; spends a few tokens as that key)
+workbench-smoke key:
+    ALMANAC_API_KEY="{{key}}" {{compose}} --profile workbench run --rm workbench \
+      run -m almanac/almanac-chat "Reply with exactly: almanac-ok"

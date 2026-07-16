@@ -6,6 +6,8 @@
 #   (none)      core stack — UI, gateway, identity; inference is WHEREVER
 #               INFERENCE_BASE_URL points (a remote GPU box, a cloud API)
 #   edge        add the Caddy front door (TLS + hostnames) for real deployments
+#   workbench   the opencode coding harness, run-on-demand (never a daemon):
+#               just workbench <key> / just workbench-smoke <key>
 #
 # Local GPU inference is its OWN stack now — vllm/compose.yml — so the model
 # stays loaded while this stack deploys/bounces:  just vllm-up / vllm-down.
@@ -219,6 +221,26 @@ services:
   # ---- Local model engine: MOVED to its own stack — vllm/compose.yml ---------
   # (so the model stays loaded while this stack deploys:  just vllm-up)
 
+  # ---- Coding harness (profile: workbench): opencode against the gateway ----
+  # Not a daemon — a run-on-demand container for proving a student's vAPI key
+  # works end to end, and for demos/workshops on the box.  Students put the
+  # SAME provider block (workbench/opencode.json) on their laptops, with the
+  # gateway's public URL — see docs/user-guide.md.
+  #
+  #   just workbench sk-...          the opencode TUI, wired to the gateway
+  #   just workbench-smoke sk-...    one-shot proof: prints the model's reply
+  workbench:
+    image: ${OPENCODE_IMAGE:-ghcr.io/anomalyco/opencode:1.18.2}
+    profiles: ["workbench"]
+    working_dir: /workspace
+    environment:
+      HOME: /workspace                          # opencode state rides the volume
+      ALMANAC_API_KEY: "${ALMANAC_API_KEY:-}"   # injected per run by the recipes
+    volumes:
+      - workbench-data:/workspace
+      - ./workbench/opencode.json:/workspace/opencode.json:ro
+    restart: "no"
+
   # ---- Front door (profile: edge): Caddy — TLS + one hostname per surface ----
   edge:
     build: ./caddy
@@ -272,3 +294,4 @@ volumes:
   keycloak-db:
   caddy-data:
   caddy-config:
+  workbench-data:

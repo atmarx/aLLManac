@@ -159,7 +159,9 @@ just nuke           # stop + WIPE ALL DATA (asks first)
 ```
 
 **Profiles** (`COMPOSE_PROFILES` in `.env`): `edge` adds the Caddy front
-door.  Local vLLM is **not a profile** — it's its own compose project
+door; `workbench` is the opencode coding harness (run-on-demand — `just
+workbench <key>` — it never starts with `just up`).  Local vLLM is **not a
+profile** — it's its own compose project
 ([`vllm/compose.yml`](vllm/compose.yml)), so `just deploy` bounces the app
 without unloading a model that took ten minutes to warm.  Run it on the same
 box (the default `INFERENCE_BASE_URL` reaches it via `host.docker.internal`)

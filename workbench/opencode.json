@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "almanac": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Almanac (campus gateway)",
+      "options": {
+        "baseURL": "http://litellm:4000/v1",
+        "apiKey": "{env:ALMANAC_API_KEY}"
+      },
+      "models": {
+        "almanac-chat": {
+          "name": "Almanac Chat",
+          "tool_call": true,
+          "limit": { "context": 16384, "output": 4096 }
+        }
+      }
+    }
+  },
+  "model": "almanac/almanac-chat"
+}
