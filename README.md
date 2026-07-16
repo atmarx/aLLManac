@@ -29,7 +29,7 @@ their class used this month. No data leaves campus unless you point it there.
                    ▼
              ┌──────────┐        ┌───────────┐       ┌──────────┐
              │ Keycloak │◀───────│ LibreChat │──────▶│ LiteLLM  │──▶ inference
-             │ (+Globus │        │  the UI   │       │ keys ·   │    ├─ vLLM (gpu profile)
+             │ (+Globus │        │  the UI   │       │ keys ·   │    ├─ vLLM (vllm/ stack)
              │  broker) │        └─────┬─────┘       │ metering │    ├─ campus GPU box
              └──────────┘              │             └──────────┘    └─ cloud (if you must)
                                        │
@@ -43,7 +43,7 @@ Six moving parts, each doing one job:
 | **LibreChat** | The chat UI. "Custom GPTs" are LibreChat **Agents**: a system prompt + knowledge files (RAG) + tools, shareable to a group with an **Editor** ACL — so the group co-edits ONE agent instead of emailing prompts around. |
 | **LiteLLM** | The gateway and **the ledger**. Every user gets a virtual API key with a budget; every request is metered. Models are routed here, so which GPU (or cloud) serves a request is nobody else's business. |
 | **Keycloak** | The front door. OIDC identity provider; ships with a mock campus realm (`northwinds`) — local demo accounts standing in for real campus groups. Later, it **brokers Globus** (or any SAML/OIDC IdP) without LibreChat changing at all. |
-| **vLLM** *(gpu profile)* | Local inference on this box's GPUs. Optional — the gateway can just as easily point at a campus inference server or a cloud endpoint. |
+| **vLLM** *(its own stack: `vllm/`)* | Local inference on this box's GPUs — deliberately a **separate compose project** (`just vllm-up`) so a loaded model survives app deploys. Optional — the gateway can just as easily point at a campus inference server or a cloud endpoint. |
 | **Mongo · Meili · pgvector · RAG API** | LibreChat's data plane: conversations, search, and embeddings for agent knowledge files. |
 | **Caddy** *(edge profile)* | The front door's front door: one hostname per surface, TLS included — internal CA for the LAN, real ACME (HTTP-01 or DNS-01/Azure) for the world. |
 
@@ -64,13 +64,14 @@ Six moving parts, each doing one job:
 ## Quick start
 
 Prereqs: Docker + Compose v2, [`just`](https://just.systems)
-(`apt install just`), and — only for the `gpu` profile — the NVIDIA Container
-Toolkit.
+(`apt install just`), and — only for local GPU inference (the `vllm/` stack) —
+the NVIDIA Container Toolkit.
 
 ```bash
 git clone <this-repo> almanac && cd almanac
 just setup          # creates .env, generates every secret
 $EDITOR .env        # set ALMANAC_HOST, INFERENCE_BASE_URL, OPENID_ISSUER
+just vllm-up        # local GPU box only — inference is its own stack
 just up
 just smoke          # prove it's serving, not just running
 ```
@@ -79,9 +80,10 @@ The three `.env` lines that matter:
 
 - **`ALMANAC_HOST`** — the box's LAN IP or DNS name (not `localhost`), so your
   browser and the containers agree on where Keycloak lives.
-- **`INFERENCE_BASE_URL`** — where tokens come from. `http://vllm:8000/v1`
-  with `COMPOSE_PROFILES=gpu` for a local GPU; an Ollama/vLLM URL for a campus
-  inference box; a cloud endpoint if you must. The model name in
+- **`INFERENCE_BASE_URL`** — where tokens come from.
+  `http://host.docker.internal:8000/v1` for the local `vllm/` stack on the
+  same box (`just vllm-up`); an Ollama/vLLM URL for a campus inference box; a
+  cloud endpoint if you must. The model name in
   [`litellm/config.yaml`](litellm/config.yaml) must match what that endpoint
   serves.
 - **`OPENID_ISSUER`** — must be **HTTPS** (LibreChat ≥ v0.8 refuses plain-http
@@ -149,20 +151,27 @@ starts now: **no key without an owner.**
 
 ```text
 just                # list every recipe
-just up / down      # start / stop (data survives)
+just up / down      # start / stop the app stack (data survives)
+just vllm-up / vllm-down / vllm-logs / vllm-smoke   # the inference stack
 just logs librechat # tail one service
 just deploy         # what CI runs: pull + build + up + smoke
 just nuke           # stop + WIPE ALL DATA (asks first)
 ```
 
-**Profiles** (`COMPOSE_PROFILES` in `.env`): `gpu` adds local vLLM, `edge`
-adds the Caddy front door. Comma-separate to stack them.
+**Profiles** (`COMPOSE_PROFILES` in `.env`): `edge` adds the Caddy front
+door.  Local vLLM is **not a profile** — it's its own compose project
+([`vllm/compose.yml`](vllm/compose.yml)), so `just deploy` bounces the app
+without unloading a model that took ten minutes to warm.  Run it on the same
+box (the default `INFERENCE_BASE_URL` reaches it via `host.docker.internal`)
+or clone this repo on a GPU box and run only `just vllm-up` there.
 
 **Switching models:** local GPU → edit `VLLM_MODEL` / `VLLM_SERVED_NAME` in
-`.env` and match `litellm/config.yaml`; remote/cloud → edit the `model_list`
-block or add models live in the LiteLLM admin UI (they persist to the DB).
-vLLM wants **safetensors** (GGUF is Ollama's format); on H200-class GPUs
-prefer an FP8 checkpoint.
+`.env`, match `litellm/config.yaml`, `just vllm-up` again; remote/cloud →
+edit the `model_list` block or add models live in the LiteLLM admin UI (they
+persist to the DB).  vLLM wants **safetensors** (GGUF is Ollama's format); on
+H200-class GPUs prefer an FP8 checkpoint.  Tool calling is ON by default
+(`VLLM_TOOL_PARSER=hermes` fits the Qwen 2.5 family) — coding harnesses and
+agent tools need it.
 
 **Real identity:** the realm ships a *disabled* Globus identity provider.
 Register a Globus Auth app, paste its client ID/secret into Keycloak →

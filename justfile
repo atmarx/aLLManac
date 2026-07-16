@@ -7,6 +7,9 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 set dotenv-load := true
 
 compose := "docker compose"
+# The vLLM stack is separate on purpose (model stays loaded across app
+# deploys).  --project-directory . makes it share the root .env.
+vllm := "docker compose --project-directory . -f vllm/compose.yml"
 
 # List recipes
 default:
@@ -101,14 +104,47 @@ smoke:
     check "librechat (UI)"     "http://localhost:${CHAT_PORT:-3080}/"
     check "litellm (gateway)"  "http://localhost:${GATEWAY_PORT:-4000}/health/liveliness"
     check "keycloak (realm)"   "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-northwinds}/.well-known/openid-configuration"
-    if [[ ",${COMPOSE_PROFILES:-}," == *",gpu,"* ]]; then
-        check "vllm (inference)" "http://localhost:${VLLM_PORT:-8000}/health"
-    fi
     exit $fail
 
 # Show container status
 ps:
     {{compose}} ps
+    @{{vllm}} ps 2>/dev/null || true
+
+# ---- Local inference (its own stack: vllm/compose.yml) -----------------------
+# Separate so the model stays loaded while the app stack deploys/bounces.
+# Needs the NVIDIA Container Toolkit.  Same .env drives it (VLLM_* vars).
+
+# Start local vLLM (first boot downloads the model — be patient)
+vllm-up:
+    {{vllm}} up -d
+
+# Stop local vLLM (unloads the model; app stack is untouched)
+vllm-down:
+    {{vllm}} down
+
+# Tail vLLM logs (watch a cold model load here)
+vllm-logs:
+    {{vllm}} logs -f --tail=100
+
+# Pull the pinned vLLM image
+vllm-pull:
+    {{vllm}} pull
+
+# Prove inference is actually serving (health + the model list)
+vllm-smoke:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    for i in $(seq 1 18); do
+        if curl -fso /dev/null --max-time 10 "http://localhost:${VLLM_PORT:-8000}/health"; then
+            echo "  ok    vllm /health"
+            curl -fs "http://localhost:${VLLM_PORT:-8000}/v1/models" | python3 -m json.tool
+            exit 0
+        fi
+        sleep 5
+    done
+    echo "  FAIL  vllm (http://localhost:${VLLM_PORT:-8000}/health) — cold model loads take minutes: just vllm-logs"
+    exit 1
 
 # Tail logs (all services, or one: just logs librechat)
 logs svc="":

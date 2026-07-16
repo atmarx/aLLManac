@@ -1,0 +1,67 @@
+# The aLLManac — local inference, its OWN stack.
+#
+# Why separate: GPUs are precious and model loads are slow (start_period
+# below is ten minutes for a reason).  The app stack (../compose.yml) gets
+# rebuilt, upgraded, and bounced on every deploy — your model shouldn't
+# reload for any of that.  This stack lives and dies independently:
+#
+#   just vllm-up / vllm-down / vllm-logs / vllm-smoke     (from the repo root)
+#
+# Run it two ways:
+#   Same box as the app     app's LiteLLM reaches it at
+#                           INFERENCE_BASE_URL=http://host.docker.internal:8000/v1
+#                           (the app compose maps host-gateway for exactly this)
+#   Its own GPU box         clone the repo there, set the VLLM_* vars in .env,
+#                           `just vllm-up`; point the app box's
+#                           INFERENCE_BASE_URL=http://<gpu-box>:8000/v1
+#
+# Either way it's just an OpenAI-compatible endpoint — the same contract as a
+# campus inference server or a cloud API.  LiteLLM doesn't know the difference.
+#
+# NOTE for boxes that ran the old `gpu` profile: this project has its own
+# HF cache volume (almanac-vllm_hf-cache), so the first boot re-downloads the
+# model once.  Reclaim the old cache afterwards: docker volume rm almanac_hf-cache
+name: almanac-vllm
+
+services:
+  vllm:
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.24.0}
+    container_name: alm-vllm
+    command:
+      - "--model=${VLLM_MODEL}"
+      - "--served-model-name=${VLLM_SERVED_NAME}"
+      - "--max-model-len=${VLLM_MAX_MODEL_LEN}"
+      - "--gpu-memory-utilization=${VLLM_GPU_MEM_UTIL}"
+      - "--tensor-parallel-size=${VLLM_TP_SIZE}"
+      - "--port=8000"
+      # Tool (function) calling — REQUIRED for coding harnesses (opencode) and
+      # for LibreChat agent tools.  `hermes` is the parser for the Qwen 2.5
+      # family; other families need their own (llama3_json, mistral, ...) —
+      # see vLLM docs "Tool Calling".  Serving a model with no parser support?
+      # Remove these two lines.
+      - "--enable-auto-tool-choice"
+      - "--tool-call-parser=${VLLM_TOOL_PARSER:-hermes}"
+    environment:
+      HUGGING_FACE_HUB_TOKEN: "${HF_TOKEN:-}"
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    ports:
+      - "${VLLM_PORT:-8000}:8000"
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: ${GPU_COUNT:-1}
+              capabilities: ["gpu"]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 40
+      start_period: 600s
+    restart: unless-stopped
+
+volumes:
+  hf-cache:
