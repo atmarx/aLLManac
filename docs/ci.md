@@ -77,6 +77,21 @@ The contract works by hand, too:
 ssh deploy-box 'cd /opt/almanac && just sync && just deploy'
 ```
 
+## SBOMs for infosec
+
+`just sbom` writes an SPDX JSON per image (both stacks) to `sbom/` plus a
+tarball to hand over — images already on the box scan from the daemon in
+seconds; absent ones stream from the registry without polluting the daemon.
+SBOMs change when the **pins** change, not per deploy, so it's not part of
+`just deploy` — run it at pin-bump time (and generate the vLLM one on the GPU
+box, where the image already lives, unless you enjoy multi-GB registry
+streams).  If your org wants it in the pipeline anyway, it's one more line in
+the wrapper:
+
+```bash
+ssh deploy-box 'cd /opt/almanac && just sbom'
+```
+
 ## Kubernetes / Azure Container Apps / whatever
 
 The stack is plain Compose — every image is upstream, all state is in named

@@ -10,6 +10,8 @@ compose := "docker compose"
 # The vLLM stack is separate on purpose (model stays loaded across app
 # deploys).  --project-directory . makes it share the root .env.
 vllm := "docker compose --project-directory . -f vllm/compose.yml"
+# SBOM generator — pinned like everything else:
+syft := "anchore/syft:v1.46.0@sha256:473a60e3a58e29aca3aedb3e99e787bb4ef273917e44d10fcbea4330a07320bb"
 
 # List recipes
 default:
@@ -110,6 +112,51 @@ smoke:
 ps:
     {{compose}} ps
     @{{vllm}} ps 2>/dev/null || true
+
+# SBOMs (SPDX JSON) for every image in both stacks — to have on file with
+# infosec.  Images already on this box scan from the daemon (fast, no pull);
+# absent ones stream from the registry WITHOUT touching the daemon (the vLLM
+# image is many GB — generate its SBOM on the GPU box, or budget the stream).
+# Rerun at pin-bump time; artifacts land in sbom/ (gitignored) + a tarball.
+sbom:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rev=$(git describe --always --dirty)
+    stamp=$(date -u +%Y-%m-%d)
+    outdir="sbom/${stamp}-${rev}"
+    mkdir -p "$outdir"
+    images=$( (COMPOSE_PROFILES=edge,workbench {{compose}} config --images; \
+               {{vllm}} config --images) | sort -u )
+    {
+        echo "aLLManac SBOM manifest"
+        echo "generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)   git: ${rev}"
+        echo
+    } > "$outdir/MANIFEST.txt"
+    for img in $images; do
+        safe=$(echo "$img" | tr '/:@' '___')
+        if docker image inspect "$img" >/dev/null 2>&1; then
+            src="$img"; how="daemon"
+            digest=$(docker image inspect --format '{{{{if .RepoDigests}}{{{{index .RepoDigests 0}}{{{{end}}' "$img")
+        else
+            src="registry:$img"; how="registry"
+            digest="(digest recorded inside the SBOM)"
+        fi
+        echo "scanning [$how]  $img"
+        if docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$PWD/$outdir":/out \
+              {{syft}} scan "$src" -o spdx-json=/out/"$safe".spdx.json -q; then
+            echo "  $img  [$how]  $digest" >> "$outdir/MANIFEST.txt"
+        else
+            # e.g. the locally-built edge image on a box that never built it
+            echo "  $img  [SKIPPED — not local, not fetchable]" >> "$outdir/MANIFEST.txt"
+            echo "  ...skipped (not local, not fetchable)"
+        fi
+    done
+    tar czf "sbom/almanac-sbom-${stamp}-${rev}.tar.gz" -C sbom "${stamp}-${rev}"
+    echo
+    cat "$outdir/MANIFEST.txt"
+    echo "hand infosec: sbom/almanac-sbom-${stamp}-${rev}.tar.gz"
 
 # ---- Local inference (its own stack: vllm/compose.yml) -----------------------
 # Separate so the model stays loaded while the app stack deploys/bounces.

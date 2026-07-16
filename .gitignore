@@ -1,6 +1,10 @@
 # Real credentials — never in git
 .env
 
+# SBOM artifacts (just sbom) — generated per pin-set, handed to infosec,
+# too big and too derivative for git
+sbom/
+
 # Editor / OS noise
 .DS_Store
 *.swp
