@@ -39,6 +39,13 @@ fileConfig:
       fileSizeLimit: 25    # MB per file
       totalSizeLimit: 100  # MB per request
 
+# LibreChat's SSRF guard blocks private hosts for MCP by default —
+# allowedAddresses exempts our one in-network service (exact host:port)
+# while leaving the default posture intact for everything else:
+mcpSettings:
+  allowedAddresses:
+    - "usage-mcp:8080"
+
 # Usage stats as chat tools (the usage-mcp service in compose.yml).  The two
 # {{placeholders}} are LibreChat's dynamic user fields: every tool call
 # carries WHO IS ASKING (email) and WHETHER THEY'RE FACULTY (role) as trusted
