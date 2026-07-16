@@ -39,6 +39,23 @@ fileConfig:
       fileSizeLimit: 25    # MB per file
       totalSizeLimit: 100  # MB per request
 
+# Usage stats as chat tools (the usage-mcp service in compose.yml).  The two
+# {{placeholders}} are LibreChat's dynamic user fields: every tool call
+# carries WHO IS ASKING (email) and WHETHER THEY'RE FACULTY (role) as trusted
+# headers — the service scopes every answer by them, so students only ever
+# see themselves and faculty see their own course.  Identity is never a tool
+# argument.  The bearer token proves the calls come from LibreChat itself.
+# Attach these tools to an agent (e.g. a marketplace "Almanac Usage" agent —
+# the admin guide has the recipe) and "what did I burn this week?" just works.
+mcpServers:
+  almanac-usage:
+    type: streamable-http
+    url: http://usage-mcp:8080/mcp
+    headers:
+      Authorization: "Bearer ${USAGE_MCP_TOKEN}"
+      X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
+      X-User-Role: "{{LIBRECHAT_USER_ROLE}}"
+
 endpoints:
   # Campus models, routed + metered by LiteLLM.  One endpoint, every backend —
   # which GPU (or cloud) actually serves it is LiteLLM's business.

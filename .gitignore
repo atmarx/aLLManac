@@ -1,6 +1,10 @@
 # Real credentials — never in git
 .env
 
+# The live roster (student emails = deployment data, not code).  The example
+# ships in git; first `just up` copies it into place.
+usage-mcp/roster.yaml
+
 # SBOM artifacts (just sbom) — generated per pin-set, handed to infosec,
 # too big and too derivative for git
 sbom/

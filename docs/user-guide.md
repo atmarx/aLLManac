@@ -144,6 +144,10 @@ harness in Part 4.
   is retired and a new one minted in about a minute, no ceremony.
 - If you hit your budget, requests start failing with a budget-exceeded
   error.  That's a conversation, not a punishment — ask for a bump.
+- **Where do I stand?**  Ask the chat.  The **Almanac Usage** agent
+  answers "how much have I used this week?" with your real numbers —
+  chat and API keys combined, tokens and requests (campus models don't
+  bill dollars).  Only ever yours; nobody else's.
 
 The key works with **any OpenAI-compatible tool** pointed at the campus
 gateway URL.  Which brings us to —
@@ -251,11 +255,15 @@ tools, and the admin panel (`:3082`).
 - **Peer review via the marketplace.**  Teams share final agents to
   `engr301-all` as Viewer; classmates stress-test each other's work.  You
   promote the best.
-- **Watching the ledger.**  Month-to-date usage rolls up by course owner
-  tag, and every chat request is attributed to the student who made it.
-  What you can see directly vs. what to ask the admin for is laid out in
-  the [admin guide](admin-guide.md#faculty-analytics--what-you-can-see) —
-  short version: a read-only dashboard login is one invitation link away.
+- **Watching the ledger.**  Ask the **Almanac Usage** agent: "how's
+  engr301 tracking this month?" — or the week-before-deadline favorite,
+  "who hasn't started yet?"  Totals, per-student activity, and the model
+  mix, scoped to exactly your course, in the same chat window.  (Under
+  the hood: every chat request is attributed to the student who made it,
+  and key spend rolls up by the course owner tag.)  Want raw dashboards
+  instead?  A read-only LiteLLM login is one invitation link away — the
+  [admin guide](admin-guide.md#faculty-analytics--what-you-can-see) lays
+  out both paths.
 - **Term end.**  Ask the admin to sweep the course's keys.  Agents keep;
   keys retire.
 

@@ -1,0 +1,33 @@
+# Who can see what, for the usage tools in chat.
+#
+# Copied to roster.yaml on first `just up` — roster.yaml itself is gitignored,
+# because on a real campus it's a list of student emails, and those don't
+# belong in git.  Edits to roster.yaml are picked up live; no restart.
+#
+# courses.<slug>:  the slug is the SAME owner slug you mint keys with
+#   (`just key <user> <slug>`), so vAPI-key spend rolls up to the course.
+#
+#   faculty:   who may pull this course's rollup.  They also need the
+#              `faculty` realm role (that's what makes them ADMIN in chat) —
+#              this list narrows WHICH courses an admin sees.
+#   students:  emails exactly as people sign in (Keycloak now, Globus later).
+#              Chat usage joins on these, and they power the "who hasn't
+#              started yet" answer — no roster, no anti-join.
+#   aliases:   only needed when a vAPI key was minted under a user_id that
+#              is NOT the email (email -> [user_ids]).  Mint keys with the
+#              email as the user — `just key amaya@northwinds.edu engr301` —
+#              and you never touch this.
+courses:
+  engr301:
+    name: "ENGR 301 — Engineering Design"
+    faculty:
+      - prof.vex@northwinds.edu
+    students:
+      - amaya@northwinds.edu
+      - bram@northwinds.edu
+    aliases:
+      amaya@northwinds.edu: [stu.amaya]
+      bram@northwinds.edu: [stu.bram]
+
+# Platform folks who may pull EVERY course's rollup:
+admins: []

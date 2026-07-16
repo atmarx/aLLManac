@@ -189,6 +189,39 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # ---- Usage stats, served back into the chat (MCP) ---------------------------
+  # "How much have I used?" / "Who in my course hasn't started?" — answered in
+  # chat instead of a second dashboard login.  LibreChat injects WHO IS ASKING
+  # as headers ({{LIBRECHAT_USER_EMAIL}} / {{LIBRECHAT_USER_ROLE}} in
+  # librechat.yaml) and proves itself with USAGE_MCP_TOKEN; identity is never
+  # a tool argument.  The service reads the ledger through usage_ro, a
+  # SELECT-only role `just up` provisions — the master key never enters it.
+  # Course scoping lives in usage-mcp/roster.yaml (gitignored; edit live).
+  # The 127.0.0.1 bind exists for `just smoke` — nothing off-box reaches it.
+  usage-mcp:
+    build: ./usage-mcp
+    container_name: alm-usage-mcp
+    environment:
+      USAGE_MCP_TOKEN: "${USAGE_MCP_TOKEN}"
+      USAGE_DB_PASSWORD: "${USAGE_DB_PASSWORD}"
+    volumes:
+      - ./usage-mcp/roster.yaml:/app/roster.yaml:ro
+    ports:
+      - "127.0.0.1:${USAGE_MCP_PORT:-8090}:8080"
+    depends_on:
+      litellm-db:
+        condition: service_healthy
+    healthcheck:
+      # 200 only when the DB answers through usage_ro — a missing role reads
+      # as unhealthy here and as a FAIL in `just smoke`, never as silence.
+      # (urlopen raises on 503/refused -> nonzero exit -> unhealthy.)
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
   # ---- Identity: Keycloak OIDC — mocked campus groups now, Globus later -----
   keycloak-db:
     image: postgres:16-alpine

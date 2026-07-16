@@ -197,11 +197,12 @@ pinned build:
 
 | Want | Free? | How |
 |---|---|---|
+| Faculty asks "how's my course doing?" **in chat** | ✓ | the usage tools — see "Usage in the chat" below.  Scoped to their course, self-serve, no extra login |
 | Course rollup, month-to-date | ✓ | `just spend` (owner tags) — admin-run |
 | Faculty logs into the LiteLLM UI | ✓ | **invitation link** (email + password): `just invite prof@x.edu` |
 | Faculty sees *their own* keys/usage | ✓ | invite with role `internal_user` |
 | Faculty sees *everything*, read-only | ✓ | invite with role `proxy_admin_viewer` (default of `just invite`) |
-| Faculty sees *exactly their course*, self-serve | ✗ **Enterprise** | the team-admin role is license-walled (`team/member_add` with `role: admin` → 403) |
+| Faculty sees exactly their course *in the LiteLLM UI*, self-serve | ✗ **Enterprise** | the team-admin role is license-walled (`team/member_add` with `role: admin` → 403) |
 | Faculty logs in via campus SSO | ✗ effectively Enterprise | UI SSO is free only up to **5 total DB users** — the counter is every row in the user table, so one class roster blows it |
 
 ```bash
@@ -212,14 +213,16 @@ just invite ta.jones@northwinds.edu internal_user      # own usage only
 Each prints a one-time onboarding link (7-day expiry) where they set a
 password.
 
-**The recommended shape for a department:** courses are **owner tags**
-(rollups via `just spend`, shared by the admin or a trusted-faculty
-`proxy_admin_viewer` login).  LiteLLM **teams** work in OSS (creation,
-budgets, `team_id` on keys — all free) and add structure if you want it,
-but nobody below proxy-admin can hold a team-scoped admin view without a
-license — so don't promise faculty "you'll see only your course,
-self-serve" unless you're buying Enterprise.  Trusted-viewer sees all
-courses; that's the trade, stated plainly.
+**The recommended shape for a department:** courses are **owner tags**,
+and faculty's front door is the **chat itself** — the usage tools answer
+"how's my course tracking?" and "who hasn't started yet?" scoped to
+exactly their course, license-free (next section).  The LiteLLM UI stays
+what it's good at: the admin's raw ledger, plus `proxy_admin_viewer`
+invites for faculty who want dashboards — knowing trusted-viewer sees
+ALL courses.  LiteLLM **teams** still work in OSS (creation, budgets,
+`team_id` on keys — all free), but nobody below proxy-admin holds a
+team-scoped admin view in that UI without Enterprise; the chat tools are
+how we sidestep that wall instead of paying it.
 
 ### Spend mechanics (so you don't chase ghosts)
 
@@ -236,6 +239,89 @@ notes first — behavior moves between minors (the very next release after
 our pin tightened which key parameters non-admins may set).  Then: edit
 pin → deploy → verify (`just smoke`, mint a test key, check a spend row) →
 commit.  Same discipline as every other image in the stack.
+
+---
+
+## Usage in the chat (usage-mcp)
+
+The friendliest analytics surface isn't a dashboard — it's the chat the
+class already lives in.  The `usage-mcp` service serves LiteLLM's ledger
+back into LibreChat as three tools:
+
+| Tool | Who can call it | Answers |
+|---|---|---|
+| `my_usage` | everyone | "What did I burn this week?" — chat + API keys, tokens/requests/models |
+| `course_usage` | faculty of that course, admins | totals, per-student table, **who hasn't started yet**, model mix |
+| `list_courses` | everyone | what the caller is allowed to see |
+
+No LiteLLM login, no Enterprise license, no fourth console.  Students
+only ever see themselves; faculty see the courses the roster grants them.
+
+### How it trusts (60 seconds)
+
+LibreChat connects per user and stamps two headers on every tool call —
+who is asking (`{{LIBRECHAT_USER_EMAIL}}`) and whether they're faculty
+(`{{LIBRECHAT_USER_ROLE}}`) — plus a bearer token (`USAGE_MCP_TOKEN`)
+proving the call comes from LibreChat at all.  **Identity is never a tool
+argument**: a prompt can pick the date range, never whose data comes
+back.  The service reads the ledger through `usage_ro`, a SELECT-only
+Postgres role `just up` provisions — the LiteLLM master key never enters
+the container.  It listens on the compose network plus a 127.0.0.1 bind
+for `just smoke`; nothing off-box reaches it.
+
+### The roster
+
+Course scoping lives in `usage-mcp/roster.yaml` on the box — gitignored,
+because a student roster is deployment data, not code.  First `just up`
+seeds it from the example; edits after that are picked up live:
+
+```yaml
+courses:
+  engr301:
+    name: "ENGR 301 — Engineering Design"
+    faculty: [prof.vex@northwinds.edu]
+    students: [amaya@northwinds.edu, bram@northwinds.edu]
+admins: []          # platform folks who may pull EVERY course
+```
+
+- The course slug is the SAME owner slug you mint keys with
+  (`just key ... engr301`) — that's what folds vAPI-key spend into the
+  course rollup.
+- `students:` powers both the chat-usage join and the "who hasn't
+  started yet" answer.  No roster, no anti-join.
+- Mint keys with the person's **sign-in email** as the user
+  (`just key amaya@northwinds.edu engr301`) and their chat + key usage
+  join automatically.  A key minted under any other user_id needs an
+  `aliases:` entry (email → `[user_ids]`) to fold back onto the student.
+- Faculty need BOTH the `faculty` realm role (that's what makes the role
+  header say ADMIN) and a roster listing (that's what narrows it to
+  *their* course).
+
+### The "Almanac Usage" agent (one-time, two minutes)
+
+The tools exist as soon as the stack is up; an agent is how the class
+meets them.  From any faculty/admin account:
+
+1. Chat → **Agents** → new agent, name it **Almanac Usage**.
+2. Model: `almanac-chat` (it must be tool-capable — this is where the
+   hermes tool parser earns its keep).
+3. Instructions — paste:
+
+   > You are the aLLManac usage assistant.  Answer questions about AI
+   > usage on this platform by calling your tools — never estimate or
+   > invent numbers.  Use my_usage for personal questions and
+   > course_usage for course-wide ones (faculty only — the service
+   > enforces this; if it declines, relay that gracefully).  Call
+   > list_courses when unsure of a course slug.  Report tokens and
+   > requests as the real measure — spend shows $0 for campus-hosted
+   > models.  Numbers trail live traffic by about ten seconds.
+
+4. Add tools → pick the three **almanac-usage** MCP tools.
+5. Share it to everyone (or to course groups) — the marketplace makes it
+   discoverable.
+
+The first custom GPT students meet is a live demo of exactly what
+they're about to build.  The platform demos itself.
 
 ---
 
@@ -262,10 +348,12 @@ docker exec alm-vectordb    pg_dump -U rag      vectordb > vectordb.sql
 docker exec alm-mongo       mongodump --archive           > mongo.archive
 ```
 
-And the two facts that outrank everything: **`.env` is not in git** (it
-holds every secret — back it up separately, permissions tight), and
-**`CREDS_KEY`/`CREDS_IV` are pinned for life** — restore a Mongo backup
-with a different pair and every stored key decrypts to garbage.
+And the facts that outrank everything: **`.env` is not in git** (it
+holds every secret — back it up separately, permissions tight, and
+`usage-mcp/roster.yaml` deserves the same ride: also gitignored, also
+on-disk), and **`CREDS_KEY`/`CREDS_IV` are pinned for life** — restore a
+Mongo backup with a different pair and every stored key decrypts to
+garbage.
 
 ---
 
@@ -282,3 +370,8 @@ with a different pair and every stored key decrypts to garbage.
 | Users suddenly get "invalid key provided" | `CREDS_KEY`/`CREDS_IV` changed on a live instance → restore the old pair if you have it; otherwise users re-save keys |
 | LiteLLM UI SSO returns 403 about ">5 users" | The free-tier SSO wall (counts **all** DB users) → use `just invite` (email+password), or license |
 | A key 403s with a license message | You've touched an Enterprise feature (top-level `tags`, `/key/regenerate`, team `role: admin`) → the OSS paths in this guide |
+| Usage tools missing from the agent-builder tool list | usage-mcp down or the mcpServers block/token mismatched → `just smoke`, then compare `USAGE_MCP_TOKEN` in .env against librechat.yaml's header |
+| Usage tool answers "couldn't tell who's asking" | The call didn't come through LibreChat's per-user connection (or placeholders didn't resolve) → re-login; check the two `{{...}}` headers in librechat.yaml |
+| `usage-mcp (stats)` FAILs in smoke / health says db unreachable | The `usage_ro` role is missing (first boot on an old checkout) → `just usage-role` |
+| Course rollup misses a student's key usage | Key minted under a user_id that isn't their email → add an `aliases:` entry in roster.yaml, or re-mint with the email |
+| Faculty gets "not listed as faculty for..." | They're ADMIN (realm role) but not in that course's `faculty:` list → edit roster.yaml (live, no restart) |

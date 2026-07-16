@@ -54,6 +54,8 @@ secrets:
     fill RAG_DB_PASSWORD      "$(openssl rand -hex 16)"
     fill OPENID_SESSION_SECRET "$(openssl rand -hex 32)"
     fill ADMIN_PANEL_SESSION_SECRET "$(openssl rand -hex 32)"
+    fill USAGE_MCP_TOKEN      "$(openssl rand -hex 32)"
+    fill USAGE_DB_PASSWORD    "$(openssl rand -hex 16)"
     fill KC_ADMIN_PASSWORD    "$(openssl rand -hex 12)"
     fill KC_DB_PASSWORD       "$(openssl rand -hex 16)"
     # Fixed-value vars introduced after older .envs were created — appended if
@@ -66,8 +68,42 @@ secrets:
     echo "instance or every user's saved key becomes undecryptable."
 
 # Bring the stack up (profiles come from COMPOSE_PROFILES in .env)
-up:
+up: _roster && usage-role
     {{compose}} up -d --remove-orphans
+
+# The live roster is deployment data (student emails) — gitignored, seeded
+# from the example on first up, edited in place after (picked up live):
+_roster:
+    @test -f usage-mcp/roster.yaml || (cp usage-mcp/roster.example.yaml usage-mcp/roster.yaml \
+      && echo "usage-mcp/roster.yaml created from the example — put your real courses in it")
+
+# The usage service reads the ledger through usage_ro — the master key never
+# enters that container.  USAGE_DB_PASSWORD is hex, so inlining is quote-safe.
+# Provision usage_ro, the SELECT-only ledger role (idempotent; rides `just up`)
+usage-role:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "${USAGE_DB_PASSWORD:-}" ]; then
+        echo "usage-role: USAGE_DB_PASSWORD not in .env yet — run: just secrets"
+        exit 0
+    fi
+    # </dev/null matters: CI pipes this whole deploy over ssh as a heredoc,
+    # and a bare `exec -T` would eat the remaining script as its stdin
+    # (the psql below is safe — its stdin IS the SQL heredoc):
+    for i in $(seq 1 18); do
+        {{compose}} exec -T litellm-db pg_isready -U litellm -q </dev/null 2>/dev/null && break
+        sleep 5
+    done
+    {{compose}} exec -T litellm-db psql -q -U litellm -d litellm <<SQL
+    SELECT 'CREATE ROLE usage_ro LOGIN'
+      WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'usage_ro') \gexec
+    ALTER ROLE usage_ro LOGIN PASSWORD '${USAGE_DB_PASSWORD}';
+    GRANT CONNECT ON DATABASE litellm TO usage_ro;
+    GRANT USAGE ON SCHEMA public TO usage_ro;
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO usage_ro;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO usage_ro;
+    SQL
+    echo "usage_ro — provisioned (SELECT-only on the ledger)"
 
 # Stop the stack (data survives)
 down:
@@ -119,6 +155,7 @@ smoke:
     check "librechat (UI)"     "http://localhost:${CHAT_PORT:-3080}/"
     check "admin panel"        "http://localhost:${ADMIN_PANEL_PORT:-3081}/"
     check "litellm (gateway)"  "http://localhost:${GATEWAY_PORT:-4000}/health/liveliness"
+    check "usage-mcp (stats)"  "http://127.0.0.1:${USAGE_MCP_PORT:-8090}/health"
     check "keycloak (realm)"   "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-northwinds}/.well-known/openid-configuration"
     exit $fail
 
@@ -217,7 +254,10 @@ logs svc="":
 # spend tags so monthly usage rolls up to an owner — the join key the
 # accounting/FOCUS export will consume later.  No owner, no key.
 
-# Mint a per-user virtual key:  just key stu.amaya engr301 [budget]
+# Mint a per-user virtual key:  just key amaya@northwinds.edu engr301 [budget]
+# Use the person's SIGN-IN EMAIL as the user: that's what joins their key
+# spend to their chat spend in the usage tools (a non-email user_id needs an
+# aliases: entry in usage-mcp/roster.yaml to fold back onto the student).
 # NOTE: the owner tag lives in metadata.tags — top-level `tags` is a LiteLLM
 # ENTERPRISE feature (403 license wall).  metadata.tags rolls up to
 # /spend/tags in OSS, a beat behind realtime (spend logs aggregate async).

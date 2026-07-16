@@ -36,13 +36,14 @@ their class used this month. No data leaves campus unless you point it there.
                           Mongo · Meilisearch · RAG API · pgvector
 ```
 
-Six moving parts, each doing one job:
+Seven moving parts, each doing one job:
 
 | Part | Job |
 |---|---|
 | **LibreChat** | The chat UI. "Custom GPTs" are LibreChat **Agents**: a system prompt + knowledge files (RAG) + tools, shareable to a group with an **Editor** ACL — so the group co-edits ONE agent instead of emailing prompts around. |
 | **Admin panel** | LibreChat's bundled management GUI (`:3082`). The **local groups** agent sharing needs live here (Keycloak's groups claim doesn't reach LibreChat's ACLs — upstream [#10006](https://github.com/danny-avila/LibreChat/issues/10006)), plus role permissions and per-group config overrides. Faculty are ADMINs automatically (the realm's `faculty` role) and sign in with the same SSO button. |
 | **LiteLLM** | The gateway and **the ledger**. Every user gets a virtual API key with a budget; every request is metered. Models are routed here, so which GPU (or cloud) serves a request is nobody else's business. |
+| **usage-mcp** | The ledger, served back into the chat as tools: students ask their own usage, faculty ask their course's — no dashboard login, no Enterprise license. LibreChat stamps who's asking into trusted headers; the service reads through a SELECT-only DB role and scopes every answer by the roster (`usage-mcp/roster.yaml`). |
 | **Keycloak** | The front door. OIDC identity provider; ships with a mock campus realm (`northwinds`) — local demo accounts standing in for real campus groups. Later, it **brokers Globus** (or any SAML/OIDC IdP) without LibreChat changing at all. |
 | **vLLM** *(its own stack: `vllm/`)* | Local inference on this box's GPUs — deliberately a **separate compose project** (`just vllm-up`) so a loaded model survives app deploys. Optional — the gateway can just as easily point at a campus inference server or a cloud endpoint. |
 | **Mongo · Meili · pgvector · RAG API** | LibreChat's data plane: conversations, search, and embeddings for agent knowledge files. |
@@ -269,9 +270,10 @@ reload.)
 | Local models on your GPUs | **Real** — vLLM, its own stack (or any endpoint you point at) |
 | Per-user keys, budgets, metering | **Real** — LiteLLM virtual keys + spend |
 | Owner on every key | **Real** — enforced at mint (`just key`) |
-| Who-spent-what per student, in chat | **Real** — LibreChat stamps every request (`x-litellm-end-user-id`); spend rows carry the student |
+| Who-spent-what per student | **Real** — LibreChat stamps every request (`x-litellm-end-user-id`); spend rows carry the student |
+| Students ask their own usage, in chat | **Real** — the usage-mcp tools; self-scoped by construction (identity rides trusted headers, never tool arguments) |
 | Keys work in a real coding harness | **Real** — opencode: `just workbench <key>` on the box, same config on laptops |
-| Faculty see their course's usage | **Real, with a boundary** — owner-tag rollups + invite-link viewer accounts are free; per-team *self-serve* admin views are LiteLLM Enterprise (admin guide has the table) |
+| Faculty see their course's usage | **Real** — ask in chat: rollup, per-student activity, who-hasn't-started, roster-scoped to their course.  Raw dashboards stay one invite link away; the only wall left is per-team self-serve views *inside the LiteLLM UI* (Enterprise — admin guide has the table) |
 | SSO via campus identity | **Real** — Keycloak; Globus broker one toggle away |
 | SBOMs on file with infosec | **Real** — `just sbom`, SPDX per pinned image |
 | Group *sync* from rosters | **Not here** — share-groups are clicks in the admin panel; roster sync stays the platform's job |
