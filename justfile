@@ -115,11 +115,11 @@ ps:
     {{compose}} ps
     @{{vllm}} ps 2>/dev/null || true
 
-# SBOMs (SPDX JSON) for every image in both stacks — to have on file with
-# infosec.  Images already on this box scan from the daemon (fast, no pull);
-# absent ones stream from the registry WITHOUT touching the daemon (the vLLM
-# image is many GB — generate its SBOM on the GPU box, or budget the stream).
+# Images already on this box scan from the daemon (fast, no pull); absent
+# ones stream from the registry WITHOUT touching the daemon (the vLLM image
+# is many GB — generate its SBOM on the GPU box, or budget the stream).
 # Rerun at pin-bump time; artifacts land in sbom/ (gitignored) + a tarball.
+# SBOMs (SPDX JSON) for every image, both stacks — to file with infosec
 sbom:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -222,6 +222,26 @@ spend:
     @curl -sf "http://localhost:${GATEWAY_PORT:-4000}/spend/tags" \
       -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
       | python3 -m json.tool || echo "(older LiteLLM builds: use the admin UI -> Usage)"
+
+# Roles: proxy_admin_viewer = read-only everything (the usual faculty pick);
+# internal_user = own keys/usage only.  Email+password via a one-time link is
+# the FREE path — SSO into this UI is Enterprise past 5 total DB users.
+# Invite faculty into the LiteLLM UI:  just invite prof@x.edu [role]
+invite email role="proxy_admin_viewer":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    base="http://localhost:${GATEWAY_PORT:-4000}"
+    uid=$(curl -sf -X POST "$base/user/new" \
+      -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" -H "Content-Type: application/json" \
+      -d '{"user_email": "{{email}}", "user_role": "{{role}}", "auto_create_key": false}' \
+      | python3 -c "import sys,json; print(json.load(sys.stdin)['user_id'])")
+    inv=$(curl -sf -X POST "$base/invitation/new" \
+      -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" -H "Content-Type: application/json" \
+      -d "{\"user_id\": \"$uid\"}" \
+      | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+    echo "send {{email}} this link (expires in 7 days; they set a password there):"
+    echo "  http://${ALMANAC_HOST:-localhost}:${GATEWAY_PORT:-4000}/ui/onboarding?id=$inv"
+    echo "(edge profile: swap host for your GATEWAY_HOST)"
 
 # ---- Coding harness (opencode, profile: workbench) ----------------------------
 # Run-on-demand, never a daemon.  Proves a vAPI key end to end from inside the
