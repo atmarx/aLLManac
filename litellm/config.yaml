@@ -2,10 +2,10 @@
 # Chain: LibreChat -> LiteLLM (model_name) -> your inference (api_base).
 #
 # INFERENCE_BASE_URL decides where tokens come from (set in .env):
-#   http://vllm:8000/v1            local vLLM   (COMPOSE_PROFILES=gpu)
-#   http://gpu01.lab.edu:11434/v1  a campus Ollama box
-#   http://gpu02.lab.edu:8000/v1   a remote vLLM
-#   https://api.openai.com/v1      cloud, if you must (set INFERENCE_API_KEY)
+#   http://host.docker.internal:8000/v1   the vllm/ stack on this box (just vllm-up)
+#   http://gpu01.lab.edu:11434/v1         a campus Ollama box
+#   http://gpu02.lab.edu:8000/v1          a remote vLLM (e.g. the vllm/ stack there)
+#   https://api.openai.com/v1             cloud, if you must (set INFERENCE_API_KEY)
 #
 # INFERENCE_MODEL is "openai/<name the endpoint actually serves>" — the
 # VLLM_SERVED_NAME for the gpu profile, or the model tag for Ollama (e.g.

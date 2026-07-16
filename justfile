@@ -31,10 +31,15 @@ secrets:
     set -euo pipefail
     f=.env
     test -f "$f" || { echo "no .env — run: just setup"; exit 1; }
-    fill() {  # fill VAR VALUE — only if VAR is still a change-me placeholder
+    fill() {  # fill VAR VALUE — generate if placeholder, APPEND if the var is
+              # missing entirely (an .env older than the var), never touch a
+              # value that's set.  This is how old .envs migrate on deploy.
         if grep -q "^${1}=.*change-me" "$f"; then
             sed -i "s|^${1}=.*|${1}=${2}|" "$f"
             echo "  ${1}  — generated"
+        elif ! grep -q "^${1}=" "$f"; then
+            echo "${1}=${2}" >> "$f"
+            echo "  ${1}  — missing (new since this .env was created), added"
         else
             echo "  ${1}  — already set, left alone (pinned)"
         fi
@@ -51,6 +56,11 @@ secrets:
     fill ADMIN_PANEL_SESSION_SECRET "$(openssl rand -hex 32)"
     fill KC_ADMIN_PASSWORD    "$(openssl rand -hex 12)"
     fill KC_DB_PASSWORD       "$(openssl rand -hex 16)"
+    # Fixed-value vars introduced after older .envs were created — appended if
+    # missing, same never-touch rule.  Values mirror .env.example:
+    fill OPENID_ADMIN_ROLE                "faculty"
+    fill OPENID_ADMIN_ROLE_PARAMETER_PATH "realm_access.roles"
+    fill OPENID_ADMIN_ROLE_TOKEN_KIND     "access"
     echo
     echo "CREDS_KEY/CREDS_IV are now PINNED — never regenerate them on a live"
     echo "instance or every user's saved key becomes undecryptable."
@@ -77,8 +87,10 @@ pull:
 build:
     {{compose}} build
 
-# What CI runs on the box: refresh images, build, restart, verify
-deploy: pull build up smoke
+# What CI runs on the box: refresh images, build, complete .env, restart, verify
+# (`secrets` here is the .env migration path: vars introduced by an upgrade get
+# appended/generated; values you've set are never touched.)
+deploy: pull build secrets up smoke
 
 # Sync the checkout to origin/main (destructive to local edits — it's a deploy box)
 sync:
