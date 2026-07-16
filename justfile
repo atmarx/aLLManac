@@ -83,7 +83,12 @@ _roster:
 usage-role:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -z "${USAGE_DB_PASSWORD:-}" ]; then
+    # Read the password from the FILE, not the environment: dotenv-load
+    # snapshots .env when just starts, and on a first deploy `secrets`
+    # appends this var DURING the same `just deploy` run — the env var is
+    # stale-empty exactly when it matters most (ask pipeline #13).
+    pw=$(grep '^USAGE_DB_PASSWORD=' .env 2>/dev/null | head -1 | cut -d= -f2-)
+    if [ -z "$pw" ]; then
         echo "usage-role: USAGE_DB_PASSWORD not in .env yet — run: just secrets"
         exit 0
     fi
@@ -97,7 +102,7 @@ usage-role:
     {{compose}} exec -T litellm-db psql -q -U litellm -d litellm <<SQL
     SELECT 'CREATE ROLE usage_ro LOGIN'
       WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'usage_ro') \gexec
-    ALTER ROLE usage_ro LOGIN PASSWORD '${USAGE_DB_PASSWORD}';
+    ALTER ROLE usage_ro LOGIN PASSWORD '$pw';
     GRANT CONNECT ON DATABASE litellm TO usage_ro;
     GRANT USAGE ON SCHEMA public TO usage_ro;
     GRANT SELECT ON ALL TABLES IN SCHEMA public TO usage_ro;
