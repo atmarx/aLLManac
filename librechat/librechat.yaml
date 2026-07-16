@@ -8,6 +8,37 @@ cache: true
 registration:
   socialLogins: ["openid"]
 
+# Classroom permission posture.  This block seeds the default USER role (the
+# students) at startup; faculty arrive as ADMIN via OPENID_ADMIN_ROLE in .env
+# and get the full picker/marketplace controls that role carries.  Live edits
+# later happen in the admin panel (:3081), which overrides these seeds.
+#   - students can create agents and share them to people/groups — not
+#     instance-public; publishing to the whole class is the faculty's call
+#   - the people picker searches users + groups.  The groups here are
+#     LibreChat-LOCAL, managed in the admin panel — Keycloak's groups claim
+#     never reaches the ACL system in v0.8.7 (upstream librechat#10006)
+#   - the Agent Marketplace is ON: it's how the class discovers shared agents
+interface:
+  agents:
+    use: true
+    create: true
+    share: true
+    public: false
+  peoplePicker:
+    users: true
+    groups: true
+    roles: false
+  marketplace:
+    use: true
+
+# Course materials are PDFs and slide decks, not disk images — cap uploads:
+fileConfig:
+  endpoints:
+    default:
+      fileLimit: 10        # files per request
+      fileSizeLimit: 25    # MB per file
+      totalSizeLimit: 100  # MB per request
+
 endpoints:
   # Campus models, routed + metered by LiteLLM.  One endpoint, every backend —
   # which GPU (or cloud) actually serves it is LiteLLM's business.
@@ -15,6 +46,13 @@ endpoints:
     - name: "Almanac"
       apiKey: "${LITELLM_MASTER_KEY}"
       baseURL: "http://litellm:4000/v1"
+      # Every chat request carries WHO asked: LiteLLM reads this standard
+      # header with zero gateway config (verified against our pinned build)
+      # and writes the student into the spend row's end_user — per-student
+      # attribution even on this shared service key.  Non-ASCII emails arrive
+      # base64-encoded; campus addresses are ASCII in practice.
+      headers:
+        x-litellm-end-user-id: "{{LIBRECHAT_USER_EMAIL}}"
       models:
         default: ["almanac-chat"]
         fetch: true
@@ -25,5 +63,7 @@ endpoints:
   # Custom GPTs = LibreChat Agents.  These capabilities let faculty/students
   # attach knowledge files (RAG), tools, and actions to a shared agent — and an
   # Editor-ACL grant to a group lets the group co-edit ONE agent (the #1 want).
+  # Deliberately NO execute_code (no sandbox on campus) and NO web_search (no
+  # third-party search keys) — add them consciously if you stand those up.
   agents:
     capabilities: ["file_search", "tools", "actions", "artifacts"]

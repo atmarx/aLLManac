@@ -163,6 +163,32 @@ services:
     #   - "${ALMANAC_HOST}:host-gateway"
     restart: unless-stopped
 
+  # ---- LibreChat admin panel: local groups, roles, config overrides ----------
+  # The groups you SHARE AGENTS TO are LibreChat-local (or Entra) in v0.8.7 —
+  # the Keycloak groups claim does not create shareable principals (upstream
+  # librechat#10006 is open).  This panel is the official GUI for those local
+  # groups + per-role permissions.  Faculty land in it as ADMINs automatically
+  # (OPENID_ADMIN_ROLE maps the realm's `faculty` role) and sign in with the
+  # same SSO button.  Admin-facing — keep it off the public front door.
+  admin-panel:
+    image: ${ADMIN_PANEL_IMAGE:-registry.librechat.ai/clickhouse/librechat-admin-panel:latest@sha256:9a78851f84f448eab780ac658c4d17db51974c240492affc789a72d61e35f678}
+    container_name: alm-admin-panel
+    environment:
+      PORT: "3000"
+      SESSION_SECRET: "${ADMIN_PANEL_SESSION_SECRET}"
+      # Server-side path to LibreChat (in-network) vs the URL the BROWSER uses:
+      API_SERVER_URL: "http://librechat:3080"
+      VITE_API_BASE_URL: "${DOMAIN_CLIENT:-http://localhost:3080}"
+      # Plain-HTTP deployment shapes need a non-Secure session cookie or the
+      # SSO PKCE callback dies; harmless when TLS terminates in front:
+      SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"
+    ports:
+      - "${ADMIN_PANEL_PORT:-3081}:3000"
+    depends_on:
+      librechat:
+        condition: service_started
+    restart: unless-stopped
+
   # ---- Identity: Keycloak OIDC — mocked campus groups now, Globus later -----
   keycloak-db:
     image: postgres:16-alpine

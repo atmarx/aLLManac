@@ -41,6 +41,7 @@ Six moving parts, each doing one job:
 | Part | Job |
 |---|---|
 | **LibreChat** | The chat UI. "Custom GPTs" are LibreChat **Agents**: a system prompt + knowledge files (RAG) + tools, shareable to a group with an **Editor** ACL — so the group co-edits ONE agent instead of emailing prompts around. |
+| **Admin panel** | LibreChat's bundled management GUI (`:3081`). The **local groups** agent sharing needs live here (Keycloak's groups claim doesn't reach LibreChat's ACLs — upstream [#10006](https://github.com/danny-avila/LibreChat/issues/10006)), plus role permissions and per-group config overrides. Faculty are ADMINs automatically (the realm's `faculty` role) and sign in with the same SSO button. |
 | **LiteLLM** | The gateway and **the ledger**. Every user gets a virtual API key with a budget; every request is metered. Models are routed here, so which GPU (or cloud) serves a request is nobody else's business. |
 | **Keycloak** | The front door. OIDC identity provider; ships with a mock campus realm (`northwinds`) — local demo accounts standing in for real campus groups. Later, it **brokers Globus** (or any SAML/OIDC IdP) without LibreChat changing at all. |
 | **vLLM** *(its own stack: `vllm/`)* | Local inference on this box's GPUs — deliberately a **separate compose project** (`just vllm-up`) so a loaded model survives app deploys. Optional — the gateway can just as easily point at a campus inference server or a cloud endpoint. |
@@ -91,9 +92,9 @@ The three `.env` lines that matter:
   the **"LAN HTTPS"** block from [`.env.example`](.env.example) and you're
   done: `https://<box-ip>:8443/realms/northwinds`.
 
-Surfaces (direct-port mode): **LibreChat** `:3080` · **LiteLLM admin**
-`:4000/ui` (login = `LITELLM_MASTER_KEY`) · **Keycloak admin** `:8080`
-(`KC_ADMIN` / `KC_ADMIN_PASSWORD`).
+Surfaces (direct-port mode): **LibreChat** `:3080` · **admin panel** `:3081`
+(faculty SSO) · **LiteLLM admin** `:4000/ui` (login = `LITELLM_MASTER_KEY`) ·
+**Keycloak admin** `:8080` (`KC_ADMIN` / `KC_ADMIN_PASSWORD`).
 
 ### First boot: wire the OIDC client secret (one time)
 
@@ -114,12 +115,24 @@ Keycloak admin.
 
 The whole point is a **group co-editing one GPT**. Prove it:
 
-1. As `prof.vex`: create an **Agent**, give it instructions, attach a file.
-2. **Share** → grant `engr301-team-gust` the **Editor** role (not Viewer).
-3. Log in as `stu.amaya` → open the agent → confirm you can **edit its
+1. Log in once as each demo user (`prof.vex`, `stu.amaya`, `stu.bram`) —
+   LibreChat creates accounts at first login, and groups need accounts that
+   exist.
+2. As `prof.vex` (ADMIN automatically, via the `faculty` realm role): open
+   the **admin panel** (`:3081`, same SSO button) → Groups → create
+   `engr301-team-gust` with amaya + bram as members.  Why here and not
+   Keycloak?  Agent sharing uses **LibreChat-local groups** — the Keycloak
+   groups claim never reaches the ACL system in v0.8.7 (upstream
+   [#10006](https://github.com/danny-avila/LibreChat/issues/10006)).
+   Keycloak still owns *who you are*; the panel owns *who's in the share
+   dialog*.
+3. Still as `prof.vex`, back in the chat: create an **Agent**, give it
+   instructions, attach a file.  **Share** → find `engr301-team-gust` →
+   grant **Editor** (not Viewer).
+4. Log in as `stu.amaya` → open the agent → confirm you can **edit its
    instructions and knowledge**, not just chat with it.
 
-If step 3 works, the core promise is real.
+If step 4 works, the core promise is real.
 
 ---
 
@@ -238,12 +251,16 @@ reload.)
 | Thing | Status |
 |---|---|
 | Custom GPT = prompt + knowledge files | **Real** — LibreChat Agents + RAG |
-| Group co-edits ONE shared GPT | **Real** — Editor ACL to a group |
-| Local models on your GPUs | **Real** — vLLM (or any endpoint you point at) |
+| Group co-edits ONE shared GPT | **Real** — Editor ACL to a **local** group (admin panel; Keycloak-groups→ACL sync is upstream-open [#10006](https://github.com/danny-avila/LibreChat/issues/10006)) |
+| Local models on your GPUs | **Real** — vLLM, its own stack (or any endpoint you point at) |
 | Per-user keys, budgets, metering | **Real** — LiteLLM virtual keys + spend |
 | Owner on every key | **Real** — enforced at mint (`just key`) |
+| Who-spent-what per student, in chat | **Real** — LibreChat stamps every request (`x-litellm-end-user-id`); spend rows carry the student |
+| Keys work in a real coding harness | **Real** — opencode: `just workbench <key>` on the box, same config on laptops |
+| Faculty see their course's usage | **Real, with a boundary** — owner-tag rollups + invite-link viewer accounts are free; per-team *self-serve* admin views are LiteLLM Enterprise (admin guide has the table) |
 | SSO via campus identity | **Real** — Keycloak; Globus broker one toggle away |
-| Group *sync* from rosters | **Not here** — create groups in Keycloak admin (or wait for the platform) |
+| SBOMs on file with infosec | **Real** — `just sbom`, SPDX per pinned image |
+| Group *sync* from rosters | **Not here** — share-groups are clicks in the admin panel; roster sync stays the platform's job |
 | FOCUS/OpenChargeback billing export | **Not yet** — the owner tags are the hook it lands on |
 
 ---

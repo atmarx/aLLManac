@@ -48,6 +48,7 @@ secrets:
     fill MEILI_MASTER_KEY     "$(openssl rand -hex 16)"
     fill RAG_DB_PASSWORD      "$(openssl rand -hex 16)"
     fill OPENID_SESSION_SECRET "$(openssl rand -hex 32)"
+    fill ADMIN_PANEL_SESSION_SECRET "$(openssl rand -hex 32)"
     fill KC_ADMIN_PASSWORD    "$(openssl rand -hex 12)"
     fill KC_DB_PASSWORD       "$(openssl rand -hex 16)"
     echo
@@ -104,6 +105,7 @@ smoke:
     }
     echo "smoke:"
     check "librechat (UI)"     "http://localhost:${CHAT_PORT:-3080}/"
+    check "admin panel"        "http://localhost:${ADMIN_PANEL_PORT:-3081}/"
     check "litellm (gateway)"  "http://localhost:${GATEWAY_PORT:-4000}/health/liveliness"
     check "keycloak (realm)"   "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-northwinds}/.well-known/openid-configuration"
     exit $fail
