@@ -19,3 +19,7 @@ sbom/
 # Editor / OS noise
 .DS_Store
 *.swp
+
+# Python bytecode (py_compile checks, container mounts)
+__pycache__/
+*.pyc
