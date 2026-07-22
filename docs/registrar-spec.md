@@ -150,10 +150,15 @@ courses:
       course: 300                   # THE cap — semester, hard, chat + keys, one pool
       key_fuse: 5                   # per vAPI key hard ceiling (leak blast radius)
       advisory_weekly: 2            # what "on pace" means in usage tools; never blocks
-    models: [almanac-chat]          # what minted keys may call
+    college: cci                    # optional — unions the college's model pack in
+    models: [almanac-chat]          # what this course's keys + instance may call
     group: ""                       # globus backend: group UUID (course-create fills)
     students: []                    # file backend only; globus derives from the group
     aliases: {}                     # legacy non-email user_ids, passthrough to render
+
+colleges:                           # a college is a MODEL PACK, not an org chart —
+  cci:                              # the registrar needs their models, not their deans
+    models: [cci-llama]             # registered once at the gateway; see Model routing
 ```
 
 **TAs are instructors in v1.**  Both lists land as group managers with roster
@@ -368,6 +373,27 @@ campus models carry whatever we say they cost —
 `input_cost_per_token`/`output_cost_per_token` in the model block.  Price
 local tokens at an amortized GPU rate (or $0.— and let token counts be the
 measure) and every budget layer above works identically for both.
+
+**College endpoints — bring your own inference.**  A college with its own
+GPU box for its own courses is three knobs, no new machinery:
+
+1. **Register once** at the gateway: `cci-llama` → their api_base, their
+   key (a credential — escrow path `almanac/system/models/<name>`).
+2. **Scope by course**: the college's model pack unions into its courses'
+   `models:` lists (the `college:` field above); the reconciler stamps the
+   list onto the course **team and every key in it** — the gateway refuses
+   the model to anyone else, which is enforcement, not visibility.
+3. **Visibility is free** — tenancy already did it.  The instance's
+   endpoint renders its course's model list, so `cci-llama` *appears as an
+   option* only inside CCI courses' instances.  In the shared-instance
+   design this would have been another gating project; here it's a render
+   detail.
+
+The one policy question per college endpoint: **does their metal charge
+the pool?**  Price it $0 (their gift to their courses — the dollar cap
+protects the *paid* upstreams, token counts still meter) or price it real
+(chargeback recovery).  Per-model knob, college's call, registrar
+indifferent.
 
 ---
 
@@ -661,6 +687,9 @@ integration project) · per-message rate limits (budgets are the governor).
 - **Team budget enforcement mechanics** on our pin: blocking behavior at
   exhaustion, and that a service key + member keys drain one pool the way
   the rig says they should.
+- **Team/key model-list semantics** on our pin: that a key minted into a
+  team with `models:` set is refused models outside the list (the college
+  endpoint scoping depends on the refusal being gateway-side).
 - `soft_budget` + `budget_duration: 7d` in OSS for gateway-side pace alerts
   (the advisory layer works from the ledger regardless).
 - **Client-role admin mapping** on our LibreChat pin:
