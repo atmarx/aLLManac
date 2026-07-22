@@ -56,6 +56,7 @@ secrets:
     fill ADMIN_PANEL_SESSION_SECRET "$(openssl rand -hex 32)"
     fill USAGE_MCP_TOKEN      "$(openssl rand -hex 32)"
     fill USAGE_DB_PASSWORD    "$(openssl rand -hex 16)"
+    fill REGISTRAR_MCP_TOKEN  "$(openssl rand -hex 32)"
     fill KC_ADMIN_PASSWORD    "$(openssl rand -hex 12)"
     fill KC_DB_PASSWORD       "$(openssl rand -hex 16)"
     # Fixed-value vars introduced after older .envs were created — appended if
@@ -68,14 +69,24 @@ secrets:
     echo "instance or every user's saved key becomes undecryptable."
 
 # Bring the stack up (profiles come from COMPOSE_PROFILES in .env)
-up: _roster && usage-role
+up: _roster _fleet && usage-role bao-unseal
     {{compose}} up -d --remove-orphans
 
 # The live roster is deployment data (student emails) — gitignored, seeded
-# from the example on first up, edited in place after (picked up live):
+# from the example on first up.  It is a RENDER now: the registrar rewrites
+# it from registrar/courses.yaml on every roster change.
 _roster:
     @test -f usage-mcp/roster.yaml || (cp usage-mcp/roster.example.yaml usage-mcp/roster.yaml \
       && echo "usage-mcp/roster.yaml created from the example — put your real courses in it")
+
+# The fleet dir is all registrar-rendered (gitignored) — but compose parses
+# the include on EVERY invocation, so fresh clones need the stubs first:
+_fleet:
+    @mkdir -p fleet/caddy
+    @test -f fleet/fleet.yml || printf '# seeded by `just _fleet` — the registrar renders the real one\nservices: {}\n' > fleet/fleet.yml
+    @test -f fleet/caddy/_stub.caddy || printf '# seeded stub — keeps the edge import glob non-empty before the first course\n' > fleet/caddy/_stub.caddy
+    @test -f registrar/courses.yaml || (cp registrar/courses.example.yaml registrar/courses.yaml \
+      && echo "registrar/courses.yaml created from the example — the demo courses live there")
 
 # The usage service reads the ledger through usage_ro — the master key never
 # enters that container.  USAGE_DB_PASSWORD is hex, so inlining is quote-safe.
@@ -111,7 +122,7 @@ usage-role:
     echo "usage_ro — provisioned (SELECT-only on the ledger)"
 
 # Stop the stack (data survives)
-down:
+down: _fleet
     {{compose}} down
 
 # Stop + WIPE ALL DATA (volumes included) — asks first
@@ -121,11 +132,11 @@ nuke:
     [ "$a" = "yes" ] && {{compose}} down -v || echo "aborted"
 
 # Pull current images
-pull:
+pull: _fleet
     {{compose}} pull
 
 # Build local images (the edge Caddy, when that profile is on)
-build:
+build: _fleet
     {{compose}} build
 
 # What CI runs on the box: refresh images, build, complete .env, restart, verify
@@ -161,7 +172,36 @@ smoke:
     check "admin panel"        "http://localhost:${ADMIN_PANEL_PORT:-3081}/"
     check "litellm (gateway)"  "http://localhost:${GATEWAY_PORT:-4000}/health/liveliness"
     check "usage-mcp (stats)"  "http://127.0.0.1:${USAGE_MCP_PORT:-8090}/health"
+    check "registrar (rosters)" "http://127.0.0.1:${REGISTRAR_PORT:-8091}/health"
+    # sealed/uninitialized read as 200 here — a sealed bao is a boot state,
+    # not an outage (just bao-unseal / bao-init):
+    check "openbao (escrow)"   "http://127.0.0.1:${BAO_PORT:-8200}/v1/sys/health?uninitcode=200&sealedcode=200"
     check "keycloak (realm)"   "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-northwinds}/.well-known/openid-configuration"
+    exit $fail
+
+# Prove every rendered course instance answers through the edge (TLS + vhost)
+fleet-smoke:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    dom="${ALMANAC_DOMAIN:-localhost}"
+    port="${EDGE_HTTPS_PORT:-443}"
+    fail=0; found=0
+    for envf in fleet/*.env; do
+        [ -e "$envf" ] || continue
+        found=1
+        slug=$(basename "$envf" .env)
+        for host in "$slug.$dom" "$slug-admin.$dom"; do
+            ok=""
+            for i in $(seq 1 18); do
+                if curl -fsko /dev/null --max-time 10 --resolve "$host:$port:127.0.0.1" "https://$host:$port/"; then
+                    ok=1; break
+                fi
+                sleep 5
+            done
+            if [ -n "$ok" ]; then echo "  ok    $host"; else echo "  FAIL  $host"; fail=1; fi
+        done
+    done
+    [ "$found" = 1 ] || echo "  (no course instances rendered yet — just course ...)"
     exit $fail
 
 # Show container status
@@ -250,8 +290,115 @@ vllm-smoke:
     exit 1
 
 # Tail logs (all services, or one: just logs librechat)
-logs svc="":
+logs svc="": _fleet
     {{compose}} logs -f --tail=100 {{svc}}
+
+# ---- The course fleet & the escrow -------------------------------------------
+# One LibreChat instance per course (docs/registrar-spec.md).  The registrar
+# renders everything; these recipes own the docker lifecycle around it —
+# no docker socket ever enters a service container.
+
+# Create/update a course + provision everything:  team, service key, OIDC
+# client + door roles, instance render, vhost — then start it.  Idempotent;
+# extra flags pass through (e.g. --budget 1500 --ta ta@x.edu --college cci):
+#   just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@northwinds.edu
+course slug name +instructors:
+    {{compose}} exec -T registrar python course_admin.py create "{{slug}}" "{{name}}" {{instructors}} </dev/null
+    @{{just_executable()}} course-up
+
+# Start newly rendered instances + reload the edge's vhosts (graceful)
+course-up:
+    {{compose}} up -d --remove-orphans
+    @{{compose}} ps --status=running --services 2>/dev/null | grep -qx edge \
+      && {{compose}} exec -T edge caddy reload --config /etc/caddy/Caddyfile </dev/null \
+      && echo "edge reloaded" || echo "(edge not running — vhosts load when it starts)"
+
+# List the registrar's course records
+courses:
+    {{compose}} exec -T registrar python course_admin.py list </dev/null
+
+# ---- OpenBao: the escrow ------------------------------------------------------
+
+# The once-per-box ritual: init, unseal, audit device, kv2 mount, policy,
+# AppRole — then writes BAO_UNSEAL_KEY + the registrar's role creds into
+# .env (fill pattern: never touches set values) and prints the ROOT TOKEN
+# EXACTLY ONCE.  Store that token in a password manager; it is not saved.
+# Re-provisioning an already-initialized bao: BAO_ROOT_TOKEN=... just bao-init
+bao-init:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    b() {  # run bao inside the container; token via env when provisioning
+        {{compose}} exec -T ${ROOT_TOKEN:+-e BAO_TOKEN=$ROOT_TOKEN} openbao bao "$@" </dev/null
+    }
+    for i in $(seq 1 18); do
+        {{compose}} exec -T openbao bao status </dev/null >/dev/null 2>&1 && break
+        rc=$?; [ $rc -eq 2 ] && break   # sealed = answering
+        sleep 5
+    done
+    st=$({{compose}} exec -T openbao bao status -format=json </dev/null || true)
+    initialized=$(printf '%s' "$st" | python3 -c "import sys,json; print(json.load(sys.stdin).get('initialized'))" 2>/dev/null || echo "")
+    ROOT_TOKEN="${BAO_ROOT_TOKEN:-}"
+    fresh=""
+    if [ "$initialized" != "True" ] && [ "$initialized" != "true" ]; then
+        out=$({{compose}} exec -T openbao bao operator init -key-shares=1 -key-threshold=1 -format=json </dev/null)
+        UNSEAL_KEY=$(printf '%s' "$out" | python3 -c "import sys,json; print(json.load(sys.stdin)['unseal_keys_b64'][0])")
+        ROOT_TOKEN=$(printf '%s' "$out" | python3 -c "import sys,json; print(json.load(sys.stdin)['root_token'])")
+        {{compose}} exec -T openbao bao operator unseal "$UNSEAL_KEY" </dev/null >/dev/null
+        fresh=1
+    else
+        UNSEAL_KEY=$(grep '^BAO_UNSEAL_KEY=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)
+        if [ -z "$ROOT_TOKEN" ]; then
+            if grep -q '^BAO_REGISTRAR_ROLE_ID=.' .env 2>/dev/null; then
+                echo "bao-init: already initialized and provisioned — nothing to do"
+                exit 0
+            fi
+            echo "bao-init: already initialized but the registrar isn't provisioned."
+            echo "re-run with the root token:  BAO_ROOT_TOKEN=... just bao-init"
+            exit 1
+        fi
+    fi
+    b audit enable file file_path=/openbao/logs/audit.log 2>/dev/null || true
+    b secrets enable -path=almanac kv-v2 2>/dev/null || true
+    {{compose}} exec -T ${ROOT_TOKEN:+-e BAO_TOKEN=$ROOT_TOKEN} openbao bao policy write registrar - <<'POL'
+    path "almanac/data/courses/*"     { capabilities = ["create", "read", "update", "delete", "list"] }
+    path "almanac/metadata/courses/*" { capabilities = ["read", "delete", "list"] }
+    POL
+    b auth enable approle 2>/dev/null || true
+    b write auth/approle/role/registrar token_policies=registrar token_ttl=1h token_max_ttl=4h >/dev/null
+    ROLE_ID=$(b read -field=role_id auth/approle/role/registrar/role-id)
+    SECRET_ID=$(b write -f -field=secret_id auth/approle/role/registrar/secret-id)
+    fill() {  # same contract as `just secrets`: append if missing, never touch set values
+        if ! grep -q "^${1}=" .env; then echo "${1}=${2}" >> .env; echo "  ${1}  — written"
+        elif grep -q "^${1}=$" .env; then sed -i "s|^${1}=$|${1}=${2}|" .env; echo "  ${1}  — written"
+        else echo "  ${1}  — already set, left alone"; fi
+    }
+    [ -n "${UNSEAL_KEY:-}" ] && fill BAO_UNSEAL_KEY "$UNSEAL_KEY"
+    fill BAO_REGISTRAR_ROLE_ID "$ROLE_ID"
+    fill BAO_REGISTRAR_SECRET_ID "$SECRET_ID"
+    {{compose}} up -d registrar >/dev/null 2>&1 || true
+    echo
+    echo "the escrow is open: kv2 at almanac/, audit on, registrar AppRole provisioned"
+    if [ -n "$fresh" ]; then
+        echo
+        echo "ROOT TOKEN (shown ONCE — password manager, not .env):  $ROOT_TOKEN"
+    fi
+
+# Unseal after a restart (no-op when unsealed, uninitialized, or key unset).
+# Reads .env directly — same dotenv-snapshot trap usage-role documents.
+bao-unseal:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    key=$(grep '^BAO_UNSEAL_KEY=' .env 2>/dev/null | head -1 | cut -d= -f2-)
+    [ -z "$key" ] && exit 0
+    for i in $(seq 1 12); do
+        {{compose}} exec -T openbao bao status </dev/null >/dev/null 2>&1; rc=$?
+        [ $rc -eq 0 ] && exit 0          # already unsealed
+        [ $rc -eq 2 ] && break           # sealed and answering — unseal it
+        sleep 5
+    done
+    [ ${rc:-1} -eq 2 ] || exit 0         # not answering (no openbao yet) — leave it
+    {{compose}} exec -T openbao bao operator unseal "$key" </dev/null >/dev/null \
+      && echo "openbao — unsealed" || echo "openbao — unseal FAILED (check BAO_UNSEAL_KEY)"
 
 # ---- Keys & accounting -------------------------------------------------------
 # `owner` is REQUIRED: the org unit that answers for the spend (class/lab slug,

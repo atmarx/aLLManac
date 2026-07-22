@@ -2,8 +2,15 @@
 .env
 
 # The live roster (student emails = deployment data, not code).  The example
-# ships in git; first `just up` copies it into place.
+# ships in git; first `just up` copies it into place.  It is now a RENDER —
+# the registrar rewrites it from registrar/courses.yaml.
 usage-mcp/roster.yaml
+
+# The registrar's course records (real rosters = student emails) and the
+# whole rendered fleet (instance secrets live in fleet/*.env).  Stubs are
+# seeded by `just _fleet`; everything here is regenerable from courses.yaml.
+registrar/courses.yaml
+fleet/
 
 # SBOM artifacts (just sbom) — generated per pin-set, handed to infosec,
 # too big and too derivative for git

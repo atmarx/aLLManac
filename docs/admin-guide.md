@@ -325,6 +325,98 @@ they're about to build.  The platform demos itself.
 
 ---
 
+## The course fleet (the registrar)
+
+Every course gets **its own LibreChat instance** at its own hostname —
+`engr301-2026fall.<your-domain>` — with the teaching staff as its admins
+and the roster gating its door.  The full design (and every decision's
+why) is `docs/registrar-spec.md`; this is the operator's path.
+
+### Once per box: open the escrow
+
+```
+just bao-init
+```
+
+Initializes OpenBao, mounts the `almanac/` kv2 store, turns on the audit
+device, and provisions the registrar's AppRole.  It writes the unseal key
+and role credentials into `.env` and prints the **root token exactly
+once** — password manager, not a sticky note.  After any restart,
+`just up` re-unseals automatically.
+
+### Per course: one command
+
+```
+just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@northwinds.edu
+```
+
+That single act provisions everything the spec promises: the LiteLLM
+**team** (the course's $1000/term pool — override with `--budget`), the
+team-scoped **service key** (escrowed), the course's **OIDC client** with
+its `admin`/`member` door roles, staff grants, the **instance render**
+(chat + Meili + panel + vhost under `fleet/`), and finishes by starting
+the containers and gracefully reloading the edge.  Extra flags pass
+through: `--ta ta@x.edu`, `--college cci`, `--budget 1500`.  Run it twice
+— it's idempotent; that's the point.
+
+DNS: point `*.<ALMANAC_DOMAIN>` at the box once and every future course
+is covered (wildcard cert via the DNS-01 block in `caddy/Caddyfile` for
+real deployments; `*.localhost` needs nothing at all).
+
+### The roster is a chat message now
+
+Instructors don't get a console; they get their own chat.  In their
+course instance, the staff paste the class list at the **Course Setup**
+agent (recipe below) in any format their SIS exports:
+
+1. `roster_stage` — the registrar extracts the emails, shows exactly
+   what would change (adds/removes/ignored junk), changes **nothing**.
+2. `roster_apply` — executes that plan: every student gets the `member`
+   door role (no roster, no login), a minted vAPI key inside the course
+   team, and an escrow record in OpenBao.  Removals revoke and close.
+
+Students ask **`my_key`** in chat for their take-home key (opencode,
+laptops); **`rotate_my_key`** if it leaks — remaining budget carries
+over.  Staff get `roster_show` and `course_keys` (custody status — never
+the keys themselves; nobody but the owner ever sees a key).
+
+The `usage-mcp/roster.yaml` you used to edit by hand is now a **render**
+the registrar rewrites on every roster change — edit
+`registrar/courses.yaml` (or run `just course`) instead.
+
+### The "Course Setup" agent (one-time per course, two minutes)
+
+Same pattern as the usage agent, made from a staff account **in the
+course's instance**: new agent → model `almanac-chat` → add the
+**almanac-registrar** MCP tools (and the usage tools — one agent can hold
+both) → instructions:
+
+> You are this course's setup assistant.  When staff paste a class
+> roster, call roster_stage with the pasted text, show them the plan,
+> and only call roster_apply with the stage id after they confirm.
+> When students ask for their key, call my_key.  Never invent keys or
+> enrollment state — the tools are the truth.  If a tool declines,
+> relay its message; the service enforces who may do what.
+
+Share it to the course.  Enrollment is now a conversation.
+
+### What lives where (the fleet files)
+
+| Path | What | Who writes it |
+|---|---|---|
+| `registrar/courses.yaml` | course records, budgets, rosters | you + the registrar |
+| `fleet/fleet.yml` | the instances (compose include) | the registrar |
+| `fleet/<slug>.env` | instance secrets (CREDS pinned forever) | the registrar |
+| `fleet/<slug>.librechat.yaml` | instance config (X-Course lives here) | the registrar |
+| `fleet/caddy/<slug>.caddy` | the vhost pair | the registrar |
+| `usage-mcp/roster.yaml` | usage scoping (a render) | the registrar |
+
+All gitignored, all regenerable (`just` `course`/`reconcile`/`render`) —
+except the secrets in `fleet/<slug>.env`, which persist across renders
+for the same reason `CREDS_KEY` in `.env` does.
+
+---
+
 ## Backups
 
 The named volumes are the state.  What each holds, and how much it would
@@ -337,6 +429,8 @@ hurt:
 | `litellm-db` | Keys, budgets, **spend history** | High — the ledger |
 | `keycloak-db` | Users, roles, the Globus broker config | High — identity |
 | `meili-data` | Search index | Low — rebuilds itself |
+| `bao-data` | **The escrow** — every minted key, versioned | High — but online-snapshotable (`bao operator raft snapshot save`) |
+| `chat-<slug>-*` / `meili-<slug>-*` | each course instance's images/logs/search | Mongo holds the real data (one DB per course inside `mongo-data`) |
 | `hf-cache` (vllm stack) | Model weights | Low — re-downloads |
 
 Consistent dumps without stopping anything:

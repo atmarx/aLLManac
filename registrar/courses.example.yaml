@@ -1,0 +1,53 @@
+# The registrar's course records — copied to courses.yaml on first `just up`
+# (courses.yaml is gitignored: real rosters are student emails, and those
+# don't belong in git).  Operator-edited AND registrar-maintained — the
+# roster tools write `students:` back here (file backend), and `just course`
+# is the front door for new records.  Full story: docs/registrar-spec.md.
+#
+# budgets, the three layers (one pool, decided 2026-07-22):
+#   course           THE cap — per term, HARD, chat + vAPI keys drain it together
+#                    (enforced as the course's LiteLLM team budget)
+#   key_fuse         per-key ceiling — leak blast radius, not a pacing tool
+#   advisory_weekly  what "on pace" means in the usage tools; never blocks
+#
+# college:  unions that college's model pack into this course's models —
+#           a college is a MODEL PACK, not an org chart.
+
+courses:
+  engr301-2026fall:
+    name: "ENGR 301 — Engineering Design (Fall 2026)"
+    instructors:
+      - prof.vex@northwinds.edu
+    tas: []
+    budgets:
+      course: 1000
+      key_fuse: 5
+      advisory_weekly: 2
+    models: [almanac-chat]
+    group: ""            # globus backend (Phase 2): the managed group's UUID
+    students:
+      - amaya@northwinds.edu
+      - bram@northwinds.edu
+    aliases: {}
+
+  chem101-2026fall:
+    name: "CHEM 101 — General Chemistry (Fall 2026)"
+    instructors:
+      - prof.okoye@northwinds.edu
+    tas: []
+    budgets:
+      course: 1000
+      key_fuse: 5
+      advisory_weekly: 2
+    models: [almanac-chat]
+    group: ""
+    students:
+      - amaya@northwinds.edu     # enrolled in BOTH demo courses on purpose —
+      - divya@northwinds.edu     # the per-course key + wall test needs it
+    aliases: {}
+
+# colleges:
+#   cci:
+#     models: [cci-llama]        # their endpoint, registered once at the gateway
+
+admins: []                       # platform folks who may pull EVERY course's usage

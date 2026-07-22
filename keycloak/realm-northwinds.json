@@ -48,6 +48,26 @@
       "credentials": [{ "type": "password", "value": "Demo123!", "temporary": false }],
       "realmRoles": ["student"],
       "groups": ["/engr301-team-gust"]
+    },
+    {
+      "username": "prof.okoye",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "prof.okoye@northwinds.edu",
+      "firstName": "Adaeze",
+      "lastName": "Okoye",
+      "credentials": [{ "type": "password", "value": "Demo123!", "temporary": false }],
+      "realmRoles": ["faculty"]
+    },
+    {
+      "username": "stu.divya",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "divya@northwinds.edu",
+      "firstName": "Divya",
+      "lastName": "Raman",
+      "credentials": [{ "type": "password", "value": "Demo123!", "temporary": false }],
+      "realmRoles": ["student"]
     }
   ],
   "clients": [

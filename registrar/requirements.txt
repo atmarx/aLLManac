@@ -1,0 +1,4 @@
+# Pinned like everything else — bump deliberately: edit, rig-test, commit.
+fastmcp==3.2.4
+httpx==0.28.1
+PyYAML==6.0.3

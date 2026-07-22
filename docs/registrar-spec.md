@@ -147,7 +147,7 @@ courses:
       - prof.vex@northwinds.edu     # has two, and every course has TAs
     tas: []                         # same authority as instructors in v1 (see below)
     budgets:
-      course: 300                   # THE cap — semester, hard, chat + keys, one pool
+      course: 1000                  # THE cap — per term, hard, chat + keys, one pool
       key_fuse: 5                   # per vAPI key hard ceiling (leak blast radius)
       advisory_weekly: 2            # what "on pace" means in usage tools; never blocks
     college: cci                    # optional — unions the college's model pack in
@@ -681,25 +681,42 @@ integration project) · per-message rate limits (budgets are the governor).
 
 ## Verify at implementation
 
-- OpenBao static-seal support at our pin (else: `bao-unseal` recipe path).
+*Phase-1 rig (2026-07-22, this box, exact pins): two courses provisioned
+end-to-end — teams at $1000, service + student keys minted into teams and
+escrowed (kv2 + AppRole + audit live), instances up behind the edge with
+OIDC registered ("configured successfully"), vhosts serving, roster render
+live-reloaded by usage-mcp, smoke + fleet-smoke all green.  Items below
+marked ✓ closed there.*
+
+- ~~OpenBao static-seal~~ **RESOLVED**: skipped static seal; `just
+  bao-unseal` rides `just up` (rig-verified).  Raft snapshot round-trip
+  still owed in Phase 2's backup work.
 - `/key/update` live budget changes on our LiteLLM pin (else: budgets apply
   at next mint/rotation).
-- **Team budget enforcement mechanics** on our pin: blocking behavior at
-  exhaustion, and that a service key + member keys drain one pool the way
-  the rig says they should.
-- **Team/key model-list semantics** on our pin: that a key minted into a
-  team with `models:` set is refused models outside the list (the college
-  endpoint scoping depends on the refusal being gateway-side).
+- **Team budget enforcement at exhaustion** — pool-drain blocking still
+  owed (needs live inference spend); team create/update + membership ✓
+  rig-verified.
+- ~~Team/key model-list semantics~~ ✓ **rig-verified**: a team-minted
+  student key lists exactly the course models and gets **403** on anything
+  else — refusal is gateway-side, which is what college-endpoint scoping
+  needs.
+- **Fleet identity shape** ✓ rig-verified and documented (.env.example):
+  `KC_HOSTNAME=https://auth.<domain>` + `KC_PROXY_HEADERS=xforwarded` +
+  edge network alias + `NODE_EXTRA_CA_CERTS` (internal CA) — without them
+  instance OIDC discovery fails on issuer mismatch.
+- ~~Compose include mechanics~~ ✓ rig-verified on v5.1.4 (`include:` of
+  the rendered fleet.yml, stub-seeded by `just _fleet`).
 - `soft_budget` + `budget_duration: 7d` in OSS for gateway-side pace alerts
   (the advisory layer works from the ledger regardless).
 - **Client-role admin mapping** on our LibreChat pin:
   `OPENID_ADMIN_ROLE_PARAMETER_PATH=resource_access.<client>.roles` per
   instance (the realm-role variant is deployed and working; the client-role
   variant is the same machinery, one path deeper).
-- **`OPENID_REQUIRED_ROLE`** (login gate) at our pin, reading the same
-  client-role path — the enrollment-gates-login mechanism depends on it;
-  fallback is a Keycloak per-client auth-flow condition (heavier, same
-  effect).
+- ~~`OPENID_REQUIRED_ROLE` (login gate)~~ **VERIFIED 2026-07-22** against
+  LibreChat's docs: `OPENID_REQUIRED_ROLE` + `_PARAMETER_PATH` +
+  `_TOKEN_KIND` exist, Keycloak client-role shape documented (roles "can
+  be managed within the client or realm settings").  Browser click-test
+  still owed at our pin.
 - **Raft snapshot save/restore** round-trip on our OpenBao pin (single
   node) — the backup story leans on it.
 - **Meili per-course footprint** and the search-off knob; **admin panel**
@@ -716,7 +733,8 @@ integration project) · per-message rate limits (budgets are the governor).
 
 ## Open questions (Andrew's call)
 
-1. **Course cap default** — the semester pool needs a number at
-   `just course` time ($300 in the example is a placeholder).  Per-course
-   funding reality is yours to name; the registrar just enforces it.
-   (Last one standing.)
+*None.  All settled 2026-07-22:*
+
+16. *(2026-07-22, Andrew)* **Course cap default: $1000 per term.**
+    Overridable per course at `just course` time; the registrar enforces,
+    the funding reality decides.

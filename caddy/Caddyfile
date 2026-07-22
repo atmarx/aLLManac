@@ -44,3 +44,10 @@
     tls {$EDGE_TLS:internal}
     reverse_proxy litellm:4000
 }
+
+# The course fleet — one vhost pair per course, RENDERED by the registrar
+# into fleet/caddy/ (mounted here read-only).  `just course` finishes with a
+# graceful reload; the _stub file keeps the glob non-empty on fresh boxes.
+# Real-ACME deployments: wildcard DNS (*.{ALMANAC_DOMAIN}) + the DNS-01
+# azure block above = one wildcard cert covers every course.
+import /etc/caddy/fleet/*.caddy
