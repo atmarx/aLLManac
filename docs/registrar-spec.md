@@ -6,15 +6,17 @@ The usage-mcp service answered "what happened?"  The registrar answers "who's
 enrolled, and what do they hold?"  Same office, other window.
 
 **The shape in one paragraph:** an instructor is marked as teaching a course —
-that single act lets them sign into the chat they already use and paste their
-class roster at an agent.  The registrar (a new MCP service, sibling of
-usage-mcp) parses it, shows them exactly what it understood, and on their
-confirmation: syncs the course's **managed group** (Globus in production, the
-mock realm in demo), mints one **LiteLLM virtual key per student per course**,
-and **escrows every key in OpenBao**.  Students retrieve their own key by
-asking the chat.  Spend rolls up per-user-per-course through the ledger we
-already read.  There is no separate site to manage — for the instructor or
-anyone else.  **The chat is the admin surface.**
+that single act gives the course **its own LibreChat instance** at its own
+hostname, with the instructor as its admin, and lets them paste their class
+roster at an agent in the chat they already use.  The registrar (a new MCP
+service, sibling of usage-mcp) parses it, shows them exactly what it
+understood, and on their confirmation: syncs the course's **managed group**
+(Globus in production, the mock realm in demo), mints one **LiteLLM virtual
+key per student per course**, and **escrows every key in OpenBao**.  Students
+retrieve their own key by asking the chat.  Spend rolls up per-user-per-course
+through the one shared ledger.  There is no separate site to manage — for the
+instructor or anyone else.  **The chat is the admin surface**, and each course
+gets its own.
 
 This stands up fully separate from Root Cellar.  The original plan had the
 cellar's capability substrate minting these; that docking is deferred, not
@@ -29,7 +31,7 @@ in later without rework.
                         Browser (chat — the ONLY surface)
                            │
                      ┌─────┴─────┐   per-user trusted headers
-                     │ LibreChat │──────────────┬──────────────┐
+                     │LibreChat×N│──────────────┬──────────────┐
                      └─────┬─────┘              ▼              ▼
                            │              ┌──────────┐   ┌───────────┐
                     OIDC   │              │ usage-mcp│   │ registrar │ NEW
@@ -50,7 +52,8 @@ in later without rework.
 
 | Piece | Job | New? |
 |---|---|---|
-| **registrar** (`alm-registrar`) | Chat-facing MCP tools: roster staging/apply, key retrieval, budgets.  Contains the reconciler — the only code path that ever holds minting credentials. | yes |
+| **registrar** (`alm-registrar`) | Chat-facing MCP tools: roster staging/apply, key retrieval, budgets.  Contains the reconciler — the only code path that ever holds minting credentials — and the fleet renderer (instance env, Keycloak client, Caddy vhost). | yes |
+| **LibreChat fleet** (`alm-chat-<slug>`) | One instance per course — the course's own chat, panel, Meili, and Mongo *database*, at its own hostname.  Registrar-rendered, one loop rolls them all.  See **Tenancy**. | yes |
 | **OpenBao** (`alm-openbao`) | Key custody.  KV v2 mount `almanac/`, file audit device, AppRole for the registrar.  Custody, not metering. | yes |
 | **Groups backend** | Where the roster truth lives.  Driver interface: `file` (demo), `globus` (production — the managed-group pattern).  | yes |
 | **LiteLLM** | Mints and enforces the virtual keys; meters everything into the ledger.  Unchanged except key traffic. | no |
@@ -66,13 +69,19 @@ owner tag), which we already proved live.
 ## Identity & trust — the contract, extended not invented
 
 Identical to usage-mcp, because it survived contact with production and a
-red-team pass:
+red-team pass — plus one header tenancy makes possible:
 
 - LibreChat injects **`X-User-Email` / `X-User-Role`** per user into MCP
   headers, plus a bearer token (`REGISTRAR_MCP_TOKEN`) proving the call comes
   from the chat itself.
-- **Identity is never a tool argument.**  A prompt can pick a course slug;
-  it can never pick whose keys come back.
+- **`X-Course: <slug>`** — a *literal* the registrar renders into each
+  instance's config, so every MCP call carries which course's house it came
+  from.  Same trust class as the bearer token: students can't touch the
+  rendered YAML.  The header is **context, not authorization** — the roster
+  is still checked; the header just means nobody types a course slug again.
+- **Identity is never a tool argument — and now neither is the course.**
+  A prompt can pick a date range; it can never pick whose keys come back or
+  which course's door it's standing in.
 - Reachable only on the compose network + a `127.0.0.1` bind for smoke.
 - `mcpSettings.allowedAddresses` gets `registrar:8080` (the SSRF guard —
   ask pipeline #14 why we remember this).
@@ -103,6 +112,10 @@ syllabus.
   client **creates** group `almanac-engr301`, holds the admin role itself,
   and invites the instructor as group **manager**.  That manager role IS the
   "marked as instructor" act — it's what unlocks roster upload in chat.
+  The same act provisions the course's tenancy: LiteLLM team + service key,
+  Keycloak client (with the instructor mapped to its `admin` client role),
+  the instance render, and the Caddy vhost — finished with a graceful edge
+  reload.  One command, a course exists.
 - `roster_apply` reconciles membership: invites the missing (Globus emails
   them; they accept with the same campus identity Keycloak brokers for
   login), removes the dropped.  **The group is the roster truth.**
@@ -175,7 +188,9 @@ however it reaches), but the safety is structural:
 
 **Two-phase, always.**
 
-1. `roster_stage(course, roster_text)` → parses, diffs against current
+1. `roster_stage(roster_text)` → the course comes from the instance's
+   `X-Course` header, never an argument — an instructor can only stage the
+   course whose house they're standing in.  Parses, diffs against current
    membership, returns the exact plan — *adds (n), removes (n), unchanged
    (n), ignored lines (n, with samples)* — and a `stage_id` (15-min TTL,
    in-memory).  **Nothing changes.**
@@ -246,8 +261,11 @@ irrelevant).
 
 ## The escrow — OpenBao
 
-New compose service (`alm-openbao`, digest-pinned at implementation), file
-storage backend on its own volume, `127.0.0.1:8200` for the operator CLI.
+New compose service (`alm-openbao`, digest-pinned at implementation),
+**integrated (raft) storage** on its own volume — single node, but raft is
+the backend with the online snapshot API
+(`bao operator raft snapshot save`), and the one-VM backup story below
+leans on it.  `127.0.0.1:8200` for the operator CLI.
 
 **Paths (KV v2, mount `almanac/`):**
 
@@ -353,74 +371,225 @@ measure) and every budget layer above works identically for both.
 
 ---
 
-## The chat path — which course is this conversation?
+## Tenancy — one LibreChat instance per course
 
-The question that decides whether the semester cap is real: chat traffic
-today rides **one shared service credential** (attributed per-student by the
-`x-litellm-end-user-id` header, but budgeted by nothing).  The vAPI keys
-cover opencode and scripts — so how does a *LibreChat conversation* get a
-course?  Do we inject each student's per-course key into their chats?
+*Decided 2026-07-22 (Andrew's proposition, and it wasn't insane).*
 
-**We don't.**  LibreChat has no "pick your course at login" concept, and
-per-student key injection would mean `user_provided` endpoints — every
-student pasting (and re-pasting, per course) secrets into a settings panel.
-Wrong friction for freshmen.  Instead, three pieces that already exist do
-the job:
+The question that decides whether the semester cap is real: how does a
+*LibreChat conversation* get a course?  Injecting each student's per-course
+key into chat means `user_provided` endpoints — freshmen pasting secrets
+into settings panels.  Sharing one instance means course context by agent
+selection plus an endpoint-visibility fence we'd have to verify held.  The
+actual answer is tenancy: **course = instance.**
 
-1. **The course agent IS the course picker.**  The product premise was
-   always "each course co-edits its shared agent" — group-ACL'd, found in
-   the marketplace.  A student doesn't declare a course at login; they open
-   the course's agent when they start a conversation.  Switching courses =
-   switching agents.  Login stays untouched.
-2. **One custom endpoint per course, carrying a course service key.**  The
-   registrar mints one extra key per course — a *service* key, no student
-   `user_id`, `team_id` = the course team — and renders a per-course
-   endpoint block (`Almanac — ENGR 301`) into the LibreChat config.  The
-   course agent pins to its course's endpoint.  New course = render +
-   chat restart, an operator-time event that `just course` already owns.
-3. **Attribution keeps working exactly as shipped.**  The per-user header
-   stamps `end_user` on every chat request regardless of which key carried
-   it — so per-student advisory numbers fold chat + vAPI spend, same as
-   usage-mcp does today.
+**The load-bearing sentence: shared control plane, per-course data plane.**
 
-What this buys: **chat spend drains the same course-team pool as the vAPI
-keys** — the semester cap governs everything with no per-student secret
-handling in the browser, no login flow surgery, and course context that's
-visible in the UI (you're talking *to* your course, not configuring it).
+| Plane | Services | Count |
+|---|---|---|
+| Control (never fragments) | Keycloak (+ Globus broker), LiteLLM + ledger, OpenBao, usage-mcp, registrar, Caddy edge | **one each** |
+| Data (per course) | LibreChat + its Mongo *database* + its Meili + admin panel | **one per course** |
 
-The loose thread, named honestly: endpoints defined in the config are
-visible to every signed-in user, so a chem student could manually select
-the ENGR 301 endpoint and drain a pool they're not enrolled in.  Three
-fences, in order: the admin panel's **per-group config overrides** may gate
-endpoint visibility properly (verify at implementation — it's the same
-panel that already owns share-groups); the registrar can **detect**
-cross-course spend from the ledger (an `end_user` outside the roster
-wearing the course's tag) and tell the instructors; and course_usage puts a
-name on every row anyway — freeloading on a metered, attributed service is
-a short career.  If the panel gate proves weak AND detection finds real
-abuse, the fallback is `user_provided` per-course endpoints for real
-per-student chat budgets — documented, not built.
+Mongo runs one container, N databases.  pgvector/RAG likely shared (verify
+file-id isolation).  **Meilisearch is the awkward child** — LibreChat's
+index names don't namespace, so it's one small Meili per course (~100MB)
+or search off per instance: a knob in the course record, default on.
 
-`my_key` stays what it was: the take-home credential for opencode, scripts,
-and laptops.  Chat never needs it.
+What the container boundary buys, versus the fences it replaces:
+
+- **Cross-course endpoint access dies structurally.**  An instance only
+  *contains* its own course's credential.  No panel-gating verify, no
+  ledger-side freeloader detection as a security layer (it stays as
+  telemetry).  A container boundary beats a visibility toggle.
+- **Faculty admin scoping fixes itself.**  The shared design made every
+  faculty member ADMIN of the one instance (`OPENID_ADMIN_ROLE=faculty` —
+  realm-wide).  Per-instance, each course's OIDC client carries an `admin`
+  **client role**, mapped to that course's instructors and TAs only:
+  `OPENID_ADMIN_ROLE_PARAMETER_PATH=resource_access.<client>.roles`.  Full
+  control of *their* house, no key to anyone else's.
+- **Enrollment gates the front door.**  Any realm user can *authenticate*
+  to any client by default — which would let an un-enrolled student sign
+  into a course instance and chat on its service key.  Closed at login:
+  each course client also carries a `member` client role, granted and
+  revoked by roster reconcile, and the instance requires it
+  (`OPENID_REQUIRED_ROLE`, the LibreChat-native gate — verify var at our
+  pin).  Not on the roster → bounced at the door, not caught at the till.
+  The registrar's roster sync thus maintains three things per student:
+  group membership, the vAPI key, and the `member` grant.
+- **Blast radius**: a hostile agent tool, a leaked JWT secret, a bad
+  plugin — one course's conversations, not the campus's.
+- **Drift is the feature, not the bug.**  Instructors get their hands
+  dirty deep in their own weeds — their agents, their marketplace, their
+  share-groups (which are now just their course's teams), their interface
+  toggles, their own admin panel — the same freedom we're building for
+  students.  The rails: everything **DB-stored is theirs**; everything
+  **rendered is the registrar's** (image pins, YAML, env, routes — uniform,
+  in git, rolled by one loop).  Sovereign tenants, standardized plumbing.
+- Students already live this model: Canvas is per-course.  Course
+  conversations don't commingle — FERPA-flavored bow included.
+
+**What it costs, stated plainly:** uniform operational fan-out.  ~500–600MB
+per course all-in (chat + Meili + panel share), N containers to roll on a
+LibreChat CVE — but same pinned image + rendered config = one `just` loop,
+not N snowflakes.  Twenty courses ≈ 12–15GB on the app box.  Policy
+fan-out inside one shared instance was the alternative, and that's the
+kind that generates tickets.
+
+**The money layer survives untouched.**  One LiteLLM, one ledger.  Each
+instance's endpoint carries its course's **team-scoped service key** —
+"one master key per course," minted by the registrar like any other key,
+escrowed in bao like any other key.  Chat spend and vAPI-key spend drain
+the same course-team pool; the semester cap governs everything.  The
+per-user header stamps `end_user` on every chat request exactly as
+shipped, so per-student advisory numbers fold chat + vAPI spend — and the
+instance implies the course even before the header names the student.
+usage-mcp reads across the whole fleet without a line changing.
+
+**Auth fan-out is free because the broker exists.**  Each instance is one
+more OIDC client in the realm we already script (registrar mints clients
+via the Keycloak admin API; exact redirect URIs, no wildcards).  Globus
+stays **one** registration — Keycloak's.  Without the broker this idea
+costs N manual registrations at developers.globus.org; with it, a for-loop.
+
+**The two lanes, side by side** — a student in
+`engr301-2026fall.aisandbox.northwinds.edu` spends either way:
+
+| Lane | Credential | Student attribution | Course attribution |
+|---|---|---|---|
+| Stays in chat | the instance's **service key** | `end_user` header (as shipped) | the key's team + tag |
+| Asks `my_key()`, goes to opencode | their **personal vAPI key** | the key's `user_id` | the key's team + tag |
+
+`my_key()` takes **zero arguments** — the instance's `X-Course` header
+already knows whose house the ask came from, so the key that comes back is
+for *this* course, no slug typed, no cross-course confusion possible.  Both
+lanes drain the same course-team pool and fold into the same per-student
+numbers in usage-mcp (which already splits chat vs API in `my_usage`).
+Chat never needs the personal key.
+
+---
+
+## Routing — one door, many rooms
+
+Hostname-based, Caddy, wildcard DNS — ports are for compose files, not
+syllabi.
+
+- **DNS**: `*.{ALMANAC_DOMAIN}` → the box.  One wildcard record.
+- **TLS**: one wildcard cert via **DNS-01** (wildcards require it; the
+  Azure `acme_dns` block already sketched in `caddy/Caddyfile` graduates
+  from comment to config — root-cellar's delegated-zone guide is the
+  pattern).  Public boxes without wildcard DNS can fall back to per-vhost
+  HTTP-01; LAN stays on the internal CA.  All three modes already exist in
+  the edge profile — this extends, not invents.
+- **Vhosts**: the registrar renders one small file per course into a
+  shared volume the edge imports (`import /etc/caddy/fleet/*.caddy`):
+
+  ```
+  engr301.{$ALMANAC_DOMAIN} {
+      tls {$EDGE_TLS}
+      reverse_proxy alm-chat-engr301:3080
+  }
+  engr301-admin.{$ALMANAC_DOMAIN} {     # single label — wildcard-covered
+      tls {$EDGE_TLS}
+      reverse_proxy alm-panel-engr301:3000
+  }
+  ```
+
+  Rendered files over hostname-label placeholder tricks, deliberately: a
+  vhost you can `cat` at 3am beats cleverness, and label-index math breaks
+  the moment the domain depth changes between campus and lab deployments.
+- **Reload**: course creation is an operator act, and the justfile already
+  owns docker — `just course` finishes with a graceful
+  `compose exec edge caddy reload`.  **No docker socket ever enters the
+  registrar** (or any chat-adjacent container); the registrar renders
+  files, the justfile does lifecycle.
+- Shared surfaces keep their names: `auth.` (Keycloak), `gateway.`
+  (LiteLLM admin), and the apex or `www.` can hold a course directory page
+  eventually — a static render is a Phase 3 nicety.
+
+---
+
+## The venue — one VM on Azure Local
+
+*Decided 2026-07-22: the research compute facility is off the table; the
+almanac lands on Azure Local as a standalone Linux VM (Debian) with Docker,
+running everything **except inference**.*
+
+This costs the plan nothing, and that was the point all along — the
+justfile's deployment contract has always been "a box with Docker."  The
+venue is a variable, not an architecture:
+
+- **Inference was never coming aboard.**  The vLLM stack is deliberately
+  its own compose project on GPU metal elsewhere; `INFERENCE_BASE_URL` /
+  the Foundry block point wherever the tokens actually live.  The VM needs
+  zero GPUs.
+- **CI retargets, not rewrites**: Woodpecker's deploy step ssh's to a
+  hostname.  New box, new variable, same pipeline.
+- **Azure Container Apps, rejected for the right reason**: per-course
+  containers with rendered configs and local volumes map miserably onto
+  managed platforms — Mongo becomes Cosmos-with-a-mongo-accent, the ledger
+  becomes managed Postgres, Meili becomes a problem, and the bill becomes a
+  committee.  One VM keeps the data gravity in volumes, the deploy contract
+  in the justfile, and the whole thing restorable by one person on one bad
+  morning.
+- **DNS-01 is now on home turf** — the wildcard cert's Azure `acme_dns`
+  block was built for exactly this RFC-1918 shape, and the DNS zone is
+  already in the neighborhood.
+
+**Capacity math, so growth is a formula instead of a surprise:**
+
+```
+RAM  ≈ 8 GB shared stack + 0.6 GB × courses
+        2 courses  →  ~10 GB      (today)
+        5 courses  →  ~11 GB      (fall)
+       20 courses  →  ~20 GB      (the "explosive" case)
+vCPU ≈ 8 is comfortable past 20 courses — tokens burn elsewhere; chat
+       instances mostly wait on humans and the gateway.
+Disk ≈ 128–256 GB SSD.  Mongo per course is modest; the ledger grows with
+       requests (prune policy is a Phase 3 chore, not a launch blocker).
+```
+
+Provision **8 vCPU / 32 GB / 256 GB** and forget about it until ~20
+courses; it's a VM — resize is a reboot, not a migration.
+
+**Backups — the whole point of one VM:**
+
+`just backup` (nightly via cron/systemd timer) produces one timestamped
+tarball: `mongodump --archive` (every course DB in one pass) ·
+`pg_dump` litellm (**the ledger**) + keycloak ·
+`bao operator raft snapshot save` (**the escrow**, online, consistent) ·
+`.env` + `registrar/courses.yaml` + the fleet renders + caddy data (certs
+— cheap to keep, annoying to reissue).  **Meili is excluded on purpose** —
+it's derived from Mongo and rebuilds on boot.  Ship the tarball off-box
+with restic to Azure Blob (the hedge rides again); the VM is the working
+copy, never the only copy.
+
+`just restore <tarball>` is the mirror image on a fresh VM: compose up,
+load dumps, restore the raft snapshot, unseal, smoke.  **The restore drill
+is scheduled work, not documentation theater** — see Phase 2.  A backup
+that's never been restored is a rumor.
 
 ---
 
 ## Phasing
 
-**Phase 1 — standalone, demo realm, end-to-end** (the make-or-break:
-`prof.vex` pastes the mock roster in chat, `stu.amaya` asks `my_key`, the
-key hits the gateway from the workbench):
-compose + bao-init + registrar with `file` backend · course team + service
-key + per-course endpoint render (the chat path) · stage/apply · mint ·
-escrow · `my_key` · roster.yaml render · librechat.yaml wiring
-(`mcpServers.almanac-registrar`, allowedAddresses) · smoke checks · admin
-guide recipe for the "Course Setup" agent.
+**Phase 1 — standalone, demo realm, end-to-end** (the make-or-break, now
+two acts: `prof.vex` pastes the mock roster into *the engr301 instance*,
+`stu.amaya` asks `my_key`, the key hits the gateway from the workbench —
+then a second demo course spawns and **the wall holds**: chem's instructor
+can't see engr301's chats, panel, or pool; the mock realm grows a second
+course for exactly this):
+compose + bao-init + registrar with `file` backend · **instance render**
+(chat + panel + Meili + Mongo db + Keycloak client + team + service key +
+vhost) · stage/apply · mint · escrow · `my_key` · roster.yaml render ·
+per-instance MCP wiring (`mcpServers.almanac-registrar`,
+allowedAddresses) · smoke checks that walk the fleet · admin guide recipe
+for the "Course Setup" agent.
 
-**Phase 2 — Globus:** the registrar's confidential client, managed-group
-create/invite/reconcile, manager-role authority, `--adopt` mode.  Flip
-`GROUPS_BACKEND=globus`; the login side already has the broker runbook in
-the admin guide.
+**Phase 2 — Globus + the drill:** the registrar's confidential client,
+managed-group create/invite/reconcile, manager-role authority, `--adopt`
+mode.  Flip `GROUPS_BACKEND=globus`; the login side already has the broker
+runbook in the admin guide.  Plus `just backup`/`just restore` and the
+**restore drill on a scratch VM** — proven once before fall's five courses
+enroll, not promised.
 
 **Phase 3 — lifecycle & hardening:** rotation with budget carryover ·
 `set_budget` live updates · `just course-close` (revoke all, final render,
@@ -459,10 +628,30 @@ integration project) · per-message rate limits (budgets are the governor).
 9. *(2026-07-22, Andrew)* **Multi-instructor from day one** — the first
    course has two, and every course has TAs.  `tas:` list ships in v1 with
    instructor-equivalent authority.
-10. *(2026-07-22)* **Chat gets no per-student keys.**  Course agents on
-    per-course endpoints carrying team-scoped service keys; students pick
-    the course by picking its agent.  `user_provided` is the documented
+10. *(2026-07-22)* **Chat gets no per-student keys.**  The course
+    instance's endpoint carries the team-scoped service key; students pick
+    the course by walking into its chat.  `user_provided` is the documented
     fallback, not the plan.
+11. *(2026-07-22, Andrew)* **Tenancy: one LibreChat instance per course.**
+    Shared control plane (Keycloak, LiteLLM, bao, usage-mcp, registrar,
+    edge — one each); per-course data plane (chat, panel, Meili, Mongo
+    database).  Instructor drift inside the rendered rails is a feature —
+    the same hands-dirty freedom we're building for students.
+12. *(2026-07-22, Andrew)* **Routing: Caddy, hostname-based, wildcard
+    DNS.**  Wildcard cert via DNS-01; registrar-rendered vhost imports
+    (greppable at 3am) over hostname-label tricks; reload rides `just
+    course`; no docker socket in any service.
+13. *(2026-07-22, Andrew)* **Venue: one Debian VM + Docker on Azure
+    Local**, inference external, container-app platforms rejected (managed
+    DB sprawl).  One VM to back up, one VM to restore.
+14. *(2026-07-22)* **The instance is the course context.**  `X-Course`
+    rendered into each instance's MCP config; tools drop their course
+    arguments (`my_key()`, `roster_stage(text)`); enrollment gates login
+    itself via the `member` client role.  Header = context, roster = authz.
+15. *(2026-07-22, by example)* **Slugs are term-qualified, code-first** —
+    `engr301-2026fall`, straight from Andrew's own hostname example.
+    Rollover = a new course record each term; spend rollups sort
+    chronologically for free.  Flag if the example wasn't a decision.
 
 ## Verify at implementation
 
@@ -474,17 +663,31 @@ integration project) · per-message rate limits (budgets are the governor).
   the rig says they should.
 - `soft_budget` + `budget_duration: 7d` in OSS for gateway-side pace alerts
   (the advisory layer works from the ledger regardless).
-- **Admin panel per-group config overrides** as the endpoint-visibility
-  fence (the cross-course loose thread above).
+- **Client-role admin mapping** on our LibreChat pin:
+  `OPENID_ADMIN_ROLE_PARAMETER_PATH=resource_access.<client>.roles` per
+  instance (the realm-role variant is deployed and working; the client-role
+  variant is the same machinery, one path deeper).
+- **`OPENID_REQUIRED_ROLE`** (login gate) at our pin, reading the same
+  client-role path — the enrollment-gates-login mechanism depends on it;
+  fallback is a Keycloak per-client auth-flow condition (heavier, same
+  effect).
+- **Raft snapshot save/restore** round-trip on our OpenBao pin (single
+  node) — the backup story leans on it.
+- **Meili per-course footprint** and the search-off knob; **admin panel**
+  against a per-course Mongo database; **RAG API / pgvector** shared-tenancy
+  file-id isolation (else pgvector schemas per course).
+- **Compose mechanics for rendered instances**: `include:` directive at our
+  compose version, vs `-f` stacking in the justfile loop.
+- **Wildcard DNS-01** against the campus DNS provider (the Azure block
+  exists; other providers = other caddy-dns plugins in the edge build;
+  delegation pattern per root-cellar's guide).
 - Globus Groups API invite semantics for emails with no Globus identity yet.
 - Practical tool-argument ceiling for jumbo rosters on our LibreChat pin
   (fallback: `roster_stage` accepts chunks, stages merge).
 
 ## Open questions (Andrew's call)
 
-1. **Course slugs** — free-form (`engr301`) or term-prefixed
-   (`2026fa-engr301`)?  Semester rollover, team names, and the spend
-   rollup's tidiness all hang off this.  (Last one standing.)
-2. **Course cap default** — the semester pool needs a number at
+1. **Course cap default** — the semester pool needs a number at
    `just course` time ($300 in the example is a placeholder).  Per-course
    funding reality is yours to name; the registrar just enforces it.
+   (Last one standing.)
