@@ -130,14 +130,23 @@ committed example on first `up` — the roster.yaml pattern, reused:
 courses:
   engr301:
     name: "ENGR 301 — Engineering Design"
-    instructors:                    # may be several; all get manager + upload
-      - prof.vex@northwinds.edu
-    budget: 5                       # per-student USD, clamped server-side
+    instructors:                    # several from day one — the first real course
+      - prof.vex@northwinds.edu     # has two, and every course has TAs
+    tas: []                         # same authority as instructors in v1 (see below)
+    budgets:
+      course: 300                   # THE cap — semester, hard, chat + keys, one pool
+      key_fuse: 5                   # per vAPI key hard ceiling (leak blast radius)
+      advisory_weekly: 2            # what "on pace" means in usage tools; never blocks
     models: [almanac-chat]          # what minted keys may call
     group: ""                       # globus backend: group UUID (course-create fills)
     students: []                    # file backend only; globus derives from the group
     aliases: {}                     # legacy non-email user_ids, passthrough to render
 ```
+
+**TAs are instructors in v1.**  Both lists land as group managers with roster
+and usage authority — every course has TAs, and inventing a fourth
+permission tier before anyone's asked for one is how admin panels are born.
+If a TA-shaped abuse case ever shows up, splitting the role is a list rename.
 
 **`usage-mcp/roster.yaml` becomes a render.**  After every reconcile the
 registrar writes it (shared volume; usage-mcp live-reloads — that's why it
@@ -183,37 +192,55 @@ un-enrollment.
 
 ---
 
-## Keys — mint shape, budgets, rotation
+## Keys & budgets — three layers, one pool
 
-**One key per (student × course).**  A student in two courses holds two
-keys; spend attributes to the right course because the tag differs:
+The budget model, decided 2026-07-22:
+
+| Layer | Enforced by | Blocks? | What it's for |
+|---|---|---|---|
+| **Course-semester cap** | LiteLLM **team budget** (one team per course) | **yes — the real cap** | The actual money.  Chat AND vAPI keys drain this one pool. |
+| **Key fuse** | per-key `max_budget` | yes | Blast radius of a leaked/runaway vAPI key — *not* a pacing tool. |
+| **Weekly advisory** | usage tools (reporting only) | never | What "on pace" feels like to a student.  Easier to hold in your head than a semester number. |
+
+**The reconciler creates one LiteLLM team per course** (teams and team
+budgets are OSS — rig-probed; *team-admin role* is the Enterprise part, and
+we don't need it because the registrar administers via master key).  Every
+credential the course generates joins that team, so the semester cap is
+enforced across modalities in one place.
+
+**One vAPI key per (student × course)**, minted into the course team:
 
 ```json
 {
   "user_id":   "amaya@northwinds.edu",          // joins to chat spend
+  "team_id":   "almanac-engr301",               // drains the course pool
   "models":    ["almanac-chat"],
-  "max_budget": 5,
+  "max_budget": 5,                              // the fuse, not the budget
   "metadata":  { "owner": "engr301", "tags": ["owner:engr301"] }
 }
 ```
 
-Same shape `just key` mints today — the registrar automates it, not
-reinvents it.  The Enterprise walls stay routed-around (rig-probed on our
-pins): `metadata.tags` not top-level tags; **rotation = delete + re-mint**
-(`/key/regenerate` is licensed); students never touch the LiteLLM UI (the
-5-DB-user SSO wall stays irrelevant).
+Same shape `just key` mints today plus `team_id`.  The Enterprise walls
+stay routed-around (rig-probed on our pins): `metadata.tags` not top-level
+tags; **rotation = delete + re-mint** (`/key/regenerate` is licensed);
+students never touch the LiteLLM UI (the 5-DB-user SSO wall stays
+irrelevant).
 
 - **Mint at apply**, not at first login.  Email is the user_id; the key
   works the moment they accept the invite.  No-shows surface in the
   anti-join, not in mint failures.
-- **Budgets:** course default (`budget:`), clamped by
-  `REGISTRAR_MAX_BUDGET` server-side — no prompt, however persuasive, mints
-  past the clamp.  `set_budget` applies to future mints; live bumping of
-  existing keys via `/key/update` is a verify-at-implementation.
-- **Rotation preserves the meter:** re-mint sets
-  `max_budget = course_budget − ledger_spend_so_far` (floor $0.50), so
-  rotating a key isn't a budget reset.  Ledger history is untouched either
-  way.
+- **Fuse defaults:** $5, clamped by `REGISTRAR_MAX_BUDGET` ($25)
+  server-side — no prompt, however persuasive, mints past the clamp.
+  `set_budget` applies to future mints; live bumping of existing keys via
+  `/key/update` is a verify-at-implementation.
+- **Rotation preserves the fuse meter:** re-mint sets
+  `max_budget = key_fuse − ledger_spend_so_far` (floor $0.50), so rotating
+  a key isn't a fuse reset.  Ledger history is untouched either way.
+- **Weekly advisory** is computed from the ledger (`end_user` + owner tag —
+  data usage-mcp already reads); `my_usage` learns to say *"$1.40 of your
+  ~$2/week pace"*.  If our pin's `soft_budget` + `budget_duration: 7d`
+  prove out in OSS, the gateway can also emit pace alerts — verify at
+  implementation, but the advisory layer never depends on it.
 
 ---
 
@@ -317,6 +344,66 @@ notice** — they're pinned to names, not endpoints.  Foundry spend meters
 into the same ledger rows as local tokens, so per-user-per-course tracking
 is identical whether the tokens came from a campus GPU or Azure.
 
+**Costs are the gateway's job and it's good at it:** cloud models price
+from LiteLLM's model map (Azure included, when the metadata's there);
+campus models carry whatever we say they cost —
+`input_cost_per_token`/`output_cost_per_token` in the model block.  Price
+local tokens at an amortized GPU rate (or $0.— and let token counts be the
+measure) and every budget layer above works identically for both.
+
+---
+
+## The chat path — which course is this conversation?
+
+The question that decides whether the semester cap is real: chat traffic
+today rides **one shared service credential** (attributed per-student by the
+`x-litellm-end-user-id` header, but budgeted by nothing).  The vAPI keys
+cover opencode and scripts — so how does a *LibreChat conversation* get a
+course?  Do we inject each student's per-course key into their chats?
+
+**We don't.**  LibreChat has no "pick your course at login" concept, and
+per-student key injection would mean `user_provided` endpoints — every
+student pasting (and re-pasting, per course) secrets into a settings panel.
+Wrong friction for freshmen.  Instead, three pieces that already exist do
+the job:
+
+1. **The course agent IS the course picker.**  The product premise was
+   always "each course co-edits its shared agent" — group-ACL'd, found in
+   the marketplace.  A student doesn't declare a course at login; they open
+   the course's agent when they start a conversation.  Switching courses =
+   switching agents.  Login stays untouched.
+2. **One custom endpoint per course, carrying a course service key.**  The
+   registrar mints one extra key per course — a *service* key, no student
+   `user_id`, `team_id` = the course team — and renders a per-course
+   endpoint block (`Almanac — ENGR 301`) into the LibreChat config.  The
+   course agent pins to its course's endpoint.  New course = render +
+   chat restart, an operator-time event that `just course` already owns.
+3. **Attribution keeps working exactly as shipped.**  The per-user header
+   stamps `end_user` on every chat request regardless of which key carried
+   it — so per-student advisory numbers fold chat + vAPI spend, same as
+   usage-mcp does today.
+
+What this buys: **chat spend drains the same course-team pool as the vAPI
+keys** — the semester cap governs everything with no per-student secret
+handling in the browser, no login flow surgery, and course context that's
+visible in the UI (you're talking *to* your course, not configuring it).
+
+The loose thread, named honestly: endpoints defined in the config are
+visible to every signed-in user, so a chem student could manually select
+the ENGR 301 endpoint and drain a pool they're not enrolled in.  Three
+fences, in order: the admin panel's **per-group config overrides** may gate
+endpoint visibility properly (verify at implementation — it's the same
+panel that already owns share-groups); the registrar can **detect**
+cross-course spend from the ledger (an `end_user` outside the roster
+wearing the course's tag) and tell the instructors; and course_usage puts a
+name on every row anyway — freeloading on a metered, attributed service is
+a short career.  If the panel gate proves weak AND detection finds real
+abuse, the fallback is `user_provided` per-course endpoints for real
+per-student chat budgets — documented, not built.
+
+`my_key` stays what it was: the take-home credential for opencode, scripts,
+and laptops.  Chat never needs it.
+
 ---
 
 ## Phasing
@@ -324,7 +411,8 @@ is identical whether the tokens came from a campus GPU or Azure.
 **Phase 1 — standalone, demo realm, end-to-end** (the make-or-break:
 `prof.vex` pastes the mock roster in chat, `stu.amaya` asks `my_key`, the
 key hits the gateway from the workbench):
-compose + bao-init + registrar with `file` backend · stage/apply · mint ·
+compose + bao-init + registrar with `file` backend · course team + service
+key + per-course endpoint render (the chat path) · stage/apply · mint ·
 escrow · `my_key` · roster.yaml render · librechat.yaml wiring
 (`mcpServers.almanac-registrar`, allowedAddresses) · smoke checks · admin
 guide recipe for the "Course Setup" agent.
@@ -365,22 +453,38 @@ integration project) · per-message rate limits (budgets are the governor).
    backend) or the group (globus backend), never the render.
 7. **No one but the owner ever retrieves a key** — instructors see custody
    status only.
+8. *(2026-07-22, Andrew)* **Budget hierarchy**: course-semester team budget
+   is the one true cap; per-key `max_budget` is a leak fuse ($5/$25 stands);
+   per-student weekly numbers are advisory and never block.
+9. *(2026-07-22, Andrew)* **Multi-instructor from day one** — the first
+   course has two, and every course has TAs.  `tas:` list ships in v1 with
+   instructor-equivalent authority.
+10. *(2026-07-22)* **Chat gets no per-student keys.**  Course agents on
+    per-course endpoints carrying team-scoped service keys; students pick
+    the course by picking its agent.  `user_provided` is the documented
+    fallback, not the plan.
 
 ## Verify at implementation
 
 - OpenBao static-seal support at our pin (else: `bao-unseal` recipe path).
 - `/key/update` live budget changes on our LiteLLM pin (else: budgets apply
   at next mint/rotation).
+- **Team budget enforcement mechanics** on our pin: blocking behavior at
+  exhaustion, and that a service key + member keys drain one pool the way
+  the rig says they should.
+- `soft_budget` + `budget_duration: 7d` in OSS for gateway-side pace alerts
+  (the advisory layer works from the ledger regardless).
+- **Admin panel per-group config overrides** as the endpoint-visibility
+  fence (the cross-course loose thread above).
 - Globus Groups API invite semantics for emails with no Globus identity yet.
 - Practical tool-argument ceiling for jumbo rosters on our LibreChat pin
   (fallback: `roster_stage` accepts chunks, stages merge).
 
 ## Open questions (Andrew's call)
 
-1. **Budget defaults** — $5/student default, $25 clamp: right numbers?
-   Lifetime-per-semester, or monthly reset (`budget_duration`)?
-2. **Course slugs** — free-form (`engr301`) or term-prefixed
-   (`2026fa-engr301`)?  Semester rollover and the spend rollup's tidiness
-   both hang off this.
-3. **Multi-instructor day one** — `instructors:` is already a list; any
-   reason to restrict to one?
+1. **Course slugs** — free-form (`engr301`) or term-prefixed
+   (`2026fa-engr301`)?  Semester rollover, team names, and the spend
+   rollup's tidiness all hang off this.  (Last one standing.)
+2. **Course cap default** — the semester pool needs a number at
+   `just course` time ($300 in the example is a placeholder).  Per-course
+   funding reality is yours to name; the registrar just enforces it.
