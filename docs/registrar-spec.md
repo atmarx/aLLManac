@@ -531,7 +531,7 @@ is **what kind of ask this is** — the checkbox, rendered as a question:
 **Endpoint-key custody — nothing transits the conversation.**  A secret
 pasted at an agent rides the model context and lands in Mongo chat
 history — residue in two places before escrow ever sees it.  So the
-endpooint request files *without* the key; on approval, the registrar
+endpoint request files *without* the key; on approval, the registrar
 issues a **one-time drop token**, and the requester runs one command:
 
 ```
