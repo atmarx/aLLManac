@@ -532,6 +532,36 @@ What a web form would have added: a login page, a session store, a CSP
 review, a framework dependency, and a second place to check.  What it
 would not have added: anything the echo doesn't already do.
 
+**The office runs on house metal** *(2026-07-24)*: the front office's
+endpoint pins to an **office model pack** — an on-prem model
+(`almanac-office` at the gateway, priced **$0**) — so faculty can question
+it all day and the meter never moves.  That turns the one non-course room
+into three things at once:
+
+1. **The demo floor** — the office marketplace holds the exemplar agents
+   (Ask the Almanac, Almanac Usage, Request a Course; Course Provisioning
+   visible only to admins, because tools list per-user).  Faculty meet
+   working agents before they build their own.  The platform demos itself,
+   literally.
+2. **The learning environment** — tinker freely, zero budget anxiety,
+   nothing real at stake.  The sandbox instinct, satisfied before anyone
+   requests a sandbox course.
+3. **The help desk** — "Ask the Almanac," an agent whose knowledge files
+   ARE this repo's docs (user guide, admin guide, this spec).  Honest
+   answers are a function of feeding it real text — which we maintain in
+   git anyway, so re-feeding on release is a chore, not a project
+   (automating docs→agent sync is a Phase 3 nicety).
+
+Two consequences worth their own lines: the office becomes just another
+tenant in the machinery — its own team, its own **service key**, its own
+model pack — which means **the master key finally leaves the flagship's
+config too** (the last chat-facing container holding it; a Phase 2a
+hardening item).  And the office door: `member`-gating makes no sense
+there, so it gates on the **faculty realm role** — students live in their
+course rooms; the office is where faculty-at-large hang their coats.
+(If a student-facing demo floor is ever wanted, it's one more rendered
+room, not a redesign.)
+
 ---
 
 **The two lanes, side by side** — a student in
@@ -672,7 +702,11 @@ for the "Course Setup" agent.
 the tools wrap reconcile verbs that already exist and shipped in Phase 1):
 `course_requests` / `course_approve` / `course_create` / `budget_set` /
 `course_list` + faculty-gated `course_request`, requests.yaml queue, the
-two flagship agents (desk + request), admin-guide recipes.
+two flagship agents (desk + request), admin-guide recipes.  Plus the
+office-as-tenant hardening: office team + service key (**master key out
+of the flagship config** — the last one), `almanac-office` $0 model at
+the gateway, faculty-role door, and the "Ask the Almanac" RAG agent fed
+from docs/.
 
 **Phase 2 — Globus + the drill:** the registrar's confidential client,
 managed-group create/invite/reconcile, manager-role authority, `--adopt`
