@@ -480,6 +480,60 @@ via the Keycloak admin API; exact redirect URIs, no wildcards).  Globus
 stays **one** registration — Keycloak's.  Without the broker this idea
 costs N manual registrations at developers.globus.org; with it, a for-loop.
 
+---
+
+## The front office — where courses come from
+
+*Envisioned 2026-07-24: "where am I logging in to provision a course?"*
+
+The doctrine holds at the top of the org chart too: **there is no course
+management website.**  The flagship instance (`chat.<domain>`) — no longer
+a leftover from the pre-fleet design but the **front office**: the one
+room that isn't a course, where faculty-at-large exist before they have
+rooms of their own.  Students never need it; faculty visit once a term;
+the operator runs the platform from it.
+
+**The operator's desk** — a "Course Provisioning" agent on the flagship,
+holding admin-gated registrar tools:
+
+| Tool | Does |
+|---|---|
+| `course_requests()` | the pending queue, oldest first |
+| `course_approve(slug)` | request → `ensure_course` → instance live |
+| `course_create(slug, name, instructor, budget?)` | direct provision, skipping the queue |
+| `budget_set(course, amount)` | adjust a course pool (gateway team update) |
+| `course_list()` | the fleet at a glance — pools, enrollment, health |
+
+Gate: email in the `admins:` list (courses.yaml) — the same list usage-mcp
+already honors.  One deliberate contract difference from course tools:
+**admins pass the course as an argument** (they span courses; there's no
+X-Course where they sit), and the admins list is the authority.  Identity
+stays header-only, always.
+
+**The self-service request** — a "Request a Course" agent on the same
+flagship, faculty-gated (the `faculty` realm role — students can't file):
+the agent collects slug, name, term, instructor(s), expected headcount,
+budget ask — conversationally, then calls `course_request(...)`.  The
+request lands in `registrar/requests.yaml` (pending queue, same dir
+mount), the tool echoes back exactly what was filed — **the two-phase
+echo IS the form validation** — and the operator approves from the desk.
+Gated to start; auto-approval rules (faculty role + within default
+budget → straight through) are a policy knob for later, not a rebuild.
+
+Nobody copies course info out of tickets: the "ticket" files itself into
+the queue, structured, because a tool argument is a schema.  Batch intake
+falls out of the same shape — the registrar's office emails the term's
+course list, the operator pastes the CSV at the desk (`course_import`,
+staged and echoed like everything else).  And when SIS integration ever
+happens, it feeds the same tool surface through `course_admin.py` — the
+CLI on the box stays the break-glass and batch path either way.
+
+What a web form would have added: a login page, a session store, a CSP
+review, a framework dependency, and a second place to check.  What it
+would not have added: anything the echo doesn't already do.
+
+---
+
 **The two lanes, side by side** — a student in
 `engr301-2026fall.aisandbox.northwinds.edu` spends either way:
 
@@ -614,6 +668,12 @@ per-instance MCP wiring (`mcpServers.almanac-registrar`,
 allowedAddresses) · smoke checks that walk the fleet · admin guide recipe
 for the "Course Setup" agent.
 
+**Phase 2a — the front office** (thin slice, before or alongside Globus —
+the tools wrap reconcile verbs that already exist and shipped in Phase 1):
+`course_requests` / `course_approve` / `course_create` / `budget_set` /
+`course_list` + faculty-gated `course_request`, requests.yaml queue, the
+two flagship agents (desk + request), admin-guide recipes.
+
 **Phase 2 — Globus + the drill:** the registrar's confidential client,
 managed-group create/invite/reconcile, manager-role authority, `--adopt`
 mode.  Flip `GROUPS_BACKEND=globus`; the login side already has the broker
@@ -742,3 +802,9 @@ marked ✓ closed there.*
 16. *(2026-07-22, Andrew)* **Course cap default: $1000 per term.**
     Overridable per course at `just course` time; the registrar enforces,
     the funding reality decides.
+17. *(2026-07-24)* **The front office is the flagship instance** — course
+    provisioning, requests, and budget administration are admin-gated MCP
+    tools on the same registrar; no course-management website, ever.
+    Admin tools take the course as an argument (admins span courses); the
+    `admins:` list is the authority.  Self-service requests are
+    faculty-gated conversations that file themselves.
