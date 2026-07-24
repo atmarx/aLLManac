@@ -12,6 +12,12 @@
 #
 # college:  unions that college's model pack into this course's models —
 #           a college is a MODEL PACK, not an org chart.
+#
+# capabilities:  agent-builder powers for this course's instance.  Default:
+#           [file_search, tools, artifacts].  `actions` (arbitrary-URL tool
+#           calls) is EXCLUDED by default — it's the one path around the
+#           gateway's guardrails and metering (spec: "The floor").  Add it
+#           per course only with eyes open, ideally with allowedDomains.
 
 courses:
   engr301-2026fall:

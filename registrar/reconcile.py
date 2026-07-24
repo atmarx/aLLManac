@@ -80,6 +80,11 @@ def load_courses() -> dict:
             "college": (str(c.get("college")).strip().lower()
                         if c.get("college") else None),
             "models": list(c.get("models") or BASE_MODELS),
+            # Agent capabilities: `actions` (arbitrary-URL tool calls) is
+            # deliberately NOT in the default — it's the one path around the
+            # gateway (spec: "The floor").  Enable per course, eyes open:
+            "capabilities": list(c.get("capabilities")
+                                 or ["file_search", "tools", "artifacts"]),
             "group": str(c.get("group") or ""),
             "students": [str(e).strip().lower() for e in (c.get("students") or [])],
             "aliases": {str(k).strip().lower(): [str(a).strip().lower() for a in (v or [])]
