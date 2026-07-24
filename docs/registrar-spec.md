@@ -510,15 +510,46 @@ already honors.  One deliberate contract difference from course tools:
 X-Course where they sit), and the admins list is the authority.  Identity
 stays header-only, always.
 
-**The self-service request** — a "Request a Course" agent on the same
-flagship, faculty-gated (the `faculty` realm role — students can't file):
-the agent collects slug, name, term, instructor(s), expected headcount,
-budget ask — conversationally, then calls `course_request(...)`.  The
-request lands in `registrar/requests.yaml` (pending queue, same dir
-mount), the tool echoes back exactly what was filed — **the two-phase
-echo IS the form validation** — and the operator approves from the desk.
-Gated to start; auto-approval rules (faculty role + within default
-budget → straight through) are a policy knob for later, not a rebuild.
+**The self-service request** — a "Request an Environment" agent on the
+same flagship, open to **anyone with a campus login** *(2026-07-24: not
+faculty-only — student project requests are half the traffic)*.  The
+agent collects the details conversationally, and the first thing it sorts
+is **what kind of ask this is** — the checkbox, rendered as a question:
+
+- **course** — "I'm the instructor" (name, term, headcount, budget ask)
+- **course-project** — a project room under an existing course (which
+  course, who's sponsoring)
+- **standalone** — club, competition team, thesis prep (who's the
+  responsible party)
+
+Then the **front-door question**: the agent confirms this is for
+*coursework, not research* — and records the answer.  The request that
+lands in `registrar/requests.yaml` carries the requester type AND the
+attestation, dated.  When the slippery-slope question ever comes back
+("did they know the boundary?"), the answer is in the record: they were
+asked at the door, in plain language, and said yes.
+
+**The plain language is deployment config, not code.**  The boundary
+verbiage lives in `registrar/front-door.md` (example-shipped,
+deployment-edited) and is injected into the request agent's instructions
+and echoed into every filed request.  Ours will say what Northwinds
+practice says: coursework belongs here; sponsored research goes to the
+research environment, full stop; the traditional gray zone (non-sponsored
+master's "academic research" commingled with coursework) is tolerated but
+named, so nobody discovers the line by crossing it.  **Another deployment
+can rewrite that file to say "research welcome here"** — the software is
+a room-renderer and doesn't care; a research-dedicated deployment is just
+a separate fleet on a separate box with different front-door text.  The
+per-instance separation that keeps courses apart keeps *missions* apart
+at the deployment level for free.
+
+Requests are typed, attested, and queued — nothing provisions without
+the desk's nod, which is what makes the wide-open door safe.  Gated to
+start; auto-approval rules (e.g. faculty + within default budget →
+straight through) are a policy knob for later, not a rebuild.  In the
+machinery, a project room or a sandbox is the same primitive as a course
+— a `kind:` field on the record (`course | project | sandbox | office`),
+optionally `parent:`-linked for spend rollup — rooms all the way down.
 
 Nobody copies course info out of tickets: the "ticket" files itself into
 the queue, structured, because a tool argument is a schema.  Batch intake
@@ -556,11 +587,12 @@ Two consequences worth their own lines: the office becomes just another
 tenant in the machinery — its own team, its own **service key**, its own
 model pack — which means **the master key finally leaves the flagship's
 config too** (the last chat-facing container holding it; a Phase 2a
-hardening item).  And the office door: `member`-gating makes no sense
-there, so it gates on the **faculty realm role** — students live in their
-course rooms; the office is where faculty-at-large hang their coats.
-(If a student-facing demo floor is ever wanted, it's one more rendered
-room, not a redesign.)
+hardening item).  And the office door *(revised 2026-07-24)*: it opens to
+**any campus login** — students request project rooms too, and the demo
+floor teaches whoever walks in.  Safe because the room runs $0 house
+metal, every request is attested + operator-approved before anything
+provisions, and attribution still names everyone.  `member`-gating stays
+what it is: a *course-room* mechanism.
 
 ---
 
@@ -841,4 +873,11 @@ marked ✓ closed there.*
     tools on the same registrar; no course-management website, ever.
     Admin tools take the course as an argument (admins span courses); the
     `admins:` list is the authority.  Self-service requests are
-    faculty-gated conversations that file themselves.
+    conversations that file themselves.
+18. *(2026-07-24, Andrew)* **Anyone can request; the door asks what and
+    attests why.**  Requests are typed (course / course-project /
+    standalone), carry a dated coursework-not-research attestation, and
+    queue for operator approval.  The boundary verbiage is **deployment
+    config** (`registrar/front-door.md`), never code — a
+    research-dedicated deployment rewrites the text, not the software.
+    Rooms are one primitive: `kind: course | project | sandbox | office`.
