@@ -648,8 +648,48 @@ syllabi.
   registrar** (or any chat-adjacent container); the registrar renders
   files, the justfile does lifecycle.
 - Shared surfaces keep their names: `auth.` (Keycloak), `gateway.`
-  (LiteLLM admin), and the apex or `www.` can hold a course directory page
-  eventually — a static render is a Phase 3 nicety.
+  (LiteLLM admin).  The apex and the front door: next section.
+
+---
+
+## The public face — the apex, the front desk, and the strangers
+
+*Envisioned 2026-07-24.*
+
+**The apex (`aisandbox.northwinds.edu`) is an mkdocs site** — how-tos,
+guides, model selection, LLM pedagogy — thick with CTAs to sign in and
+try it.  Served by the edge itself (a `root`/`file_server` block over the
+built site; `just docs-build` runs a pinned mkdocs-material container →
+`site-dist/`; CI rebuilds on docs commits).  No new daemon — Caddy was
+already standing there.
+
+**The same markdown serves twice.**  The docs directory is BOTH the
+public site and Ask the Almanac's RAG corpus — one source, two renderers
+(mkdocs for the web, embeddings for the chat).  "Literally the same
+info" is structural, not aspirational: there is no second copy to drift.
+A how-to fixed on the website is a how-to fixed in the agent's mouth at
+the next re-feed.
+
+**The front desk gets its name**: `frontdesk.<domain>` — and it falls out
+of Phase 2a's office-as-tenant work for free.  The office record renders
+with slug `frontdesk` like any course renders; the flagship container is
+its instance; the standalone `CHAT_HOST` variable retires into the fleet
+render.  One less special case.
+
+**Strangers get a landing, not a handshake error.**  Wildcard DNS sends
+*every* subdomain to the edge, so a catch-all vhost (lowest priority —
+Caddy prefers exact hostnames, course vhosts always win) 302s unknown
+names to `https://<apex>/instance-not-found/` — an mkdocs page: "no
+course lives at this address — the term may have rolled over; here's how
+to request an environment," CTA included.  TLS note: the catch-all rides
+the **wildcard cert** (DNS-01) in production — per-name issuance on
+arbitrary garbage subdomains would eat ACME rate limits; the internal CA
+doesn't care on LAN.
+
+The quiet payoff is semester rollover: `course-close` (Phase 3) removes
+the vhost render, and last term's bookmark degrades — automatically — to
+a friendly page explaining where things went and how to come back.
+Rollover UX by subtraction.
 
 ---
 
@@ -881,3 +921,9 @@ marked ✓ closed there.*
     config** (`registrar/front-door.md`), never code — a
     research-dedicated deployment rewrites the text, not the software.
     Rooms are one primitive: `kind: course | project | sandbox | office`.
+19. *(2026-07-24, Andrew)* **The apex is an mkdocs site; the docs serve
+    twice** (public web + the help agent's RAG — one source, no drift).
+    The office answers at `frontdesk.<domain>` via the normal fleet
+    render (`CHAT_HOST` retires); unknown subdomains catch-all-redirect
+    to `/instance-not-found/` on the wildcard cert.  Closed courses
+    degrade to that page — rollover UX by subtraction.
