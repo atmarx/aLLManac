@@ -521,6 +521,30 @@ is **what kind of ask this is** — the checkbox, rendered as a question:
   course, who's sponsoring)
 - **standalone** — club, competition team, thesis prep (who's the
   responsible party)
+- **endpoint** *(2026-07-24)* — bring-your-own-LLM: base URL, model
+  name(s), which course(s) may see it, pricing intent ($0 gift vs.
+  chargeback — the college-pack knob), and who answers for the box.
+  **The API key is NOT collected in chat** — see the custody note below.
+  Approval registers it at the gateway as a model pack scoped to exactly
+  the named courses; the endpoint goes live only when its key lands.
+
+**Endpoint-key custody — nothing transits the conversation.**  A secret
+pasted at an agent rides the model context and lands in Mongo chat
+history — residue in two places before escrow ever sees it.  So the
+endpooint request files *without* the key; on approval, the registrar
+issues a **one-time drop token**, and the requester runs one command:
+
+```
+curl -X POST https://frontdesk.<domain>/drop/<one-time-token> \
+     --data-urlencode 'key=sk-their-key'
+```
+
+The drop route is the registrar's own HTTP surface (a custom route beside
+`/health`), path-routed through the frontdesk vhost — not a website, one
+POST.  The key goes straight to `almanac/system/models/<name>` in the
+escrow, the token dies, reconcile finishes the registration.  **Not even
+the operator handles the key** — which is a better promise to a faculty
+member than "we store it carefully."
 
 Then the **front-door question**: the agent confirms this is for
 *coursework, not research* — and records the answer.  The request that
@@ -857,12 +881,13 @@ for the "Course Setup" agent.
 **Phase 2a — the front office** (thin slice, before or alongside Globus —
 the tools wrap reconcile verbs that already exist and shipped in Phase 1):
 `course_requests` / `course_approve` / `course_create` / `budget_set` /
-`course_list` + faculty-gated `course_request`, requests.yaml queue, the
-two flagship agents (desk + request), admin-guide recipes.  Plus the
-office-as-tenant hardening: office team + service key (**master key out
-of the flagship config** — the last one), `almanac-office` $0 model at
-the gateway, faculty-role door, and the "Ask the Almanac" RAG agent fed
-from docs/.
+`course_list` + open-door `course_request` (typed intake incl. the
+**endpoint** kind + the one-time key-drop route), requests.yaml queue,
+front-door.md, the two flagship agents (desk + request), admin-guide
+recipes.  Plus the office-as-tenant hardening: office team + service key
+(**master key out of the flagship config** — the last one),
+`almanac-office` $0 model at the gateway, and the "Ask the Almanac" RAG
+agent fed from docs/.
 
 **Phase 2 — Globus + the drill:** the registrar's confidential client,
 managed-group create/invite/reconcile, manager-role authority, `--adopt`
@@ -1011,7 +1036,12 @@ marked ✓ closed there.*
     render (`CHAT_HOST` retires); unknown subdomains catch-all-redirect
     to `/instance-not-found/` on the wildcard cert.  Closed courses
     degrade to that page — rollover UX by subtraction.
-20. *(2026-07-24, Andrew)* **The floor is not faculty-configurable.**
+20. *(2026-07-24, Andrew)* **AlmanacBot + MCP handles ALL requests** —
+    rooms and endpoints alike, one queue, one desk, one approve verb.
+    Endpoint keys never transit chat or the operator: request files
+    keyless, approval issues a one-time drop straight into escrow, the
+    model pack scopes to exactly the named courses.
+21. *(2026-07-24, Andrew)* **The floor is not faculty-configurable.**
     Platform guardrails enforce at the gateway (the one chokepoint every
     credential passes); the floor prompt and crisis-escalation behavior
     are deployment config written WITH counsel, not improvised in code.
