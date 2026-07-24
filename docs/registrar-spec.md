@@ -401,6 +401,10 @@ indifferent.
 
 *Decided 2026-07-22 (Andrew's proposition, and it wasn't insane).*
 
+> "How do you keep the courses apart in LibreChat?"
+> "That's the neat part — we don't."
+> — Andrew, explaining the architecture to a colleague, 2026-07-23
+
 The question that decides whether the semester cap is real: how does a
 *LibreChat conversation* get a course?  Injecting each student's per-course
 key into chat means `user_provided` endpoints — freshmen pasting secrets
