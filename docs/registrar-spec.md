@@ -596,6 +596,90 @@ what it is: a *course-room* mechanism.
 
 ---
 
+## The floor — what the Almanac handles FOR you
+
+*Opened 2026-07-24, pending counsel review (Nora).  This section states
+the enforcement architecture and names the questions that are counsel's
+to answer — it does not answer them.*
+
+Faculty get full control of their rooms.  **They do not get control of
+the floor** — the guardrails and audit posture the institution is
+required (or strongly advised) to provide, which no course configuration
+can lower.  The floor's enforcement point is chosen by the architecture
+we already have: **every credentialed path to every model — chat service
+keys, student vAPI keys, laptops, all of it — passes through the one
+gateway.**  What the gateway enforces, nobody routes around with a
+config knob.
+
+**Enforcement layers, strongest first:**
+
+1. **The gateway interceptor** (LiteLLM custom callback hooks — pre-call
+   and post-call, OSS; managed guardrail providers vary, verify at
+   implementation).  Runs on every request and response regardless of
+   course, key, model, or surface.  This is where "cannot get around"
+   lives: crisis-signal detection, response shaping (resources-forward,
+   never sycophantic agreement with self-harm — the exact failure mode
+   currently in litigation elsewhere), PII handling if required.
+2. **The floor prompt** — a platform-level preamble the gateway injects
+   ahead of every course's own instructions: honesty-with-care norms,
+   crisis-resource behavior, academic-advice boundaries (the "should I
+   drop out" question gets steered to human advisors, not answered by a
+   completion).  Norm-setting, not enforcement — layer 1 backs it.
+   Like front-door.md, **the words are deployment config**
+   (`registrar/floor-prompt.md`) — counsel owns the language, code owns
+   the injection point.
+3. **Training + attestation** — the front door, the docs site, the
+   Ask-the-Almanac agent: where residual liability shifts to informed
+   users, and only works if layers 1–2 exist first.
+
+**Crisis response posture** (the hard one, stated conservatively): the
+platform DETECTS and SHAPES — responses to crisis signals must carry
+crisis resources and must not assist or agree.  Whether the system also
+*alerts a human* is not an engineering decision: it's a duty-of-care /
+privacy / FERPA question with a counseling-ethics dimension, and the
+answer is a **counsel-decided escalation config**, off by default until
+decided.  The hooks exist; the policy is Nora's to write.
+
+**The honest bypass audit** — "could an instructor wire up an endpoint
+that doesn't go through LiteLLM?":
+
+- **Chat model path: locked.**  Custom endpoints live only in the
+  rendered `librechat.yaml` — read-only mount, registrar-written;
+  instance admins cannot add model endpoints from the UI on our pin.
+- **Agent Actions: the porous edge.**  Our Phase-1 render enables
+  `actions` (OpenAPI tool calls to arbitrary URLs) for agent builders —
+  an Action pointed at an external LLM API is exactly the bypass, as a
+  *tool* if not as the chat model, and an unGoverned data-egress path
+  besides.  **Flagged as a Phase-1 safety gap.**  Remedy, in order:
+  `actions.allowedDomains` in the render (campus + approved domains
+  only), a per-course `capabilities:` knob in the course record, and a
+  recommended default of actions-OFF until the allowlist ships.
+- **Admin-panel config overrides: verify.**  The panel's per-group
+  override machinery must be confirmed unable to inject endpoint
+  definitions; constrain if it can.
+- **The steer, not just the wall**: someone with a legitimate outside
+  model doesn't hack an Action — they ask, and the **college-endpoint
+  mechanism already built for this** registers their endpoint at the
+  gateway, scoped to their course, metered like everything else.  The
+  right path is easier than the workaround, on purpose.
+
+**Audit posture, for the review**: the ledger records *usage* (who,
+which model, tokens, spend) — not conversation *content*.  Content lives
+per-course in Mongo, under LibreChat's own retention.  What the
+institution MUST retain, MUST NOT retain, and who may read what under
+which process is a counsel question with FERPA weight — the layers above
+determine what's *possible*; the review determines what's *required*.
+
+**Questions carried to counsel** (the section's whole point): required
+vs. recommended guardrails for student-facing AI; crisis-escalation
+duty and its privacy interplay; content retention obligations and
+limits; whether the front-door attestation shape is sufficient; whether
+actions-off-by-default is required or merely wise; what the floor
+prompt must say.  **Sequencing commitment: the floor ships before the
+fifth course does.**
+
+---
+
 **The two lanes, side by side** — a student in
 `engr301-2026fall.aisandbox.northwinds.edu` spends either way:
 
@@ -927,3 +1011,10 @@ marked ✓ closed there.*
     render (`CHAT_HOST` retires); unknown subdomains catch-all-redirect
     to `/instance-not-found/` on the wildcard cert.  Closed courses
     degrade to that page — rollover UX by subtraction.
+20. *(2026-07-24, Andrew)* **The floor is not faculty-configurable.**
+    Platform guardrails enforce at the gateway (the one chokepoint every
+    credential passes); the floor prompt and crisis-escalation behavior
+    are deployment config written WITH counsel, not improvised in code.
+    Agent Actions flagged as the bypass edge — allowlist + per-course
+    capability knob, actions-off recommended until it ships.  The floor
+    ships before the fifth course does.
