@@ -32,7 +32,11 @@ re-deriving it is pure waste:
 - **Key attribution** — `user_id` must be the email, and why
 - **opencode** — image org, provider shape, and the ≥16k context floor
 - **`fastmcp`** — `get_http_headers()` silently strips `authorization`
-- **`just`** — `dotenv-load` snapshots `.env` at invocation start
+- **`just`** — `dotenv-load` snapshots `.env` at invocation start, and it
+  dedents recipe bodies (heredocs must stay indented)
+- **Mounts** — never bind-mount a single file that gets rewritten; OpenBao
+  rafts into `/openbao/file` or crash-loops
+- **Verifying on the box** — the prod-probe pattern, so no credential moves
 - **Orchestration** — compose now, k3s short-term, inference fleet first
 
 If you find a wall is wrong, fix it in `design-walls.md` **in the same

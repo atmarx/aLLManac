@@ -163,6 +163,48 @@ Pipeline #13 went red teaching us this.
 
 ---
 
+## Container & mount scars (Phase 1, paid in crash loops)
+
+- **OpenBao must raft into `/openbao/file`** — the image owns that directory.
+  Point storage anywhere else and the data lands root-owned and the
+  container crash-loops.
+- **Never bind-mount a single file that gets rewritten.**  Atomic writes
+  (tmp + rename) break twice over a single-file mount: `EBUSY`, then a
+  pinned inode where the container keeps reading the old content forever.
+  `usage-mcp` and the registrar both ride **directory** mounts precisely
+  for this, which is also why `courses.yaml` is bind-mounted as a
+  directory-relative path.
+- **`just` dedents recipe bodies**, so heredocs inside a recipe must stay
+  indented or the delimiter stops matching.
+- **`docker image inspect` cannot see buildkit base digests** — use
+  `docker buildx imagetools inspect`.
+- **Woodpecker's piped-ssh heredoc eats stdin.**  Any `compose exec` inside
+  one needs `</dev/null` or it hangs on a step that looks correct.
+
+---
+
+## Verifying on the box without moving a token
+
+The prod-probe pattern: run the check **inside** the container so the
+credential never leaves the host.
+
+```bash
+docker compose exec -T usage-mcp python - < prod-probe.py
+```
+
+The probe itself is a fastmcp `Client` over
+`StreamableHttpTransport("http://localhost:8080/mcp", headers={Authorization,
+X-User-Email, X-User-Role})` asserting three things: `list_tools` returns,
+a scoped call succeeds as a known faculty user, and a **bad bearer is
+rejected**.  That third assertion is the one that matters — the first two
+pass on a service with no auth at all.
+
+(The original probe script and the 15/15 rig lived in a session scratchpad
+and are gone.  Rewriting it from this paragraph is minutes; that's why the
+shape is written down and the file isn't.)
+
+---
+
 ## Structure decisions (settled — reopen only with cause)
 
 - **vLLM is its own compose project** so models outlive app deploys.
