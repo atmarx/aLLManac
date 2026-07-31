@@ -16,6 +16,9 @@ fleet/
 # too big and too derivative for git
 sbom/
 
+# Agent worktrees (fleet sessions branch here; the branches are the record)
+.worktrees/
+
 # Editor / OS noise
 .DS_Store
 *.swp
