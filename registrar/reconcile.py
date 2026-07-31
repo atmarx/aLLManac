@@ -44,6 +44,13 @@ MAX_FUSE = float(os.environ.get("REGISTRAR_MAX_FUSE", "25"))
 DEFAULT_COURSE_BUDGET = float(os.environ.get("REGISTRAR_DEFAULT_COURSE_BUDGET", "1000"))
 BASE_MODELS = ["almanac-chat"]
 
+# Agent-builder powers a course's instance gets.  `actions` (arbitrary-URL
+# tool calls) is EXCLUDED — it's the one path around the gateway's
+# guardrails and metering (docs/registrar-spec.md, "The floor").  The render
+# plane keeps its own copy of this list as a hand-built-dict fallback; this
+# is the source of truth, so change both together.
+DEFAULT_CAPABILITIES = ["file_search", "tools", "artifacts"]
+
 
 # ---- course state: registrar/courses.yaml --------------------------------------
 # The operator's file AND the file-backend roster truth.  Writes are atomic
@@ -82,9 +89,13 @@ def load_courses() -> dict:
             "models": list(c.get("models") or BASE_MODELS),
             # Agent capabilities: `actions` (arbitrary-URL tool calls) is
             # deliberately NOT in the default — it's the one path around the
-            # gateway (spec: "The floor").  Enable per course, eyes open:
-            "capabilities": list(c.get("capabilities")
-                                 or ["file_search", "tools", "artifacts"]),
+            # gateway (spec: "The floor").  Enable per course, eyes open.
+            # `or` is wrong here on purpose-of-omission: an explicit empty
+            # list means "this course gets none," and collapsing it to the
+            # default would fail OPEN on the one knob where that matters.
+            "capabilities": (list(DEFAULT_CAPABILITIES)
+                             if c.get("capabilities") is None
+                             else [str(x).strip() for x in c["capabilities"]]),
             "group": str(c.get("group") or ""),
             "students": [str(e).strip().lower() for e in (c.get("students") or [])],
             "aliases": {str(k).strip().lower(): [str(a).strip().lower() for a in (v or [])]

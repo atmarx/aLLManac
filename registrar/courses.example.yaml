@@ -18,6 +18,8 @@
 #           calls) is EXCLUDED by default — it's the one path around the
 #           gateway's guardrails and metering (spec: "The floor").  Add it
 #           per course only with eyes open, ideally with allowedDomains.
+#           Omit the key for the default; write `capabilities: []` to give a
+#           course NONE — an explicit empty list is honored, not defaulted.
 
 courses:
   engr301-2026fall:
