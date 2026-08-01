@@ -20,7 +20,7 @@ tethered_to:
 
      COUNSEL BOUNDARY: describes regimes in general terms and describes our
      system factually.  Makes no compliance claim about this platform and
-     gives no legal advice.  @nora reviews before status: published. -->
+     gives no legal advice.  Counsel review required before status: published. -->
 
 ## 1. The question
 
@@ -83,17 +83,27 @@ tethered_to:
      data feels.
 
      And the determination is scoped.  The same data type lands in different
-     tiers depending on what the system is for: FERPA-protected data inside a
-     research project registers high here, while an operational teaching
-     platform holding the same category of record is a separate entry with a
-     separate argument, plausibly a tier lower.  Neither is wrong.  The tier
-     encodes what handling makes sense in that context, and context is part
-     of the question.
+     tiers depending on what the system is FOR: FERPA-protected records inside
+     a research project and the same records inside an operational teaching
+     platform are separate entries with separate arguments, and an institution
+     may reasonably land them a tier apart.  Neither is wrong.  The tier
+     encodes what handling makes sense in that context, and context is part of
+     the question.  (Institution-neutral per authoring rule 3 — teach the
+     mechanism, name no outcome.)
 
      Two consequences worth teaching: the honest engineering answer to "how
      should we protect this?" often starts with "who registered it and at
      what tier," and a tier is a **budget** as much as a burden — it tells
-     you which controls you are obliged to fund.  Our inventory is the volume map — chat
+     you which controls you are obliged to fund.
+
+     These guides take high risk as the working posture for FERPA coursework,
+     and the useful move is to write what a high tier REQUIRES — encryption in
+     transit and at rest, scheduled off-box backups with tested restores,
+     access review on a cadence, documented retention and disposal, a named
+     accountable owner.  A reader at any institution maps that onto their own
+     register.
+
+     Our inventory is the volume map — chat
      databases, the ledger, identity, escrow, derived indexes — and it exists
      because backups forced us to write it down.  Point that out: the backup
      table became the data map, which is a common and useful accident.
@@ -128,8 +138,9 @@ tethered_to:
            off-box copy, no tested restore
          - no automated retention or expiry
          - no per-student deletion path
-         - no domain allowlist on agent actions, so an enabled course can
-           send content anywhere
+         - agent actions cannot be narrowed to "nowhere" — the allowlist
+           ships, but an empty allowlist is no allowlist, so leaving actions
+           off is the only complete egress answer
          - whether chat logs are formally education records is with counsel
 
      Say why the list is published rather than fixed first: a reader learns
@@ -168,7 +179,7 @@ tethered_to:
      line an instructor can be handed.  Two: the gap this section exists to
      fill is unfilled at the most-cited peer implementation, so our
      your-data/ pages are ahead rather than catching up.  Do not overclaim
-     the comparison — Harvard's tiers are Harvard's, not Drexel's.
+     the comparison — Harvard's tiers are Harvard's, and every register differs.
 
      **"There is no such thing as a 'FERPA seal of approval.'"**
      Michael Hawes, then director of the US Department of Education's

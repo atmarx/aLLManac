@@ -146,31 +146,47 @@ sees "we have no per-student deletion path, here is why FERPA does not compel
 one, and here is why we might build it anyway" learns more than one reading a
 page that claims we are covered.
 
-**3.  Never assert a risk tier.**  Risk classification at the university is a
-**register** — a system's tier is an entry someone makes, not a property the
-data has.  The entry is what carries the obligations: backup standards,
-encryption, access-review cadence, handling rules.
+**3.  Write for no institution in particular.**  These docs ship with the
+platform, and another institution can run it.  The repo already works this way
+— `northwinds` is a placeholder realm, not a customer — and `front-door.md` is
+deployment config precisely so a different deployment rewrites text rather
+than software.  The reader-facing pages inherit that.
 
-Two things follow for anyone writing these pages.
+So: **no institution's name, no institution's tier numbers, no institution's
+policy quoted as the authority.**  Say "your institution's register"; let the
+local operator fill it in.
 
-*Scope is part of the determination.*  The same data type registers
-differently depending on what the system is for.  FERPA-protected data inside
-a **research project** is registered high, and that has held against several
-attempts to lower it.  This platform is **operational**, which is a separate
-entry with a separate argument, and as of 2026-07-31 it has not been
-registered — the live conversation puts it plausibly around medium.  Harvard's
-comparable platform sits at their Level 3, which reads as medium-plus.
+*The posture the docs take:* **treat FERPA-protected coursework as high-risk
+data, and explain what that means.**  High risk is the conservative default
+and it is not a problem — it means doing the work deliberately.  The valuable
+part for the reader is never the label, it is the handling that attaches to
+it: encryption at rest and in transit, backups on a defined schedule with
+tested restores, access reviewed on a cadence, documented retention and
+disposal.  Write those, and a reader at any institution can map them onto
+whatever their own register says.
 
-*So pages say what the system does and wait for the entry.*  Naming a tier we
-have guessed at gives faculty something to plan against that the register may
-contradict.  Describing a control we actually run is true regardless of how
-the entry lands.
+*The mechanism is portable; the entry is not.*  Risk classification is a
+**register** — a tier is an entry someone makes about a *system*, not a
+property the data has, and the entry is what carries the obligations.  That
+much is worth teaching everywhere.  What varies is scope and outcome: the same
+data type registers differently depending on what the system is for, so
+FERPA-protected data inside a research project and the same records inside an
+operational teaching platform are separate entries with separate arguments,
+and a given institution may land them a tier apart.  Teach the mechanism, name
+no outcome.
 
-A useful consequence for the plumbing side: **whatever tier this registers at
-hands @geordi a requirements list.**  Backup cadence, encryption posture, and
-access review stop being good practice and become the entry's terms.  Several
-items on the gap lists in `your-data/` are likely to arrive as obligations
-rather than improvements.
+*Background, and the reason this rule exists* (internal — do not put this in
+`apex/`): an earlier draft imported one institution's specifics, including a
+live and unfinished registration conversation.  Publishing a predicted tier
+gives faculty something to plan against that the register may contradict, and
+it front-runs a determination that belongs to a compliance officer rather than
+a docs page.
+
+A consequence for the plumbing side: **whatever tier a given deployment
+registers at hands its operator a requirements list.**  Backup cadence,
+encryption posture, and access review stop being good practice and become the
+entry's terms.  Several items on the gap lists in `your-data/` are likely to
+arrive as obligations rather than improvements.
 
 ---
 

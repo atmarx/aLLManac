@@ -22,7 +22,7 @@ makes them concrete and gives you switches that affect them.
 
 This page is the short version of what you are holding and what you control.
 It makes no claim about what the law requires in your specific situation —
-that is a question for the university's counsel and privacy office.
+that is a question for your institution's counsel and privacy office.
 
 ## Where the obligation actually comes from
 
@@ -69,41 +69,50 @@ The NIST framework that is actually about AI is the **AI Risk Management
 Framework** (AI RMF 1.0, 2023), and it is voluntary — a way to organize
 thinking about AI risk rather than a compliance obligation.
 
-What governs your course day to day is FERPA, applicable state law, and the
-university's own data classification policy.
+What governs your course day to day is FERPA, applicable state law, and your
+institution's own data classification policy.
 
-### The tier this platform sits in
+### Risk tiers, and what "high risk" actually buys you
 
-The university maintains a **risk register**, and a system's tier is an entry
-in it rather than a property of the data.  The tier is what carries the real
-requirements: backup standards, encryption, access-review cadence, and other
-handling obligations attach to it.
+Most institutions maintain a **risk register**.  A system's tier is an entry
+someone makes in it — a determination about a *system*, rather than a label
+describing how sensitive the data feels.  The entry is what carries the real
+obligations, which is why the tier matters more than the adjective.
 
-Worth knowing that the same kind of data can register differently depending
-on what the system is for.  FERPA-protected data handled inside a **research
-project** registers high — that determination has been made and has held up
-against several attempts to lower it.  An **operational** system like this
-one is a separate entry with a separate argument, and it has not been
-registered yet.
+**These guides treat FERPA-protected coursework as high-risk data.**  That is
+the conservative posture, and it is not a warning.  A high tier means the
+handling is deliberate, and typically it requires something like:
 
-!!! note "In progress"
-    This platform's registration is underway.  Until it concludes, this page
-    will not name a tier — the entry is what carries the obligations, and a
-    number published here ahead of the determination is exactly the wrong
-    thing to plan a course against.
+- **Encryption** at rest and in transit
+- **Backups** on a defined schedule, kept off the machine they protect, with
+  restores that have actually been tested
+- **Access review** on a cadence — someone checks who can reach it, on
+  purpose, more than once
+- **Documented retention and disposal** — how long records stay, and what
+  happens at the end
+- **A named owner** who is accountable for the system
+
+That list is the useful part.  Whatever your institution's register calls this
+platform, those are the questions its answer will turn into.
+
+**Your institution's register is the authority.**  Tiers, names, and
+thresholds vary, and the same records can land differently depending on what
+the system is for — data inside a research project and the same data inside an
+operational teaching platform are separate entries with separate arguments,
+and an institution may reasonably put them a tier apart.  If yours classifies
+this platform differently, the handling standards move with it, and your
+privacy or compliance office is who tells you.
 
 ## What you may put in here
 
-The most useful sentence an instructor can be handed is a ceiling — one line
-naming the highest tier of data this platform may hold.  Peers publish one:
-Harvard's AI Sandbox states that it is approved for data up to their Level 3,
-Medium Risk Confidential.
+The most useful sentence an instructor can be handed is a **ceiling** — one
+line naming the highest tier of data this deployment may hold.  It is worth
+asking your operator for it if this page does not carry one, and it is worth
+publishing if you are the operator.  Institutions that run AI platforms
+increasingly do: Harvard's AI Sandbox, for one, states plainly that it is
+approved for data up to their Level 3, Medium Risk Confidential.
 
-!!! note "Pending registration"
-    Ours follows from the registration described above, so it does not exist
-    yet.  This page gets that line the day the entry does.
-
-Until then, the conservative posture: this platform holds
+The conservative posture, absent a local ceiling: this platform holds
 coursework and the records coursework generates.  It is not the place for
 health records, financial aid detail, disability accommodation files, or
 anything you would route through a system with its own access review.
@@ -112,7 +121,7 @@ anything you would route through a system with its own access review.
 
 | Switch | What it does | Worth thinking about |
 |---|---|---|
-| **Agent actions** | Lets agents in your course call outside web services | The one that can send course content off university hardware.  Off by default.  The domain allowlist is not built yet, so "on" currently means "any address the agent's builder typed." |
+| **Agent actions** | Lets agents in your course call outside web services | The one that can send course content off institutional hardware, and the most consequential switch on this page.  Off by default, and **that default is the control** — see below. |
 | **Sharing** | Lets students share agents with each other | Off by default.  Turning it on makes one student's work visible to others, which is a disclosure decision rather than a convenience setting. |
 | **Knowledge files** | What you upload to a course agent | Anything you attach becomes retrievable by everyone who can use that agent.  Rosters, graded work, and student writing are the ones to think twice about. |
 | **Roster membership** | Who is enrolled | Enrollment is access.  Removing a student revokes their access; it does not erase what they already wrote. |
@@ -120,6 +129,25 @@ anything you would route through a system with its own access review.
 Actions and sharing are set per course in the course record — ask the
 platform operators to change them, and they will tell you what the change
 means before making it.
+
+### On actions and the allowlist, precisely
+
+If you enable actions, you can also give your course a list of domains agents
+are permitted to reach.  It is worth knowing exactly what that buys, because
+the two knobs are not equal options:
+
+- **Leaving actions off closes the path.**  No agent in the course can call
+  out, and nothing else you configure matters.
+- **Enabling actions opens it.**  A course with actions on and no domain list
+  can reach the entire public internet.  Private and internal addresses stay
+  blocked either way.
+- **The allowlist narrows an open door.  It cannot close one.**  There is no
+  way to write "allow nothing" — an empty list is no list rather than a
+  denial.
+
+So the meaningful decision is whether actions are on at all.  Treat the
+allowlist as a way to reduce a risk you have already accepted rather than a
+way to avoid accepting it.
 
 ## If you are using AI to help with grading
 
@@ -130,7 +158,7 @@ interested in.  The general shapes of a defensible approach are a human who
 actually reviews each decision, a record of how the decision was reached, and
 telling students that the tool is in the loop.
 
-If you are considering this, talk to the university before the term starts
+If you are considering this, talk to your institution's privacy or compliance office before the term starts
 rather than after a grade is contested.
 
 ## What the platform does for you
@@ -155,7 +183,10 @@ Stated plainly so you do not plan around something that is not there:
   removes them, and that removal is currently a manual act.
 - **No per-student deletion path.**  Nothing walks a course database and
   removes one student's material.
-- **No domain allowlist on agent actions.**  Covered above.
+- **No way to deny all outbound domains.**  The allowlist can narrow where
+  agents reach; it cannot express "nowhere."  Leaving actions off is the only
+  complete answer, and that is a property of the underlying chat software
+  rather than a setting waiting to be built.
 
 If any of these matter to how you are planning a course, say so — they are
 the platform's open work, and a real course requirement moves things up the
