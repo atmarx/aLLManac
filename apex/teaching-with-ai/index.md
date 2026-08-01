@@ -35,6 +35,18 @@ teaches them to conceal their process instead of owning it.  The workable
 expectation is the one professionals already live under: use what you like,
 and answer for the result.
 
+### And the reason that is hard
+
+Answering for something means having read it, which runs into what the tool is
+named after.  **Large language models produce large amounts of language** — a
+page in seconds, against the minutes it takes to read one properly.  Those
+rates do not match, so output accumulates faster than anyone can be
+accountable for it.
+
+That is arithmetic rather than a discipline problem, and it is why "be more
+careful" is not an intervention.  [AI literacy](ai-literacy.md) takes it
+seriously; the short version is that generating less is the underrated fix.
+
 ## Start with the design question
 
 The order that causes trouble is policy first, design second — writing a rule

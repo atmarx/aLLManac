@@ -1,71 +1,126 @@
 ---
 title: AI literacy as a learning objective
-description: What students should understand about the tool itself — how it fails, why fluent output is not evidence of correctness, and how to teach evaluation rather than usage.
+description: The name is the warning — large language models produce large amounts of language, faster than anyone can read it. Why volume is the real hazard, and how to teach reading, questioning, and checking.
 audience: faculty
 also_reaches: [student]
-status: scaffold
+status: draft
 owner: piper
-tags: [ai-literacy, critical-evaluation, hallucination, assessment-design, faculty-duty]
+tags: [ai-literacy, accountability, critical-evaluation, hallucination, source-verification, assessment-design, faculty-duty]
 ---
 
 # AI literacy as a learning objective
 
-<!-- SCAFFOLD.
+## Start with what the name says
 
-     THESIS: "how to use it" is the small half and it teaches itself.  The
-     part students do not pick up on their own is how to tell when the output
-     is wrong, and that is a teachable, gradeable skill in any discipline. -->
+**Large language models produce large amounts of language.**  That is not a
+joke about the acronym; it is the whole hazard in one line, and most people
+skip past it because the name has become furniture.
 
-## The gap that matters
+The tool's defining characteristic is *volume*.  It generates a page in
+seconds.  Reading that page — properly, with attention, catching what is
+assumed and what is asserted — takes minutes.  The rates do not match, and
+they do not match by an order of magnitude.
 
-<!-- Students are fluent operators and poor evaluators.  They can get output
-     in seconds and have almost no calibration for when to trust it.  The
-     model's confidence is uniform whether it is right or inventing, which
-     removes the signal humans normally use.
+So if you accept output at the speed it arrives, you are necessarily not
+reading it.  That is arithmetic rather than a character flaw, which matters
+for how you teach it: the failure is structural, and telling students to be
+more careful does not change a rate mismatch.
 
-     Name the specific failure modes rather than gesturing at
-     "hallucination":
-     - invented citations that are formatted perfectly
-     - confident wrongness on anything niche, recent, or local
-     - plausible-sounding reasoning with an error in the middle step
-     - fluent summaries that drop the qualifier that mattered
-     - agreement bias — it will often go along with a wrong premise you
-       assert -->
+## Fluency makes it worse
 
-## Why fluency reads as competence
+Volume alone would be manageable if the output looked rough.  It does not.
+It arrives polished, evenly confident, correctly formatted, and organized
+with headings — every signal humans normally use to judge whether a text was
+carefully made.
 
-<!-- Worth a short section on why this fools people, including experts.  We
-     use fluency, confidence, and formatting as proxies for reliability
-     because for humans they correlate.  For a language model they do not
-     correlate at all.  Students should be able to state that explicitly. -->
+For human writing, fluency and care correlate.  For generated text they do
+not correlate at all.  A student should be able to say that sentence out
+loud, because it is the single most useful thing they can know about the
+tool.
 
-## Teaching evaluation, by discipline
+The two failures compound.  Volume means you skim; fluency means skimming
+feels sufficient.  You come away believing you have absorbed something you
+have only scanned.
 
-<!-- The concrete move: whatever your field's standard for verifying a claim
-     already is, apply it to model output.  Then give discipline-flavored
-     examples:
-     - sciences — check the cited paper exists and says that
-     - humanities — check the quotation against the text
-     - code — run it, and read the part that looks fine
-     - quantitative — redo the arithmetic; the reasoning can be right and the
-       number wrong
+## Answering for something means having read it
 
-     The exercise that works well: assign a task where the model is
-     confidently wrong, and grade whether the student caught it. -->
+This is where the principle from
+[the section index](index.md#the-principle-underneath-all-of-it) becomes a
+concrete instruction rather than an abstraction.
 
-## Cost and consumption as a teachable subject
+You are responsible for what you submit.  You cannot be responsible for text
+you have not read.  Therefore: **read it.**  Not skim — read, at the pace
+reading actually takes, with the intent to understand rather than to confirm
+that it looks fine.
 
-<!-- Unusual advantage of this platform: usage is metered and visible, so a
-     student can see what their questions cost.  Most people using AI have no
-     idea it has a unit economics.  A short exercise comparing the cost of
-     asking well versus asking carelessly teaches resource awareness that
-     transfers well past this course. -->
+The practical implication is one most people resist, because it removes the
+tool's apparent advantage: **generate less.**  A model asked for three
+paragraphs produces something you can be accountable for.  A model asked for
+five pages produces something you will skim, whatever you intend at the
+outset.
 
-## What "AI literacy" should not become
+## Read to understand
 
-<!-- Guard against two failure modes:
-     - prompt-engineering trivia, which ages out in months
-     - blanket cynicism, which is as uncalibrated as blanket trust
+Three habits, and they are the same three that make a good reader of anything.
 
-     The target is calibration: knowing what this tool is good at, what it is
-     bad at, and how to tell the difference in your own field. -->
+**Call out the assumptions.**  Generated text carries premises it never
+states.  It will also accept whatever assumption is embedded in your
+question and build confidently on top of it — ask a leading question and you
+get a well-argued answer to the wrong problem.  The exercise is to say what
+the text assumes, out loud, and ask whether those assumptions hold in your
+case.
+
+**Check elsewhere.**  Corroborate against something independent.
+
+!!! warning "Asking it again is not checking"
+    Asking the same model "are you sure?" is not verification.  It will
+    either reassert with equal confidence or fold and apologize, and neither
+    response carries information about whether the original claim was true.
+    Consistency is not corroboration.  Go to a source that does not share the
+    first one's failure modes — the actual paper, the documentation, a
+    person who knows.
+
+**Question it, and question yourself.**  Do not abandon your own knowledge
+because a machine sounded certain — expertise you spent years acquiring
+outranks a confident paragraph, and students give theirs up far too readily.
+And hold your own view loosely enough to check it.  **Neither humans nor
+models are infallible**, and the useful posture is calibration rather than
+deference in either direction.
+
+## Teaching it
+
+- **Assign something the model gets confidently wrong**, and grade whether
+  the student caught it.  This teaches faster than any warning.
+- **Ask for the assumptions.**  "List three things this answer takes for
+  granted" is a short, gradeable exercise that produces real thinking.
+- **Cap the length.**  A word limit is an AI-literacy intervention: it forces
+  the student back to something they can actually stand behind.
+- **Make them defend a paragraph they did not write.**  Five minutes of
+  questions about generated text reveals precisely how much was read.
+- **Apply your field's own verification standard** to model output.  Whatever
+  your discipline already requires to accept a claim, require it here.  See
+  [Verifying sources](verifying-sources.md).
+
+## Cost as a teachable subject
+
+An unusual advantage of running this on institutional infrastructure: usage is
+metered and visible, so a student can see what their questions cost.  Most
+people using AI have no idea it has unit economics at all.
+
+It also lands the volume point from a different angle — generating five pages
+to use one paragraph is visibly wasteful once there is a number attached.
+
+## What AI literacy should not become
+
+Two failure modes worth steering around.
+
+**Prompt-engineering trivia.**  Technique specific to this year's models ages
+out in months, and teaching it as the core skill dates the course badly.
+
+**Blanket cynicism.**  "Never trust it" is as uncalibrated as "it's usually
+right," and it is the posture that quietly stops students from learning what
+the tool is genuinely good at.
+
+The target is calibration: knowing what this tool does well, what it does
+badly, and how to tell the difference in your own field.  That skill outlives
+any particular model.
