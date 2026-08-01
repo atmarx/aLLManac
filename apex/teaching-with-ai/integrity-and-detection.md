@@ -1,11 +1,11 @@
 ---
 title: Integrity and detection
-description: AI detectors flag non-native English writers as AI-generated most of the time. What the evidence shows, why the failure is structural, and what to build instead.
+description: AI detectors flag non-native English writers as AI-generated most of the time. Why the failure is structural, why the whole detection framing is a dead end, and what replaced it.
 audience: faculty
 also_reaches: [student]
 status: draft
 owner: piper
-tags: [academic-integrity, detection, equity, assessment-design, disclosure, faculty-duty]
+tags: [accountability, academic-integrity, detection, equity, assessment-design, disclosure, source-verification, faculty-duty]
 ---
 
 # Integrity and detection
@@ -14,6 +14,17 @@ The instinct when a new tool can produce coursework is to look for a tool that
 detects it.  That instinct is worth following far enough to learn where it
 leads, because the evidence on AI detectors is unusually clear and it arrives
 with an equity problem attached.
+
+It is also worth naming why the whole framing is a dead end before getting to
+the numbers.  Detection asks *how was this produced*, and that question is
+already unanswerable and getting more so — faculty and staff use these tools
+daily, and a standard nobody applies to themselves does not survive contact
+with a classroom.  The question that holds up is *do you stand behind this*.
+See [the principle](index.md#the-principle-underneath-all-of-it).
+
+The evidence below matters for a narrower reason: a lot of institutions tried
+detection first, and it is worth knowing precisely why it failed rather than
+being told to skip it.
 
 ## What the evidence shows
 
@@ -59,10 +70,32 @@ Practically:
 - If your institution requires detector use, treat the output as a flag for
   human review and document that you did the review.
 
-## What to build instead
+## What replaces it
 
-The durable answer is assessment design, and the general shape is to **make
-the process visible rather than policing the product**.
+The practice institutions are moving to as they retire detectors is
+**verifying the sources** — confirming that cited publications exist and that
+they say what the citation claims they say.
+
+It is a better instrument for a specific reason: it evaluates the work rather
+than guessing at the author.  It carries no assumption about how the text was
+produced, it cannot be biased by a student's sentence rhythm or first
+language, and asking someone to support a claim is ordinary scholarship
+rather than an accusation.  It also catches failures that have nothing to do
+with AI.
+
+The rates justify it.  Studies of LLM-generated literature reviews report
+fabrication rates from roughly **18% to 95%** depending on model and method,
+and among citations pointing at genuinely real papers, **45.4% carry
+bibliographic errors**.
+
+**[Verifying sources](verifying-sources.md)** is the full treatment — the
+three failure modes, the checks that take seconds versus the ones that take
+reading, and how to make it a gradeable skill rather than a policing chore.
+
+## And the rest of assessment design
+
+Verification is the sharpest single instrument.  Around it, the general shape
+is to **make the process visible rather than policing the product**.
 
 - **Ask for the work, not just the artifact.**  Outlines, annotated sources,
   drafts, revision history.  A finished essay is easy to generate; a
