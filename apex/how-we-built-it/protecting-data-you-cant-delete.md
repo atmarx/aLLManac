@@ -115,6 +115,69 @@ tethered_to:
      more from a real gap list than from a finished story, and the gaps are
      what the next cohort gets to close. -->
 
+## 5b. What everyone else did — banked prior art
+
+<!-- Researched 2026-07-31.  Sources verified; use them, do not re-derive.
+
+     **UBC's LLM Sandbox — the contrast case that teaches the most.**
+     UBC built a locally-hosted LLM service and made it deliberately
+     STATELESS: "the infrastructure that constitutes the LLM Sandbox does
+     not need to store any data whatsoever.  It is essentially idempotent."
+     They chose that specifically to simplify their Privacy Impact
+     Assessment, and pushed responsibility for sensitive data onto the
+     applications built on top.  Data residency (keeping data in Canada)
+     drove the self-hosting decision.  Runs Ollama on AWS EC2.
+
+     This is beat-4 gold.  They engineered AROUND the data problem.  We took
+     it on, because persistence IS the pedagogy here — students build agents
+     and come back to them, faculty need attribution and budgets.  Every
+     page in your-data/ is the bill for that choice.  Two institutions, same
+     privacy pressure, opposite architectures, and both defensible.  Say
+     which one we are and why.
+
+     **Harvard's AI Sandbox — publishes a ceiling, and little else.**
+     States it is approved for data up to Level 3 (Medium Risk
+     Confidential) under Harvard's classification scheme, promises data is
+     not used to train LLMs, and gates access behind a training module.
+     Publishes nothing about retention, who can access stored interactions,
+     or deletion.
+
+     Two things follow.  One: publishing an explicit classification ceiling
+     is a concrete practice worth copying, and it is the single most useful
+     line an instructor can be handed.  Two: the gap this section exists to
+     fill is unfilled at the most-cited peer implementation, so our
+     your-data/ pages are ahead rather than catching up.  Do not overclaim
+     the comparison — Harvard's tiers are Harvard's, not Drexel's.
+
+     **"There is no such thing as a 'FERPA seal of approval.'"**
+     Michael Hawes, then director of the US Department of Education's
+     Student Privacy Policy and Assistance Division, quoted in FPF's
+     *Vetting Generative AI Tools for Use in Schools* (April 2024).  FERPA
+     binds funded schools, not companies, so no product can be
+     FERPA-compliant — the question is whether an institution can use it in
+     a compliant manner.  An entire vendor category sells the thing that
+     cannot exist; a web search for FERPA-compliant AI returns mostly that.
+
+     **Most available guidance is K-12-shaped, and higher ed imports its
+     errors.**  FPF's brief is explicitly K-12 (parents, COPPA, districts).
+     Higher-ed faculty guides then inherit parental-consent framing, when
+     FERPA rights transfer to the student on postsecondary enrollment at any
+     age.  Naming this is a real service to the reader.
+
+     **The awareness gap, which justifies the whole approach.**  EDUCAUSE
+     (Jan 2026): 94% of higher-ed workers used AI tools for work in the past
+     six months; 54% know their institution's AI policy.  Their 2024
+     landscape study: 80% use, fewer than one in four aware of a formal
+     policy.  Writing more policy does not reach people who do not read
+     policy — which is why the faculty duties here are taught through pages
+     addressed to students.
+
+     **Also useful:** FPF's lifecycle spine (notice → consent → collection →
+     use → sharing → deletion); 128+ state student privacy laws, many of
+     which DO impose retention and deletion duties that FERPA does not; and
+     FPF's high-risk-decision-making section, which is the frame for
+     AI-assisted grading. -->
+
 ## 6. How this looks on other stacks
 
 <!-- - **Azure** — Purview for classification and lineage, Policy for

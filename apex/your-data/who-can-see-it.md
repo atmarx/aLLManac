@@ -1,74 +1,139 @@
 ---
 title: Who can see it
-description: Access control from the front door inward — sign-in, course isolation, per-student keys, sharing defaults, and the one path that leaves the building.
+description: Access control from the front door inward — how you sign in, why your course is its own room, who genuinely has reach, and the one path that sends course content off university hardware.
 audience: student
 also_reaches: [faculty]
-status: scaffold
+status: draft
 owner: piper
-tags: [access-control, sso, oidc, identity-broker, tenancy, isolation, egress-control, allowlist, faculty-duty, keycloak, globus]
+tags: [access-control, sso, oidc, identity-broker, tenancy, isolation, egress-control, allowlist, faculty-duty, keycloak, globus, transparency-notice]
 regimes: [ferpa]
 tethered_to:
   - docs/design-walls.md#the-classroom-posture
   - registrar/reconcile.py
   - registrar/render.py
+  - compose.yml
 ---
 
 # Who can see it
 
-<!-- SCAFFOLD.  Work outward-in: door, room, key, sharing, egress. -->
+Four groups can reach what you write here: you, your instructor, the people
+who run the servers, and anyone your instructor deliberately lets in.  That
+list is short on purpose, and this page walks it from the front door inward.
 
 ## Signing in
 
-<!-- Keycloak SSO.  Campus identity — today local accounts, with the Globus
-     broker one toggle from live.
+You reach the aLLManac through the university's single sign-on.  There is no
+separate password to create and no account for us to lose — you authenticate
+with campus identity, and the platform learns only that you are you and which
+courses you belong to.
 
-     IMPORTANT for accuracy: Globus here is an identity broker only.  It
-     authenticates the person.  No almanac data lives in a Globus
-     collection, nothing transfers over Globus, and there are no Globus
-     group ACLs on any of this.  Students arriving from research computing
-     will assume otherwise — say it plainly. -->
+The identity layer is Keycloak, and it can broker your campus identity
+provider — including Globus — without any of the chat software knowing the
+difference.
+
+**One thing worth clearing up if you come from research computing:** Globus
+here is only a way to log in.  In research settings Globus also moves data
+around, with collections and group permissions attached to real datasets.
+None of that applies here.  No aLLManac data lives in a Globus collection,
+nothing transfers over Globus, and there are no Globus group permissions on
+your conversations.  Globus establishes who you are, then steps out of the
+way.
 
 ## Your course is its own room
 
-<!-- Instance-per-course tenancy, in a sentence a freshman gets: your course
-     runs its own copy of the chat with its own database.  Another course
-     cannot see into yours because there is no shared room to partition.
+Every course on this platform runs its own copy of the chat, with its own
+database.  Your course does not share a table with another course, or a
+filter, or a permission check that has to be written correctly.  There is no
+shared room to partition.
 
-     Link to how-we-built-it/keeping-courses-apart.md for the why. -->
+The practical consequence: someone in another course cannot see your
+conversations, your agents, or your uploaded files, because there is no query
+that reaches across.  Instructors of other courses cannot either.
+
+The reasoning behind that choice — and what it costs us — is written up in
+[How do you keep the courses apart?](../how-we-built-it/keeping-courses-apart.md).
 
 ## Who has reach, honestly
 
-<!-- List, no hedging:
-     - your instructor, within your course
-     - platform operators, who hold the infrastructure
-     - nobody in another course
-     State that operator access is a function of running the servers, and
-     that the honest control on it is institutional policy rather than a
-     technical barrier.  Do not imply otherwise. -->
+**You** — everything in your own account.
 
-## Sharing is off until someone turns it on
+**Your instructor**, within your course.  They can see the conversations and
+agents in the course instance they run.  Assume your instructor can read what
+you write in their course, the same way you would assume it about anything
+you submit for a grade.
 
-<!-- Default posture: agents.share=false, people-picker off.  Out of the box
-     students cannot share agents with each other.  Faculty opt in per
-     course.
+**The people who run the platform.**  Operators hold the infrastructure —
+the servers, the databases, the backups.  Technical access follows from
+running the system, and the control on it is institutional policy and
+professional obligation rather than a barrier in the software.  Any platform
+you use works this way, including the commercial ones; the difference here is
+that the people in question work for the university and are reachable.
 
-     FACULTY MIRROR: this is where a professor learns that turning sharing on
-     is a decision with consequences, by reading what their students are
-     told about the default. -->
+**Nobody in another course.**  See above.
+
+**No outside company.**  The models that answer you run on university
+hardware.  Where a course uses a hosted model instead, that is a property of
+the course and your instructor can tell you which one.
+
+## What we do not do with it
+
+We do not train models on your conversations.  Nothing you write becomes
+training data for anything — not for our models, not for a vendor's.  This is
+straightforward for us to promise because the models we serve run on our own
+machines and we do not fine-tune them on course traffic.
+
+We also do not collect keystrokes, screen activity, or attention telemetry.
+What we record about your usage is [the ledger](what-we-store.md#the-one-that-surprises-people)
+— which model, how many tokens, what it cost, when — and nothing about how
+you sat at the keyboard.
+
+## Sharing starts off
+
+By default, students cannot share agents with each other.  Agent sharing and
+the people-picker are both switched off in every course when it is created,
+which means the custom GPT you build is yours until someone changes that
+setting.
+
+Your instructor can turn sharing on for a course — group projects need it,
+and Part 2 of the course guide covers how it works once they do.  Worth
+knowing that this is a decision someone made rather than a default that
+happened to you.
+
+<!-- LINK PENDING: the course guide is reader-facing and still sits in
+     docs/user-guide.md.  It belongs in the "public + taught" pile and moves
+     into apex/ with the boundary work; link it properly then.  A relative
+     link out of the apex tree resolves on disk and dies in the built
+     site. -->
 
 ## The path that leaves the building
 
-<!-- Agent Actions.  An agent with `actions` enabled can call any URL its
-     builder points it at, which means course content can be sent outside
-     the university's hardware by design of the feature.
+There is one way for course content to leave university hardware, and it is
+worth understanding because it is a feature rather than a leak.
 
-     Per-course `capabilities:` controls whether the course has it at all.
-     `actions` is excluded from the default on purpose.
+Agents can be given **actions** — the ability to call an outside web service
+as part of answering.  An agent with actions can send whatever it is working
+with to whatever address it was pointed at.  That is the entire point of the
+feature, and it is genuinely useful: an agent that looks up live data has to
+reach something.
 
-     !!! warning "Open gap"
-         The domain allowlist (`actions.allowedDomains`) is not built yet.
-         Where a course enables actions, the destination is whatever the
-         agent's builder typed.
+Actions are **off unless a course turns them on.**  The platform's default
+capability set gives courses file search, tools, and artifacts, and
+deliberately leaves actions out.  Enabling them is a per-course decision your
+instructor makes.
 
-     This section carries `faculty-duty` — it is the single most consequential
-     switch a professor controls. -->
+!!! warning "Open gap"
+    The domain allowlist that would restrict *where* actions can reach is not
+    built yet.  In a course that has enabled actions, the destination is
+    whatever address the agent's builder typed.  Until that lands, "actions
+    on" means "actions anywhere."
+
+If you are building an agent with actions in a course that allows them, you
+are the one deciding where course material goes.  Point it at something you
+would be comfortable naming out loud.
+
+## If something looks wrong
+
+Access problems, an agent you did not expect to see, a course you should not
+have: tell your instructor, and they can reach the platform operators.  The
+uninteresting explanation is usually right, and the interesting one is worth
+finding quickly.

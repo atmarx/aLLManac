@@ -156,12 +156,15 @@ at `apex/tags.md`.
 
 **Regimes and legal frameworks**
 `ferpa` · `gdpr` · `ccpa` · `hipaa` · `pci-dss` · `fisma` · `nist-800-53` ·
-`nist-800-171` · `cui` · `state-privacy-law` · `data-processing-agreement`
+`nist-800-171` · `nist-ai-rmf` · `cui` · `state-privacy-law` · `ppra` ·
+`coppa` · `data-processing-agreement`
 
 **Data concepts**
 `data-classification` · `high-risk-data` · `education-record` ·
-`directory-information` · `pii` · `data-inventory` · `data-residency` ·
-`data-minimization` · `consent`
+`eligible-student` · `school-official-exception` · `directory-information` ·
+`pii` · `data-inventory` · `data-residency` · `data-minimization` ·
+`consent` · `transparency-notice` · `automated-decision-making` ·
+`privacy-impact-assessment`
 
 **Controls**
 `access-control` · `rbac` · `sso` · `oidc` · `identity-broker` ·
