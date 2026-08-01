@@ -72,7 +72,28 @@ tethered_to:
 <!-- The method, which is the actually transferable skill:
 
      **Inventory, then classify, then map controls.**  You cannot classify
-     what you have not enumerated.  Our inventory is the volume map — chat
+     what you have not enumerated.
+
+     The correction that belongs here, because engineers get it wrong and it
+     is the most transferable thing on the page: **classification is a
+     register entry, not a property of the data.**  Someone with authority
+     makes a determination about a *system*, and the tier that comes back
+     carries the actual requirements — backup cadence, encryption, access
+     review.  You do not reason your way to a tier from how sensitive the
+     data feels.
+
+     And the determination is scoped.  The same data type lands in different
+     tiers depending on what the system is for: FERPA-protected data inside a
+     research project registers high here, while an operational teaching
+     platform holding the same category of record is a separate entry with a
+     separate argument, plausibly a tier lower.  Neither is wrong.  The tier
+     encodes what handling makes sense in that context, and context is part
+     of the question.
+
+     Two consequences worth teaching: the honest engineering answer to "how
+     should we protect this?" often starts with "who registered it and at
+     what tier," and a tier is a **budget** as much as a burden — it tells
+     you which controls you are obliged to fund.  Our inventory is the volume map — chat
      databases, the ledger, identity, escrow, derived indexes — and it exists
      because backups forced us to write it down.  Point that out: the backup
      table became the data map, which is a common and useful accident.

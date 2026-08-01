@@ -146,6 +146,32 @@ sees "we have no per-student deletion path, here is why FERPA does not compel
 one, and here is why we might build it anyway" learns more than one reading a
 page that claims we are covered.
 
+**3.  Never assert a risk tier.**  Risk classification at the university is a
+**register** — a system's tier is an entry someone makes, not a property the
+data has.  The entry is what carries the obligations: backup standards,
+encryption, access-review cadence, handling rules.
+
+Two things follow for anyone writing these pages.
+
+*Scope is part of the determination.*  The same data type registers
+differently depending on what the system is for.  FERPA-protected data inside
+a **research project** is registered high, and that has held against several
+attempts to lower it.  This platform is **operational**, which is a separate
+entry with a separate argument, and as of 2026-07-31 it has not been
+registered — the live conversation puts it plausibly around medium.  Harvard's
+comparable platform sits at their Level 3, which reads as medium-plus.
+
+*So pages say what the system does and wait for the entry.*  Naming a tier we
+have guessed at gives faculty something to plan against that the register may
+contradict.  Describing a control we actually run is true regardless of how
+the entry lands.
+
+A useful consequence for the plumbing side: **whatever tier this registers at
+hands @geordi a requirements list.**  Backup cadence, encryption posture, and
+access review stop being good practice and become the entry's terms.  Several
+items on the gap lists in `your-data/` are likely to arrive as obligations
+rather than improvements.
+
 ---
 
 ## Controlled vocabulary

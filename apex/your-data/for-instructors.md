@@ -72,21 +72,38 @@ thinking about AI risk rather than a compliance obligation.
 What governs your course day to day is FERPA, applicable state law, and the
 university's own data classification policy.
 
-!!! note "Placeholder — institutional policy reference"
-    This section needs the citable Drexel data classification policy and the
-    tier that course data sits in.  Pending from @xram; not shipping without
-    it.
+### The tier this platform sits in
+
+The university maintains a **risk register**, and a system's tier is an entry
+in it rather than a property of the data.  The tier is what carries the real
+requirements: backup standards, encryption, access-review cadence, and other
+handling obligations attach to it.
+
+Worth knowing that the same kind of data can register differently depending
+on what the system is for.  FERPA-protected data handled inside a **research
+project** registers high — that determination has been made and has held up
+against several attempts to lower it.  An **operational** system like this
+one is a separate entry with a separate argument, and it has not been
+registered yet.
+
+!!! note "In progress"
+    This platform's registration is underway.  Until it concludes, this page
+    will not name a tier — the entry is what carries the obligations, and a
+    number published here ahead of the determination is exactly the wrong
+    thing to plan a course against.
 
 ## What you may put in here
 
-!!! note "Placeholder — classification ceiling"
-    Peer institutions publish an explicit ceiling for their AI platforms —
-    Harvard's AI Sandbox, for instance, states plainly that it is approved
-    for data up to their Level 3 (Medium Risk Confidential).  A one-line
-    ceiling is the single most useful thing an instructor can be told, and
-    ours needs to come from the university rather than from this page.
+The most useful sentence an instructor can be handed is a ceiling — one line
+naming the highest tier of data this platform may hold.  Peers publish one:
+Harvard's AI Sandbox states that it is approved for data up to their Level 3,
+Medium Risk Confidential.
 
-Until that line exists, the conservative posture: this platform holds
+!!! note "Pending registration"
+    Ours follows from the registration described above, so it does not exist
+    yet.  This page gets that line the day the entry does.
+
+Until then, the conservative posture: this platform holds
 coursework and the records coursework generates.  It is not the place for
 health records, financial aid detail, disability accommodation files, or
 anything you would route through a system with its own access review.
