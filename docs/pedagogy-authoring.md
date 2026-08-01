@@ -226,6 +226,11 @@ at `apex/tags.md`.
 `openbao` · `keycloak` · `litellm` · `librechat` · `mongodb` ·
 `docker-compose` · `kubernetes` · `azure` · `aws` · `globus` · `vllm`
 
+**Teaching and learning**
+`assessment-design` · `academic-integrity` · `syllabus-policy` · `detection` ·
+`disclosure` · `ai-literacy` · `critical-evaluation` · `hallucination` ·
+`equity`
+
 **Duty**
 `faculty-duty` · `operator-duty` · `student-right`
 
