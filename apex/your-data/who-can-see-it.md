@@ -83,7 +83,7 @@ straightforward for us to promise because the models we serve run on our own
 machines and we do not fine-tune them on course traffic.
 
 We also do not collect keystrokes, screen activity, or attention telemetry.
-What we record about your usage is [the ledger](what-we-store.md#the-one-that-surprises-people)
+What we record about your usage is [the ledger](what-we-store.md#the-ledger-which-is-the-one-that-surprises-people)
 — which model, how many tokens, what it cost, when — and nothing about how
 you sat at the keyboard.
 

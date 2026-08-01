@@ -32,11 +32,22 @@ tags: [librechat, tenancy]
 <!-- Link out: first custom GPT, group projects, model selection,
      my_usage / budget awareness, the coding harness. -->
 
+## Teaching with it
+
+<!-- Link to teaching-with-ai/.  Faculty-facing section: where AI belongs in
+     a course, writing a syllabus policy, what the evidence says about
+     detection, and AI literacy as a learning objective.  Also carries a
+     student-facing page on using these tools well.
+
+     Give this block real weight on the landing page — it is the section
+     most faculty arrive looking for, whether or not they know it. -->
+
 ## Learning to build it
 
 <!-- Link to how-we-built-it/.  One line on why the build is course
      material: the decisions have their reasons written down, and the
-     reasons are the transferable part. -->
+     reasons are the transferable part.  (Section currently parked pending
+     the build settling — see its index.) -->
 
 ## Your data
 

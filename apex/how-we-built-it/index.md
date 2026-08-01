@@ -10,7 +10,15 @@ tags: [rendered-config, tenancy, secrets-management, kubernetes, azure, aws]
 
 # How we built it
 
-<!-- SCAFFOLD.  Section landing for the show-the-work track. -->
+<!-- SCAFFOLD, AND PARKED (2026-08-01, xram).  Hold depth on this track until
+     the build settles — the registrar is still landing changes, and a
+     teaching page written against a moving system is the drift this whole
+     doctrine exists to prevent.  The banked prior art and the queued
+     artifacts below keep their value; nothing here needs rewriting when work
+     resumes, it needs finishing.
+
+     Priority meanwhile is apex/teaching-with-ai/ — responsible use of AI in
+     teaching, which does not depend on the build at all. -->
 
 ## Why this section exists
 

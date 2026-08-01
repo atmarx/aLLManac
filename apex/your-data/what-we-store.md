@@ -1,63 +1,92 @@
 ---
 title: What we store
-description: The actual inventory — conversations, agents, usage records, and identity — listed by the system that holds each one.
+description: The actual inventory — conversations, agents, uploaded files, usage records, and identity — listed by the system that holds each one.
 audience: student
 also_reaches: [faculty, builder]
-status: scaffold
+status: draft
 owner: piper
-tags: [data-inventory, education-record, pii, mongodb, litellm, keycloak, openbao, ferpa]
+tags: [data-inventory, education-record, pii, mongodb, litellm, keycloak, openbao, ferpa, attribution, metering]
 regimes: [ferpa]
 tethered_to:
   - docs/admin-guide.md#backups
   - compose.yml
+  - registrar/reconcile.py
 ---
 
 # What we store
 
-<!-- SCAFFOLD.
-
-     SOURCE: the admin guide's backup table is already a data inventory —
-     it enumerates every named volume and what it holds.  Rewrite it for a
-     student reader.  Do not link students to the admin guide itself
-     (operator pile, out of the corpus). -->
+Five systems hold something about you.  Here is each one, what it has, and
+whether it is tied to your name.
 
 ## The inventory
 
-<!-- Table, student-legible.  Columns: what it is / where it lives / tied to
-     your identity?  Drafted from the volume map:
+| What | Where it lives | Tied to you |
+|---|---|---|
+| Your conversations, and the agents you build | Your course's own database | Yes |
+| Files you upload to an agent, and the search index built from them | The knowledge store | Through the agent you attached them to |
+| Usage records — model, tokens, cost, timestamp | The ledger | **Yes, by email address** |
+| Your account, roles, and course membership | The identity system | Yes |
+| API keys issued to you | The key escrow, versioned | Yes |
+| Chat search index | Per-course search service | Rebuilt from your conversations; holds nothing original |
 
-     - Conversations and agents you build → your course's own database
-       (one database per course inside mongo-data).  Tied to you.
-     - Agent knowledge-file embeddings → pgvector.  Tied to the agent, and
-       the files you uploaded to it.
-     - Usage records — which model, how many tokens, what it cost, when →
-       the ledger (litellm-db).  Tied to your email.
-     - Your account, roles, course membership → identity (keycloak-db).
-     - Search index → derived, rebuilds itself, holds nothing original.
-     - API keys minted for you → escrow (OpenBao), versioned. -->
+Two of those deserve more than a table row.
 
-## The one that surprises people
+## Your conversations
 
-<!-- The ledger.  Usage records are not conversation content, and they still
-     describe behavior in detail: which model you chose, how much you used
-     it, at what hour, across the term, keyed to your email address.
+Everything you type into the chat, and everything the model types back, is
+stored in **your course's own database** — not a shared one with a column
+marking which course a row belongs to.  Each course runs its own.
 
-     Say why the email is the key rather than an opaque ID — attribution has
-     to survive a roster change and land on a real person for billing.  That
-     is a deliberate trade and students should know it was made. -->
+The agents you build live there too, along with any files you attached to
+them.  When you upload a document to an agent so it can answer questions
+about it, the text of that document is broken up, indexed, and kept so the
+agent can search it later.  It stays until the agent is deleted.
+
+## The ledger, which is the one that surprises people
+
+Every request you make writes a usage record: which model you used, how many
+tokens it took, what it cost, and when.  Those records are keyed to **your
+email address**.
+
+Worth being direct about what that adds up to.  The ledger does not contain
+what you *said* — no prompts, no responses, no content.  It does contain a
+detailed picture of your behavior: which models you prefer, how much you
+lean on them, at what hours, across the whole term.  For a lot of people that
+is a more personal record than they expect a billing system to be.
+
+The email is deliberate rather than incidental.  Attribution has to land on a
+real person and survive a roster change, and an opaque internal ID does
+neither.  The reasoning and what it cost are in
+[Why the chatbot never asks who you are](../how-we-built-it/identity-is-not-an-argument.md).
+
+You can see your own usage from inside the chat — ask the usage agent, and it
+will only ever answer for you.
 
 ## What we do not store
 
-<!-- Concrete and checkable:
-     - conversation content is not in the ledger
-     - nothing goes to a third-party model provider unless the course uses a
-       hosted endpoint — name where the course can find out which
-     - no keystroke, screen, or attention telemetry
-     Only claim what the code actually does. -->
+- **Conversation content is not in the ledger.**  The two are separate systems
+  and only one of them holds what you wrote.
+- **Nothing you write becomes training data.**  The models here run on
+  institutional hardware and are not fine-tuned on course traffic.
+- **No keystroke, screen, or attention telemetry.**  There is no record of how
+  long you paused before sending, what else was on your screen, or whether you
+  were reading.
+- **No content leaves for an outside company** unless your course uses a
+  hosted model or an agent with actions turned on — both of which are course
+  decisions your instructor can tell you about.  See
+  [Who can see it](who-can-see-it.md#the-path-that-leaves-the-building).
 
-## For builders
+## For anyone building something like this
 
-<!-- Short beat, tagged for the build audience: "data inventory" is the
-     first artifact of every compliance regime, and this page is one.  You
-     cannot classify what you have not enumerated.  Point at
-     how-we-built-it/protecting-data-you-cant-delete.md. -->
+This page is a **data inventory**, and it is the first artifact of every data
+protection regime — you cannot classify what you have not enumerated, and you
+cannot answer "what happens to my data" without a list like this one.
+
+The useful accident worth stealing: this inventory did not start as a privacy
+document.  It started as a list of what needs backing up.  Working out what
+you would lose in a disaster turns out to produce the same list as working out
+what you are holding about people, and most teams write the first one long
+before anybody asks for the second.
+
+More on that in
+[How do you protect data you can't delete?](../how-we-built-it/protecting-data-you-cant-delete.md)
