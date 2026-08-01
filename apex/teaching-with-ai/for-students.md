@@ -77,6 +77,46 @@ result.
      disclosing is not admitting to wrongdoing — under a permissive policy it
      is just documentation. -->
 
+## The name is the warning
+
+Look at what it stands for.  **Large language models produce large amounts of
+language.**  That is the thing it is built to do, and it is also the trap.
+
+It writes a page in seconds.  Reading that page properly takes minutes.  Those
+rates do not match, so if you take the output at the speed it shows up, you
+are not reading it — that is arithmetic, not a comment on your discipline.
+And because the text arrives polished and confident, skimming *feels* like
+enough.
+
+Which runs straight into the rule at the top of this page.  **You cannot
+answer for something you have not read.**  So read it — at the speed reading
+takes, trying to understand it rather than checking that it looks okay.
+
+The move most people resist, because it gives up the tool's apparent
+advantage: **ask for less.**  Three paragraphs you actually read are worth
+more to you than five pages you scanned, and only one of those is something
+you can defend.
+
+## Three habits worth building
+
+**Name the assumptions.**  Generated text carries premises it never mentions,
+and it will happily accept a flawed assumption baked into your question and
+argue brilliantly from it.  Ask what the answer is taking for granted.
+
+**Check somewhere else.**  And specifically —
+
+!!! warning "Asking it again is not checking"
+    "Are you sure?" gets you either the same claim restated with equal
+    confidence or an apology and a reversal.  Neither tells you whether the
+    original was true.  Go to something independent: the actual paper, the
+    documentation, a person who knows.
+
+**Question it, and question yourself.**  Do not throw out what you know
+because a machine sounded certain — students give up their own knowledge far
+too easily to a confident paragraph.  Also hold your view loosely enough to
+check it.  Neither you nor the model is infallible, and the goal is
+calibration rather than trusting either one by default.
+
 ## Check your sources — this is the part that is actually graded
 
 <!-- The practical consequence of the rule at the top, and increasingly the
