@@ -229,7 +229,12 @@ at `apex/tags.md`.
 **Teaching and learning**
 `assessment-design` · `academic-integrity` · `syllabus-policy` · `detection` ·
 `disclosure` · `ai-literacy` · `critical-evaluation` · `hallucination` ·
-`equity`
+`equity` · `accountability` · `source-verification`
+
+`accountability` is the section's spine — *a model cannot accept blame, only a
+person can*.  Tag anything that turns on who answers for an output, including
+the build-track pages where it is a design principle rather than a course
+policy.
 
 **Duty**
 `faculty-duty` · `operator-duty` · `student-right`

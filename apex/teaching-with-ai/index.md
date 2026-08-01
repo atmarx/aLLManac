@@ -1,11 +1,11 @@
 ---
 title: Teaching with AI
-description: Practical guidance for designing courses where students use language models — what to decide before writing a policy, what the evidence says about detection, and what students should learn about the tool itself.
+description: Designing courses where students use language models, built on one principle — a student is fully responsible for what they submit, because a model cannot accept blame.
 audience: faculty
 also_reaches: [student]
 status: draft
 owner: piper
-tags: [assessment-design, academic-integrity, syllabus-policy, ai-literacy, equity, disclosure, faculty-duty]
+tags: [accountability, assessment-design, academic-integrity, syllabus-policy, ai-literacy, equity, disclosure, source-verification, faculty-duty]
 ---
 
 # Teaching with AI
@@ -18,6 +18,22 @@ teaching question rather than a technology question.
 This section is about that work.  It assumes you are competent at designing
 your own course and that what you are missing is specifics about a tool that
 arrived faster than the guidance for it.
+
+## The principle underneath all of it
+
+**A student is fully responsible for what they submit.  A model cannot accept
+blame; only a person can.**
+
+Most of the hard questions get easier once that is settled, because it moves
+the subject from *did you use AI* — unanswerable, and increasingly beside the
+point — to *do you stand behind this*, which is the question scholarship has
+always asked.
+
+It also keeps the guidance honest.  Faculty and staff use these tools every
+day to write and to automate; expecting students not to is a fiction that
+teaches them to conceal their process instead of owning it.  The workable
+expectation is the one professionals already live under: use what you like,
+and answer for the result.
 
 ## Start with the design question
 
@@ -37,7 +53,7 @@ The order that holds up:
 [Designing assignments](designing-assignments.md) works through that in
 detail.
 
-## The four pages here
+## The five pages here
 
 - **[Designing assignments](designing-assignments.md)** — deciding where AI
   belongs, assignment by assignment, and what to change when it does not
@@ -45,7 +61,10 @@ detail.
   can follow it, including why a single course-wide rule usually fails
 - **[Integrity and detection](integrity-and-detection.md)** — what the
   evidence says about AI detectors, why the failure is not evenly distributed,
-  and what to do instead
+  and what replaced them
+- **[Verifying sources](verifying-sources.md)** — the practice that took
+  detection's place: confirming publications exist and say what the citation
+  claims.  The most useful page here if you are choosing one.
 - **[AI literacy](ai-literacy.md)** — what students should understand about
   the tool, and why that is a learning objective rather than a preamble
 
@@ -55,11 +74,15 @@ worth reading yourself — it is the version of this material they will see.
 
 ## One thing worth knowing up front
 
-The most-reached-for enforcement tool does not work reliably, and its failures
-land hardest on non-native English writers.  If your plan for academic
-integrity depends on an AI detector, read
+If your plan for academic integrity depends on an AI detector, read
 [Integrity and detection](integrity-and-detection.md) before the term starts.
-It is the page with the most consequential evidence in this section.
+Detectors do not work reliably and their failures land hardest on non-native
+English writers, which is why institutions are retiring them.
+
+What replaced them is [verifying sources](verifying-sources.md) — checking
+that cited work exists and says what the citation claims.  That is the
+accountability principle above, turned into something you can actually put on
+an assignment.
 
 ## And a note on what this platform gives you
 

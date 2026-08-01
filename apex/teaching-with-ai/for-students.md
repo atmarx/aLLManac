@@ -5,12 +5,27 @@ audience: student
 also_reaches: [faculty]
 status: scaffold
 owner: piper
-tags: [ai-literacy, critical-evaluation, hallucination, disclosure, academic-integrity, student-right]
+tags: [accountability, ai-literacy, critical-evaluation, hallucination, disclosure, academic-integrity, source-verification, student-right]
 ---
 
 # Using AI well in your coursework
 
-<!-- SCAFFOLD.
+## The one rule everything else follows from
+
+**You are fully responsible for what you submit.  A model cannot accept blame
+— only a person can.**
+
+Whatever helped you write something, the claims in it become yours the moment
+you put your name on it.  "The AI told me that" is not a defense here, and it
+will not be one in a job, a lab, or a courtroom.
+
+The flip side is the part people expect less: your instructors and the staff
+who run this place use these tools every day, to write and to automate.
+Nobody is pretending you should not.  What you are being asked for is the same
+thing everyone else is on the hook for — use what helps, and answer for the
+result.
+
+<!-- SCAFFOLD below this point.
 
      TONE: talk to students like adults making decisions about their own
      learning.  No scolding, no lecture about cheating, no breathless
@@ -61,6 +76,25 @@ tags: [ai-literacy, critical-evaluation, hallucination, disclosure, academic-int
      confession.  One line: what tool, what for, what you changed.  Note that
      disclosing is not admitting to wrongdoing — under a permissive policy it
      is just documentation. -->
+
+## Check your sources — this is the part that is actually graded
+
+<!-- The practical consequence of the rule at the top, and increasingly the
+     thing being assessed instead of "did you use AI."
+
+     Three ways a citation goes wrong, in student language:
+     - the paper does not exist (search the exact title)
+     - the paper exists but the details are wrong, especially the DOI —
+       resolve it and check the title that comes back matches
+     - the paper exists, is cited right, and does not actually say that —
+       find the claim in the paper itself, not the abstract
+
+     Models are bad at this in a specific way: the citations LOOK right.
+     Real journal, plausible authors, correctly formatted DOI that goes
+     nowhere.  Eyeballing does not catch it; checking does.
+
+     Link verifying-sources.md — they should be able to read what their
+     instructors were told. -->
 
 ## If you are accused because of a detector
 
