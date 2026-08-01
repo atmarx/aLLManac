@@ -78,6 +78,41 @@ Faculty become LibreChat ADMIN via `OPENID_ADMIN_ROLE=faculty`, read from
 `realm_access.roles`, on a token of kind `access`.  All three have to line
 up.
 
+### `actions.allowedDomains` is TOP-LEVEL — and it's the only wall around Actions
+
+Verified against the pinned image's own schema, not the docs:
+
+```
+packages/data-provider/src/config.ts:1732   actions: { allowedDomains, allowedAddresses }
+api/server/services/ToolService.js          reads appConfig.actions.allowedDomains (4 sites)
+```
+
+It is a **sibling of `endpoints:`, not a member of it** — an `actions:` block
+nested under `endpoints.agents` parses fine and does nothing.  The registrar
+renders it top-level ([`registrar/render.py`](../registrar/render.py)), and
+a rendered instance config was round-tripped through v0.8.7's zod schema to
+prove it.
+
+Semantics from `packages/api/src/auth/domain.ts`:
+
+- **Absent or empty ⇒ no allowlist.**  Private/reserved IPs stay SSRF-blocked,
+  and *the entire public internet is reachable*.  There is no way to spell
+  "deny all" — `capabilities:` without `actions` is the only off switch.
+- Entries may be bare hostnames, `*.wildcards`, `scheme://host`, or
+  `host:port`; a scheme or port on the rule narrows the match.
+- URL **paths** in an entry are meaningless — `parseDomainSpec` won't match
+  them.  The registrar rejects them at validate time so nobody ships a
+  path-shaped rule believing it scopes anything.
+
+### Capability names are not validated by anything
+
+A typo in `endpoints.agents.capabilities` (`file_serach`) is accepted by the
+schema and simply never grants the power.  It **fails closed and silent** —
+the professor believes they enabled a thing they didn't.  The registrar keeps
+`KNOWN_CAPABILITIES` and *warns*; it deliberately does not block, because the
+legal set is LibreChat's and moves per version.  Bump that list when the
+image pin moves.
+
 ### MCP gotchas
 
 - **Private hosts need `mcpSettings.allowedAddresses`** — LibreChat's SSRF

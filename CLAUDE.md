@@ -27,6 +27,9 @@ re-deriving it is pure waste:
 - **The classroom posture** — sharing is off by default; what turns it on
 - **MCP wiring** — the trailing-slash 307, the SSRF allowlist, and why "0
   tools" at boot is correct
+- **`actions.allowedDomains`** — it is top-level, not under `endpoints`; an
+  empty list is *no allowlist*, not deny-all; capability names are never
+  validated by LibreChat and typos fail closed and silent
 - **LiteLLM free vs. Enterprise** — especially **UI SSO dies past 5 total DB
   users**, and rotation is delete+mint because `/key/regenerate` is paid
 - **Key attribution** — `user_id` must be the email, and why

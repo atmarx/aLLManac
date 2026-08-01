@@ -65,7 +65,19 @@ def _ident() -> tuple[str, str, str]:
 
 
 def _course_or_refuse(slug: str) -> dict:
-    c = reconcile.load_courses()["courses"].get(slug)
+    try:
+        courses = reconcile.load_courses()
+    except reconcile.CoursesError as e:
+        # Distinct from "no such course" on purpose: one is a course that was
+        # never created, the other is every course being invisible at once.
+        # Telling an instructor the first when it's the second sends them
+        # re-uploading a roster against a file we can't read.
+        raise ToolError(
+            "The registrar can't read its course records right now, so I "
+            "can't safely change anything.  This is a platform fault, not "
+            "something you did — tell the operator."
+        ) from e
+    c = courses["courses"].get(slug)
     if c is None:
         raise ToolError(
             f"No course '{slug}' in registrar/courses.yaml — this instance "
@@ -313,12 +325,19 @@ async def course_keys() -> str:
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
-    data = reconcile.load_courses()
-    return JSONResponse({
-        "status": "ok",
-        "courses": len(data["courses"]),
-        "bao": "configured" if reconcile.bao_configured() else "not configured (run: just bao-init)",
-    })
+    bao = ("configured" if reconcile.bao_configured()
+           else "not configured (run: just bao-init)")
+    try:
+        data = reconcile.load_courses()
+    except reconcile.CoursesError as e:
+        # Still 200 — the process is up and this endpoint's whole job is to
+        # say what's actually wired.  But an unreadable roster file is a
+        # genuine fault, so it must never read as "ok": the fleet renders
+        # from this file, and `courses: 0` alone looks exactly like a fresh
+        # box.  503 would also hide the reason behind a health-check flap.
+        return JSONResponse({"status": "degraded", "courses": None,
+                             "courses_error": str(e), "bao": bao})
+    return JSONResponse({"status": "ok", "courses": len(data["courses"]), "bao": bao})
 
 
 if __name__ == "__main__":

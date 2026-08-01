@@ -152,6 +152,10 @@ courses:
       advisory_weekly: 2            # what "on pace" means in usage tools; never blocks
     college: cci                    # optional — unions the college's model pack in
     models: [almanac-chat]          # what this course's keys + instance may call
+    capabilities: [...]             # agent-builder powers; omit for the default,
+                                    # [] for none.  `actions` is OFF by default
+    allowed_domains: []             # where this course's Actions may reach —
+                                    # only meaningful when `actions` is enabled
     group: ""                       # globus backend: group UUID (course-create fills)
     students: []                    # file backend only; globus derives from the group
     aliases: {}                     # legacy non-email user_ids, passthrough to render
@@ -160,6 +164,15 @@ colleges:                           # a college is a MODEL PACK, not an org char
   cci:                              # the registrar needs their models, not their deans
     models: [cci-llama]             # registered once at the gateway; see Model routing
 ```
+
+**The file is the authority, so it is never assumed.**  `load_courses()`
+refuses on unparseable YAML instead of degrading to an empty course set —
+an empty set and an unreadable file look identical to every caller, and the
+difference is the whole fleet.  The degrade used to reach `save_courses()`
+through `course_admin create`, which would write one course over every other
+course's roster; the file is gitignored, so nothing was behind it.
+`course_admin validate` (`just course-check`) is the read-only version of the
+same checks, and every mutating verb runs them first and refuses on errors.
 
 **TAs are instructors in v1.**  Both lists land as group managers with roster
 and usage authority — every course has TAs, and inventing a fourth
@@ -670,14 +683,20 @@ that doesn't go through LiteLLM?":
 - **Chat model path: locked.**  Custom endpoints live only in the
   rendered `librechat.yaml` — read-only mount, registrar-written;
   instance admins cannot add model endpoints from the UI on our pin.
-- **Agent Actions: the porous edge.**  Our Phase-1 render enables
-  `actions` (OpenAPI tool calls to arbitrary URLs) for agent builders —
-  an Action pointed at an external LLM API is exactly the bypass, as a
-  *tool* if not as the chat model, and an unGoverned data-egress path
-  besides.  **Flagged as a Phase-1 safety gap.**  Remedy, in order:
-  `actions.allowedDomains` in the render (campus + approved domains
-  only), a per-course `capabilities:` knob in the course record, and a
-  recommended default of actions-OFF until the allowlist ships.
+- **Agent Actions: the porous edge — CLOSED.**  Our first Phase-1 render
+  enabled `actions` (OpenAPI tool calls to arbitrary URLs) for every agent
+  builder — an Action pointed at an external LLM API is exactly the
+  bypass, as a *tool* if not as the chat model, and an ungoverned
+  data-egress path besides.  All three remedies now ship:
+  **actions-OFF by default** (`DEFAULT_CAPABILITIES`), a per-course
+  **`capabilities:`** knob where an explicit `[]` means none, and a
+  per-course **`allowed_domains:`** that renders to LibreChat's top-level
+  `actions.allowedDomains`.  Two limits to state plainly rather than
+  discover later: an **empty allowlist is no allowlist** (private IPs stay
+  SSRF-blocked, the public internet does not), so the only real off switch
+  is omitting `actions`; and **LibreChat never validates capability
+  names** — a typo fails closed and silently, which is why
+  `course_admin validate` exists to say so.
 - **Admin-panel config overrides: verify.**  The panel's per-group
   override machinery must be confirmed unable to inject endpoint
   definitions; constrain if it can.

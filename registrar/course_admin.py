@@ -4,6 +4,7 @@
                                   [--college X] [--ta EMAIL]...
     python course_admin.py reconcile <slug>     re-run everything, idempotent
     python course_admin.py render               re-render all files (template bumps)
+    python course_admin.py validate             check courses.yaml, touch nothing
     python course_admin.py show-key <slug> <email>   break-glass escrow read (audited)
     python course_admin.py list
 
@@ -48,6 +49,28 @@ def _upsert(args) -> None:
     reconcile.save_courses(data)
 
 
+def _report(errors: list, warnings: list) -> None:
+    for w in warnings:
+        print(f"warn:  {w}", file=sys.stderr)
+    for e in errors:
+        print(f"ERROR: {e}", file=sys.stderr)
+
+
+def _preflight() -> int:
+    """Warn before we act, refuse before we half-act.
+
+    Every mutating verb runs this first, so a typo surfaces on the run the
+    operator is already watching — a validator you have to remember to run
+    is a validator that catches things after the fact.
+    """
+    errors, warnings = reconcile.validate_courses()
+    _report(errors, warnings)
+    if errors:
+        print(f"\n{len(errors)} error(s) in courses.yaml — nothing was changed.",
+              file=sys.stderr)
+    return 1 if errors else 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(prog="course_admin")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -66,6 +89,8 @@ def main() -> int:
 
     sub.add_parser("render", help="re-render fleet + roster files for all courses")
 
+    sub.add_parser("validate", help="check courses.yaml and change nothing")
+
     s = sub.add_parser("show-key", help="break-glass: print an escrowed key (bao audits the read)")
     s.add_argument("slug")
     s.add_argument("email")
@@ -73,6 +98,17 @@ def main() -> int:
     sub.add_parser("list")
 
     args = p.parse_args()
+
+    if args.cmd == "validate":
+        errors, warnings = reconcile.validate_courses()
+        _report(errors, warnings)
+        n = len(reconcile.load_courses()["courses"])
+        print(f"{n} course record(s) — {len(errors)} error(s), "
+              f"{len(warnings)} warning(s).")
+        return 1 if errors else 0
+
+    if args.cmd in ("create", "reconcile", "render") and _preflight():
+        return 1
 
     if args.cmd == "create":
         _upsert(args)
@@ -140,4 +176,10 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except reconcile.CoursesError as e:
+        # The roster file itself is unreadable — an operator needs the reason,
+        # not a traceback, and nothing downstream should have run.
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(2)

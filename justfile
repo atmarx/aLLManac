@@ -317,6 +317,12 @@ course-up:
 courses:
     {{compose}} exec -T registrar python course_admin.py list </dev/null
 
+# Check courses.yaml without touching anything — run it after hand-editing.
+# `just course` runs the same checks itself and refuses on errors; this is
+# the read-only version for when you want to look before you provision.
+course-check:
+    {{compose}} exec -T registrar python course_admin.py validate </dev/null
+
 # ---- OpenBao: the escrow ------------------------------------------------------
 
 # The once-per-box ritual: init, unseal, audit device, kv2 mount, policy,

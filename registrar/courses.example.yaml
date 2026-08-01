@@ -17,9 +17,18 @@
 #           [file_search, tools, artifacts].  `actions` (arbitrary-URL tool
 #           calls) is EXCLUDED by default — it's the one path around the
 #           gateway's guardrails and metering (spec: "The floor").  Add it
-#           per course only with eyes open, ideally with allowedDomains.
+#           per course only with eyes open, and with allowed_domains below.
 #           Omit the key for the default; write `capabilities: []` to give a
 #           course NONE — an explicit empty list is honored, not defaulted.
+#           Names are NOT validated by LibreChat: a typo fails closed and
+#           silently, so run `just course-check` after editing this.
+#
+# allowed_domains:  where THIS course's agent Actions may reach.  Renders to
+#           LibreChat's top-level actions.allowedDomains.  Bare hostnames,
+#           `*.wildcards`, `scheme://host`, or `host:port` — never URL paths.
+#           Leaving it out while `actions` is enabled means agent Actions can
+#           call any public address; there is no way to spell "deny all," so
+#           the off switch is omitting `actions` from capabilities.
 
 courses:
   engr301-2026fall:
