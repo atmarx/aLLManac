@@ -1,6 +1,6 @@
 ---
 title: The aLLManac
-description: Drexel's institutional AI sandbox — use large language models, build with them, and see how the platform underneath was put together.
+description: An institutional AI sandbox — use large language models, build with them, and see how the platform underneath was put together.
 audience: student
 also_reaches: [faculty]
 status: scaffold

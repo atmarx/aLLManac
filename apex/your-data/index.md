@@ -19,7 +19,7 @@ tethered_to:
      GOVERNING RULE for this whole section: describe what the system does.
      Do not make compliance claims.  "We store X in Y and Z can read it" is
      a factual statement about a running system and ships today.  "We are
-     FERPA compliant" is a legal representation and needs @nora.
+     FERPA compliant" is a legal representation and needs counsel review.
 
      Every page in your-data/ names its gaps.  See docs/pedagogy-authoring.md
      rule 2. -->

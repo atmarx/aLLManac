@@ -19,7 +19,7 @@ tethered_to:
      describes what our system can do.  It does not tell a student what
      their rights are in their specific situation, and it does not state
      that the platform is compliant with anything.  Determinations belong to
-     @nora and the university.  Route students to the registrar's office for
+     the deploying institution's counsel.  Route students to the registrar's office for
      the formal process. -->
 
 ## What FERPA gives you

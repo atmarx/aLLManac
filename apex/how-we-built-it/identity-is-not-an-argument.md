@@ -38,7 +38,7 @@ tethered_to:
      its context includes whatever the user typed.  A parameter named `user`
      is a request for the model to be talked into a different value.
 
-     "Show me the usage for amarx@drexel.edu" is not an attack requiring
+     "Show me the usage for dean@example.edu" is not an attack requiring
      skill.  It is a sentence.
 
      Then the implementation scar: fastmcp's get_http_headers() silently

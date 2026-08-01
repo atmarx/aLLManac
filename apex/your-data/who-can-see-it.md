@@ -1,6 +1,6 @@
 ---
 title: Who can see it
-description: Access control from the front door inward — how you sign in, why your course is its own room, who genuinely has reach, and the one path that sends course content off university hardware.
+description: Access control from the front door inward — how you sign in, why your course is its own room, who genuinely has reach, and the one path that sends course content off institutional hardware.
 audience: student
 also_reaches: [faculty]
 status: draft
@@ -22,7 +22,7 @@ list is short on purpose, and this page walks it from the front door inward.
 
 ## Signing in
 
-You reach the aLLManac through the university's single sign-on.  There is no
+You reach the aLLManac through your institution's single sign-on.  There is no
 separate password to create and no account for us to lose — you authenticate
 with campus identity, and the platform learns only that you are you and which
 courses you belong to.
@@ -67,11 +67,11 @@ the servers, the databases, the backups.  Technical access follows from
 running the system, and the control on it is institutional policy and
 professional obligation rather than a barrier in the software.  Any platform
 you use works this way, including the commercial ones; the difference here is
-that the people in question work for the university and are reachable.
+that the people in question work for your institution and are reachable.
 
 **Nobody in another course.**  See above.
 
-**No outside company.**  The models that answer you run on university
+**No outside company.**  The models that answer you run on institutional
 hardware.  Where a course uses a hosted model instead, that is a property of
 the course and your instructor can tell you which one.
 
@@ -107,7 +107,7 @@ happened to you.
 
 ## The path that leaves the building
 
-There is one way for course content to leave university hardware, and it is
+There is one way for course content to leave institutional hardware, and it is
 worth understanding because it is a feature rather than a leak.
 
 Agents can be given **actions** — the ability to call an outside web service
@@ -119,13 +119,18 @@ reach something.
 Actions are **off unless a course turns them on.**  The platform's default
 capability set gives courses file search, tools, and artifacts, and
 deliberately leaves actions out.  Enabling them is a per-course decision your
-instructor makes.
+instructor makes, and that decision is the real protection — a course that
+never turns actions on has no path out at all.
 
-!!! warning "Open gap"
-    The domain allowlist that would restrict *where* actions can reach is not
-    built yet.  In a course that has enabled actions, the destination is
-    whatever address the agent's builder typed.  Until that lands, "actions
-    on" means "actions anywhere."
+A course that does enable them can also declare a list of domains agents are
+allowed to reach.  Worth understanding what that list does and does not do:
+
+!!! warning "An allowlist narrows; it cannot close"
+    If a course enables actions and declares no domains, agents can reach the
+    entire public internet.  An empty list is not a closed door — it is no
+    list.  The platform blocks private and internal addresses either way, and
+    there is no way to write "allow nothing."  The switch that actually
+    closes the path is leaving actions off.
 
 If you are building an agent with actions in a course that allows them, you
 are the one deciding where course material goes.  Point it at something you

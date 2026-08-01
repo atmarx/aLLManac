@@ -12,7 +12,7 @@ owner: piper
 <!-- SCAFFOLD.  This page is the mkdocs-material tag index.  The plugin
      renders the full tag listing wherever [TAGS] appears.
 
-     Build requirement (@geordi): mkdocs.yml needs
+     Build requirement (plumbing lane): mkdocs.yml needs
        plugins:
          - tags:
              tags_file: tags.md
