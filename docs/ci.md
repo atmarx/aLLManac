@@ -1,10 +1,6 @@
 # CI on anything — the pipeline is three lines
 
-All deployment logic lives in the [`justfile`](../justfile).  Every CI system
-is the same thin wrapper: **ssh to the box, `just sync`, `just deploy`.**
-Below are working equivalents of our Woodpecker pipeline
-([`.woodpecker/deploy.yml`](../.woodpecker/deploy.yml)) for GitLab CI and
-GitHub Actions — swap the host and you're deployed.
+All deployment logic lives in the [`justfile`](../justfile).  Every CI system is the same thin wrapper: **ssh to the box, `just sync`, `just deploy`.**  Below are working equivalents of our Woodpecker pipeline ([`.woodpecker/deploy.yml`](../.woodpecker/deploy.yml)) for GitLab CI and GitHub Actions — swap the host and you're deployed.
 
 One-time on the target box (any Docker host — a VM, a bare-metal box, wherever):
 
@@ -17,8 +13,7 @@ just setup                   # .env + generated secrets
 just up
 ```
 
-And a repo secret holding an ssh private key the box accepts (`DEPLOY_SSH_KEY`
-below).
+And a repo secret holding an ssh private key the box accepts (`DEPLOY_SSH_KEY` below).
 
 ---
 
@@ -40,8 +35,7 @@ deploy:
     - ssh deploy@deploy-box.example.edu 'cd /opt/almanac && just sync && just deploy'
 ```
 
-Set `DEPLOY_SSH_KEY` in Settings → CI/CD → Variables (type: file or variable,
-protected).
+Set `DEPLOY_SSH_KEY` in Settings → CI/CD → Variables (type: file or variable, protected).
 
 ## GitHub Actions
 
@@ -79,14 +73,7 @@ ssh deploy-box 'cd /opt/almanac && just sync && just deploy'
 
 ## SBOMs for infosec
 
-`just sbom` writes an SPDX JSON per image (both stacks) to `sbom/` plus a
-tarball to hand over — images already on the box scan from the daemon in
-seconds; absent ones stream from the registry without polluting the daemon.
-SBOMs change when the **pins** change, not per deploy, so it's not part of
-`just deploy` — run it at pin-bump time (and generate the vLLM one on the GPU
-box, where the image already lives, unless you enjoy multi-GB registry
-streams).  If your org wants it in the pipeline anyway, it's one more line in
-the wrapper:
+`just sbom` writes an SPDX JSON per image (both stacks) to `sbom/` plus a tarball to hand over — images already on the box scan from the daemon in seconds; absent ones stream from the registry without polluting the daemon.  SBOMs change when the **pins** change, not per deploy, so it's not part of `just deploy` — run it at pin-bump time (and generate the vLLM one on the GPU box, where the image already lives, unless you enjoy multi-GB registry streams).  If your org wants it in the pipeline anyway, it's one more line in the wrapper:
 
 ```bash
 ssh deploy-box 'cd /opt/almanac && just sbom'
@@ -94,9 +81,4 @@ ssh deploy-box 'cd /opt/almanac && just sbom'
 
 ## Kubernetes / Azure Container Apps / whatever
 
-The stack is plain Compose — every image is upstream, all state is in named
-volumes, all config is env + three mounted files (`litellm/config.yaml`,
-`librechat/librechat.yaml`, `keycloak/realm-northwinds.json`).  Translating to
-k8s manifests or an Azure Container environment is mechanical; the `justfile`
-recipes (`secrets`, `smoke`, `key`, `spend`) still apply anywhere you can reach
-the endpoints.  If you get there before we do, send it back.
+The stack is plain Compose — every image is upstream, all state is in named volumes, all config is env + three mounted files (`litellm/config.yaml`, `librechat/librechat.yaml`, `keycloak/realm-northwinds.json`).  Translating to k8s manifests or an Azure Container environment is mechanical; the `justfile` recipes (`secrets`, `smoke`, `key`, `spend`) still apply anywhere you can reach the endpoints.  If you get there before we do, send it back.

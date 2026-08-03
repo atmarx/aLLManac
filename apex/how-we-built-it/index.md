@@ -50,14 +50,10 @@ tags: [rendered-config, tenancy, secrets-management, kubernetes, azure, aws]
 
 ## The decisions
 
-- [Why is there a vault?](why-a-vault.md) — secrets, escrow, and the
-  afternoon that made env vars untenable
-- [How do you keep the courses apart?](keeping-courses-apart.md) — tenancy by
-  instance rather than by fence
-- [Why the chatbot never asks who you are](identity-is-not-an-argument.md) —
-  identity as context, never as a tool parameter
-- [How do you protect data you cannot delete?](protecting-data-you-cant-delete.md)
-  — classification, regimes, and the gap list
+- [Why is there a vault?](why-a-vault.md) — secrets, escrow, and the afternoon that made env vars untenable
+- [How do you keep the courses apart?](keeping-courses-apart.md) — tenancy by instance rather than by fence
+- [Why the chatbot never asks who you are](identity-is-not-an-argument.md) — identity as context, never as a tool parameter
+- [How do you protect data you cannot delete?](protecting-data-you-cant-delete.md) — classification, regimes, and the gap list
 
 <!-- Queued, not written:
      - compose-now-k3s-later.md — held until the migration actually happens,

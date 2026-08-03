@@ -18,17 +18,12 @@ owner: piper
              tags_file: tags.md
 -->
 
-Pages here carry topic tags so you can pull a thread across the whole site —
-every page that touches retention, or access control, or what a decision
-looks like on Kubernetes.
+Pages here carry topic tags so you can pull a thread across the whole site — every page that touches retention, or access control, or what a decision looks like on Kubernetes.
 
 **Three tags worth knowing about:**
 
-- **`faculty-duty`** — if you teach a course on this platform, start here.
-  Everything you are responsible for, gathered from pages written for your
-  students.
+- **`faculty-duty`** — if you teach a course on this platform, start here.  Everything you are responsible for, gathered from pages written for your students.
 - **`student-right`** — what you can ask for, and how to ask.
-- **`azure`, `aws`, `kubernetes`** — the same decisions we made, as they look
-  on the stack you will probably use somewhere else.
+- **`azure`, `aws`, `kubernetes`** — the same decisions we made, as they look on the stack you will probably use somewhere else.
 
 [TAGS]

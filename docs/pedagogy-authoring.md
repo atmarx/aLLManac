@@ -1,27 +1,18 @@
 # Authoring the reader-facing pages
 
-*Owner: @piper (pedagogy lane).  Operator/author-facing — this file stays in
-`docs/` and out of `apex/` on purpose; see "The corpus boundary" below.*
+*Owner: @piper (pedagogy lane).  Operator/author-facing — this file stays in `docs/` and out of `apex/` on purpose; see "The corpus boundary" below.*
 
-Everything a student or professor reads lives in `apex/`.  This file is how
-it gets written: the page shapes, the controlled vocabulary, and the two
-rules that keep the words from drifting away from the system.
+Everything a student or professor reads lives in `apex/`.  This file is how it gets written: the page shapes, the controlled vocabulary, and the two rules that keep the words from drifting away from the system.
 
 ---
 
 ## The corpus boundary
 
-The apex site and Ask the Almanac's knowledge files are the **same
-directory** — one source, two renderers (mkdocs for the web, embeddings for
-the chat).  That is the design and it is worth keeping: there is no second
-copy to drift.
+The apex site and Ask the Almanac's knowledge files are the **same directory** — one source, two renderers (mkdocs for the web, embeddings for the chat).  That is the design and it is worth keeping: there is no second copy to drift.
 
 The consequence is the rule:
 
-> **Anything inside `apex/` is in the help agent's mouth.**  Not "unless we
-> leave it out of `nav:`" — nav curates the website, the corpus eats the
-> tree.  A page dropped from nav is still a file in the directory, still
-> embedded, still quotable by the agent to any student who asks.
+> **Anything inside `apex/` is in the help agent's mouth.**  Not "unless we leave it out of `nav:`" — nav curates the website, the corpus eats the tree.  A page dropped from nav is still a file in the directory, still embedded, still quotable by the agent to any student who asks.
 
 So the boundary is a **directory** boundary:
 
@@ -31,37 +22,23 @@ So the boundary is a **directory** boundary:
 | Operator — admin guide, CI, design walls, **this file** | `docs/` | no |
 | Internal record — the registrar spec | `docs/` | no — quoted by `how-we-built-it/`, never published wholesale |
 
-The third pile matters most for the show-the-work track.  Those pages are
-*written from* the spec.  They are not the spec relocated.  Curation is the
-work, and it is the reason the boundary can stay strict without hiding
-anything we meant to teach.
+The third pile matters most for the show-the-work track.  Those pages are *written from* the spec.  They are not the spec relocated.  Curation is the work, and it is the reason the boundary can stay strict without hiding anything we meant to teach.
 
 ---
 
 ## Who is actually reading
 
-The stated audience for most of `apex/` is students.  The audience we are
-most trying to reach is **faculty**, who carry duties students do not: they
-decide what goes into a course instance, who can see it, whether agent
-`actions` are on, and what happens to the class's work at term end.
+The stated audience for most of `apex/` is students.  The audience we are most trying to reach is **faculty**, who carry duties students do not: they decide what goes into a course instance, who can see it, whether agent `actions` are on, and what happens to the class's work at term end.
 
-Lecturing faculty about compliance does not land.  So most pages use the
-same technique:
+Lecturing faculty about compliance does not land.  So most pages use the same technique:
 
-> **Write the system's behavior and the student's rights.  The faculty duty
-> falls out as the mirror.**
+> **Write the system's behavior and the student's rights.  The faculty duty falls out as the mirror.**
 
-A page that tells a student "your instructor can see the conversations in
-this course, and here is what they are expected to do with them" teaches the
-professor their obligation while they are reading something addressed to
-someone else.  They are overhearing, not being corrected.
+A page that tells a student "your instructor can see the conversations in this course, and here is what they are expected to do with them" teaches the professor their obligation while they are reading something addressed to someone else.  They are overhearing, not being corrected.
 
-`your-data/for-instructors.md` is the exception and addresses faculty
-directly.  Get them in the door with the overheard pages; give them one page
-they can be pointed at.
+`your-data/for-instructors.md` is the exception and addresses faculty directly.  Get them in the door with the overheard pages; give them one page they can be pointed at.
 
-Front matter carries both: `audience:` is who the page speaks to,
-`also_reaches:` is who we mean to teach.
+Front matter carries both: `audience:` is who the page speaks to, `also_reaches:` is who we mean to teach.
 
 ---
 
@@ -85,170 +62,83 @@ tethered_to:               # claims this page makes about the running system
 ---
 ```
 
-`description` earns its keep twice: mkdocs uses it for meta tags and the
-corpus uses it as chunk context.  Write it as a sentence, not a keyword pile.
+`description` earns its keep twice: mkdocs uses it for meta tags and the corpus uses it as chunk context.  Write it as a sentence, not a keyword pile.
 
-`tethered_to` is the machine-readable half of the drift rule.  It lists the
-files whose behavior this page describes, so a future check can flag pages
-whose sources moved.
+`tethered_to` is the machine-readable half of the drift rule.  It lists the files whose behavior this page describes, so a future check can flag pages whose sources moved.
 
-**Build note for @geordi:** the tag index assumes mkdocs-material's `tags`
-plugin with `tags_file: tags.md`.  Custom keys (`audience`, `regimes`,
-`tethered_to`) are inert metadata and need no plugin.
+**Build note for @geordi:** the tag index assumes mkdocs-material's `tags` plugin with `tags_file: tags.md`.  Custom keys (`audience`, `regimes`, `tethered_to`) are inert metadata and need no plugin.
 
 ---
 
 ## The seven beats — show-the-work pages
 
-A normal ADR is written for a maintainer who already shares your vocabulary.
-These are written for a reader who does not, and who is being taught on
-purpose.
+A normal ADR is written for a maintainer who already shares your vocabulary.  These are written for a reader who does not, and who is being taught on purpose.
 
-1. **The question a student would actually ask.**  The title.  "Why is there
-   a vault?" — not "ADR-003: Secret Management Strategy."
-2. **The obvious answer, taken seriously.**  Readers arrive holding it.  Skip
-   it and they conclude we never considered it.  Steelman it.
-3. **What broke.**  Named error, real symptom, real date where we have one.
-   Scar tissue goes here.
-4. **What we did, and the bill.**  Every decision costs something.  Showing
-   the cost is what separates a teaching document from a brochure.
+1. **The question a student would actually ask.**  The title.  "Why is there a vault?" — not "ADR-003: Secret Management Strategy."
+2. **The obvious answer, taken seriously.**  Readers arrive holding it.  Skip it and they conclude we never considered it.  Steelman it.
+3. **What broke.**  Named error, real symptom, real date where we have one.  Scar tissue goes here.
+4. **What we did, and the bill.**  Every decision costs something.  Showing the cost is what separates a teaching document from a brochure.
 5. **What is still wrong with it.**  The open edge, stated plainly.
-6. **How this looks on other stacks.**  The same decision on Azure, AWS, and
-   Kubernetes.  This is the beat that transfers — most readers will never run
-   our stack, and the shape of the problem outlives our particular answer.
-7. **Try it yourself.**  Something the reader can run on the platform they
-   are already signed into.  This beat is what makes the page coursework
-   rather than a blog post.
+6. **How this looks on other stacks.**  The same decision on Azure, AWS, and Kubernetes.  This is the beat that transfers — most readers will never run our stack, and the shape of the problem outlives our particular answer.
+7. **Try it yourself.**  Something the reader can run on the platform they are already signed into.  This beat is what makes the page coursework rather than a blog post.
 
-Beat 6 is why the pages carry backend tags (`azure`, `aws`, `kubernetes`).
-A reader who arrives from a k8s background should be able to pull every page
-that discusses the k8s equivalent.
+Beat 6 is why the pages carry backend tags (`azure`, `aws`, `kubernetes`).  A reader who arrives from a k8s background should be able to pull every page that discusses the k8s equivalent.
 
 ---
 
 ## The two rules
 
-**1.  Beat 5 is tethered.**  "What is still wrong with it" is a claim about
-the running system, which makes it drift-shaped.  It inherits the walls rule,
-pointed the other way:
+**1.  Beat 5 is tethered.**  "What is still wrong with it" is a claim about the running system, which makes it drift-shaped.  It inherits the walls rule, pointed the other way:
 
-> **When the plumbing closes an open edge, the teaching page changes in the
-> same commit.**
+> **When the plumbing closes an open edge, the teaching page changes in the same commit.**
 
-A "what is still wrong" section describing a problem fixed six weeks ago
-teaches a falsehood with total confidence, and it does it in the help agent's
-voice as well as on the web.
+A "what is still wrong" section describing a problem fixed six weeks ago teaches a falsehood with total confidence, and it does it in the help agent's voice as well as on the web.
 
-**2.  Name the gaps.**  Data-protection pages state what we do *not* have.  A
-page implying scheduled offsite backups we do not run is a liability rather
-than documentation.  The gaps are also the better curriculum: a reader who
-sees "we have no per-student deletion path, here is why FERPA does not compel
-one, and here is why we might build it anyway" learns more than one reading a
-page that claims we are covered.
+**2.  Name the gaps.**  Data-protection pages state what we do *not* have.  A page implying scheduled offsite backups we do not run is a liability rather than documentation.  The gaps are also the better curriculum: a reader who sees "we have no per-student deletion path, here is why FERPA does not compel one, and here is why we might build it anyway" learns more than one reading a page that claims we are covered.
 
-**3.  Write for no institution in particular.**  These docs ship with the
-platform, and another institution can run it.  The repo already works this way
-— `northwinds` is a placeholder realm, not a customer — and `front-door.md` is
-deployment config precisely so a different deployment rewrites text rather
-than software.  The reader-facing pages inherit that.
+**3.  Write for no institution in particular.**  These docs ship with the platform, and another institution can run it.  The repo already works this way — `northwinds` is a placeholder realm, not a customer — and `front-door.md` is deployment config precisely so a different deployment rewrites text rather than software.  The reader-facing pages inherit that.
 
-So: **no institution's name, no institution's tier numbers, no institution's
-policy quoted as the authority.**  Say "your institution's register"; let the
-local operator fill it in.
+So: **no institution's name, no institution's tier numbers, no institution's policy quoted as the authority.**  Say "your institution's register"; let the local operator fill it in.
 
-*The posture the docs take:* **treat FERPA-protected coursework as high-risk
-data, and explain what that means.**  High risk is the conservative default
-and it is not a problem — it means doing the work deliberately.  The valuable
-part for the reader is never the label, it is the handling that attaches to
-it: encryption at rest and in transit, backups on a defined schedule with
-tested restores, access reviewed on a cadence, documented retention and
-disposal.  Write those, and a reader at any institution can map them onto
-whatever their own register says.
+*The posture the docs take:* **treat FERPA-protected coursework as high-risk data, and explain what that means.**  High risk is the conservative default and it is not a problem — it means doing the work deliberately.  The valuable part for the reader is never the label, it is the handling that attaches to it: encryption at rest and in transit, backups on a defined schedule with tested restores, access reviewed on a cadence, documented retention and disposal.  Write those, and a reader at any institution can map them onto whatever their own register says.
 
-*The mechanism is portable; the entry is not.*  Risk classification is a
-**register** — a tier is an entry someone makes about a *system*, not a
-property the data has, and the entry is what carries the obligations.  That
-much is worth teaching everywhere.  What varies is scope and outcome: the same
-data type registers differently depending on what the system is for, so
-FERPA-protected data inside a research project and the same records inside an
-operational teaching platform are separate entries with separate arguments,
-and a given institution may land them a tier apart.  Teach the mechanism, name
-no outcome.
+*The mechanism is portable; the entry is not.*  Risk classification is a **register** — a tier is an entry someone makes about a *system*, not a property the data has, and the entry is what carries the obligations.  That much is worth teaching everywhere.  What varies is scope and outcome: the same data type registers differently depending on what the system is for, so FERPA-protected data inside a research project and the same records inside an operational teaching platform are separate entries with separate arguments, and a given institution may land them a tier apart.  Teach the mechanism, name no outcome.
 
-*Background, and the reason this rule exists* (internal — do not put this in
-`apex/`): an earlier draft imported one institution's specifics, including a
-live and unfinished registration conversation.  Publishing a predicted tier
-gives faculty something to plan against that the register may contradict, and
-it front-runs a determination that belongs to a compliance officer rather than
-a docs page.
+*Background, and the reason this rule exists* (internal — do not put this in `apex/`): an earlier draft imported one institution's specifics, including a live and unfinished registration conversation.  Publishing a predicted tier gives faculty something to plan against that the register may contradict, and it front-runs a determination that belongs to a compliance officer rather than a docs page.
 
-A consequence for the plumbing side: **whatever tier a given deployment
-registers at hands its operator a requirements list.**  Backup cadence,
-encryption posture, and access review stop being good practice and become the
-entry's terms.  Several items on the gap lists in `your-data/` are likely to
-arrive as obligations rather than improvements.
+A consequence for the plumbing side: **whatever tier a given deployment registers at hands its operator a requirements list.**  Backup cadence, encryption posture, and access review stop being good practice and become the entry's terms.  Several items on the gap lists in `your-data/` are likely to arrive as obligations rather than improvements.
 
 ---
 
 ## Controlled vocabulary
 
-Tags are an index, so they only work if the same idea always gets the same
-word.  Add new tags here first, then use them.  Reader-facing tag index lives
-at `apex/tags.md`.
+Tags are an index, so they only work if the same idea always gets the same word.  Add new tags here first, then use them.  Reader-facing tag index lives at `apex/tags.md`.
 
-**Regimes and legal frameworks**
-`ferpa` · `gdpr` · `ccpa` · `hipaa` · `pci-dss` · `fisma` · `nist-800-53` ·
-`nist-800-171` · `nist-ai-rmf` · `cui` · `state-privacy-law` · `ppra` ·
-`coppa` · `data-processing-agreement`
+**Regimes and legal frameworks** `ferpa` · `gdpr` · `ccpa` · `hipaa` · `pci-dss` · `fisma` · `nist-800-53` · `nist-800-171` · `nist-ai-rmf` · `cui` · `state-privacy-law` · `ppra` · `coppa` · `data-processing-agreement`
 
-**Data concepts**
-`data-classification` · `high-risk-data` · `education-record` ·
-`eligible-student` · `school-official-exception` · `directory-information` ·
-`pii` · `data-inventory` · `data-residency` · `data-minimization` ·
-`consent` · `transparency-notice` · `automated-decision-making` ·
-`privacy-impact-assessment`
+**Data concepts** `data-classification` · `high-risk-data` · `education-record` · `eligible-student` · `school-official-exception` · `directory-information` · `pii` · `data-inventory` · `data-residency` · `data-minimization` · `consent` · `transparency-notice` · `automated-decision-making` · `privacy-impact-assessment`
 
-**Controls**
-`access-control` · `rbac` · `sso` · `oidc` · `identity-broker` ·
-`least-privilege` · `secrets-management` · `escrow` · `key-rotation` ·
-`encryption-at-rest` · `encryption-in-transit` · `audit-logging` ·
-`egress-control` · `allowlist`
+**Controls** `access-control` · `rbac` · `sso` · `oidc` · `identity-broker` · `least-privilege` · `secrets-management` · `escrow` · `key-rotation` · `encryption-at-rest` · `encryption-in-transit` · `audit-logging` · `egress-control` · `allowlist`
 
-**Lifecycle**
-`backup` · `restore` · `retention` · `archival` · `secure-deletion` ·
-`disaster-recovery` · `rpo-rto` · `course-rollover`
+**Lifecycle** `backup` · `restore` · `retention` · `archival` · `secure-deletion` · `disaster-recovery` · `rpo-rto` · `course-rollover`
 
-**Architecture**
-`tenancy` · `isolation` · `multi-tenant` · `gateway` · `chokepoint` ·
-`attribution` · `metering` · `rendered-config`
+**Architecture** `tenancy` · `isolation` · `multi-tenant` · `gateway` · `chokepoint` · `attribution` · `metering` · `rendered-config`
 
-**Stack and backends**
-`openbao` · `keycloak` · `litellm` · `librechat` · `mongodb` ·
-`docker-compose` · `kubernetes` · `azure` · `aws` · `globus` · `vllm`
+**Stack and backends** `openbao` · `keycloak` · `litellm` · `librechat` · `mongodb` · `docker-compose` · `kubernetes` · `azure` · `aws` · `globus` · `vllm`
 
-**Teaching and learning**
-`assessment-design` · `academic-integrity` · `syllabus-policy` · `detection` ·
-`disclosure` · `ai-literacy` · `critical-evaluation` · `hallucination` ·
-`equity` · `accountability` · `source-verification`
+**Teaching and learning** `assessment-design` · `academic-integrity` · `syllabus-policy` · `detection` · `disclosure` · `ai-literacy` · `critical-evaluation` · `hallucination` · `equity` · `accountability` · `source-verification`
 
-`accountability` is the section's spine — *a model cannot accept blame, only a
-person can*.  Tag anything that turns on who answers for an output, including
-the build-track pages where it is a design principle rather than a course
-policy.
+`accountability` is the section's spine — *a model cannot accept blame, only a person can*.  Tag anything that turns on who answers for an output, including the build-track pages where it is a design principle rather than a course policy.
 
-**Duty**
-`faculty-duty` · `operator-duty` · `student-right`
+**Duty** `faculty-duty` · `operator-duty` · `student-right`
 
-The `faculty-duty` tag is load-bearing.  It is how a professor pulls
-everything they are responsible for out of pages written for their students.
+The `faculty-duty` tag is load-bearing.  It is how a professor pulls everything they are responsible for out of pages written for their students.
 
 ---
 
 ## Voice
 
-Match the surrounding docs: em dashes, double spaces after periods, concrete
-opening rather than a thesis statement.  Technical terms are fine when they
-are the right word; jargon used as a gate is not.
+Match the surrounding docs: em dashes, double spaces after periods, concrete opening rather than a thesis statement.  Technical terms are fine when they are the right word; jargon used as a gate is not.
 
 Two habits to avoid, because they read as filler:
 
