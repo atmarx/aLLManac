@@ -14,8 +14,7 @@ tethered_to:
 
 # How do you keep the courses apart?
 
-> *"How do you keep the courses apart?"*
-> *"That's the neat part — we don't."*
+> *"How do you keep the courses apart?"*  *"That's the neat part — we don't."*
 >
 > — whiteboard, 2026
 
