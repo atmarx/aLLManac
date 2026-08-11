@@ -9,6 +9,7 @@ tags: [access-control, sso, oidc, identity-broker, tenancy, isolation, egress-co
 regimes: [ferpa]
 tethered_to:
   - docs/design-walls.md#the-classroom-posture
+  - docs/design-walls.md#actionsalloweddomains-is-top-level--and-its-the-only-wall-around-actions
   - registrar/reconcile.py
   - registrar/render.py
   - compose.yml
@@ -75,7 +76,9 @@ Actions are **off unless a course turns them on.**  The platform's default capab
 A course that does enable them can also declare a list of domains agents are allowed to reach.  Worth understanding what that list does and does not do:
 
 !!! warning "An allowlist narrows; it cannot close"
-    If a course enables actions and declares no domains, agents can reach the entire public internet.  An empty list is not a closed door — it is no list.  The platform blocks private and internal addresses either way, and there is no way to write "allow nothing."  The switch that actually closes the path is leaving actions off.
+    If a course enables actions and declares no domains, agents can reach the entire public internet.  An empty list is not a closed door — it is no list, and there is no way to write "allow nothing."  The switch that actually closes the path is leaving actions off.
+
+Internal university addresses are refused by default, which is the behavior most people assume is permanent.  It is not: **naming an internal address in the list permits it.**  The default is a floor rather than a ceiling, so a list written carelessly can open a door that was closed before anyone wrote a list at all.
 
 If you are building an agent with actions in a course that allows them, you are the one deciding where course material goes.  Point it at something you would be comfortable naming out loud.
 

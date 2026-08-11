@@ -10,6 +10,8 @@ tethered_to:
   - registrar/courses.example.yaml
   - registrar/reconcile.py
   - docs/design-walls.md#the-classroom-posture
+  - docs/design-walls.md#actionsalloweddomains-is-top-level--and-its-the-only-wall-around-actions
+  - registrar/planes/courses.py
 ---
 
 # If you teach a course
@@ -76,10 +78,16 @@ Actions and sharing are set per course in the course record — ask the platform
 If you enable actions, you can also give your course a list of domains agents are permitted to reach.  It is worth knowing exactly what that buys, because the two knobs are not equal options:
 
 - **Leaving actions off closes the path.**  No agent in the course can call out, and nothing else you configure matters.
-- **Enabling actions opens it.**  A course with actions on and no domain list can reach the entire public internet.  Private and internal addresses stay blocked either way.
+- **Enabling actions opens it.**  A course with actions on and no domain list can reach the entire public internet.
 - **The allowlist narrows an open door.  It cannot close one.**  There is no way to write "allow nothing" — an empty list is no list rather than a denial.
+- **Internal addresses are blocked by default, and naming one lifts the block.**  University-internal and private addresses are refused unless the list names them, at which point they are permitted.  The default is a floor, not a ceiling.
 
 So the meaningful decision is whether actions are on at all.  Treat the allowlist as a way to reduce a risk you have already accepted rather than a way to avoid accepting it.
+
+Two more things about how entries are read, because both surprise people writing their first list:
+
+- **A path in an entry does not scope anything.**  Writing `api.example.edu/v1/chat` does not restrict an agent to that endpoint — the path is ignored and the rule permits the whole host, including `api.example.edu/admin/delete`.  Give us a path-shaped entry and the registrar refuses it rather than rendering it, which is deliberate: a rule that is silently wider than it reads is worse than one that fails.
+- **A wildcard covers the apex too.**  `*.example.edu` matches `example.edu` as well as its subdomains.  Say what you mean and read it back as *"an agent may send course material to anything at this address"* — that is what the entry authorizes.
 
 ## If you are using AI to help with grading
 
