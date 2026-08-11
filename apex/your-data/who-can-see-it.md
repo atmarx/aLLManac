@@ -74,7 +74,8 @@ Actions are **off unless a course turns them on.**  The platform's default capab
 
 A course that does enable them can also declare a list of domains agents are allowed to reach.  Worth understanding what that list does and does not do:
 
-!!! warning "An allowlist narrows; it cannot close" If a course enables actions and declares no domains, agents can reach the entire public internet.  An empty list is not a closed door — it is no list.  The platform blocks private and internal addresses either way, and there is no way to write "allow nothing."  The switch that actually closes the path is leaving actions off.
+!!! warning "An allowlist narrows; it cannot close"
+    If a course enables actions and declares no domains, agents can reach the entire public internet.  An empty list is not a closed door — it is no list.  The platform blocks private and internal addresses either way, and there is no way to write "allow nothing."  The switch that actually closes the path is leaving actions off.
 
 If you are building an agent with actions in a course that allows them, you are the one deciding where course material goes.  Point it at something you would be comfortable naming out loud.
 

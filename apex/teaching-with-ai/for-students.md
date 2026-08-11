@@ -86,7 +86,8 @@ The move most people resist, because it gives up the tool's apparent advantage: 
 
 **Check somewhere else.**  And specifically —
 
-!!! warning "Asking it again is not checking" "Are you sure?" gets you either the same claim restated with equal confidence or an apology and a reversal.  Neither tells you whether the original was true.  Go to something independent: the actual paper, the documentation, a person who knows.
+!!! warning "Asking it again is not checking"
+    "Are you sure?" gets you either the same claim restated with equal confidence or an apology and a reversal.  Neither tells you whether the original was true.  Go to something independent: the actual paper, the documentation, a person who knows.
 
 **Question it, and question yourself.**  Do not throw out what you know because a machine sounded certain — students give up their own knowledge far too easily to a confident paragraph.  Also hold your view loosely enough to check it.  Neither you nor the model is infallible, and the goal is calibration rather than trusting either one by default.
 

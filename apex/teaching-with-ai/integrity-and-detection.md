@@ -29,7 +29,8 @@ The failure is not random noise that better models will sand down.  It follows f
 
 Scale makes it worse rather than better.  Even at a **1% false-positive rate** — far better than anything measured — an institution processing 75,000 submissions a year produces **750 wrongly accused students**.  Those accusations do not distribute evenly across the student body.
 
-!!! note "The finding is contested, and by whom matters" Detector vendors have published rebuttals arguing the study's methodology is flawed.  Weigh those as you would any product manufacturer's critique of research finding the product does not work.  The direction of the result has been corroborated by independent reporting and subsequent scholarship.
+!!! note "The finding is contested, and by whom matters"
+    Detector vendors have published rebuttals arguing the study's methodology is flawed.  Weigh those as you would any product manufacturer's critique of research finding the product does not work.  The direction of the result has been corroborated by independent reporting and subsequent scholarship.
 
 ## What follows for your course
 
