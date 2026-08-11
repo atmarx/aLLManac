@@ -8,5 +8,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY server.py reconcile.py render.py course_admin.py ./
+COPY planes/ ./planes/
 EXPOSE 8080
 CMD ["python", "server.py"]

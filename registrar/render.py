@@ -18,6 +18,11 @@ import os
 import secrets as pysecrets
 import tempfile
 
+# The one thing render shares with the reconcile planes.  planes.config
+# holds no credential and calls nothing — importing it here is a constant
+# lookup, not a plane reaching across the seam.
+from planes.config import DEFAULT_CAPABILITIES
+
 OUT_FLEET = os.environ.get("OUT_FLEET", "/out/fleet")
 OUT_USAGE = os.environ.get("OUT_USAGE", "/out/usage-mcp")
 
@@ -133,11 +138,12 @@ def render_course_librechat(slug: str, course: dict, models: list[str]) -> None:
     name = course["name"]
     model_list = ", ".join(f'"{m}"' for m in models)
     # .get with a default (not `or`) — a course record's explicit empty list
-    # means "none," and must survive to the render.  The literal here is the
-    # hand-built-dict fallback only; reconcile.DEFAULT_CAPABILITIES is the
-    # source of truth (the planes stay import-free of each other).
+    # means "none," and must survive to the render.  The default comes from
+    # planes.config, which is the source of truth; this used to be a
+    # hand-built copy with a "change both together" comment on it, and the
+    # split gave the constant a home neutral enough to just import.
     caps = ", ".join(f'"{c}"' for c in course.get(
-        "capabilities", ["file_search", "tools", "artifacts"]))
+        "capabilities", DEFAULT_CAPABILITIES))
     # `actions:` is TOP-LEVEL in librechat.yaml, NOT under endpoints.agents —
     # verified against the v0.8.7 pin's own schema, where ToolService reads
     # appConfig.actions.allowedDomains.  Rendered whenever the course declares
@@ -356,7 +362,7 @@ def render_roster(courses: dict) -> None:
 
 def render_course(courses: dict, slug: str, oidc_secret: str,
                   service_key: str) -> None:
-    from reconcile import course_models  # data helper, no credentials
+    from planes.courses import course_models  # data helper, no credentials
     course = courses["courses"][slug]
     models = course_models(course, courses)
     render_course_env(slug, course, models, oidc_secret, service_key)
