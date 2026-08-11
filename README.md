@@ -29,7 +29,7 @@ their class used this month. No data leaves campus unless you point it there.
                    ▼
              ┌──────────┐        ┌───────────┐       ┌──────────┐
              │ Keycloak │◀───────│ LibreChat │──────▶│ LiteLLM  │──▶ inference
-             │ (+Globus │        │  the UI   │       │ keys ·   │    ├─ vLLM (vllm/ stack)
+             │ (+Globus │        │  the UI   │       │ keys ·   │    ├─ vLLM (site/inference/)
              │  broker) │        └─────┬─────┘       │ metering │    ├─ campus GPU box
              └──────────┘              │             └──────────┘    └─ cloud (if you must)
                                        │
@@ -45,7 +45,7 @@ Seven moving parts, each doing one job:
 | **LiteLLM** | The gateway and **the ledger**. Every user gets a virtual API key with a budget; every request is metered. Models are routed here, so which GPU (or cloud) serves a request is nobody else's business. |
 | **usage-mcp** | The ledger, served back into the chat as tools: students ask their own usage, faculty ask their course's — no dashboard login, no Enterprise license. LibreChat stamps who's asking into trusted headers; the service reads through a SELECT-only DB role and scopes every answer by the roster (`usage-mcp/roster.yaml`). |
 | **Keycloak** | The front door. OIDC identity provider; ships with a mock campus realm (`northwinds`) — local demo accounts standing in for real campus groups. Later, it **brokers Globus** (or any SAML/OIDC IdP) without LibreChat changing at all. |
-| **vLLM** *(its own stack: `vllm/`)* | Local inference on this box's GPUs — deliberately a **separate compose project** (`just vllm-up`) so a loaded model survives app deploys. Optional — the gateway can just as easily point at a campus inference server or a cloud endpoint. |
+| **vLLM** *(site-local: `site/inference/`)* | Local inference on this box's GPUs — deliberately a **separate compose project** (`just vllm-up`) so a loaded model survives app deploys. Optional by construction: it lives under `site/` because everything past `INFERENCE_BASE_URL` is a deployment's own choice, so a box with no GPU simply doesn't have it. |
 | **Mongo · Meili · pgvector · RAG API** | LibreChat's data plane: conversations, search, and embeddings for agent knowledge files. |
 | **Caddy** *(edge profile)* | The front door's front door: one hostname per surface, TLS included — internal CA for the LAN, real ACME (HTTP-01 or DNS-01/Azure) for the world. |
 
@@ -66,12 +66,14 @@ Seven moving parts, each doing one job:
 ## Quick start
 
 Prereqs: Docker + Compose v2, [`just`](https://just.systems)
-(`apt install just`), and — only for local GPU inference (the `vllm/` stack) —
-the NVIDIA Container Toolkit.
+(`apt install just`), and — only for local GPU inference (`site/inference/`) —
+the NVIDIA Container Toolkit.  A fresh Linux VM with Docker on it is the
+assumed starting point; see [`site.example/`](site.example/README.md) for what
+belongs to one box rather than to the platform.
 
 ```bash
 git clone <this-repo> almanac && cd almanac
-just setup          # creates .env, generates every secret
+just setup          # creates .env + site/, generates every secret
 $EDITOR .env        # set ALMANAC_HOST, INFERENCE_BASE_URL, OPENID_ISSUER
 just vllm-up        # local GPU box only — inference is its own stack
 just up
@@ -83,7 +85,7 @@ The three `.env` lines that matter:
 - **`ALMANAC_HOST`** — the box's LAN IP or DNS name (not `localhost`), so your
   browser and the containers agree on where Keycloak lives.
 - **`INFERENCE_BASE_URL`** — where tokens come from.
-  `http://host.docker.internal:8000/v1` for the local `vllm/` stack on the
+  `http://host.docker.internal:8000/v1` for the `site/inference/` stack on the
   same box (`just vllm-up`); an Ollama/vLLM URL for a campus inference box; a
   cloud endpoint if you must. The model name in
   [`litellm/config.yaml`](litellm/config.yaml) must match what that endpoint
@@ -189,11 +191,20 @@ just nuke           # stop + WIPE ALL DATA (asks first)
 **Profiles** (`COMPOSE_PROFILES` in `.env`): `edge` adds the Caddy front
 door; `workbench` is the opencode coding harness (run-on-demand — `just
 workbench <key>` — it never starts with `just up`).  Local vLLM is **not a
-profile** — it's its own compose project
-([`vllm/compose.yml`](vllm/compose.yml)), so `just deploy` bounces the app
-without unloading a model that took ten minutes to warm.  Run it on the same
-box (the default `INFERENCE_BASE_URL` reaches it via `host.docker.internal`)
-or clone this repo on a GPU box and run only `just vllm-up` there.
+profile** — it's its own compose project and it lives under `site/`
+(`site/inference/vllm.compose.yml`), so `just deploy` bounces the app without
+unloading a model that took ten minutes to warm.  Run it on the same box (the
+default `INFERENCE_BASE_URL` reaches it via `host.docker.internal`), clone
+this repo on a GPU box and run only `just vllm-up` there, or delete
+`site/inference/` on a box that has no GPUs at all.
+
+**This box vs. the platform:** `site/` is gitignored and holds what is true
+of exactly one deployment — a compose layer `just` stacks on top of
+`compose.yml` (it can add services *and* override core ones), the optional
+inference stack, and whatever brings up the metal.  It's cloned from
+[`site.example/`](site.example/README.md) on first `just setup`.  If you are
+about to edit a tracked file to make one box work, that's the folder you
+want.
 
 **Switching models:** local GPU → edit `VLLM_MODEL` / `VLLM_SERVED_NAME` in
 `.env`, match `litellm/config.yaml`, `just vllm-up` again; remote/cloud →

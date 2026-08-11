@@ -1,0 +1,57 @@
+# This deployment's compose layer — the one file that is allowed to know
+# what box it is on.
+#
+# `just` layers it onto the core stack:
+#
+#     docker compose -f compose.yml -f site/compose.yml
+#
+# which means it can do both things an overlay can do — ADD services the
+# platform doesn't ship, and OVERRIDE ones it does.  Compose merges by
+# service name: keys you name here win, keys you don't are inherited.
+#
+# Paths are relative to the REPO ROOT (compose resolves them against the
+# project directory, and the first `-f` sets that).  So it's `./site/foo`,
+# not `./foo`.
+#
+# The layer is optional.  `just` only adds the `-f` if this file exists, so
+# deleting `site/` leaves a working core stack — that is the intended way to
+# say "this box needs nothing special."
+#
+# Ships empty because the platform's defaults are meant to be right.  Reach
+# for this file when they aren't, and leave a comment saying why — the next
+# person to read it will be you, on a different box, wondering.
+
+services: {}
+
+# ---- Overriding a core service -----------------------------------------------
+# The gateway's ledger on a mounted volume instead of a docker one, because
+# this box backs up /srv and not /var/lib/docker:
+#
+#   litellm-db:
+#     volumes:
+#       - /srv/almanac/litellm-db:/var/lib/postgresql/data
+#
+# Only the keys you name are replaced.  Note that compose MERGES lists for
+# some fields and REPLACES them for others (`volumes:` merges by target,
+# `command:` replaces wholesale) — check `just config` and read the output
+# rather than trusting either instinct.
+
+# ---- Adding a service --------------------------------------------------------
+# Something this deployment needs and nobody else does:
+#
+#   campus-syslog-forwarder:
+#     image: ...
+#     volumes:
+#       - ./site/syslog/forwarder.conf:/etc/forwarder.conf:ro
+#     restart: unless-stopped
+
+# ---- What does NOT belong here -----------------------------------------------
+# - Secrets.  They live in .env (gitignored) and OpenBao.  This file is
+#   gitignored too, which makes it a tempting place to paste a key and a
+#   genuinely bad one: it is compose config, it gets printed by
+#   `just config`, and nothing here has the escrow's custody story.
+# - Course instances.  The registrar renders those into fleet/ from
+#   registrar/courses.yaml.  Hand-writing a course service here produces a
+#   room with no key, no door role, and no ledger team.
+# - Anything another deployment would also want.  That's a platform change
+#   — send it upstream, where it gets reviewed and everyone benefits.

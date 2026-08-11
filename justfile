@@ -6,10 +6,22 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 set dotenv-load := true
 
-compose := "docker compose"
+# The core stack, plus this box's own layer if it has one.  site/ is
+# gitignored and seeded from site.example/ by `just _site`; the conditional
+# is what makes it OPTIONAL rather than required — a box with no site/ runs
+# core and nothing complains.  Evaluated once at parse time, so a site/ that
+# appears mid-run isn't picked up until the next `just` (which is why _site
+# runs before anything that would care).
+site_compose := "site/compose.yml"
+compose := "docker compose -f compose.yml" + (
+    if path_exists("site/compose.yml") == "true" { " -f site/compose.yml" } else { "" }
+)
 # The vLLM stack is separate on purpose (model stays loaded across app
-# deploys).  --project-directory . makes it share the root .env.
-vllm := "docker compose --project-directory . -f vllm/compose.yml"
+# deploys) AND site-local on purpose (inference is behind INFERENCE_BASE_URL;
+# a box with no GPU shouldn't carry a GPU stack).  --project-directory .
+# makes it share the root .env.
+vllm_compose := "site/inference/vllm.compose.yml"
+vllm := "docker compose --project-directory . -f site/inference/vllm.compose.yml"
 # SBOM generator — pinned like everything else:
 syft := "anchore/syft:v1.46.0@sha256:473a60e3a58e29aca3aedb3e99e787bb4ef273917e44d10fcbea4330a07320bb"
 
@@ -18,12 +30,20 @@ default:
     @{{just_executable()}} --list --unsorted
 
 # First-time setup: create .env from the example + generate every secret
-setup: _env secrets
+setup: _env _site secrets
     @echo
     @echo "Now edit .env — set ALMANAC_HOST, INFERENCE_BASE_URL, and OPENID_ISSUER."
+    @echo "This box's own compose layer (if it needs one) is site/compose.yml."
 
 _env:
     @test -f .env || (cp .env.example .env && echo ".env created from .env.example")
+
+# This deployment's own layer — gitignored, cloned from the template on
+# first run so there is somewhere to put box-specific compose before you
+# need it.  Never overwrites: a site/ that exists is the operator's.
+_site:
+    @test -d site || (cp -r site.example site \
+      && echo "site/ created from site.example/ — this box's compose layer and infra live there")
 
 # Generate secrets for any value still reading "change-me" (NEVER touches set values)
 secrets:
@@ -69,7 +89,10 @@ secrets:
     echo "instance or every user's saved key becomes undecryptable."
 
 # Bring the stack up (profiles come from COMPOSE_PROFILES in .env)
-up: _roster _fleet && usage-role bao-unseal
+# _site seeds site/ if it's missing, and the seeded layer is EMPTY — so the
+# one run where `compose` was resolved before the folder existed is also the
+# one run where the folder had nothing to say.  Every run after it layers.
+up: _roster _fleet _site && usage-role bao-unseal
     {{compose}} up -d --remove-orphans
 
 # The live roster is deployment data (student emails) — gitignored, seeded
@@ -207,7 +230,7 @@ fleet-smoke:
 # Show container status
 ps:
     {{compose}} ps
-    @{{vllm}} ps 2>/dev/null || true
+    @test -f {{vllm_compose}} && {{vllm}} ps 2>/dev/null || true
 
 # Images already on this box scan from the daemon (fast, no pull); absent
 # ones stream from the registry WITHOUT touching the daemon (the vLLM image
@@ -221,8 +244,10 @@ sbom:
     stamp=$(date -u +%Y-%m-%d)
     outdir="sbom/${stamp}-${rev}"
     mkdir -p "$outdir"
+    # The vLLM stack is site-local and optional — a box without it still
+    # owes infosec an SBOM for everything it DOES run:
     images=$( (COMPOSE_PROFILES=edge,workbench {{compose}} config --images; \
-               {{vllm}} config --images) | sort -u )
+               [ -f {{vllm_compose}} ] && {{vllm}} config --images || true) | sort -u )
     {
         echo "aLLManac SBOM manifest"
         echo "generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)   git: ${rev}"
@@ -254,24 +279,42 @@ sbom:
     cat "$outdir/MANIFEST.txt"
     echo "hand infosec: sbom/almanac-sbom-${stamp}-${rev}.tar.gz"
 
-# ---- Local inference (its own stack: vllm/compose.yml) -----------------------
-# Separate so the model stays loaded while the app stack deploys/bounces.
+# ---- Local inference (site-local: site/inference/vllm.compose.yml) -----------
+# Separate stack so the model stays loaded while the app stack
+# deploys/bounces.  SITE-local because inference is whatever
+# INFERENCE_BASE_URL points at — a box with no GPU deletes site/inference/
+# and these recipes say so instead of failing at docker.
 # Needs the NVIDIA Container Toolkit.  Same .env drives it (VLLM_* vars).
 
+# Refuse clearly rather than handing docker a path that isn't there.
+_vllm-here:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -f {{vllm_compose}} ]; then
+        echo "no {{vllm_compose}} — this box doesn't run local inference."
+        echo
+        echo "That is a supported state, not a broken one.  The gateway uses"
+        echo "whatever INFERENCE_BASE_URL points at:"
+        grep '^INFERENCE_BASE_URL=' .env 2>/dev/null | sed 's/^/  /' || echo "  (not set in .env)"
+        echo
+        echo "To run vLLM here after all:  cp -r site.example/inference site/"
+        exit 1
+    fi
+
 # Start local vLLM (first boot downloads the model — be patient)
-vllm-up:
+vllm-up: _vllm-here
     {{vllm}} up -d
 
 # Stop local vLLM (unloads the model; app stack is untouched)
-vllm-down:
+vllm-down: _vllm-here
     {{vllm}} down
 
 # Tail vLLM logs (watch a cold model load here)
-vllm-logs:
+vllm-logs: _vllm-here
     {{vllm}} logs -f --tail=100
 
 # Pull the pinned vLLM image
-vllm-pull:
+vllm-pull: _vllm-here
     {{vllm}} pull
 
 # Prove inference is actually serving (health + the model list)

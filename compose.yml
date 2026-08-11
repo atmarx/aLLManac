@@ -9,8 +9,16 @@
 #   workbench   the opencode coding harness, run-on-demand (never a daemon):
 #               just workbench <key> / just workbench-smoke <key>
 #
-# Local GPU inference is its OWN stack now — vllm/compose.yml — so the model
-# stays loaded while this stack deploys/bounces:  just vllm-up / vllm-down.
+# Local GPU inference is its OWN stack — site/inference/vllm.compose.yml — so
+# the model stays loaded while this stack deploys/bounces:  just vllm-up /
+# vllm-down.  It lives under site/ because inference is whatever
+# INFERENCE_BASE_URL points at, and a box with no GPU shouldn't carry a GPU
+# stack around: see site.example/README.md.
+#
+# THIS FILE IS THE PLATFORM — the same bytes on every box.  Anything true of
+# only one deployment goes in site/compose.yml, which `just` layers on top
+# with a second -f (it can add services AND override the ones here).  If you
+# are about to edit this file to make one box work, that's the file you want.
 #
 # Images are PINNED (here and in .env.example) — bump deliberately: edit,
 # deploy, verify, commit.  Override per-box via the *_IMAGE vars in .env.
@@ -51,8 +59,9 @@ services:
       DATABASE_URL: "postgresql://litellm:${LITELLM_DB_PASSWORD}@litellm-db:5432/litellm"
       STORE_MODEL_IN_DB: "True"
       # Where the tokens actually come from — see litellm/config.yaml.  The
-      # default reaches the vllm/ stack published on THIS box's host (see
-      # extra_hosts below); a remote GPU box or cloud URL works the same way.
+      # default reaches the site/inference/ vLLM stack published on THIS
+      # box's host (see extra_hosts below); a remote GPU box or cloud URL
+      # works the same way — the gateway cannot tell them apart.
       INFERENCE_BASE_URL: "${INFERENCE_BASE_URL:-http://host.docker.internal:8000/v1}"
       INFERENCE_API_KEY: "${INFERENCE_API_KEY:-dummy-local-endpoints-ignore-this}"
       INFERENCE_MODEL: "${INFERENCE_MODEL:-openai/qwen2.5}"
@@ -60,8 +69,8 @@ services:
       - ./litellm/config.yaml:/app/config.yaml:ro
     ports:
       - "${GATEWAY_PORT:-4000}:4000"
-    # So the default INFERENCE_BASE_URL can reach the separate vllm/ stack
-    # (or anything else) published on this box's host ports:
+    # So the default INFERENCE_BASE_URL can reach the separate site/inference/
+    # vLLM stack (or anything else) published on this box's host ports:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -367,8 +376,10 @@ services:
       start_period: 15s
     restart: unless-stopped
 
-  # ---- Local model engine: MOVED to its own stack — vllm/compose.yml ---------
-  # (so the model stays loaded while this stack deploys:  just vllm-up)
+  # ---- Local model engine: its own stack, and site-local ---------------------
+  # site/inference/vllm.compose.yml — separate so the model stays loaded while
+  # this stack deploys (just vllm-up), site-local so a box without GPUs simply
+  # doesn't have it (site.example/README.md).
 
   # ---- Coding harness (profile: workbench): opencode against the gateway ----
   # Not a daemon — a run-on-demand container for proving a student's vAPI key

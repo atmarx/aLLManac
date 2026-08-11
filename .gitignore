@@ -12,6 +12,12 @@ usage-mcp/roster.yaml
 registrar/courses.yaml
 fleet/
 
+# This deployment's own compose layer, its optional inference stack, and
+# whatever brings up the metal underneath it.  Cloned from site.example/ by
+# `just _site` and owned by the box from then on — one deployment's site/ is
+# nobody else's business, which is exactly why it isn't in git.
+site/
+
 # SBOM artifacts (just sbom) — generated per pin-set, handed to infosec,
 # too big and too derivative for git
 sbom/

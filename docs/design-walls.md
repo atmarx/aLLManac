@@ -243,12 +243,54 @@ shape is written down and the file isn't.)
 ## Structure decisions (settled — reopen only with cause)
 
 - **vLLM is its own compose project** so models outlive app deploys.
-  Restarting the app plane must never evict a loaded model.
+  Restarting the app plane must never evict a loaded model.  It is also
+  **site-local** (`site/inference/`) — see the platform/site line below.
 - **`just deploy` append-migrates missing `.env` vars** and never touches
   values that are already set.  New config arrives without clobbering a
   box's local truth.
 - **`just sbom`** = digest-pinned syft SPDX per image.  Regenerate at
   pin-bump time, not per deploy — see [ci.md](ci.md).
+- **The registrar's reconcile plane is `registrar/planes/`**, one module per
+  system it talks to, with `reconcile.py` as the facade and the single
+  import surface.  The invariant: **a verb may compose planes; a plane may
+  never import a sibling plane.**  Credentials stay auditable because
+  there's exactly one list to read.
+
+---
+
+## `site/` vs. the platform *(2026-08-11)*
+
+Everything tracked in git is **the platform** — the same bytes on a laptop,
+xdocker03, and a campus VM.  `site/` is **this box**, and it is gitignored.
+
+Four things that will bite if you don't know them:
+
+- **`site.example/` is a template, not config.**  Editing it changes nothing
+  on any existing deployment — `just _site` clones it once and never
+  overwrites.  To change a live box, edit that box's `site/`.
+- **`site/compose.yml` is layered with a second `-f`, not `include:`.**  That
+  is deliberate and it is the difference that matters: `-f` can **override**
+  core services, `include:` can only add.  A campus VM that needs the
+  ledger's volume on a SAN mount needs override.  Consequence: relative
+  paths in it resolve from the **repo root** (`./site/foo`), because the
+  first `-f` sets the project directory.
+- **The overlay is conditional at `just` PARSE time** (`path_exists`).  A
+  `site/` created during a run isn't picked up until the next `just`
+  invocation.  Harmless as shipped — the seeded layer is empty — but do not
+  build anything that depends on same-run pickup.
+- **`site/` survives `just sync`.**  Sync is `git reset --hard origin/main`,
+  which does not touch ignored files.  That is the whole point: a
+  deployment's local truth outlives every deploy, and nobody has to
+  re-apply it.
+
+Inference belongs on the site side because `INFERENCE_BASE_URL` is the
+seam — everything past that URL is a deployment's own choice, so a box
+with no GPU carries no GPU stack.  Deleting `site/inference/` is the
+supported way to say so; `just vllm-*` reports it instead of failing.
+
+`site/infra/` is deliberately unexemplified.  Bringing up the metal varies
+so much between institutions that a sample would read as a default.  The
+repo's assumed starting point is **a fresh Linux VM with Docker on it**.
 
 ---
 
