@@ -256,13 +256,17 @@ services:
   openbao:
     image: ${OPENBAO_IMAGE:-openbao/openbao:2.4.1}
     container_name: alm-openbao
-    command: ["server", "-config=/openbao/config.hcl"]
+    command: ["server", "-config=/openbao/conf/config.hcl"]
     cap_add:
       - IPC_LOCK
     environment:
       BAO_ADDR: "http://127.0.0.1:8200"
     volumes:
-      - ./openbao/config.hcl:/openbao/config.hcl:ro
+      # The DIRECTORY, not the file — a single-file bind pins an inode, and a
+      # config replaced by rename (git, or a render) never reaches the running
+      # container.  /openbao/conf is its own path: /openbao/file is the raft
+      # store and must stay a volume (design-walls.md).
+      - ./openbao:/openbao/conf:ro
       - bao-data:/openbao/file
       - bao-logs:/openbao/logs
     ports:
@@ -365,7 +369,9 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
     volumes:
-      - ./keycloak/realm-northwinds.json:/opt/keycloak/data/import/realm-northwinds.json:ro
+      # The DIRECTORY, not the file (see the openbao mount).  --import-realm
+      # reads every *.json here, so keep this directory realms-only.
+      - ./keycloak:/opt/keycloak/data/import:ro
     ports:
       - "${AUTH_PORT:-8080}:8080"
     depends_on:
@@ -442,9 +448,18 @@ services:
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
       AZURE_SUBSCRIPTION_ID: "${AZURE_SUBSCRIPTION_ID:-}"
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      # The registrar's rendered course vhosts (import fleet/*.caddy):
-      - ./fleet/caddy:/etc/caddy/fleet:ro
+      # The DIRECTORY, not the file (see the openbao mount).  This one bit
+      # hardest: `just deploy` ends with `caddy reload`, which faithfully
+      # reloaded the pinned original inode and reported success — an edge
+      # config that changed in git, deployed clean, and served the old routes.
+      # The Dockerfile rides along into /etc/caddy and is inert there.
+      - ./caddy:/etc/caddy:ro
+      # The registrar's rendered course vhosts.  Deliberately NOT nested under
+      # /etc/caddy: docker cannot create a mountpoint inside a :ro bind, so
+      # /etc/caddy/fleet only works if caddy/fleet/ exists on the host as a
+      # tracked placeholder — an invisible dependency one tidy-up away from
+      # breaking the edge.  A sibling path needs nothing to exist.
+      - ./fleet/caddy:/etc/caddy-fleet:ro
       - caddy-data:/data
       - caddy-config:/config
     # Healthy = config loaded and serving (admin endpoint answers).  LibreChat

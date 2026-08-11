@@ -50,4 +50,8 @@
 # graceful reload; the _stub file keeps the glob non-empty on fresh boxes.
 # Real-ACME deployments: wildcard DNS (*.{ALMANAC_DOMAIN}) + the DNS-01
 # azure block above = one wildcard cert covers every course.
-import /etc/caddy/fleet/*.caddy
+#
+# A SIBLING of /etc/caddy, not a child: this directory is a second bind mount,
+# and docker cannot create a mountpoint inside the read-only one that holds
+# this file.  See the comment on the edge's volumes in compose.yml.
+import /etc/caddy-fleet/*.caddy

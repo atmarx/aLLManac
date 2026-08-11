@@ -153,6 +153,10 @@ Pipeline #13 went red teaching us this.
   All three are directory mounts now (`/app/conf/…`), and the fleet's are **per-course** subdirectories — `fleet/` holds every course's `.env`, so mounting its root into a course container would hand one course the rest of the fleet's secrets.  `just egress-check` Layer 0a compares the host inode against the container's and fails loudly on any recurrence.
 
   **A wall being written down is not a wall being held.**  This one was correct, prominent, and cited in the very file that broke it.  What caught it was a machine comparing two inodes, not a person re-reading the rule.
+
+  The sweep for the rest *(2026-08-11)* found three more single-file mounts — `caddy/Caddyfile`, `openbao/config.hcl`, `keycloak/realm-northwinds.json` — all tracked, so all replaced by rename on every `git reset --hard`.  The Caddyfile was the live one and the worst shape of the bug: `just deploy` ends with `caddy reload`, which faithfully reloaded the **pinned original inode** and reported success.  An edge config could change in git, deploy green, and serve the old routes. All three are directory mounts now.
+
+  **A `:ro` bind mount cannot host a nested mount.**  Docker has to `mkdir` the mountpoint inside the parent, and a read-only parent refuses — so `./caddy:/etc/caddy:ro` plus `./fleet/caddy:/etc/caddy/fleet:ro` dies at container create with `read-only file system`, *unless* `caddy/fleet/` exists on the host as a tracked placeholder.  That placeholder is an invisible dependency one tidy-up away from breaking the edge, so the fleet vhosts moved to a **sibling** path (`/etc/caddy-fleet`) instead.  Nesting binds is legal when the mountpoint already exists and compose orders by path depth — it just buys a second thing that has to stay true.
 - **`just` dedents recipe bodies**, so heredocs inside a recipe must stay indented or the delimiter stops matching.
 - **`docker image inspect` cannot see buildkit base digests** — use `docker buildx imagetools inspect`.
 - **Woodpecker's piped-ssh heredoc eats stdin.**  Any `compose exec` inside one needs `</dev/null` or it hangs on a step that looks correct.

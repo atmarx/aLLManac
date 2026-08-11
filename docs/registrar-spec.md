@@ -377,7 +377,7 @@ Hostname-based, Caddy, wildcard DNS — ports are for compose files, not syllabi
 
 - **DNS**: `*.{ALMANAC_DOMAIN}` → the box.  One wildcard record.
 - **TLS**: one wildcard cert via **DNS-01** (wildcards require it; the Azure `acme_dns` block already sketched in `caddy/Caddyfile` graduates from comment to config — root-cellar's delegated-zone guide is the pattern).  Public boxes without wildcard DNS can fall back to per-vhost HTTP-01; LAN stays on the internal CA.  All three modes already exist in the edge profile — this extends, not invents.
-- **Vhosts**: the registrar renders one small file per course into a shared volume the edge imports (`import /etc/caddy/fleet/*.caddy`):
+- **Vhosts**: the registrar renders one small file per course into a shared volume the edge imports (`import /etc/caddy-fleet/*.caddy`):
 
   ```
   engr301.{$ALMANAC_DOMAIN} {
