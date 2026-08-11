@@ -25,13 +25,15 @@ Retention is a policy question before it is an engineering one.  Deciding that c
 
 That policy does not exist here yet, so neither does the timer that would enforce it.  Building the timer first would mean guessing at the answer, and a deletion job is a bad place to guess.
 
-!!! warning "Not built yet" No automated retention or expiry.  Removal is currently a manual act by an operator.
+!!! warning "Not built yet"
+    No automated retention or expiry.  Removal is currently a manual act by an operator.
 
 ## Backups
 
 Copies of the databases exist, made by an operator running a documented procedure.
 
-!!! warning "Not built yet" The scheduled version — a nightly archive copied off the machine it protects — is designed and not implemented.  Today there is no schedule, no off-box copy, and no restore that has been tested end to end.
+!!! warning "Not built yet"
+    The scheduled version — a nightly archive copied off the machine it protects — is designed and not implemented.  Today there is no schedule, no off-box copy, and no restore that has been tested end to end.
 
 Both halves of that matter to you and they point in opposite directions.  A backup is protection against losing your work, and it is also a second place your work lives, which is a longer tail than most people picture when they delete something.  Any honest retention policy has to account for both.
 
@@ -57,7 +59,8 @@ Closing a course revokes its keys, renders a final configuration, and archives t
 
 **Archiving is not deleting.**  The material is still there; what changed is that nobody is using it.
 
-!!! note "Not built yet" The course-close routine is planned and not yet implemented.  Courses that have ended are currently closed by hand.
+!!! note "Not built yet"
+    The course-close routine is planned and not yet implemented.  Courses that have ended are currently closed by hand.
 
 ## Asking for your data to be deleted
 

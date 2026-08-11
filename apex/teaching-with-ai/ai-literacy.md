@@ -42,7 +42,8 @@ Three habits, and they are the same three that make a good reader of anything.
 
 **Check elsewhere.**  Corroborate against something independent.
 
-!!! warning "Asking it again is not checking" Asking the same model "are you sure?" is not verification.  It will either reassert with equal confidence or fold and apologize, and neither response carries information about whether the original claim was true.  Consistency is not corroboration.  Go to a source that does not share the first one's failure modes — the actual paper, the documentation, a person who knows.
+!!! warning "Asking it again is not checking"
+    Asking the same model "are you sure?" is not verification.  It will either reassert with equal confidence or fold and apologize, and neither response carries information about whether the original claim was true.  Consistency is not corroboration.  Go to a source that does not share the first one's failure modes — the actual paper, the documentation, a person who knows.
 
 **Question it, and question yourself.**  Do not abandon your own knowledge because a machine sounded certain — expertise you spent years acquiring outranks a confident paragraph, and students give theirs up far too readily.  And hold your own view loosely enough to check it.  **Neither humans nor models are infallible**, and the useful posture is calibration rather than deference in either direction.
 
