@@ -65,7 +65,28 @@ steps:
         fi
 
         cd "$DEPLOY_DIR"
-        just sync
+
+        # The sync is INLINE git, not `just sync`, and that is deliberate.
+        # `just` refuses to run ANY recipe if the justfile doesn't parse — so
+        # a syntax error in the justfile makes `just sync` unable to fetch the
+        # commit that fixes the justfile.  The deploy box cannot self-heal and
+        # needs a human with ssh (pipeline #38, and it took one).
+        #
+        # This is the bootstrap, not deployment logic: it is the two commands
+        # that get the box to the right commit, after which everything still
+        # lives in the justfile.  Keep it dependency-free for that reason.
+        git fetch origin
+        git reset --hard origin/main
+        echo "synced to $(git rev-parse --short HEAD)"
+
+        # Fail fast and legibly if the justfile itself is broken, rather than
+        # in the middle of a deploy that has already half-run.
+        if ! just --list >/dev/null 2>&1; then
+          echo "ERROR: justfile does not parse at $(git rev-parse --short HEAD)"
+          just --list || true
+          exit 1
+        fi
+
         just deploy
 
         echo "aLLManac deployed."

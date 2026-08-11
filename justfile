@@ -294,7 +294,9 @@ egress-check slug="":
     done
     echo
     if [ "$fail" = 0 ]; then
-        echo "  every instance: the allowlist is load-bearing."
+        echo "  every aLLManac instance checked: the allowlist is load-bearing."
+        echo "  (Scope is this stack — containers named alm-librechat / alm-chat-*."
+        echo "   A LibreChat on this box that isn't ours is not ours to vouch for.)"
     else
         echo "  at least one instance FAILED — read the layer that reported it."
         echo "  A finding here is a real hole, not a flaky test: the check asks"
