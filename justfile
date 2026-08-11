@@ -169,11 +169,65 @@ build: _fleet
 # egress-check runs LAST and it CAN FAIL THE DEPLOY.  That is the intent: the
 # floor is policy, and policy nothing enforces is policy that drifts — which is
 # exactly how the front office carried `actions` with no allowlist until a
-# machine looked.  It runs after `smoke`, so instances are up and healthy and
-# no container is still holding pre-deploy config.
+# machine looked.
 #
-# What CI runs on the box: refresh images, build, complete .env, restart, verify
-deploy: pull build secrets up smoke egress-check
+# config-refresh runs between `up` and `smoke`, and it is not optional.  `up`
+# recreates a container when its DEFINITION changes — image, env, mount spec —
+# and a bind-mounted config file's CONTENTS are none of those.  So editing
+# librechat.yaml and deploying gets the new file into the container (that is
+# what the directory mounts bought) and leaves the process holding the old one.
+# Pipeline #46 failed exactly here, on a comment-only edit, which is the check
+# doing its job: it cannot know a diff is harmless and must not guess.
+#
+# What CI runs on the box: images, build, .env, restart, re-read config, verify
+deploy: pull build secrets up config-refresh smoke egress-check
+
+# The gap this closes: `docker compose up` recreates on a changed DEFINITION,
+# never on changed bind-mount CONTENTS.  Directory mounts got the new file into
+# the container; nothing made the process re-read it.  Same failure as the
+# pinned inode, one level up — the file is current and the process is not.
+#
+# Every read-only bind mount is treated as config by definition.  Scope is
+# `alm-*`, which is both the core stack and the course fleet (they are separate
+# compose projects); any other LibreChat on the box is not ours to restart.
+#
+# Restart containers whose mounted config changed since they booted
+config-refresh:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    n=0; checked=0
+    # ANCHORED — docker's name filter is a substring match, and a recipe that
+    # restarts things has no business matching `foo-alm-bar`:
+    for c in $(docker ps --filter "name=^alm-" --format '{{{{.Names}}'); do
+      started=$(docker inspect "$c" --format '{{{{.State.StartedAt}}' 2>/dev/null || echo "")
+      boot=$(date -d "$started" +%s 2>/dev/null || echo 0)
+      [ "$boot" -gt 0 ] || continue
+      checked=$((checked+1))
+      newest=0; which=""
+      # read-only binds only: a rw bind is data, and its mtime means nothing here
+      srcs=$(docker inspect "$c" --format '{{{{range .Mounts}}{{{{if and (eq .Type "bind") (not .RW)}}{{{{println .Source}}{{{{end}}{{{{end}}' 2>/dev/null)
+      for src in $srcs; do
+        [ -e "$src" ] || continue
+        m=$(find "$src" -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1)
+        m=${m%%.*}
+        [ -n "$m" ] || m=0
+        if [ "$m" -gt "$newest" ]; then newest=$m; which=$src; fi
+      done
+      if [ "$newest" -gt "$boot" ]; then
+        echo "  restart  $c — $which is newer than its boot"
+        if docker restart "$c" >/dev/null 2>&1; then
+          n=$((n+1))
+        else
+          echo "  FAIL     $c — restart failed"
+          exit 1
+        fi
+      fi
+    done
+    if [ "$n" -eq 0 ]; then
+      echo "config-refresh — $checked containers, all holding current config"
+    else
+      echo "config-refresh — restarted $n of $checked"
+    fi
 
 # Sync the checkout to origin/main (destructive to local edits — it's a deploy box)
 sync:
