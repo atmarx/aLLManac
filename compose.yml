@@ -53,7 +53,7 @@ services:
   litellm:
     image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-stable@sha256:47afa74b495c802317712e5b8c8a65e7ca30c96636e9b618a5f8130eec72a8ee}
     container_name: alm-litellm
-    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    command: ["--config", "/app/conf/config.yaml", "--port", "4000"]
     environment:
       LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY}"
       DATABASE_URL: "postgresql://litellm:${LITELLM_DB_PASSWORD}@litellm-db:5432/litellm"
@@ -66,7 +66,8 @@ services:
       INFERENCE_API_KEY: "${INFERENCE_API_KEY:-dummy-local-endpoints-ignore-this}"
       INFERENCE_MODEL: "${INFERENCE_MODEL:-openai/qwen2.5}"
     volumes:
-      - ./litellm/config.yaml:/app/config.yaml:ro
+      # Directory mount for the same reason as librechat's above.
+      - ./litellm:/app/conf:ro
     ports:
       - "${GATEWAY_PORT:-4000}:4000"
     # So the default INFERENCE_BASE_URL can reach the separate site/inference/
@@ -151,9 +152,14 @@ services:
       MONGO_URI: "mongodb://mongodb:27017/LibreChat"
       MEILI_HOST: "http://meilisearch:7700"
       RAG_API_URL: "http://rag_api:8000"
-      CONFIG_PATH: "/app/librechat.yaml"
+      CONFIG_PATH: "/app/conf/librechat.yaml"
     volumes:
-      - ./librechat/librechat.yaml:/app/librechat.yaml:ro
+      # DIRECTORY mount, not the single file.  `just sync` replaces this
+      # file by RENAME, and a single-file bind pins the ORIGINAL inode —
+      # the container would keep reading a file git already unlinked, so
+      # every config change silently never took effect.  See
+      # docs/design-walls.md, "Container & mount scars".
+      - ./librechat:/app/conf:ro
       - librechat-images:/app/client/public/images
       - librechat-logs:/app/api/logs
       # Read-only view of the edge's PKI so Node can trust Caddy's internal CA

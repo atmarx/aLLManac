@@ -23,17 +23,42 @@ const ok = (m) => console.log(`  ok    ${m}`);
   // running app keeps the config it booted with.  Without this check, closing
   // a hole and forgetting to restart reports a clean pass over a still-open
   // instance — a false PASS, which is worse than no check at all.
+  const seen = fs.statSync(CONFIG);
+
+  // 0a. STALE MOUNT — the container's view is not the host's file at all.
+  // A single-file bind mount pins an inode.  `just sync` and the registrar's
+  // renders both replace configs by RENAME, which makes a new inode, so the
+  // container keeps reading a file the host already unlinked.  The host looks
+  // fixed, the container is not, and nothing anywhere says so.  This is how
+  // the front office carried `actions` for three weeks after the policy that
+  // forbade it.
+  //
+  // Compared by INODE, not mtime.  A bind mount preserves the inode number,
+  // and a rename-replace always makes a new one — so inode equality is exact
+  // where an mtime window is a guess.  The first version of this check used
+  // mtime and missed a hole it was staring straight at, because the old and
+  // new files were written a second apart.
+  const hostIno = Number(process.env.ALM_HOST_INO || 0);
+  if (hostIno && hostIno !== seen.ino) {
+    bad('STALE MOUNT — the container is not reading the host\'s current file');
+    console.log(`        host inode:      ${hostIno}`);
+    console.log(`        container inode: ${seen.ino}  (${seen.mtime.toISOString()})`);
+    console.log('        A single-file bind mount pins the original inode; a');
+    console.log('        rename-replace on the host never reaches the container.');
+    console.log('        Mount the DIRECTORY instead, then recreate this container.');
+  }
+
+  // 0b. STALE PROCESS — right file, but read before the last edit.
   const startedAt = process.env.ALM_STARTED_AT;
   if (startedAt) {
     const booted = new Date(startedAt).getTime();
-    const edited = fs.statSync(CONFIG).mtimeMs;
-    if (Number.isFinite(booted) && edited > booted) {
-      bad(`config was edited AFTER this container booted — the running process `
-        + `is holding something else`);
+    if (Number.isFinite(booted) && seen.mtimeMs > booted) {
+      bad('config was edited AFTER this container booted — the running process '
+        + 'is holding something else');
       console.log(`        booted: ${new Date(booted).toISOString()}`);
-      console.log(`        config: ${new Date(edited).toISOString()}`);
-      console.log(`        Everything below describes the file on disk, NOT what`);
-      console.log(`        is enforcing right now.  Restart the instance, re-run.`);
+      console.log(`        config: ${seen.mtime.toISOString()}`);
+      console.log('        Everything below describes the file on disk, NOT what');
+      console.log('        is enforcing right now.  Restart the instance, re-run.');
     }
   }
 

@@ -273,8 +273,21 @@ egress-check slug="":
         # one thing the probe can't see from inside — it's how Layer 0 tells
         # "fixed" apart from "fixed on disk, not yet restarted."
         started=$(docker inspect --format '{{{{.State.StartedAt}}' "$c" 2>/dev/null || true)
-        docker exec -i -w /app -e ALM_STARTED_AT="$started" "$c" node \
-            < scripts/egress-probe.js || fail=1
+        # The mount SOURCE on the host, resolved from the container's own
+        # config path.  Layer 0a compares its mtime against what the container
+        # actually sees — that difference is the only way to catch a bind
+        # mount pinned to an inode the host has already replaced.
+        cpath=$(docker exec "$c" printenv CONFIG_PATH 2>/dev/null || echo /app/librechat.yaml)
+        src=$(docker inspect "$c" --format \
+            '{{{{range .Mounts}}{{{{.Source}}|{{{{.Destination}}
+{{{{end}}' 2>/dev/null \
+            | awk -F'|' -v p="$cpath" '
+                p==$2 { print $1; exit }
+                $2!="" && index(p, $2"/")==1 { print $1 substr(p, length($2)+1); exit }')
+        ino=""
+        [ -n "$src" ] && [ -e "$src" ] && ino=$(stat -c %i "$src")
+        docker exec -i -w /app -e ALM_STARTED_AT="$started" -e ALM_HOST_INO="$ino" \
+            "$c" node < scripts/egress-probe.js || fail=1
     done
     echo
     if [ "$fail" = 0 ]; then

@@ -235,6 +235,31 @@ Pipeline #13 went red teaching us this.
   `usage-mcp` and the registrar both ride **directory** mounts precisely
   for this, which is also why `courses.yaml` is bind-mounted as a
   directory-relative path.
+
+  **We then violated this wall in three places and it cost us a live
+  security hole** *(found 2026-08-11)*.  `compose.yml` single-file-mounted
+  both `librechat/librechat.yaml` and `litellm/config.yaml`, and
+  `render.py` did the same for every course's rendered `librechat.yaml`.
+  Every one of those files is replaced by **rename** — by `just sync` (git)
+  for the first two, by `_atomic_write` for the third.  So:
+
+  - Closing the front office's `actions` hole changed the file on disk and
+    **the running container never saw it.**  Host said fixed; container
+    served the Jul-16 inode git had already unlinked.
+  - Worse, it generalizes: **a course's `allowed_domains` could be
+    tightened, re-rendered, and never reach the running instance.**  The
+    registrar would report success and be telling the truth about the file.
+
+  All three are directory mounts now (`/app/conf/…`), and the fleet's are
+  **per-course** subdirectories — `fleet/` holds every course's `.env`, so
+  mounting its root into a course container would hand one course the rest
+  of the fleet's secrets.  `just egress-check` Layer 0a compares the host
+  inode against the container's and fails loudly on any recurrence.
+
+  **A wall being written down is not a wall being held.**  This one was
+  correct, prominent, and cited in the very file that broke it.  What
+  caught it was a machine comparing two inodes, not a person re-reading
+  the rule.
 - **`just` dedents recipe bodies**, so heredocs inside a recipe must stay
   indented or the delimiter stops matching.
 - **`docker image inspect` cannot see buildkit base digests** — use

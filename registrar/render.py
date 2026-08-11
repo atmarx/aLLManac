@@ -233,7 +233,7 @@ endpoints:
   agents:
     capabilities: [{caps}]
 """
-    _atomic_write(f"{OUT_FLEET}/{slug}.librechat.yaml", content)
+    _atomic_write(f"{OUT_FLEET}/conf/{slug}/librechat.yaml", content)
 
 
 # ---- fleet/caddy/<slug>.caddy --------------------------------------------------
@@ -280,9 +280,15 @@ def render_fleet(courses: dict) -> None:
       MONGO_URI: "mongodb://mongodb:27017/LibreChat_{slug}"
       MEILI_HOST: "http://meili-{slug}:7700"
       RAG_API_URL: "http://rag_api:8000"
-      CONFIG_PATH: "/app/librechat.yaml"
+      CONFIG_PATH: "/app/conf/librechat.yaml"
     volumes:
-      - ./{slug}.librechat.yaml:/app/librechat.yaml:ro
+      # A per-course DIRECTORY, not the single file: this render is an
+      # atomic tmp+rename, so a single-file bind would pin the old inode
+      # and a re-rendered allowlist would never reach the running
+      # instance.  Per-COURSE because fleet/ holds every course's .env —
+      # mounting the fleet root here would hand one course the rest of
+      # the fleet's secrets.
+      - ./conf/{slug}:/app/conf:ro
       - chat-{slug}-images:/app/client/public/images
       - chat-{slug}-logs:/app/api/logs
       - caddy-data:/caddy-data:ro
