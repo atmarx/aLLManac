@@ -50,6 +50,17 @@ The default USER role ships `agents.share=false` and `peoplePicker.*=false`.  Ou
 
 Faculty become LibreChat ADMIN via `OPENID_ADMIN_ROLE=faculty`, read from `realm_access.roles`, on a token of kind `access`.  All three have to line up.
 
+**But ADMIN does not buy extra agent powers, because the `interface` block flattens both roles.**  `hasExplicitConfig` gives anything written in `librechat.yaml` precedence over LibreChat's per-role defaults, and the seeding loop runs `for (const roleName of [USER, ADMIN])` — so an explicit `interface` key lands on *both* roles identically.  Measured on the running instance rather than reasoned about *(2026-08-11, v0.8.7)*:
+
+```
+role ADMIN: AGENTS {USE:true, CREATE:true, SHARE:true, SHARE_PUBLIC:false}
+role USER:  AGENTS {USE:true, CREATE:true, SHARE:true, SHARE_PUBLIC:false}
+```
+
+Consequence, and it answers a live docs question: **nobody can publish an agent instance-wide from the chat UI — faculty included.**  `public: false` is not a student restriction, it is the whole instance.  Each course carries its own copy (`LibreChat_{slug}` database, rendered from the same block), so this holds per course.  The **only** thing that changes it is the admin panel, which edits the seeded roles at runtime — per instance, since each course has its own panel and its own database.
+
+So "seeds the default USER role" understates it: the block seeds every role, and the seam between student and faculty is Keycloak's role claim plus the admin panel, not the `interface` block.
+
 ### `actions.allowedDomains` is TOP-LEVEL — and it's the only wall around Actions
 
 Verified against the pinned image's own schema, not the docs:

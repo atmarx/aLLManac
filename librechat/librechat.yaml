@@ -8,10 +8,14 @@ cache: true
 registration:
   socialLogins: ["openid"]
 
-# Classroom permission posture.  This block seeds the default USER role (the
-# students) at startup; faculty arrive as ADMIN via OPENID_ADMIN_ROLE in .env
-# and get the full picker/marketplace controls that role carries.  Live edits
-# later happen in the admin panel (:3082), which overrides these seeds.
+# Classroom permission posture.  This block seeds BOTH roles at startup — not
+# just students.  Anything explicit here beats LibreChat's per-role defaults
+# and the seeding loop applies it to USER and ADMIN alike, so faculty (who
+# arrive as ADMIN via OPENID_ADMIN_ROLE in .env) end up with an identical
+# agent permission set, verified against the running instance.  `public: false`
+# below is therefore an INSTANCE-wide off switch, not a student restriction:
+# nobody publishes instance-wide from the chat UI.  The admin panel (:3082) is
+# the only thing that changes it — it edits these seeded roles at runtime.
 #   - students can create agents and share them to people/groups — not
 #     instance-public; publishing to the whole class is the faculty's call
 #   - the people picker searches users + groups.  The groups here are
