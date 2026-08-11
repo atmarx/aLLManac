@@ -52,8 +52,11 @@ steps:
         from_secret: deploy_user
     commands:
       - apk add --no-cache openssh-client
-      - test -n "$DEPLOY_HOST" || { echo "ERROR: deploy_host secret is not set"; exit 1; }
-      - test -n "$DEPLOY_USER" || { echo "ERROR: deploy_user secret is not set"; exit 1; }
+      # QUOTED, and they have to be: a plain scalar ending in `{ ... }` is a
+      # YAML flow MAPPING, not a string, and the compiler rejects the step
+      # with a type error rather than a syntax one (pipeline #44).
+      - 'test -n "$DEPLOY_HOST" || { echo "ERROR: deploy_host secret is not set"; exit 1; }'
+      - 'test -n "$DEPLOY_USER" || { echo "ERROR: deploy_user secret is not set"; exit 1; }'
       - mkdir -p ~/.ssh
       - echo "$SSH_KEY" > ~/.ssh/id_ed25519
       - chmod 600 ~/.ssh/id_ed25519
