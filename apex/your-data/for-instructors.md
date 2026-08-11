@@ -67,11 +67,24 @@ The conservative posture, absent a local ceiling: this platform holds coursework
 | Switch | What it does | Worth thinking about |
 |---|---|---|
 | **Agent actions** | Lets agents in your course call outside web services | The one that can send course content off institutional hardware, and the most consequential switch on this page.  Off by default, and **that default is the control** — see below. |
-| **Sharing** | Lets students share agents with each other | Off by default.  Turning it on makes one student's work visible to others, which is a disclosure decision rather than a convenience setting. |
+| **Sharing** | Lets students share agents with each other | **On** in every course, deliberately — group work needs it and the chat software's own default is the wrong one for a classroom.  Nothing is shared unless someone shares it, and sharing does not cross the course boundary. |
 | **Knowledge files** | What you upload to a course agent | Anything you attach becomes retrievable by everyone who can use that agent.  Rosters, graded work, and student writing are the ones to think twice about. |
 | **Roster membership** | Who is enrolled | Enrollment is access.  Removing a student revokes their access; it does not erase what they already wrote. |
 
-Actions and sharing are set per course in the course record — ask the platform operators to change them, and they will tell you what the change means before making it.
+Actions are set per course in the course record — ask the platform operators to change them, and they will tell you what the change means before making it.  Sharing is not a per-course setting: it is on everywhere, by design, and the section below is what you need to know rather than a switch to find.
+
+### On sharing, which is on
+
+Worth stating clearly because guidance for other platforms usually says the opposite: **agent sharing is on in every course here.**  The chat software ships it off, which suits a general-purpose deployment and not a classroom — group projects are the single most requested thing, and a course where nobody can hand anyone else an agent is a course fighting its own tooling.
+
+What that does and does not mean for you:
+
+- **Nothing is shared unless a person shares it.**  There is no state in which a student's agent becomes visible without them acting.
+- **Sharing does not cross the course boundary.**  Your course is its own instance, so there is no other course to share into and nothing to misconfigure.
+- **A shared agent carries its knowledge files.**  The Editor role can read and change them, and anyone who can merely *chat* with an agent can eventually coax out what is in its files.  Say this to a class out loud: attach materials you would hand them anyway, never answer keys or solutions.
+- **Group sharing exists, but campus groups do not flow into it.**  Share-groups have to be created in the platform's own admin panel; your roster and institutional groups are not available as sharing targets.  Sharing with named individuals is the path that works today.
+
+If your course is one where student work should not circulate, that is a conversation with your class and a line on the assignment rather than a switch — and it is worth having in week one, before someone shares something they assumed was private.
 
 ### On actions and the allowlist, precisely
 
@@ -102,7 +115,7 @@ If you are considering this, talk to your institution's privacy or compliance of
 - **Model traffic stays on university hardware** unless your course enables actions or uses a hosted endpoint.
 - **Nothing is trained on your students' work**, here or by a vendor.
 - **Usage is attributed per student**, so budget questions have real answers.
-- **Sharing and actions are off** in every new course, so the permissive settings require a decision rather than happening by default.
+- **Agent actions are off** in every new course, so the one path off institutional hardware requires a decision rather than happening by default.
 
 ## What it does not do yet
 

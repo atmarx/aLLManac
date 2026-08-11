@@ -17,7 +17,7 @@ tethered_to:
 
 # Who can see it
 
-Four groups can reach what you write here: you, your instructor, the people who run the servers, and anyone your instructor deliberately lets in.  That list is short on purpose, and this page walks it from the front door inward.
+Four groups can reach what you write here: you, your instructor, the people who run the servers, and anyone you or your instructor deliberately lets in.  That list is short on purpose, and this page walks it from the front door inward.
 
 ## Signing in
 
@@ -53,11 +53,17 @@ We do not train models on your conversations.  Nothing you write becomes trainin
 
 We also do not collect keystrokes, screen activity, or attention telemetry.  What we record about your usage is [the ledger](what-we-store.md#the-ledger-which-is-the-one-that-surprises-people) — which model, how many tokens, what it cost, when — and nothing about how you sat at the keyboard.
 
-## Sharing starts off
+## Sharing is available, and nothing is shared until you share it
 
-By default, students cannot share agents with each other.  Agent sharing and the people-picker are both switched off in every course when it is created, which means the custom GPT you build is yours until someone changes that setting.
+You can share an agent you built with other people in your course, and they can share theirs with you.  That is switched on in every course here, deliberately — group work needs it, and the chat software's own default is off, which is the wrong setting for a classroom.
 
-Your instructor can turn sharing on for a course — group projects need it, and Part 2 of the course guide covers how it works once they do.  Worth knowing that this is a decision someone made rather than a default that happened to you.
+What that does **not** mean is that anything of yours is visible by default.  An agent you build is yours until you share it, and sharing is an action you take on a specific agent.  There is no setting that quietly exposes your work.
+
+One thing to know before you share: **an agent carries its knowledge files with it.**  Anyone who can chat with a shared agent can eventually get it to reveal what you attached, so attach things you would be comfortable handing over directly.
+
+The course boundary still holds either way.  Sharing reaches people in *your* course and nowhere else — there is no way to share into another course, because there is no room to share into.
+
+Worth knowing rather than worrying about: the sharing is deliberate on both ends.  Someone chose to make it possible, and you choose each time you use it.
 
 <!-- LINK PENDING: the course guide is reader-facing and still sits in
      docs/user-guide.md.  It belongs in the "public + taught" pile and moves
