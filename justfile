@@ -88,10 +88,11 @@ secrets:
     echo "CREDS_KEY/CREDS_IV are now PINNED — never regenerate them on a live"
     echo "instance or every user's saved key becomes undecryptable."
 
-# Bring the stack up (profiles come from COMPOSE_PROFILES in .env)
 # _site seeds site/ if it's missing, and the seeded layer is EMPTY — so the
 # one run where `compose` was resolved before the folder existed is also the
 # one run where the folder had nothing to say.  Every run after it layers.
+#
+# Bring the stack up (profiles come from COMPOSE_PROFILES in .env)
 up: _roster _fleet _site && usage-role bao-unseal
     {{compose}} up -d --remove-orphans
 
@@ -162,10 +163,17 @@ pull: _fleet
 build: _fleet
     {{compose}} build
 
+# `secrets` here is the .env migration path: vars introduced by an upgrade get
+# appended/generated; values you've set are never touched.
+#
+# egress-check runs LAST and it CAN FAIL THE DEPLOY.  That is the intent: the
+# floor is policy, and policy nothing enforces is policy that drifts — which is
+# exactly how the front office carried `actions` with no allowlist until a
+# machine looked.  It runs after `smoke`, so instances are up and healthy and
+# no container is still holding pre-deploy config.
+#
 # What CI runs on the box: refresh images, build, complete .env, restart, verify
-# (`secrets` here is the .env migration path: vars introduced by an upgrade get
-# appended/generated; values you've set are never touched.)
-deploy: pull build secrets up smoke
+deploy: pull build secrets up smoke egress-check
 
 # Sync the checkout to origin/main (destructive to local edits — it's a deploy box)
 sync:
@@ -261,8 +269,12 @@ egress-check slug="":
         echo "######## $c ########"
         # No -e CONFIG_PATH: `docker exec` already inherits the container's
         # own environment, so the probe reads the config THAT instance was
-        # told to read rather than one we guessed at.
-        docker exec -i -w /app "$c" node < scripts/egress-probe.js || fail=1
+        # told to read rather than one we guessed at.  ALM_STARTED_AT is the
+        # one thing the probe can't see from inside — it's how Layer 0 tells
+        # "fixed" apart from "fixed on disk, not yet restarted."
+        started=$(docker inspect --format '{{{{.State.StartedAt}}' "$c" 2>/dev/null || true)
+        docker exec -i -w /app -e ALM_STARTED_AT="$started" "$c" node \
+            < scripts/egress-probe.js || fail=1
     done
     echo
     if [ "$fail" = 0 ]; then

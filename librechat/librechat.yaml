@@ -85,9 +85,25 @@ endpoints:
       modelDisplayLabel: "Almanac (campus models)"
 
   # Custom GPTs = LibreChat Agents.  These capabilities let faculty/students
-  # attach knowledge files (RAG), tools, and actions to a shared agent — and an
+  # attach knowledge files (RAG) and tools to a shared agent — and an
   # Editor-ACL grant to a group lets the group co-edit ONE agent (the #1 want).
   # Deliberately NO execute_code (no sandbox on campus) and NO web_search (no
   # third-party search keys) — add them consciously if you stand those up.
+  #
+  # And deliberately NO `actions` (2026-08-11).  This is the front office: one
+  # room, open to any campus login, and `actions` is the documented path around
+  # the gateway's metering (docs/registrar-spec.md, "The floor").  It was on
+  # here with no allowlist — reaching the entire public internet — because the
+  # floor was laid in the registrar's RENDERED course configs and this file is
+  # hand-maintained, so nothing carried the policy across.  `just egress-check`
+  # found it; that recipe exists so the next drift is caught by a machine
+  # rather than by luck.
+  #
+  # There is no "deny all" to write instead: an empty `allowedDomains` is NO
+  # allowlist, not an empty one.  Omitting the capability is the only complete
+  # off switch.  The office's exemplar agents don't need it anyway — Ask the
+  # Almanac is RAG (file_search), and the rest are MCP servers, which are
+  # `tools` and not `actions`.  If you ever do turn it on, add a TOP-LEVEL
+  # `actions.allowedDomains:` in the same edit and re-run `just egress-check`.
   agents:
-    capabilities: ["file_search", "tools", "actions", "artifacts"]
+    capabilities: ["file_search", "tools", "artifacts"]

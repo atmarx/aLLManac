@@ -17,6 +17,26 @@ const ok = (m) => console.log(`  ok    ${m}`);
 (async () => {
   const cfg = yaml.load(fs.readFileSync(CONFIG, 'utf8')) || {};
 
+  // ---- Layer 0: is this file what the RUNNING process is holding? ------------
+  // LibreChat reads its config once at boot.  The config is bind-mounted, so
+  // editing it on the host changes what this probe reads INSTANTLY while the
+  // running app keeps the config it booted with.  Without this check, closing
+  // a hole and forgetting to restart reports a clean pass over a still-open
+  // instance — a false PASS, which is worse than no check at all.
+  const startedAt = process.env.ALM_STARTED_AT;
+  if (startedAt) {
+    const booted = new Date(startedAt).getTime();
+    const edited = fs.statSync(CONFIG).mtimeMs;
+    if (Number.isFinite(booted) && edited > booted) {
+      bad(`config was edited AFTER this container booted — the running process `
+        + `is holding something else`);
+      console.log(`        booted: ${new Date(booted).toISOString()}`);
+      console.log(`        config: ${new Date(edited).toISOString()}`);
+      console.log(`        Everything below describes the file on disk, NOT what`);
+      console.log(`        is enforcing right now.  Restart the instance, re-run.`);
+    }
+  }
+
   // ---- Layer 1: is the knob where the code reads it? -------------------------
   // An `actions:` block nested under `endpoints:` parses cleanly, validates,
   // and is never read.  That is the failure this layer exists to catch.
