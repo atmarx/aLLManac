@@ -273,19 +273,22 @@ egress-check slug="":
         # one thing the probe can't see from inside — it's how Layer 0 tells
         # "fixed" apart from "fixed on disk, not yet restarted."
         started=$(docker inspect --format '{{{{.State.StartedAt}}' "$c" 2>/dev/null || true)
-        # The mount SOURCE on the host, resolved from the container's own
-        # config path.  Layer 0a compares its mtime against what the container
-        # actually sees — that difference is the only way to catch a bind
-        # mount pinned to an inode the host has already replaced.
-        cpath=$(docker exec "$c" printenv CONFIG_PATH 2>/dev/null || echo /app/librechat.yaml)
-        src=$(docker inspect "$c" --format \
-            '{{{{range .Mounts}}{{{{.Source}}|{{{{.Destination}}
-{{{{end}}' 2>/dev/null \
-            | awk -F'|' -v p="$cpath" '
-                p==$2 { print $1; exit }
-                $2!="" && index(p, $2"/")==1 { print $1 substr(p, length($2)+1); exit }')
+        # The mount SOURCE on the host for this instance's config, so Layer 0a
+        # can compare its inode against the one the container actually sees.
+        # Every template stays on ONE line: `just` dedents recipe bodies, and a
+        # continuation sitting at column 0 ends the recipe instead (this file's
+        # own wall, walked into once — pipeline #37).
+        src=$(docker inspect "$c" --format '{{{{range .Mounts}}{{{{if eq .Destination "/app/conf"}}{{{{.Source}}{{{{end}}{{{{end}}' 2>/dev/null || true)
+        if [ -n "$src" ]; then
+            hostfile="$src/librechat.yaml"
+        else
+            # Pre-b258123 shape: the config was bind-mounted as a single FILE.
+            # That is the very thing Layer 0a exists to catch, so resolve it and
+            # let the probe fail rather than skipping the check.
+            hostfile=$(docker inspect "$c" --format '{{{{range .Mounts}}{{{{if eq .Destination "/app/librechat.yaml"}}{{{{.Source}}{{{{end}}{{{{end}}' 2>/dev/null || true)
+        fi
         ino=""
-        [ -n "$src" ] && [ -e "$src" ] && ino=$(stat -c %i "$src")
+        [ -n "$hostfile" ] && [ -e "$hostfile" ] && ino=$(stat -c %i "$hostfile")
         docker exec -i -w /app -e ALM_STARTED_AT="$started" -e ALM_HOST_INO="$ino" \
             "$c" node < scripts/egress-probe.js || fail=1
     done
