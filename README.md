@@ -2,22 +2,11 @@
 
 *a·**LLM**·anac — look again, it was there the whole time.*
 
-A farmhouse almanac is the book on the kitchen shelf you consult all season —
-planting dates, frost warnings, the accumulated judgment of people who did this
-before you. The aLLManac is that book for a class or a lab: **a self-hosted
-custom-GPT service** where a course builds its own assistant on **your models,
-your GPUs, your identity system, your ledger** — and the large language model
-is baked right into the middle of the name, because hiding it would be lying.
+A farmhouse almanac is the book on the kitchen shelf you consult all season — planting dates, frost warnings, the accumulated judgment of people who did this before you. The aLLManac is that book for a class or a lab: **a self-hosted custom-GPT service** where a course builds its own assistant on **your models, your GPUs, your identity system, your ledger** — and the large language model is baked right into the middle of the name, because hiding it would be lying.
 
-It is the sister project of [Root Cellar](https://github.com/atmarx/root-cellar),
-the research-data governance platform. The cellar keeps things cold, safe, and
-provable. The almanac is the book you actually open every day. Same farmhouse,
-two rooms.
+It is the sister project of [Root Cellar](https://github.com/atmarx/root-cellar), the research-data governance platform. The cellar keeps things cold, safe, and provable. The almanac is the book you actually open every day. Same farmhouse, two rooms.
 
-**What a group gets:** a shared assistant ("custom GPT") that the *whole team
-co-edits* — instructions, knowledge files, tools — with per-user API keys,
-per-key budgets, and every token metered to an owner who can see exactly what
-their class used this month. No data leaves campus unless you point it there.
+**What a group gets:** a shared assistant ("custom GPT") that the *whole team co-edits* — instructions, knowledge files, tools — with per-user API keys, per-key budgets, and every token metered to an owner who can see exactly what their class used this month. No data leaves campus unless you point it there.
 
 ---
 
@@ -51,25 +40,15 @@ Seven moving parts, each doing one job:
 
 ### How a request flows
 
-1. **Login** — LibreChat bounces you to Keycloak ("Sign in with Northwinds
-   SSO"). Keycloak authenticates you (local account now, Globus later) and
-   returns your **groups** in the token.
-2. **Chat** — LibreChat calls LiteLLM with an API key; LiteLLM checks the
-   key's budget, routes to the model, meters the tokens, and writes the spend
-   row.
-3. **Custom GPT** — a faculty member creates an Agent, attaches course
-   materials (indexed into pgvector), and grants the class group **Editor** —
-   now the whole team maintains the assistant together.
+1. **Login** — LibreChat bounces you to Keycloak ("Sign in with Northwinds SSO"). Keycloak authenticates you (local account now, Globus later) and returns your **groups** in the token.
+2. **Chat** — LibreChat calls LiteLLM with an API key; LiteLLM checks the key's budget, routes to the model, meters the tokens, and writes the spend row.
+3. **Custom GPT** — a faculty member creates an Agent, attaches course materials (indexed into pgvector), and grants the class group **Editor** — now the whole team maintains the assistant together.
 
 ---
 
 ## Quick start
 
-Prereqs: Docker + Compose v2, [`just`](https://just.systems)
-(`apt install just`), and — only for local GPU inference (`site/inference/`) —
-the NVIDIA Container Toolkit.  A fresh Linux VM with Docker on it is the
-assumed starting point; see [`site.example/`](site.example/README.md) for what
-belongs to one box rather than to the platform.
+Prereqs: Docker + Compose v2, [`just`](https://just.systems) (`apt install just`), and — only for local GPU inference (`site/inference/`) — the NVIDIA Container Toolkit.  A fresh Linux VM with Docker on it is the assumed starting point; see [`site.example/`](site.example/README.md) for what belongs to one box rather than to the platform.
 
 ```bash
 git clone <this-repo> almanac && cd almanac
@@ -82,58 +61,30 @@ just smoke          # prove it's serving, not just running
 
 The three `.env` lines that matter:
 
-- **`ALMANAC_HOST`** — the box's LAN IP or DNS name (not `localhost`), so your
-  browser and the containers agree on where Keycloak lives.
-- **`INFERENCE_BASE_URL`** — where tokens come from.
-  `http://host.docker.internal:8000/v1` for the `site/inference/` stack on the
-  same box (`just vllm-up`); an Ollama/vLLM URL for a campus inference box; a
-  cloud endpoint if you must. The model name in
-  [`litellm/config.yaml`](litellm/config.yaml) must match what that endpoint
-  serves.
-- **`OPENID_ISSUER`** — must be **HTTPS** (LibreChat ≥ v0.8 refuses plain-http
-  issuers). No DNS on your LAN? The edge's internal CA mints IP certs — copy
-  the **"LAN HTTPS"** block from [`.env.example`](.env.example) and you're
-  done: `https://<box-ip>:8443/realms/northwinds`.
+- **`ALMANAC_HOST`** — the box's LAN IP or DNS name (not `localhost`), so your browser and the containers agree on where Keycloak lives.
+- **`INFERENCE_BASE_URL`** — where tokens come from.  `http://host.docker.internal:8000/v1` for the `site/inference/` stack on the same box (`just vllm-up`); an Ollama/vLLM URL for a campus inference box; a cloud endpoint if you must. The model name in [`litellm/config.yaml`](litellm/config.yaml) must match what that endpoint serves.
+- **`OPENID_ISSUER`** — must be **HTTPS** (LibreChat ≥ v0.8 refuses plain-http issuers). No DNS on your LAN? The edge's internal CA mints IP certs — copy the **"LAN HTTPS"** block from [`.env.example`](.env.example) and you're done: `https://<box-ip>:8443/realms/northwinds`.
 
-Surfaces (direct-port mode): **LibreChat** `:3080` · **admin panel** `:3082`
-(faculty SSO) · **LiteLLM admin** `:4000/ui` (login = `LITELLM_MASTER_KEY`) ·
-**Keycloak admin** `:8080` (`KC_ADMIN` / `KC_ADMIN_PASSWORD`).
+Surfaces (direct-port mode): **LibreChat** `:3080` · **admin panel** `:3082` (faculty SSO) · **LiteLLM admin** `:4000/ui` (login = `LITELLM_MASTER_KEY`) · **Keycloak admin** `:8080` (`KC_ADMIN` / `KC_ADMIN_PASSWORD`).
 
 ### First boot: wire the OIDC client secret (one time)
 
-Keycloak imports the `northwinds` realm on first boot and generates a secret
-for the `librechat` client. Hand it to LibreChat:
+Keycloak imports the `northwinds` realm on first boot and generates a secret for the `librechat` client. Hand it to LibreChat:
 
 1. Keycloak admin → Clients → **librechat** → Credentials → copy the secret.
 2. Paste into `.env` as `OPENID_CLIENT_SECRET`.
 3. `just up` (recreates librechat).
 
-The realm ships three demo users (password `Demo123!`): **prof.vex**
-(faculty), **stu.amaya** and **stu.bram** (both in `/engr301-team-gust`).
-If a login bounces with a redirect-URI error, add your host's callback
-(`http://<ALMANAC_HOST>:3080/oauth/openid/callback`) to the client in the
-Keycloak admin.
+The realm ships three demo users (password `Demo123!`): **prof.vex** (faculty), **stu.amaya** and **stu.bram** (both in `/engr301-team-gust`).  If a login bounces with a redirect-URI error, add your host's callback (`http://<ALMANAC_HOST>:3080/oauth/openid/callback`) to the client in the Keycloak admin.
 
 ### The make-or-break test (do this first)
 
 The whole point is a **group co-editing one GPT**. Prove it:
 
-1. Log in once as each demo user (`prof.vex`, `stu.amaya`, `stu.bram`) —
-   LibreChat creates accounts at first login, and groups need accounts that
-   exist.
-2. As `prof.vex` (ADMIN automatically, via the `faculty` realm role): open
-   the **admin panel** (`:3082`, same SSO button) → Groups → create
-   `engr301-team-gust` with amaya + bram as members.  Why here and not
-   Keycloak?  Agent sharing uses **LibreChat-local groups** — the Keycloak
-   groups claim never reaches the ACL system in v0.8.7 (upstream
-   [#10006](https://github.com/danny-avila/LibreChat/issues/10006)).
-   Keycloak still owns *who you are*; the panel owns *who's in the share
-   dialog*.
-3. Still as `prof.vex`, back in the chat: create an **Agent**, give it
-   instructions, attach a file.  **Share** → find `engr301-team-gust` →
-   grant **Editor** (not Viewer).
-4. Log in as `stu.amaya` → open the agent → confirm you can **edit its
-   instructions and knowledge**, not just chat with it.
+1. Log in once as each demo user (`prof.vex`, `stu.amaya`, `stu.bram`) — LibreChat creates accounts at first login, and groups need accounts that exist.
+2. As `prof.vex` (ADMIN automatically, via the `faculty` realm role): open the **admin panel** (`:3082`, same SSO button) → Groups → create `engr301-team-gust` with amaya + bram as members.  Why here and not Keycloak?  Agent sharing uses **LibreChat-local groups** — the Keycloak groups claim never reaches the ACL system in v0.8.7 (upstream [#10006](https://github.com/danny-avila/LibreChat/issues/10006)).  Keycloak still owns *who you are*; the panel owns *who's in the share dialog*.
+3. Still as `prof.vex`, back in the chat: create an **Agent**, give it instructions, attach a file.  **Share** → find `engr301-team-gust` → grant **Editor** (not Viewer).
+4. Log in as `stu.amaya` → open the agent → confirm you can **edit its instructions and knowledge**, not just chat with it.
 
 If step 4 works, the core promise is real.
 
@@ -141,39 +92,24 @@ If step 4 works, the core promise is real.
 
 ## The guides
 
-- **[Course guide](docs/user-guide.md)** — for faculty and students:
-  building a custom GPT, group projects (one GPT, whole team), API keys,
-  and the opencode coding harness.  Start here if you teach.
-- **[Admin guide](docs/admin-guide.md)** — Keycloak and LiteLLM operations:
-  identity and the Globus flip, the key contract, per-student attribution,
-  faculty analytics (with its honest Enterprise boundary), backups,
-  troubleshooting.
-- **[CI notes](docs/ci.md)** — the three-line pipeline on other CI systems,
-  plus SBOM generation for infosec.
+- **[Course guide](docs/user-guide.md)** — for faculty and students: building a custom GPT, group projects (one GPT, whole team), API keys, and the opencode coding harness.  Start here if you teach.
+- **[Admin guide](docs/admin-guide.md)** — Keycloak and LiteLLM operations: identity and the Globus flip, the key contract, per-student attribution, faculty analytics (with its honest Enterprise boundary), backups, troubleshooting.
+- **[CI notes](docs/ci.md)** — the three-line pipeline on other CI systems, plus SBOM generation for infosec.
 
 ---
 
 ## Keys, owners, and the invoice (the accounting spine)
 
-Every user gets a **virtual API key**, and every key is minted with an
-**owner** — the class or lab that answers for the spend:
+Every user gets a **virtual API key**, and every key is minted with an **owner** — the class or lab that answers for the spend:
 
 ```bash
 just key stu.amaya engr301 5     # user, owner, budget ($)
 just spend                       # month-to-date, grouped by owner
 ```
 
-`owner` is required — no owner, no key. It's stamped into the key's metadata
-and spend tags, so usage always rolls up to an organizational unit: **the
-owner is who gets the invoice**, even when the subsidy takes it to zero. A
-class sees exactly what it used this month, what it would have cost on
-commercial cloud AI, and what the campus rate saved them. Free-but-visible is
-the point: cost consciousness without a paywall.
+`owner` is required — no owner, no key. It's stamped into the key's metadata and spend tags, so usage always rolls up to an organizational unit: **the owner is who gets the invoice**, even when the subsidy takes it to zero. A class sees exactly what it used this month, what it would have cost on commercial cloud AI, and what the campus rate saved them. Free-but-visible is the point: cost consciousness without a paywall.
 
-The month-end export — LiteLLM spend → **FOCUS**-format billing rows with
-OpenChargeback tags, rolled up the org tree — is Root Cellar's accounting
-coupling, and a story for another day. The contract that makes it possible
-starts now: **no key without an owner.**
+The month-end export — LiteLLM spend → **FOCUS**-format billing rows with OpenChargeback tags, rolled up the org tree — is Root Cellar's accounting coupling, and a story for another day. The contract that makes it possible starts now: **no key without an owner.**
 
 ---
 
@@ -188,89 +124,37 @@ just deploy         # what CI runs: pull + build + up + smoke
 just nuke           # stop + WIPE ALL DATA (asks first)
 ```
 
-**Profiles** (`COMPOSE_PROFILES` in `.env`): `edge` adds the Caddy front
-door; `workbench` is the opencode coding harness (run-on-demand — `just
-workbench <key>` — it never starts with `just up`).  Local vLLM is **not a
-profile** — it's its own compose project and it lives under `site/`
-(`site/inference/vllm.compose.yml`), so `just deploy` bounces the app without
-unloading a model that took ten minutes to warm.  Run it on the same box (the
-default `INFERENCE_BASE_URL` reaches it via `host.docker.internal`), clone
-this repo on a GPU box and run only `just vllm-up` there, or delete
-`site/inference/` on a box that has no GPUs at all.
+**Profiles** (`COMPOSE_PROFILES` in `.env`): `edge` adds the Caddy front door; `workbench` is the opencode coding harness (run-on-demand — `just workbench <key>` — it never starts with `just up`).  Local vLLM is **not a profile** — it's its own compose project and it lives under `site/` (`site/inference/vllm.compose.yml`), so `just deploy` bounces the app without unloading a model that took ten minutes to warm.  Run it on the same box (the default `INFERENCE_BASE_URL` reaches it via `host.docker.internal`), clone this repo on a GPU box and run only `just vllm-up` there, or delete `site/inference/` on a box that has no GPUs at all.
 
-**This box vs. the platform:** `site/` is gitignored and holds what is true
-of exactly one deployment — a compose layer `just` stacks on top of
-`compose.yml` (it can add services *and* override core ones), the optional
-inference stack, and whatever brings up the metal.  It's cloned from
-[`site.example/`](site.example/README.md) on first `just setup`.  If you are
-about to edit a tracked file to make one box work, that's the folder you
-want.
+**This box vs. the platform:** `site/` is gitignored and holds what is true of exactly one deployment — a compose layer `just` stacks on top of `compose.yml` (it can add services *and* override core ones), the optional inference stack, and whatever brings up the metal.  It's cloned from [`site.example/`](site.example/README.md) on first `just setup`.  If you are about to edit a tracked file to make one box work, that's the folder you want.
 
-**Switching models:** local GPU → edit `VLLM_MODEL` / `VLLM_SERVED_NAME` in
-`.env`, match `litellm/config.yaml`, `just vllm-up` again; remote/cloud →
-edit the `model_list` block or add models live in the LiteLLM admin UI (they
-persist to the DB).  vLLM wants **safetensors** (GGUF is Ollama's format); on
-H200-class GPUs prefer an FP8 checkpoint.  Tool calling is ON by default
-(`VLLM_TOOL_PARSER=hermes` fits the Qwen 2.5 family) — coding harnesses and
-agent tools need it.
+**Switching models:** local GPU → edit `VLLM_MODEL` / `VLLM_SERVED_NAME` in `.env`, match `litellm/config.yaml`, `just vllm-up` again; remote/cloud → edit the `model_list` block or add models live in the LiteLLM admin UI (they persist to the DB).  vLLM wants **safetensors** (GGUF is Ollama's format); on H200-class GPUs prefer an FP8 checkpoint.  Tool calling is ON by default (`VLLM_TOOL_PARSER=hermes` fits the Qwen 2.5 family) — coding harnesses and agent tools need it.
 
-**Real identity:** the realm ships a *disabled* Globus identity provider.
-Register a Globus Auth app, paste its client ID/secret into Keycloak →
-Identity Providers → **globus** → Enable — now campus identities federate
-through the same front door, and LibreChat never knows the difference. Any
-other campus IdP (SAML/OIDC) works the same way. Group sync from your SIS/LMS
-roster is deliberately out of scope here — that's the platform's job.
+**Real identity:** the realm ships a *disabled* Globus identity provider.  Register a Globus Auth app, paste its client ID/secret into Keycloak → Identity Providers → **globus** → Enable — now campus identities federate through the same front door, and LibreChat never knows the difference. Any other campus IdP (SAML/OIDC) works the same way. Group sync from your SIS/LMS roster is deliberately out of scope here — that's the platform's job.
 
 ---
 
 ## Deploying for real
 
-The [`justfile`](justfile) is the deployment contract; **CI is a three-line
-wrapper around it.** Ours is Woodpecker
-([`.woodpecker/deploy.yml`](.woodpecker/deploy.yml)): push to `main` → ssh to
-the deploy box → `just sync && just deploy`. The same wrapper in GitLab CI or
-GitHub Actions — plus notes on k8s and Azure container environments — is in
-[`docs/ci.md`](docs/ci.md).
+The [`justfile`](justfile) is the deployment contract; **CI is a three-line wrapper around it.** Ours is Woodpecker ([`.woodpecker/deploy.yml`](.woodpecker/deploy.yml)): push to `main` → ssh to the deploy box → `just sync && just deploy`. The same wrapper in GitLab CI or GitHub Actions — plus notes on k8s and Azure container environments — is in [`docs/ci.md`](docs/ci.md).
 
-**TLS at the edge:** `EDGE_TLS=internal` gives you Caddy's local CA on the
-LAN. For real certs on an RFC 1918 box, enable the `acme_dns azure` block in
-[`caddy/Caddyfile`](caddy/Caddyfile) — the full pattern (zone delegation,
-TXT-only role, the Networking pitch) is documented in Root Cellar's
-[DNS delegation guide](https://github.com/atmarx/root-cellar/blob/main/docs/guides/northstar-dns-delegation-guide.md).
+**TLS at the edge:** `EDGE_TLS=internal` gives you Caddy's local CA on the LAN. For real certs on an RFC 1918 box, enable the `acme_dns azure` block in [`caddy/Caddyfile`](caddy/Caddyfile) — the full pattern (zone delegation, TXT-only role, the Networking pitch) is documented in Root Cellar's [DNS delegation guide](https://github.com/atmarx/root-cellar/blob/main/docs/guides/northstar-dns-delegation-guide.md).
 
-**Already have a front door?** If a reverse proxy with real certs (a campus
-wildcard, a homelab Caddy) already exists, skip the `edge` profile entirely
-and point two names at the direct ports — chat → `:3080`, and Keycloak gets
-its **own hostname** (not a port) → `:8080`:
+**Already have a front door?** If a reverse proxy with real certs (a campus wildcard, a homelab Caddy) already exists, skip the `edge` profile entirely and point two names at the direct ports — chat → `:3080`, and Keycloak gets its **own hostname** (not a port) → `:8080`:
 
 ```caddyfile
 aiclassroom.example.edu       { reverse_proxy almanac-box:3080 }
 auth-aiclassroom.example.edu  { reverse_proxy almanac-box:8080 }
 ```
 
-Then in `.env`: `OPENID_ISSUER=https://auth-aiclassroom.example.edu/realms/northwinds`,
-`KC_HOSTNAME=https://auth-aiclassroom.example.edu`, `KC_PROXY_HEADERS=xforwarded`,
-`DOMAIN_CLIENT`/`DOMAIN_SERVER` to the chat URL. Public CA means the
-`NODE_EXTRA_CA_CERTS` machinery isn't needed. (One hard-won note: if your
-front proxy bind-mounts its config as a single file, editors that rewrite
-inodes leave the container reading the **old** file — validate-and-reload
-will happily no-op. `grep` the file *inside* the container before trusting a
-reload.)
+Then in `.env`: `OPENID_ISSUER=https://auth-aiclassroom.example.edu/realms/northwinds`, `KC_HOSTNAME=https://auth-aiclassroom.example.edu`, `KC_PROXY_HEADERS=xforwarded`, `DOMAIN_CLIENT`/`DOMAIN_SERVER` to the chat URL. Public CA means the `NODE_EXTRA_CA_CERTS` machinery isn't needed. (One hard-won note: if your front proxy bind-mounts its config as a single file, editors that rewrite inodes leave the container reading the **old** file — validate-and-reload will happily no-op. `grep` the file *inside* the container before trusting a reload.)
 
 ### Cautions
 
-- **`CREDS_KEY`/`CREDS_IV` are pinned for life.** They encrypt every user's
-  saved API key at rest; rotating them orphans every stored key ("invalid key
-  provided"). `just secrets` will never touch a value that's already set —
-  that's a feature, learned the hard way.
-- The bundled realm is a **mock**: demo passwords, `sslRequired: none`,
-  Keycloak in `start-dev`. Fine on a LAN behind a firewall; put real identity
-  and `start` mode in front before real users.
-- Images are **pinned** (compose defaults + `.env.example`). Bump
-  deliberately: edit the pin, deploy, verify, commit. The LiteLLM and RAG API
-  pins are digests because their channels are moving tags.
-- Backups are yours: the named volumes (`mongo-data`, `litellm-db`,
-  `keycloak-db`, `vector-data`) are the state.
+- **`CREDS_KEY`/`CREDS_IV` are pinned for life.** They encrypt every user's saved API key at rest; rotating them orphans every stored key ("invalid key provided"). `just secrets` will never touch a value that's already set — that's a feature, learned the hard way.
+- The bundled realm is a **mock**: demo passwords, `sslRequired: none`, Keycloak in `start-dev`. Fine on a LAN behind a firewall; put real identity and `start` mode in front before real users.
+- Images are **pinned** (compose defaults + `.env.example`). Bump deliberately: edit the pin, deploy, verify, commit. The LiteLLM and RAG API pins are digests because their channels are moving tags.
+- Backups are yours: the named volumes (`mongo-data`, `litellm-db`, `keycloak-db`, `vector-data`) are the state.
 
 ## Honest ledger: real vs. not
 
@@ -292,6 +176,4 @@ reload.)
 
 ---
 
-The almanac never claimed to grow the crops. It tells you what was planted,
-what it cost, and what the people before you learned — and it sits on the
-shelf where everyone can reach it. 🌾
+The almanac never claimed to grow the crops. It tells you what was planted, what it cost, and what the people before you learned — and it sits on the shelf where everyone can reach it. 🌾

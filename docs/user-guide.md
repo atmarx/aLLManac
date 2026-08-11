@@ -25,16 +25,10 @@ A "custom GPT" here is a LibreChat **Agent**: a system prompt + knowledge files 
 3. Fill in:
    - **Name** — what the class will see (`ENGR 301 Lab TA`)
    - **Description** — one line on what it's for
-   - **Instructions** — the soul of the thing.  Give it a role, its
-     boundaries, and its tone.  Concrete beats clever:
+   - **Instructions** — the soul of the thing.  Give it a role, its boundaries, and its tone.  Concrete beats clever:
 
-     > You are the lab assistant for ENGR 301 (Materials Characterization).
-     > Help students reason through XRD and SEM sample-prep problems using
-     > the attached lab manual.  Ask what they've already tried before
-     > offering steps.  Never just give final answers to the numbered
-     > pre-lab questions — guide toward them.
-   - **Model** — `almanac-chat` (the campus model; your instructor may add
-     more)
+     > You are the lab assistant for ENGR 301 (Materials Characterization).  Help students reason through XRD and SEM sample-prep problems using the attached lab manual.  Ask what they've already tried before offering steps.  Never just give final answers to the numbered pre-lab questions — guide toward them.
+   - **Model** — `almanac-chat` (the campus model; your instructor may add more)
 4. **Save**.  It now appears in your agent dropdown, and you can summon it in any chat by typing `@` + its name.
 
 **Attach knowledge.**  In the builder, upload files where they'll do the right job:
