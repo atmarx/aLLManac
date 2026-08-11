@@ -1,19 +1,34 @@
-# The aLLManac — deploy to xdocker03 (10.10.1.15) on push to main.
+# The aLLManac — deploy to the box on push to main.
 # =============================================================================
-# The pipeline is deliberately thin: ssh in, `just sync`, `just deploy`.
-# ALL deployment logic lives in the justfile — this file (and the GitLab/GitHub
+# The pipeline is deliberately thin: ssh in, sync, `just deploy`.  ALL
+# deployment logic lives in the justfile — this file (and the GitLab/GitHub
 # equivalents in docs/ci.md) is just the wrapper that invokes it.
 #
-# Secrets needed (Woodpecker -> almanac repo -> Settings -> Secrets):
-#   deploy_ssh_key   — same deploy key used by the root-cellar pipeline
+# WHICH box is not in this file, on purpose.  This repo is public and the
+# pipeline config has to be readable by the CI server straight out of git —
+# gitignoring it means Woodpecker sees no pipeline at all.  So the deployment's
+# own details live in secrets and the tracked file stays generic, the same seam
+# as site.example/ vs. site/: the platform is everyone's, the box is yours.
 #
-# First deploy (one-time manual steps on xdocker03):
+# Secrets needed (Woodpecker -> this repo -> Settings -> Secrets):
+#   deploy_ssh_key   — an ssh private key the box's deploy user accepts
+#   deploy_host      — hostname or IP of the box.  Prefer an IP or an FQDN:
+#                      this resolves inside the alpine step container, which
+#                      does not inherit your workstation's search domain, so a
+#                      bare short name may not resolve there even though it
+#                      resolves fine from your desk.
+#   deploy_user      — ssh user on the box
+#
+# Log masking is best-effort — a `set -x` or an error that echoes the host can
+# still print it.  The secret keeps the value out of GIT, which is the point.
+#
+# First deploy (one-time manual steps on the box):
 #   sudo apt install just                       # Debian 13 has it
-#   git clone ssh://git@git.dev.xram.net:2222/atmarx/almanac.git /opt/almanac
+#   git clone <your fork> /opt/almanac
 #   cd /opt/almanac
 #   just setup
-#   # Edit .env — ALMANAC_HOST=10.10.1.15, INFERENCE_BASE_URL -> a real
-#   # endpoint (no GPU on this box), OPENID_ISSUER to match ALMANAC_HOST.
+#   # Edit .env — ALMANAC_HOST, INFERENCE_BASE_URL -> a real endpoint (this
+#   # box may have no GPU), OPENID_ISSUER to match ALMANAC_HOST.
 #   just up
 #   # Then wire OPENID_CLIENT_SECRET from Keycloak (README "First boot").
 # =============================================================================
@@ -31,14 +46,24 @@ steps:
     environment:
       SSH_KEY:
         from_secret: deploy_ssh_key
+      DEPLOY_HOST:
+        from_secret: deploy_host
+      DEPLOY_USER:
+        from_secret: deploy_user
     commands:
       - apk add --no-cache openssh-client
+      - test -n "$DEPLOY_HOST" || { echo "ERROR: deploy_host secret is not set"; exit 1; }
+      - test -n "$DEPLOY_USER" || { echo "ERROR: deploy_user secret is not set"; exit 1; }
       - mkdir -p ~/.ssh
       - echo "$SSH_KEY" > ~/.ssh/id_ed25519
       - chmod 600 ~/.ssh/id_ed25519
-      - ssh-keyscan -p 22 10.10.1.15 >> ~/.ssh/known_hosts 2>/dev/null
+      - ssh-keyscan -p 22 "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+      # The heredoc is quoted — NOTHING below expands here, it all runs on the
+      # box.  Keep it that way: unquoting it to pass one variable across would
+      # expand every `$` in fifty lines of remote shell on the wrong side of
+      # the ssh.  Nothing needs to cross; DEPLOY_DIR is set on the far side.
       - |
-        ssh -o StrictHostKeyChecking=no xram@10.10.1.15 << 'ENDSSH'
+        ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" << 'ENDSSH'
         set -e
 
         DEPLOY_DIR=/opt/almanac
@@ -47,7 +72,7 @@ steps:
         if [ ! -d "$DEPLOY_DIR/.git" ]; then
           echo "ERROR: $DEPLOY_DIR is not a git repo."
           echo "Bootstrap:"
-          echo "  git clone ssh://git@git.dev.xram.net:2222/atmarx/almanac.git $DEPLOY_DIR"
+          echo "  git clone <your fork of almanac> $DEPLOY_DIR"
           echo "  cd $DEPLOY_DIR && just setup   # then edit .env"
           exit 1
         fi
