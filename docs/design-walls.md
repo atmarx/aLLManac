@@ -93,16 +93,42 @@ renders it top-level ([`registrar/render.py`](../registrar/render.py)), and
 a rendered instance config was round-tripped through v0.8.7's zod schema to
 prove it.
 
-Semantics from `packages/api/src/auth/domain.ts`:
+Semantics — *re-verified 2026-08-11 by calling the pinned image's own
+`isActionDomainAllowed` against a live instance (`just egress-check`), not by
+reading the source.  One line below was wrong and is corrected:*
 
-- **Absent or empty ⇒ no allowlist.**  Private/reserved IPs stay SSRF-blocked,
-  and *the entire public internet is reachable*.  There is no way to spell
-  "deny all" — `capabilities:` without `actions` is the only off switch.
+- **Absent or empty ⇒ no allowlist.**  *The entire public internet is
+  reachable.*  There is no way to spell "deny all" — `capabilities:` without
+  `actions` is the only off switch.
+- **Private/reserved IPs are SSRF-blocked by default — but naming one in the
+  list UNBLOCKS it.**  `10.10.1.10` against an empty list is refused; against
+  `["10.10.1.10"]` it is permitted.  The SSRF guard is a default, not a
+  ceiling, so an allowlist entry pointing at internal infrastructure is a
+  hole you opened yourself.
 - Entries may be bare hostnames, `*.wildcards`, `scheme://host`, or
-  `host:port`; a scheme or port on the rule narrows the match.
-- URL **paths** in an entry are meaningless — `parseDomainSpec` won't match
-  them.  The registrar rejects them at validate time so nobody ships a
-  path-shaped rule believing it scopes anything.
+  `host:port`; a scheme or port on the rule narrows the match, and the
+  *subject* must carry it too — rule `https://api.example.edu` does not match
+  a bare `api.example.edu`.
+- `*.example.edu` **also matches the apex** `example.edu`.  A bare `*` matches
+  nothing.  Matching is case-insensitive and is not a naive suffix test
+  (`api.example.edu.evil.com` does not match `api.example.edu`).
+- **CORRECTED — a URL path in an entry does not fail closed, it fails OPEN.**
+  This file previously said paths "are meaningless — `parseDomainSpec` won't
+  match them," which reads as *the rule is inert*.  It is the opposite: the
+  path is **ignored and the rule permits the whole host**.  A rule of
+  `api.example.edu/v1/chat` permits `api.example.edu/admin/delete`.  Someone
+  writing that rule believes they scoped an agent to one endpoint and has
+  actually handed it the entire service.  The registrar rejects path-shaped
+  rules at validate time, so we fail closed at *our* layer — but the reason
+  is now stated correctly, because "inert" and "silently wider than written"
+  call for opposite reactions when you find one.
+
+**The general lesson, and the reason `just egress-check` exists:**
+configuration that parses is not configuration that runs, and a security
+control nobody verified is a control nobody has.  Both of this section's
+findings — the nesting trap and the path-widening — are invisible to schema
+validation and to reading the docs.  They are only visible if you ask the
+running image's own guard function what it will actually permit.
 
 ### Capability names are not validated by anything
 

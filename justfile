@@ -227,6 +227,54 @@ fleet-smoke:
     [ "$found" = 1 ] || echo "  (no course instances rendered yet — just course ...)"
     exit $fail
 
+# ---- Is the egress guardrail load-bearing? -----------------------------------
+# `just smoke` proves the stack is serving.  This proves a SECURITY CONTROL is
+# doing something, which is a different question and a harder one: a control
+# that parses is not a control that runs.
+#
+# Three layers, and the third is the one that matters:
+#   1  placement — is the knob where the enforcing code actually reads it?
+#   2  posture   — what does this configuration MEAN? (an empty allowlist is
+#                  no allowlist; there is no way to spell deny-all)
+#   3  enforcement — ask the pinned image's OWN isActionDomainAllowed, with
+#                  this instance's real list.  Not our reimplementation of
+#                  the rule, not the vendor's description of it.  The code.
+#
+# The probe is piped in over stdin and never written to disk inside a running
+# container — same spirit as the prod-probe pattern in docs/design-walls.md:
+# verify on the box without changing the box.
+
+# Prove the Actions egress allowlist enforces:  just egress-check [slug]
+egress-check slug="":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    if [ -n "{{slug}}" ]; then
+        targets="alm-chat-{{slug}}"
+    else
+        targets=$(docker ps --format '{{{{.Names}}' \
+            | grep -E '^(alm-librechat|alm-chat-)' | sort || true)
+    fi
+    [ -n "$targets" ] || { echo "  no LibreChat instances running — just up"; exit 1; }
+    fail=0
+    for c in $targets; do
+        echo
+        echo "######## $c ########"
+        # No -e CONFIG_PATH: `docker exec` already inherits the container's
+        # own environment, so the probe reads the config THAT instance was
+        # told to read rather than one we guessed at.
+        docker exec -i -w /app "$c" node < scripts/egress-probe.js || fail=1
+    done
+    echo
+    if [ "$fail" = 0 ]; then
+        echo "  every instance: the allowlist is load-bearing."
+    else
+        echo "  at least one instance FAILED — read the layer that reported it."
+        echo "  A finding here is a real hole, not a flaky test: the check asks"
+        echo "  the running image's own guard, so a FAIL is what an agent would"
+        echo "  actually be permitted to reach."
+    fi
+    exit $fail
+
 # Show container status
 ps:
     {{compose}} ps
