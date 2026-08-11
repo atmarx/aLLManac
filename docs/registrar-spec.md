@@ -390,9 +390,7 @@ Hostname-based, Caddy, wildcard DNS — ports are for compose files, not syllabi
   }
   ```
 
-  Rendered files over hostname-label placeholder tricks, deliberately: a
-  vhost you can `cat` at 3am beats cleverness, and label-index math breaks
-  the moment the domain depth changes between campus and lab deployments.
+  Rendered files over hostname-label placeholder tricks, deliberately: a vhost you can `cat` at 3am beats cleverness, and label-index math breaks the moment the domain depth changes between campus and lab deployments.
 - **Reload**: course creation is an operator act, and the justfile already owns docker — `just course` finishes with a graceful `compose exec edge caddy reload`.  **No docker socket ever enters the registrar** (or any chat-adjacent container); the registrar renders files, the justfile does lifecycle.
 - Shared surfaces keep their names: `auth.` (Keycloak), `gateway.`  (LiteLLM admin).  The apex and the front door: next section.
 
