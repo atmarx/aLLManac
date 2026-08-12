@@ -94,7 +94,8 @@ If step 4 works, the core promise is real.
 
 - **[Course guide](docs/user-guide.md)** — for faculty and students: building a custom GPT, group projects (one GPT, whole team), API keys, and the opencode coding harness.  Start here if you teach.
 - **[Admin guide](docs/admin-guide.md)** — Keycloak and LiteLLM operations: identity and the Globus flip, the key contract, per-student attribution, faculty analytics (with its honest Enterprise boundary), backups, troubleshooting.
-- **[CI notes](docs/ci.md)** — the three-line pipeline on other CI systems, plus SBOM generation for infosec.
+- **[CI notes](docs/ci.md)** — the thin pipeline on other CI systems, keeping your box's details out of a public repo, plus SBOM generation for infosec.
+- **[TLS decision guide](docs/tls.md)** — for the implementer: what to ask your certificate authority before you write any config, what each answer costs you, and how Caddy behaves once you have the answers.
 
 ---
 
@@ -136,9 +137,9 @@ just nuke           # stop + WIPE ALL DATA (asks first)
 
 ## Deploying for real
 
-The [`justfile`](justfile) is the deployment contract; **CI is a three-line wrapper around it.** Ours is Woodpecker ([`.woodpecker/deploy.yml`](.woodpecker/deploy.yml)): push to `main` → ssh to the deploy box → `just sync && just deploy`. The same wrapper in GitLab CI or GitHub Actions — plus notes on k8s and Azure container environments — is in [`docs/ci.md`](docs/ci.md).
+The [`justfile`](justfile) is the deployment contract; **CI is a thin wrapper around it.** Ours is Woodpecker ([`.woodpecker/deploy.yml`](.woodpecker/deploy.yml)): push to `main` → ssh to the deploy box → sync to the commit → `just deploy`. The box's own details (host, ssh user) are CI secrets rather than repo contents, and the sync is inline `git` rather than `just sync` — a broken justfile must not break the recipe that fetches its fix. The same wrapper in GitLab CI or GitHub Actions — plus notes on k8s and Azure container environments — is in [`docs/ci.md`](docs/ci.md).
 
-**TLS at the edge:** `EDGE_TLS=internal` gives you Caddy's local CA on the LAN. For real certs on an RFC 1918 box, enable the `acme_dns azure` block in [`caddy/Caddyfile`](caddy/Caddyfile) — the full pattern (zone delegation, TXT-only role, the Networking pitch) is documented in Root Cellar's [DNS delegation guide](https://github.com/atmarx/root-cellar/blob/main/docs/guides/northstar-dns-delegation-guide.md).
+**TLS at the edge:** `EDGE_TLS=internal` gives you Caddy's local CA on the LAN, which is the right answer for a lab or a pilot. For real certificates — and especially for an institutional ACME CA that pre-validates your domain instead of running challenges — start at **[docs/tls.md](docs/tls.md)**: it lays out the questions your CA has to answer, what each answer does to your architecture, and why the fleet being subdomain-per-course is what makes the decision interesting. If your box needs DNS-01 against a delegated Azure zone, the `acme_dns azure` block in [`caddy/Caddyfile`](caddy/Caddyfile) is the pattern, documented end to end in Root Cellar's [DNS delegation guide](https://github.com/atmarx/root-cellar/blob/main/docs/guides/northstar-dns-delegation-guide.md).
 
 **Already have a front door?** If a reverse proxy with real certs (a campus wildcard, a homelab Caddy) already exists, skip the `edge` profile entirely and point two names at the direct ports — chat → `:3080`, and Keycloak gets its **own hostname** (not a port) → `:8080`:
 

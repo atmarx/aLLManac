@@ -61,6 +61,14 @@ Consequence, and it answers a live docs question: **nobody can publish an agent 
 
 So "seeds the default USER role" understates it: the block seeds every role, and the seam between student and faculty is Keycloak's role claim plus the admin panel, not the `interface` block.
 
+### TLS and ACME — the full decision guide is [docs/tls.md](tls.md)
+
+That page carries the whole thing (measured against `caddy:2.11.4`, which the edge is now pinned to for exactly this reason).  The three findings most likely to be re-derived the expensive way:
+
+- **A CA that pre-authorizes needs no challenge solver at all.**  `acmez` skips authorizations already in state `valid`, and a Caddy config with HTTP-01 and TLS-ALPN-01 disabled and no DNS provider validates cleanly.  An absent solver is not an error until an identifier arrives `pending`.  **"Wildcards require DNS-01" is CA policy, not a Caddy rule and not an RFC 8555 rule** — a pre-authorized wildcard needs no solver either.
+- **Caddy does not fail safe on a broken renewal.**  A statically-configured site whose renewal fails permanently keeps serving its **expired** certificate indefinitely — no fail-closed, no fallback to an internal cert.  On-demand does the opposite and fails the handshake.  There is no admin endpoint listing certificates or expiries, so alerting on the `cert_failed` event is the only thing standing between a lapsed validation and a student finding it.
+- **ACME account identity is keyed by directory URL**, silently.  Changing the directory (staging → production) or losing the data volume creates a brand-new account with no error — and since pre-authorizations are account-scoped, that discards your domain validations along with it.  EAB credentials are bound to one directory too, so staging and production need separate ones.
+
 ### `actions.allowedDomains` is TOP-LEVEL — and it's the only wall around Actions
 
 Verified against the pinned image's own schema, not the docs:

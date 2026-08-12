@@ -1,10 +1,16 @@
 # Caddy with the Azure DNS module baked in — so the edge can do ACME DNS-01
 # against a delegated zone when this box sits on RFC 1918 (no public port 80).
 # Costs nothing if you stay on `tls internal`.
-FROM caddy:2-builder AS build
+# PINNED, like every other image here.  `caddy:2` floats, and TLS behaviour has
+# moved inside the 2.x line — 2.10 changed whether an automated wildcard covers
+# individual subdomains, and the on_demand_tls `interval`/`burst` options went
+# from supported to a hard config error.  A floating base means the edge's
+# certificate behaviour can change on a rebuild nobody thought was a change.
+# docs/tls.md records what was measured, and this is the version it measured.
+FROM caddy:2.11.4-builder AS build
 RUN xcaddy build --with github.com/caddy-dns/azure
 
-FROM caddy:2
+FROM caddy:2.11.4
 COPY --from=build /usr/bin/caddy /usr/bin/caddy
 
 # Caddy writes its PKI dirs 0700-root, but other containers (librechat) mount
