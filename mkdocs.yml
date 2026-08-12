@@ -1,0 +1,56 @@
+site_name: !ENV [DOCS_SITE_NAME, "The aLLManac"]
+site_url: !ENV [DOCS_SITE_URL, "http://localhost/help/"]
+site_description: >-
+  Guides for using, teaching with, and understanding an institutional AI
+  classroom platform.
+
+docs_dir: apex
+site_dir: site-dist
+use_directory_urls: true
+
+theme:
+  name: material
+  features:
+    - navigation.indexes
+    - navigation.sections
+    - search.highlight
+    - search.suggest
+
+plugins:
+  - search
+  - tags
+
+hooks:
+  - docs/mkdocs_hooks.py
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Teaching with AI:
+      - teaching-with-ai/index.md
+      - Designing assignments: teaching-with-ai/designing-assignments.md
+      - Your syllabus policy: teaching-with-ai/syllabus-policy.md
+      - Integrity and detection: teaching-with-ai/integrity-and-detection.md
+      - Verifying sources: teaching-with-ai/verifying-sources.md
+      - AI literacy: teaching-with-ai/ai-literacy.md
+      - For students: teaching-with-ai/for-students.md
+  - Your data:
+      - your-data/index.md
+      - What we store: your-data/what-we-store.md
+      - Who can see it: your-data/who-can-see-it.md
+      - How long we keep it: your-data/how-long-we-keep-it.md
+      - Asking about your data: your-data/asking-about-your-data.md
+      - For instructors: your-data/for-instructors.md
+  - How we built it:
+      - how-we-built-it/index.md
+      - Why a vault?: how-we-built-it/why-a-vault.md
+      - Keeping courses apart: how-we-built-it/keeping-courses-apart.md
+      - Identity is not an argument: how-we-built-it/identity-is-not-an-argument.md
+      - Protecting data you cannot delete: how-we-built-it/protecting-data-you-cant-delete.md
+  - Browse by topic: tags.md

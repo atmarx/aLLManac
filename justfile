@@ -24,6 +24,9 @@ vllm_compose := "site/inference/vllm.compose.yml"
 vllm := "docker compose --project-directory . -f site/inference/vllm.compose.yml"
 # SBOM generator — pinned like everything else:
 syft := "anchore/syft:v1.46.0@sha256:473a60e3a58e29aca3aedb3e99e787bb4ef273917e44d10fcbea4330a07320bb"
+# Static docs builder. The edge serves the generated files; MkDocs' preview
+# server never becomes part of the production stack.
+mkdocs := "squidfunk/mkdocs-material:9.7.1@sha256:3bba0a99bc6e635bb8e53f379d32ab9cecb554adee9cc8f59a347f93ecf82f3b"
 
 # List recipes
 default:
@@ -93,8 +96,16 @@ secrets:
 # one run where the folder had nothing to say.  Every run after it layers.
 #
 # Bring the stack up (profiles come from COMPOSE_PROFILES in .env)
-up: _roster _fleet _site && usage-role bao-unseal
+up: _roster _fleet _site docs-build && usage-role bao-unseal
     {{compose}} up -d --remove-orphans
+
+# Build the human-readable site from apex/, which remains the RAG corpus too.
+# The output is a read-only bind in the edge container; there is no docs daemon.
+docs-build:
+    @mkdir -p site-dist
+    docker run --rm --user "$(id -u):$(id -g)" \
+      --env DOCS_SITE_NAME --env DOCS_SITE_URL --env DOCS_PRODUCT_NAME \
+      --volume "$PWD:/docs" {{mkdocs}} build --clean --strict
 
 # The live roster is deployment data (student emails) — gitignored, seeded
 # from the example on first up.  It is a RENDER now: the registrar rewrites

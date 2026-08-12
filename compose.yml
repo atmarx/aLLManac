@@ -463,6 +463,9 @@ services:
       # tracked placeholder — an invisible dependency one tidy-up away from
       # breaking the edge.  A sibling path needs nothing to exist.
       - ./fleet/caddy:/etc/caddy-fleet:ro
+      # Static output from `just docs-build`. A site Caddyfile can expose this
+      # at any safe path (for example /help/) without running another daemon.
+      - ./site-dist:/srv/docs:ro
       - caddy-data:/data
       - caddy-config:/config
     # Healthy = config loaded and serving (admin endpoint answers).  LibreChat

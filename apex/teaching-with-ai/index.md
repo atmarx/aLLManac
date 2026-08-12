@@ -10,7 +10,7 @@ tags: [accountability, assessment-design, academic-integrity, syllabus-policy, a
 
 # Teaching with AI
 
-Students in your course have access to a capable language model, on institutional hardware, with your course's name on it.  That changes some assignments and leaves others alone, and working out which is which is a teaching question rather than a technology question.
+Students in your course have access to a capable language model through an environment with your course's name on it.  That changes some assignments and leaves others alone, and working out which is which is a teaching question rather than a technology question.
 
 This section is about that work.  It assumes you are competent at designing your own course and that what you are missing is specifics about a tool that arrived faster than the guidance for it.
 
@@ -62,6 +62,8 @@ Running the course here means a few things are true that are not true of a stude
 
 - **You can build a course agent** with your own materials, so the model answers from your syllabus rather than from the internet.
 - **Usage is visible and budgeted**, which makes cost a teachable subject instead of an invisible one.
-- **The work stays on institutional hardware**, so an assignment involving student writing does not require sending it to a vendor.
+- **The institution chooses the model route**, so you can ask for a concrete
+  answer about whether requests stay on institutional hardware or go to a
+  hosted provider, and under what terms.
 
 What that does not do is decide your pedagogy for you.  It just removes some of the reasons to say no.

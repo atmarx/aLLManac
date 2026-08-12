@@ -92,6 +92,11 @@ If step 4 works, the core promise is real.
 
 ## The guides
 
+- **[Reader-facing site](apex/index.md)** — the public help and teaching pages.
+  `apex/` is also the RAG corpus, so the website and the help agent cannot
+  silently drift apart. `just docs-build` renders it to the ignored
+  `site-dist/` directory for Caddy (or any static web server) to publish.
+
 - **[Course guide](docs/user-guide.md)** — for faculty and students: building a custom GPT, group projects (one GPT, whole team), API keys, and the opencode coding harness.  Start here if you teach.
 - **[Admin guide](docs/admin-guide.md)** — Keycloak and LiteLLM operations: identity and the Globus flip, the key contract, per-student attribution, faculty analytics (with its honest Enterprise boundary), backups, troubleshooting.
 - **[CI notes](docs/ci.md)** — the three-line pipeline on other CI systems, plus SBOM generation for infosec.

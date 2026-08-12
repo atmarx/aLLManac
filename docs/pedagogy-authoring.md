@@ -66,7 +66,9 @@ tethered_to:               # claims this page makes about the running system
 
 `tethered_to` is the machine-readable half of the drift rule.  It lists the files whose behavior this page describes, so a future check can flag pages whose sources moved.
 
-**Build note for @geordi:** the tag index assumes mkdocs-material's `tags` plugin with `tags_file: tags.md`.  Custom keys (`audience`, `regimes`, `tethered_to`) are inert metadata and need no plugin.
+**Build note:** the tag index uses mkdocs-material's `tags` plugin and the
+`<!-- material/tags -->` listing directive in `apex/tags.md`. Custom keys
+(`audience`, `regimes`, `tethered_to`) are inert metadata and need no plugin.
 
 ---
 
