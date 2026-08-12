@@ -310,6 +310,9 @@ services:
       REGISTRAR_DEFAULT_FUSE: "${REGISTRAR_DEFAULT_FUSE:-5}"
       REGISTRAR_MAX_FUSE: "${REGISTRAR_MAX_FUSE:-25}"
       REGISTRAR_DEFAULT_COURSE_BUDGET: "${REGISTRAR_DEFAULT_COURSE_BUDGET:-1000}"
+      REGISTRAR_BASE_MODELS: "${REGISTRAR_BASE_MODELS:-almanac-chat}"
+      MODEL_PROVIDER_NAME: "${MODEL_PROVIDER_NAME:-Almanac}"
+      MCP_SERVER_PREFIX: "${MCP_SERVER_PREFIX:-almanac}"
       REGISTRAR_COURSES: /state/courses.yaml
     volumes:
       # DIRECTORY mounts throughout: the registrar writes atomically (tmp +

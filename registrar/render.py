@@ -33,6 +33,8 @@ EDGE_TLS = os.environ.get("EDGE_TLS", "internal")
 OPENID_BUTTON_LABEL = os.environ.get("OPENID_BUTTON_LABEL", "Sign in with Campus SSO")
 USAGE_MCP_TOKEN = os.environ.get("USAGE_MCP_TOKEN", "")
 REGISTRAR_MCP_TOKEN = os.environ.get("REGISTRAR_MCP_TOKEN", "")
+MODEL_PROVIDER_NAME = os.environ.get("MODEL_PROVIDER_NAME", "Almanac")
+MCP_SERVER_PREFIX = os.environ.get("MCP_SERVER_PREFIX", "almanac")
 
 
 def _atomic_write(path: str, content: str) -> None:
@@ -195,14 +197,14 @@ mcpSettings:
 # Identity rides trusted headers; the course rides a rendered literal.
 # Neither is ever a tool argument — see docs/registrar-spec.md.
 mcpServers:
-  almanac-usage:
+  {MCP_SERVER_PREFIX}-usage:
     type: streamable-http
     url: http://usage-mcp:8080/mcp
     headers:
       Authorization: "Bearer ${{USAGE_MCP_TOKEN}}"
       X-User-Email: "{{{{LIBRECHAT_USER_EMAIL}}}}"
       X-User-Role: "{{{{LIBRECHAT_USER_ROLE}}}}"
-  almanac-registrar:
+  {MCP_SERVER_PREFIX}-registrar:
     type: streamable-http
     url: http://registrar:8080/mcp
     headers:
@@ -213,7 +215,7 @@ mcpServers:
 
 endpoints:
   custom:
-    - name: "Almanac"
+    - name: "{MODEL_PROVIDER_NAME}"
       # THIS course's team-scoped service key — chat spend drains the same
       # pool as the students' vAPI keys; the master key never enters here:
       apiKey: "${{COURSE_SERVICE_KEY}}"

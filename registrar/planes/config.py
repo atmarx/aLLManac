@@ -29,7 +29,11 @@ ALMANAC_DOMAIN = os.environ.get("ALMANAC_DOMAIN", "localhost")
 DEFAULT_FUSE = float(os.environ.get("REGISTRAR_DEFAULT_FUSE", "5"))
 MAX_FUSE = float(os.environ.get("REGISTRAR_MAX_FUSE", "25"))
 DEFAULT_COURSE_BUDGET = float(os.environ.get("REGISTRAR_DEFAULT_COURSE_BUDGET", "1000"))
-BASE_MODELS = ["almanac-chat"]
+BASE_MODELS = [
+    model.strip()
+    for model in os.environ.get("REGISTRAR_BASE_MODELS", "almanac-chat").split(",")
+    if model.strip()
+]
 
 # Agent-builder powers a course's instance gets.  `actions` (arbitrary-URL
 # tool calls) is EXCLUDED — it's the one path around the gateway's
