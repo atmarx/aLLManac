@@ -179,8 +179,15 @@ build: _fleet
 # Pipeline #46 failed exactly here, on a comment-only edit, which is the check
 # doing its job: it cannot know a diff is harmless and must not guess.
 #
+# bao-unseal appears TWICE and the second one is load-bearing: `up` ends with
+# an unseal, but config-refresh may then RESTART openbao (its config changed),
+# and a restarted bao comes back sealed.  smoke can't catch it — its health
+# probe passes sealedcode=200 because sealed is a normal boot state, not an
+# outage.  Without the re-unseal, an openbao config change deploys green and
+# leaves the escrow sealed until a human notices the registrar can't mint.
+#
 # What CI runs on the box: images, build, .env, restart, re-read config, verify
-deploy: pull build secrets up config-refresh smoke egress-check
+deploy: pull build secrets up config-refresh bao-unseal smoke egress-check
 
 # The gap this closes: `docker compose up` recreates on a changed DEFINITION,
 # never on changed bind-mount CONTENTS.  Directory mounts got the new file into
@@ -195,7 +202,7 @@ deploy: pull build secrets up config-refresh smoke egress-check
 config-refresh:
     #!/usr/bin/env bash
     set -uo pipefail
-    n=0; checked=0
+    n=0; checked=0; drifted=0
     # ANCHORED — docker's name filter is a substring match, and a recipe that
     # restarts things has no business matching `foo-alm-bar`:
     for c in $(docker ps --filter "name=^alm-" --format '{{{{.Names}}'); do
@@ -208,12 +215,44 @@ config-refresh:
       srcs=$(docker inspect "$c" --format '{{{{range .Mounts}}{{{{if and (eq .Type "bind") (not .RW)}}{{{{println .Source}}{{{{end}}{{{{end}}' 2>/dev/null)
       for src in $srcs; do
         [ -e "$src" ] || continue
-        m=$(find "$src" -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1)
+        # No -type f: a DELETED config file bumps only its parent directory's
+        # mtime, and filtering to files made deletions invisible — a course
+        # vhost removed by git sync left the edge serving the dead route.
+        # Directories ride along in the scan precisely to catch removals.
+        m=$(find "$src" -printf '%T@\n' 2>/dev/null | sort -rn | head -1)
         m=${m%%.*}
         [ -n "$m" ] || m=0
         if [ "$m" -gt "$newest" ]; then newest=$m; which=$src; fi
       done
       if [ "$newest" -gt "$boot" ]; then
+        # GUARD before restarting: a restart re-resolves bind sources but keeps
+        # the container's old DEFINITION.  If compose.yml changed the mount
+        # topology since this container was created, the new config was written
+        # for the new topology — restarting boots new config into the old shape.
+        # (The concrete case: the edge's Caddyfile importing /etc/caddy-fleet,
+        # restarted into a container that only mounts /etc/caddy/fleet — empty
+        # import glob, fatal, edge down and unable to boot.)  Compose stamps a
+        # config-hash label at create; compare it against the hash the current
+        # files produce.  Fail CLOSED: if the hashes differ or can't be
+        # computed, refuse the restart and fail the run — `just up` (recreate)
+        # is the correct verb for definition drift, not restart.  In `deploy`
+        # this never fires, because `up` reconciles definitions first.
+        svc=$(docker inspect "$c" --format '{{{{index .Config.Labels "com.docker.compose.service"}}' 2>/dev/null)
+        pdir=$(docker inspect "$c" --format '{{{{index .Config.Labels "com.docker.compose.project.working_dir"}}' 2>/dev/null)
+        files=$(docker inspect "$c" --format '{{{{index .Config.Labels "com.docker.compose.project.config_files"}}' 2>/dev/null)
+        running_hash=$(docker inspect "$c" --format '{{{{index .Config.Labels "com.docker.compose.config-hash"}}' 2>/dev/null)
+        want_hash=""
+        if [ -n "$svc" ] && [ -n "$pdir" ] && [ -n "$files" ]; then
+          fargs=""; IFS=','; for f in $files; do fargs="$fargs -f $f"; done; unset IFS
+          want_hash=$(docker compose --project-directory "$pdir" $fargs config --hash "$svc" 2>/dev/null | awk '{print $2}')
+        fi
+        if [ -z "$want_hash" ] || [ "$want_hash" != "$running_hash" ]; then
+          echo "  SKIP     $c — config changed AND its compose definition drifted (or can't be checked)."
+          echo "           A restart would boot the new config into the old container shape."
+          echo "           Run \`just up\` to recreate it, then re-run config-refresh."
+          drifted=$((drifted+1))
+          continue
+        fi
         echo "  restart  $c — $which is newer than its boot"
         if docker restart "$c" >/dev/null 2>&1; then
           n=$((n+1))
@@ -223,7 +262,10 @@ config-refresh:
         fi
       fi
     done
-    if [ "$n" -eq 0 ]; then
+    if [ "$drifted" -gt 0 ]; then
+      echo "config-refresh — $drifted container(s) SKIPPED on definition drift ($n restarted, $checked checked)"
+      exit 1
+    elif [ "$n" -eq 0 ]; then
       echo "config-refresh — $checked containers, all holding current config"
     else
       echo "config-refresh — restarted $n of $checked"
