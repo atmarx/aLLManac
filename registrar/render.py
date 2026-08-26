@@ -28,7 +28,7 @@ OUT_USAGE = os.environ.get("OUT_USAGE", "/out/usage-mcp")
 
 ALMANAC_DOMAIN = os.environ.get("ALMANAC_DOMAIN", "localhost")
 AUTH_HOST = os.environ.get("AUTH_HOST", "auth.localhost")
-KC_REALM = os.environ.get("KC_REALM", "northwinds")
+KC_REALM = os.environ.get("KC_REALM", "classroom")
 EDGE_TLS = os.environ.get("EDGE_TLS", "internal")
 OPENID_BUTTON_LABEL = os.environ.get("OPENID_BUTTON_LABEL", "Sign in with Campus SSO")
 USAGE_MCP_TOKEN = os.environ.get("USAGE_MCP_TOKEN", "")

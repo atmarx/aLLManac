@@ -272,7 +272,7 @@ smoke:
     # sealed/uninitialized read as 200 here — a sealed bao is a boot state,
     # not an outage (just bao-unseal / bao-init):
     check "openbao (escrow)"   "http://127.0.0.1:${BAO_PORT:-8200}/v1/sys/health?uninitcode=200&sealedcode=200"
-    check "keycloak (realm)"   "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-northwinds}/.well-known/openid-configuration"
+    check "keycloak (realm)"   "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-classroom}/.well-known/openid-configuration"
     exit $fail
 
 # Prove every rendered course instance answers through the edge (TLS + vhost)
@@ -487,7 +487,7 @@ logs svc="": _fleet
 # Create/update a course + provision everything:  team, service key, OIDC
 # client + door roles, instance render, vhost — then start it.  Idempotent;
 # extra flags pass through (e.g. --budget 1500 --ta ta@x.edu --college cci):
-#   just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@northwinds.edu
+#   just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@example.edu
 course slug name +instructors:
     {{compose}} exec -T registrar python course_admin.py create "{{slug}}" "{{name}}" {{instructors}} </dev/null
     @{{just_executable()}} course-up
@@ -598,7 +598,7 @@ bao-unseal:
 # spend tags so monthly usage rolls up to an owner — the join key the
 # accounting/FOCUS export will consume later.  No owner, no key.
 
-# Mint a per-user virtual key:  just key amaya@northwinds.edu engr301 [budget]
+# Mint a per-user virtual key:  just key amaya@example.edu engr301 [budget]
 # Use the person's SIGN-IN EMAIL as the user: that's what joins their key
 # spend to their chat spend in the usage tools (a non-email user_id needs an
 # aliases: entry in usage-mcp/roster.yaml to fold back onto the student).

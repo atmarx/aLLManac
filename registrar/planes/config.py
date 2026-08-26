@@ -12,7 +12,7 @@ import re
 COURSES_PATH = os.environ.get("REGISTRAR_COURSES", "/app/courses.yaml")
 
 KC_URL = os.environ.get("KC_URL", "http://keycloak:8080")
-KC_REALM = os.environ.get("KC_REALM", "northwinds")
+KC_REALM = os.environ.get("KC_REALM", "classroom")
 KC_ADMIN = os.environ.get("KC_ADMIN", "admin")
 KC_ADMIN_PASSWORD = os.environ.get("KC_ADMIN_PASSWORD", "")
 

@@ -98,7 +98,7 @@ A "what is still wrong" section describing a problem fixed six weeks ago teaches
 
 **2.  Name the gaps.**  Data-protection pages state what we do *not* have.  A page implying scheduled offsite backups we do not run is a liability rather than documentation.  The gaps are also the better curriculum: a reader who sees "we have no per-student deletion path, here is why FERPA does not compel one, and here is why we might build it anyway" learns more than one reading a page that claims we are covered.
 
-**3.  Write for no institution in particular.**  These docs ship with the platform, and another institution can run it.  The repo already works this way — `northwinds` is a placeholder realm, not a customer — and `front-door.md` is deployment config precisely so a different deployment rewrites text rather than software.  The reader-facing pages inherit that.
+**3.  Write for no institution in particular.**  These docs ship with the platform, and another institution can run it.  The repo already works this way — `classroom` is a generic realm, not a customer — and `front-door.md` is deployment config precisely so a different deployment rewrites text rather than software.  The reader-facing pages inherit that.
 
 So: **no institution's name, no institution's tier numbers, no institution's policy quoted as the authority.**  Say "your institution's register"; let the local operator fill it in.
 

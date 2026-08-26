@@ -34,7 +34,7 @@ courses:
   engr301-2026fall:
     name: "ENGR 301 — Engineering Design (Fall 2026)"
     instructors:
-      - prof.vex@northwinds.edu
+      - prof.vex@example.edu
     tas: []
     budgets:
       course: 1000
@@ -43,14 +43,14 @@ courses:
     models: [almanac-chat]
     group: ""            # globus backend (Phase 2): the managed group's UUID
     students:
-      - amaya@northwinds.edu
-      - bram@northwinds.edu
+      - amaya@example.edu
+      - bram@example.edu
     aliases: {}
 
   chem101-2026fall:
     name: "CHEM 101 — General Chemistry (Fall 2026)"
     instructors:
-      - prof.okoye@northwinds.edu
+      - prof.okoye@example.edu
     tas: []
     budgets:
       course: 1000
@@ -59,8 +59,8 @@ courses:
     models: [almanac-chat]
     group: ""
     students:
-      - amaya@northwinds.edu     # enrolled in BOTH demo courses on purpose —
-      - divya@northwinds.edu     # the per-course key + wall test needs it
+      - amaya@example.edu     # enrolled in BOTH demo courses on purpose —
+      - divya@example.edu     # the per-course key + wall test needs it
     aliases: {}
 
 # colleges:

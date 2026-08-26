@@ -75,7 +75,7 @@ Authority is layered on top of identity:
 Projects own data; **groups own people**.  A course is a group with a syllabus.
 
 - The registrar gets its **own Globus confidential client** — *not* the Keycloak broker client.  The broker authenticates humans; the registrar administers groups.  Different jobs, different blast radii, independently revocable.
-- `just course engr301 "ENGR 301" prof.vex@northwinds.edu` → the registrar client **creates** group `almanac-engr301`, holds the admin role itself, and invites the instructor as group **manager**.  That manager role IS the "marked as instructor" act — it's what unlocks roster upload in chat.  The same act provisions the course's tenancy: LiteLLM team + service key, Keycloak client (with the instructor mapped to its `admin` client role), the instance render, and the Caddy vhost — finished with a graceful edge reload.  One command, a course exists.
+- `just course engr301 "ENGR 301" prof.vex@example.edu` → the registrar client **creates** group `almanac-engr301`, holds the admin role itself, and invites the instructor as group **manager**.  That manager role IS the "marked as instructor" act — it's what unlocks roster upload in chat.  The same act provisions the course's tenancy: LiteLLM team + service key, Keycloak client (with the instructor mapped to its `admin` client role), the instance render, and the Caddy vhost — finished with a graceful edge reload.  One command, a course exists.
 - `roster_apply` reconciles membership: invites the missing (Globus emails them; they accept with the same campus identity Keycloak brokers for login), removes the dropped.  **The group is the roster truth.**
 - Email is the join key across all three worlds: group member ↔ `LIBRECHAT_USER_EMAIL` ↔ LiteLLM `user_id`.  Same rule usage-mcp already lives by (`trustEmail` is on at the broker).
 - Adopting an existing campus/SIS-fed group instead of creating one: later mode, same seam — `group:` in the course record is just a UUID, however it got there.
@@ -93,7 +93,7 @@ courses:
   engr301:
     name: "ENGR 301 — Engineering Design"
     instructors:                    # several from day one — the first real course
-      - prof.vex@northwinds.edu     # has two, and every course has TAs
+      - prof.vex@example.edu     # has two, and every course has TAs
     tas: []                         # same authority as instructors in v1 (see below)
     budgets:
       course: 1000                  # THE cap — per term, hard, chat + keys, one pool
@@ -157,7 +157,7 @@ The budget model, decided 2026-07-22:
 
 ```json
 {
-  "user_id":   "amaya@northwinds.edu",          // joins to chat spend
+  "user_id":   "amaya@example.edu",          // joins to chat spend
   "team_id":   "almanac-engr301",               // drains the course pool
   "models":    ["almanac-chat"],
   "max_budget": 5,                              // the fuse, not the budget
@@ -315,7 +315,7 @@ The drop route is the registrar's own HTTP surface (a custom route beside `/heal
 
 Then the **front-door question**: the agent confirms this is for *coursework, not research* — and records the answer.  The request that lands in `registrar/requests.yaml` carries the requester type AND the attestation, dated.  When the slippery-slope question ever comes back ("did they know the boundary?"), the answer is in the record: they were asked at the door, in plain language, and said yes.
 
-**The plain language is deployment config, not code.**  The boundary verbiage lives in `registrar/front-door.md` (example-shipped, deployment-edited) and is injected into the request agent's instructions and echoed into every filed request.  Ours will say what Northwinds practice says: coursework belongs here; sponsored research goes to the research environment, full stop; the traditional gray zone (non-sponsored master's "academic research" commingled with coursework) is tolerated but named, so nobody discovers the line by crossing it.  **Another deployment can rewrite that file to say "research welcome here"** — the software is a room-renderer and doesn't care; a research-dedicated deployment is just a separate fleet on a separate box with different front-door text.  The per-instance separation that keeps courses apart keeps *missions* apart at the deployment level for free.
+**The plain language is deployment config, not code.**  The boundary verbiage lives in `registrar/front-door.md` (example-shipped, deployment-edited) and is injected into the request agent's instructions and echoed into every filed request.  The example policy says coursework belongs here; sponsored research goes to the research environment, full stop; the traditional gray zone (non-sponsored master's "academic research" commingled with coursework) is tolerated but named, so nobody discovers the line by crossing it.  **Another deployment can rewrite that file to say "research welcome here"** — the software is a room-renderer and doesn't care; a research-dedicated deployment is just a separate fleet on a separate box with different front-door text.  The per-instance separation that keeps courses apart keeps *missions* apart at the deployment level for free.
 
 Requests are typed, attested, and queued — nothing provisions without the desk's nod, which is what makes the wide-open door safe.  Gated to start; auto-approval rules (e.g. faculty + within default budget → straight through) are a policy knob for later, not a rebuild.  In the machinery, a project room or a sandbox is the same primitive as a course — a `kind:` field on the record (`course | project | sandbox | office`), optionally `parent:`-linked for spend rollup — rooms all the way down.
 
@@ -360,7 +360,7 @@ Faculty get full control of their rooms.  **They do not get control of the floor
 
 ---
 
-**The two lanes, side by side** — a student in `engr301-2026fall.aisandbox.northwinds.edu` spends either way:
+**The two lanes, side by side** — a student in `engr301-2026fall.aisandbox.example.edu` spends either way:
 
 | Lane | Credential | Student attribution | Course attribution |
 |---|---|---|---|
@@ -400,7 +400,7 @@ Hostname-based, Caddy, wildcard DNS — ports are for compose files, not syllabi
 
 *Envisioned 2026-07-24.*
 
-**The apex (`aisandbox.northwinds.edu`) is an mkdocs site** — how-tos, guides, model selection, LLM pedagogy — thick with CTAs to sign in and try it.  Served by the edge itself (a `root`/`file_server` block over the built site; `just docs-build` runs a pinned mkdocs-material container → `site-dist/`; CI rebuilds on docs commits).  No new daemon — Caddy was already standing there.
+**The apex (`aisandbox.example.edu`) is an mkdocs site** — how-tos, guides, model selection, LLM pedagogy — thick with CTAs to sign in and try it.  Served by the edge itself (a `root`/`file_server` block over the built site; `just docs-build` runs a pinned mkdocs-material container → `site-dist/`; CI rebuilds on docs commits).  No new daemon — Caddy was already standing there.
 
 **The same markdown serves twice.**  The docs directory is BOTH the public site and Ask the Almanac's RAG corpus — one source, two renderers (mkdocs for the web, embeddings for the chat).  "Literally the same info" is structural, not aspirational: there is no second copy to drift.  A how-to fixed on the website is a how-to fixed in the agent's mouth at the next re-feed.
 

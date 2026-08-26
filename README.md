@@ -33,14 +33,14 @@ Seven moving parts, each doing one job:
 | **Admin panel** | LibreChat's bundled management GUI (`:3082`). The **local groups** agent sharing needs live here (Keycloak's groups claim doesn't reach LibreChat's ACLs — upstream [#10006](https://github.com/danny-avila/LibreChat/issues/10006)), plus role permissions and per-group config overrides. Faculty are ADMINs automatically (the realm's `faculty` role) and sign in with the same SSO button. |
 | **LiteLLM** | The gateway and **the ledger**. Every user gets a virtual API key with a budget; every request is metered. Models are routed here, so which GPU (or cloud) serves a request is nobody else's business. |
 | **usage-mcp** | The ledger, served back into the chat as tools: students ask their own usage, faculty ask their course's — no dashboard login, no Enterprise license. LibreChat stamps who's asking into trusted headers; the service reads through a SELECT-only DB role and scopes every answer by the roster (`usage-mcp/roster.yaml`). |
-| **Keycloak** | The front door. OIDC identity provider; ships with a mock campus realm (`northwinds`) — local demo accounts standing in for real campus groups. Later, it **brokers Globus** (or any SAML/OIDC IdP) without LibreChat changing at all. |
+| **Keycloak** | The front door. OIDC identity provider; ships with a generic demo realm (`classroom`) — local demo accounts standing in for real campus groups. Later, it **brokers Globus** (or any SAML/OIDC IdP) without LibreChat changing at all. |
 | **vLLM** *(site-local: `site/inference/`)* | Local inference on this box's GPUs — deliberately a **separate compose project** (`just vllm-up`) so a loaded model survives app deploys. Optional by construction: it lives under `site/` because everything past `INFERENCE_BASE_URL` is a deployment's own choice, so a box with no GPU simply doesn't have it. |
 | **Mongo · Meili · pgvector · RAG API** | LibreChat's data plane: conversations, search, and embeddings for agent knowledge files. |
 | **Caddy** *(edge profile)* | The front door's front door: one hostname per surface, TLS included — internal CA for the LAN, real ACME (HTTP-01 or DNS-01/Azure) for the world. |
 
 ### How a request flows
 
-1. **Login** — LibreChat bounces you to Keycloak ("Sign in with Northwinds SSO"). Keycloak authenticates you (local account now, Globus later) and returns your **groups** in the token.
+1. **Login** — LibreChat bounces you to Keycloak ("Sign in with Campus SSO"). Keycloak authenticates you (local account now, Globus later) and returns your **groups** in the token.
 2. **Chat** — LibreChat calls LiteLLM with an API key; LiteLLM checks the key's budget, routes to the model, meters the tokens, and writes the spend row.
 3. **Custom GPT** — a faculty member creates an Agent, attaches course materials (indexed into pgvector), and grants the class group **Editor** — now the whole team maintains the assistant together.
 
@@ -63,13 +63,13 @@ The three `.env` lines that matter:
 
 - **`ALMANAC_HOST`** — the box's LAN IP or DNS name (not `localhost`), so your browser and the containers agree on where Keycloak lives.
 - **`INFERENCE_BASE_URL`** — where tokens come from.  `http://host.docker.internal:8000/v1` for the `site/inference/` stack on the same box (`just vllm-up`); an Ollama/vLLM URL for a campus inference box; a cloud endpoint if you must. The model name in [`litellm/config.yaml`](litellm/config.yaml) must match what that endpoint serves.
-- **`OPENID_ISSUER`** — must be **HTTPS** (LibreChat ≥ v0.8 refuses plain-http issuers). No DNS on your LAN? The edge's internal CA mints IP certs — copy the **"LAN HTTPS"** block from [`.env.example`](.env.example) and you're done: `https://<box-ip>:8443/realms/northwinds`.
+- **`OPENID_ISSUER`** — must be **HTTPS** (LibreChat ≥ v0.8 refuses plain-http issuers). No DNS on your LAN? The edge's internal CA mints IP certs — copy the **"LAN HTTPS"** block from [`.env.example`](.env.example) and you're done: `https://<box-ip>:8443/realms/classroom`.
 
 Surfaces (direct-port mode): **LibreChat** `:3080` · **admin panel** `:3082` (faculty SSO) · **LiteLLM admin** `:4000/ui` (login = `LITELLM_MASTER_KEY`) · **Keycloak admin** `:8080` (`KC_ADMIN` / `KC_ADMIN_PASSWORD`).
 
 ### First boot: wire the OIDC client secret (one time)
 
-Keycloak imports the `northwinds` realm on first boot and generates a secret for the `librechat` client. Hand it to LibreChat:
+Keycloak imports the `classroom` realm on first boot and generates a secret for the `librechat` client. Hand it to LibreChat:
 
 1. Keycloak admin → Clients → **librechat** → Credentials → copy the secret.
 2. Paste into `.env` as `OPENID_CLIENT_SECRET`.
@@ -152,7 +152,7 @@ aiclassroom.example.edu       { reverse_proxy almanac-box:3080 }
 auth-aiclassroom.example.edu  { reverse_proxy almanac-box:8080 }
 ```
 
-Then in `.env`: `OPENID_ISSUER=https://auth-aiclassroom.example.edu/realms/northwinds`, `KC_HOSTNAME=https://auth-aiclassroom.example.edu`, `KC_PROXY_HEADERS=xforwarded`, `DOMAIN_CLIENT`/`DOMAIN_SERVER` to the chat URL. Public CA means the `NODE_EXTRA_CA_CERTS` machinery isn't needed. (One hard-won note: if your front proxy bind-mounts its config as a single file, editors that rewrite inodes leave the container reading the **old** file — validate-and-reload will happily no-op. `grep` the file *inside* the container before trusting a reload.)
+Then in `.env`: `OPENID_ISSUER=https://auth-aiclassroom.example.edu/realms/classroom`, `KC_HOSTNAME=https://auth-aiclassroom.example.edu`, `KC_PROXY_HEADERS=xforwarded`, `DOMAIN_CLIENT`/`DOMAIN_SERVER` to the chat URL. Public CA means the `NODE_EXTRA_CA_CERTS` machinery isn't needed. (One hard-won note: if your front proxy bind-mounts its config as a single file, editors that rewrite inodes leave the container reading the **old** file — validate-and-reload will happily no-op. `grep` the file *inside* the container before trusting a reload.)
 
 ### Cautions
 
