@@ -15,19 +15,19 @@
 #              started yet" answer — no roster, no anti-join.
 #   aliases:   only needed when a vAPI key was minted under a user_id that
 #              is NOT the email (email -> [user_ids]).  Mint keys with the
-#              email as the user — `just key amaya@northwinds.edu engr301` —
+#              email as the user — `just key amaya@example.edu engr301` —
 #              and you never touch this.
 courses:
   engr301:
     name: "ENGR 301 — Engineering Design"
     faculty:
-      - prof.vex@northwinds.edu
+      - prof.vex@example.edu
     students:
-      - amaya@northwinds.edu
-      - bram@northwinds.edu
+      - amaya@example.edu
+      - bram@example.edu
     aliases:
-      amaya@northwinds.edu: [stu.amaya]
-      bram@northwinds.edu: [stu.bram]
+      amaya@example.edu: [stu.amaya]
+      bram@example.edu: [stu.bram]
 
 # Platform folks who may pull EVERY course's rollup:
 admins: []

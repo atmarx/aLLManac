@@ -18,6 +18,10 @@ fleet/
 # nobody else's business, which is exactly why it isn't in git.
 site/
 
+# Static documentation output (just docs-build). The Markdown source in apex/
+# is tracked; the generated HTML is rebuilt on each deployment.
+site-dist/
+
 # SBOM artifacts (just sbom) — generated per pin-set, handed to infosec,
 # too big and too derivative for git
 sbom/

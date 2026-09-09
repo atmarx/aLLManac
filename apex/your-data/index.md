@@ -22,7 +22,10 @@ Coursework generates records about you, and records about students carry obligat
 - **Your conversations live in your own course's database**, separate from every other course.  [What we store](what-we-store.md)
 - **Your instructor and the platform's operators can reach them.**  Nobody in another course can.  [Who can see it](who-can-see-it.md)
 - **Your usage is recorded against your email address** — which model, how many tokens, what it cost, when.  Not what you said.  [The ledger](what-we-store.md#the-ledger-which-is-the-one-that-surprises-people)
-- **Nothing you write becomes training data**, and nothing leaves institutional hardware unless your course enables an agent that sends it somewhere.  [The path that leaves the building](who-can-see-it.md#the-path-that-leaves-the-building)
+- **Where model traffic goes is a deployment choice.** A locally hosted model
+  can keep it on institutional hardware; a hosted model receives the prompts
+  and files needed to answer. Agent actions can send material to additional
+  services. [The paths that can leave the building](who-can-see-it.md#paths-that-can-leave-the-building)
 - **Agent sharing is available, and nothing is shared until you share it.**  [Sharing](who-can-see-it.md#sharing-is-available-and-nothing-is-shared-until-you-share-it)
 - **Nothing expires on its own.**  [How long we keep it](how-long-we-keep-it.md)
 

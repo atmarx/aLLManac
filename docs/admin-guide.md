@@ -23,7 +23,7 @@ Three things in this stack are called "groups," and confusing them costs an afte
 
 ### Getting around
 
-Admin console at `:8080`, then **switch the realm** (top-left dropdown) from `master` to `northwinds` — everything course-related lives there.  `master` is Keycloak's own housekeeping realm; stay out of it except to manage the admin account itself.
+Admin console at `:8080`, then **switch the realm** (top-left dropdown) from `master` to `classroom` — everything course-related lives there.  `master` is Keycloak's own housekeeping realm; stay out of it except to manage the admin account itself.
 
 ### Users
 
@@ -55,7 +55,7 @@ Keycloak groups organize identity (`/engr301-faculty`, `/engr301-team-gust`) and
 
 The realm ships a **disabled** Globus identity provider so going live is a paste, not a build:
 
-1. Register an app at [developers.globus.org](https://developers.globus.org) (Advanced registration).  Redirect URL: `https://<your-auth-host>/realms/northwinds/broker/globus/endpoint` Scopes: `openid profile email`.
+1. Register an app at [developers.globus.org](https://developers.globus.org) (Advanced registration).  Redirect URL: `https://<your-auth-host>/realms/classroom/broker/globus/endpoint` Scopes: `openid profile email`.
 2. Keycloak → Identity providers → **globus** → paste the Client ID and Secret → **Enabled: on**.
 3. Test in a private window: the login page now offers **Globus**.  Students authenticate through it (their campus IdP behind Globus does the real work), land in Keycloak as federated users, and LibreChat never knows the difference.
 
@@ -66,7 +66,7 @@ After the flip, day-to-day admin work is: new semester → students arrive by lo
 ### Posture and upkeep
 
 - The bundled realm is a **mock**: `sslRequired: none`, Keycloak in `start-dev`, demo passwords.  Fine on a LAN behind a firewall.  Before real users: real TLS in front, `start` (not `start-dev`) with a proper `KC_HOSTNAME`, demo users disabled, `KC_ADMIN_PASSWORD` rotated.
-- **Realm import only happens on first boot** (empty database).  Later changes to `keycloak/realm-northwinds.json` do NOT apply to a running install — make changes in the admin console, and export if you want them captured: `docker exec alm-keycloak /opt/keycloak/bin/kc.sh export --dir /tmp/export --realm northwinds`
+- **Realm import only happens on first boot** (empty database).  Later changes to `keycloak/realm-classroom.json` do NOT apply to a running install — make changes in the admin console, and export if you want them captured: `docker exec alm-keycloak /opt/keycloak/bin/kc.sh export --dir /tmp/export --realm classroom`
 - State = the `keycloak-db` volume (see [Backups](#backups)).
 
 ---
@@ -132,8 +132,8 @@ The direct answer to "can faculty get analytics out of LiteLLM?": **yes — with
 | Faculty logs in via campus SSO | ✗ effectively Enterprise | UI SSO is free only up to **5 total DB users** — the counter is every row in the user table, so one class roster blows it |
 
 ```bash
-just invite prof.vex@northwinds.edu                    # read-only everything
-just invite ta.jones@northwinds.edu internal_user      # own usage only
+just invite prof.vex@example.edu                    # read-only everything
+just invite ta.jones@example.edu internal_user      # own usage only
 ```
 
 Each prints a one-time onboarding link (7-day expiry) where they set a password.
@@ -176,14 +176,14 @@ Course scoping lives in `usage-mcp/roster.yaml` on the box — gitignored, becau
 courses:
   engr301:
     name: "ENGR 301 — Engineering Design"
-    faculty: [prof.vex@northwinds.edu]
-    students: [amaya@northwinds.edu, bram@northwinds.edu]
+    faculty: [prof.vex@example.edu]
+    students: [amaya@example.edu, bram@example.edu]
 admins: []          # platform folks who may pull EVERY course
 ```
 
 - The course slug is the SAME owner slug you mint keys with (`just key ... engr301`) — that's what folds vAPI-key spend into the course rollup.
 - `students:` powers both the chat-usage join and the "who hasn't started yet" answer.  No roster, no anti-join.
-- Mint keys with the person's **sign-in email** as the user (`just key amaya@northwinds.edu engr301`) and their chat + key usage join automatically.  A key minted under any other user_id needs an `aliases:` entry (email → `[user_ids]`) to fold back onto the student.
+- Mint keys with the person's **sign-in email** as the user (`just key amaya@example.edu engr301`) and their chat + key usage join automatically.  A key minted under any other user_id needs an `aliases:` entry (email → `[user_ids]`) to fold back onto the student.
 - Faculty need BOTH the `faculty` realm role (that's what makes the role header say ADMIN) and a roster listing (that's what narrows it to *their* course).
 
 ### The "Almanac Usage" agent (one-time, two minutes)
@@ -218,7 +218,7 @@ Initializes OpenBao, mounts the `almanac/` kv2 store, turns on the audit device,
 ### Per course: one command
 
 ```
-just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@northwinds.edu
+just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@example.edu
 ```
 
 That single act provisions everything the spec promises: the LiteLLM **team** (the course's $1000/term pool — override with `--budget`), the team-scoped **service key** (escrowed), the course's **OIDC client** with its `admin`/`member` door roles, staff grants, the **instance render** (chat + Meili + panel + vhost under `fleet/`), and finishes by starting the containers and gracefully reloading the edge.  Extra flags pass through: `--ta ta@x.edu`, `--college cci`, `--budget 1500`.  Run it twice — it's idempotent; that's the point.

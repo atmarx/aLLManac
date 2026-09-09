@@ -1,6 +1,6 @@
 ---
 title: Who can see it
-description: Access control from the front door inward — how you sign in, why your course is its own room, who genuinely has reach, and the one path that sends course content off institutional hardware.
+description: Access control from the front door inward — how you sign in, why your course is its own room, who genuinely has reach, and the paths that can send course content off institutional hardware.
 audience: student
 also_reaches: [faculty]
 status: draft
@@ -45,11 +45,17 @@ The reasoning behind that choice — and what it costs us — is written up in [
 
 **Nobody in another course.**  See above.
 
-**No outside company.**  The models that answer you run on institutional hardware.  Where a course uses a hosted model instead, that is a property of the course and your instructor can tell you which one.
+**The model provider.** A model running on institutional hardware adds no
+outside recipient. A hosted model provider receives the prompts and other
+material needed to answer. Which route and provider a course uses should be a
+plain question your instructor or operator can answer.
 
 ## What we do not do with it
 
-We do not train models on your conversations.  Nothing you write becomes training data for anything — not for our models, not for a vendor's.  This is straightforward for us to promise because the models we serve run on our own machines and we do not fine-tune them on course traffic.
+The platform does not use your conversations to fine-tune models. That promise
+does not automatically describe a hosted provider: its retention and training
+terms come from the deployment's agreement with that provider and should be
+published alongside the model choice.
 
 We also do not collect keystrokes, screen activity, or attention telemetry.  What we record about your usage is [the ledger](what-we-store.md#the-ledger-which-is-the-one-that-surprises-people) — which model, how many tokens, what it cost, when — and nothing about how you sat at the keyboard.
 
@@ -71,13 +77,16 @@ Worth knowing rather than worrying about: the sharing is deliberate on both ends
      link out of the apex tree resolves on disk and dies in the built
      site. -->
 
-## The path that leaves the building
+## Paths that can leave the building
 
-There is one way for course content to leave institutional hardware, and it is worth understanding because it is a feature rather than a leak.
+There are two intentional outbound routes to understand: hosted inference and
+agent actions. If the selected model is hosted, the request goes to that
+provider so it can answer. The deployment's model notice should name that
+provider and its data terms.
 
 Agents can be given **actions** — the ability to call an outside web service as part of answering.  An agent with actions can send whatever it is working with to whatever address it was pointed at.  That is the entire point of the feature, and it is genuinely useful: an agent that looks up live data has to reach something.
 
-Actions are **off unless a course turns them on.**  The platform's default capability set gives courses file search, tools, and artifacts, and deliberately leaves actions out.  Enabling them is a per-course decision your instructor makes, and that decision is the real protection — a course that never turns actions on has no path out at all.
+Actions are **off unless a course turns them on.**  The platform's default capability set gives courses file search, tools, and artifacts, and deliberately leaves actions out.  Enabling them is a per-course decision your instructor makes. A course that leaves actions off has no *additional action route* beyond whichever model route the deployment selected.
 
 A course that does enable them can also declare a list of domains agents are allowed to reach.  Worth understanding what that list does and does not do:
 

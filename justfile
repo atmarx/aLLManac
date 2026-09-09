@@ -24,6 +24,9 @@ vllm_compose := "site/inference/vllm.compose.yml"
 vllm := "docker compose --project-directory . -f site/inference/vllm.compose.yml"
 # SBOM generator — pinned like everything else:
 syft := "anchore/syft:v1.46.0@sha256:473a60e3a58e29aca3aedb3e99e787bb4ef273917e44d10fcbea4330a07320bb"
+# Static docs builder. The edge serves the generated files; MkDocs' preview
+# server never becomes part of the production stack.
+mkdocs := "squidfunk/mkdocs-material:9.7.1@sha256:3bba0a99bc6e635bb8e53f379d32ab9cecb554adee9cc8f59a347f93ecf82f3b"
 
 # List recipes
 default:
@@ -93,8 +96,16 @@ secrets:
 # one run where the folder had nothing to say.  Every run after it layers.
 #
 # Bring the stack up (profiles come from COMPOSE_PROFILES in .env)
-up: _roster _fleet _site && usage-role bao-unseal
+up: _roster _fleet _site docs-build && usage-role bao-unseal
     {{compose}} up -d --remove-orphans
+
+# Build the human-readable site from apex/, which remains the RAG corpus too.
+# The output is a read-only bind in the edge container; there is no docs daemon.
+docs-build:
+    @mkdir -p site-dist
+    docker run --rm --user "$(id -u):$(id -g)" \
+      --env DOCS_SITE_NAME --env DOCS_SITE_URL --env DOCS_PRODUCT_NAME \
+      --volume "$PWD:/docs" {{mkdocs}} build --clean --strict
 
 # The live roster is deployment data (student emails) — gitignored, seeded
 # from the example on first up.  It is a RENDER now: the registrar rewrites
@@ -303,7 +314,7 @@ smoke:
     # sealed/uninitialized read as 200 here — a sealed bao is a boot state,
     # not an outage (just bao-unseal / bao-init):
     check "openbao (escrow)"   "http://127.0.0.1:${BAO_PORT:-8200}/v1/sys/health?uninitcode=200&sealedcode=200"
-    check "keycloak (realm)"   "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-northwinds}/.well-known/openid-configuration"
+    check "keycloak (realm)"   "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-classroom}/.well-known/openid-configuration"
     exit $fail
 
 # Prove every rendered course instance answers through the edge (TLS + vhost)
@@ -518,7 +529,7 @@ logs svc="": _fleet
 # Create/update a course + provision everything:  team, service key, OIDC
 # client + door roles, instance render, vhost — then start it.  Idempotent;
 # extra flags pass through (e.g. --budget 1500 --ta ta@x.edu --college cci):
-#   just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@northwinds.edu
+#   just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@example.edu
 course slug name +instructors:
     {{compose}} exec -T registrar python course_admin.py create "{{slug}}" "{{name}}" {{instructors}} </dev/null
     @{{just_executable()}} course-up
@@ -629,7 +640,7 @@ bao-unseal:
 # spend tags so monthly usage rolls up to an owner — the join key the
 # accounting/FOCUS export will consume later.  No owner, no key.
 
-# Mint a per-user virtual key:  just key amaya@northwinds.edu engr301 [budget]
+# Mint a per-user virtual key:  just key amaya@example.edu engr301 [budget]
 # Use the person's SIGN-IN EMAIL as the user: that's what joins their key
 # spend to their chat spend in the usage tools (a non-email user_id needs an
 # aliases: entry in usage-mcp/roster.yaml to fold back onto the student).

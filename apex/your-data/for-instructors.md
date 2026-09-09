@@ -66,7 +66,7 @@ The conservative posture, absent a local ceiling: this platform holds coursework
 
 | Switch | What it does | Worth thinking about |
 |---|---|---|
-| **Agent actions** | Lets agents in your course call outside web services | The one that can send course content off institutional hardware, and the most consequential switch on this page.  Off by default, and **that default is the control** — see below. |
+| **Agent actions** | Lets agents in your course call outside web services | An additional route beyond the selected model provider, and the most consequential switch on this page. Off by default, and **that default is the control** — see below. |
 | **Sharing** | Lets students share agents with each other | **On** in every course, deliberately — group work needs it and the chat software's own default is the wrong one for a classroom.  Nothing is shared unless someone shares it, and sharing does not cross the course boundary. |
 | **Knowledge files** | What you upload to a course agent | Anything you attach becomes retrievable by everyone who can use that agent.  Rosters, graded work, and student writing are the ones to think twice about. |
 | **Roster membership** | Who is enrolled | Enrollment is access.  Removing a student revokes their access; it does not erase what they already wrote. |
@@ -90,7 +90,9 @@ If your course is one where student work should not circulate, that is a convers
 
 If you enable actions, you can also give your course a list of domains agents are permitted to reach.  It is worth knowing exactly what that buys, because the two knobs are not equal options:
 
-- **Leaving actions off closes the path.**  No agent in the course can call out, and nothing else you configure matters.
+- **Leaving actions off closes the action path.** No agent in the course can
+  call an arbitrary outside service. The selected model may still be a hosted
+  endpoint; that is a separate deployment-level route.
 - **Enabling actions opens it.**  A course with actions on and no domain list can reach the entire public internet.
 - **The allowlist narrows an open door.  It cannot close one.**  There is no way to write "allow nothing" — an empty list is no list rather than a denial.
 - **Internal addresses are blocked by default, and naming one lifts the block.**  University-internal and private addresses are refused unless the list names them, at which point they are permitted.  The default is a floor, not a ceiling.
@@ -112,10 +114,13 @@ If you are considering this, talk to your institution's privacy or compliance of
 
 - Your course runs in **its own instance** with its own database.  No other course can reach into it.
 - Students authenticate with **campus identity** — no separate accounts.
-- **Model traffic stays on university hardware** unless your course enables actions or uses a hosted endpoint.
-- **Nothing is trained on your students' work**, here or by a vendor.
+- **The model route is explicit:** local deployments keep model traffic on
+  institutional hardware; hosted deployments send it to the named provider.
+- **The platform does not train on your students' work.** A hosted provider's
+  retention and training terms must be evaluated and disclosed separately.
 - **Usage is attributed per student**, so budget questions have real answers.
-- **Agent actions are off** in every new course, so the one path off institutional hardware requires a decision rather than happening by default.
+- **Agent actions are off** in every new course, so additional outbound
+  destinations require a decision rather than appearing by default.
 
 ## What it does not do yet
 

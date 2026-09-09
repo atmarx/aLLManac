@@ -49,9 +49,13 @@ You can see your own usage from inside the chat — ask the usage agent, and it 
 ## What we do not store
 
 - **Conversation content is not in the ledger.**  The two are separate systems and only one of them holds what you wrote.
-- **Nothing you write becomes training data.**  The models here run on institutional hardware and are not fine-tuned on course traffic.
+- **This platform does not use your conversations to fine-tune its models.** If
+  a deployment uses a hosted model, that provider's retention and training
+  terms are a separate promise the operator should publish.
 - **No keystroke, screen, or attention telemetry.**  There is no record of how long you paused before sending, what else was on your screen, or whether you were reading.
-- **No content leaves for an outside company** unless your course uses a hosted model or an agent with actions turned on — both of which are course decisions your instructor can tell you about.  See [Who can see it](who-can-see-it.md#the-path-that-leaves-the-building).
+- **Content can leave the institution through a hosted model or an agent
+  action.** Both routes are configuration choices your instructor or operator
+  should be able to name. See [Who can see it](who-can-see-it.md#paths-that-can-leave-the-building).
 
 ## For anyone building something like this
 
