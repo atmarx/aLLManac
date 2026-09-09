@@ -44,6 +44,18 @@ Agent-share groups resolve from `local` or `entra` sources **only**.  The Keyclo
 
 Share-groups are managed in the bundled **admin panel on `:3082`**.  Not 3081 — the panel's default port collides with `CHAT_PORT` overrides on xdocker03, and a red pipeline (#11) is how we found it.
 
+### The tenancy machinery is already in our pin — undocumented, env-only, and header-driven *(2026-09-09)*
+
+**`v0.8.7` reads `TENANT_ISOLATION_STRICT`, `DEFAULT_TENANT_ID` and `CODEAPI_JWT_SINGLE_TENANT_ID` from the environment, and handles `x-tenant-id` in `api/server/index.js`.**  `tenantId` appears in 86 files under `/app/api`.  None of the three variables appears in that version's `.env.example`, and the `librechat.yaml` schema exposes no tenancy at all — so this is a **live env-only surface with no documentation in the release we run.**  Measured against the pinned image itself, not the repo tag; the tag's `.env.example` is clean, which is exactly why reading it would have misled you.
+
+Two consequences, and they point opposite ways.
+
+**Security first.**  A request header named `x-tenant-id` is parsed at the server entry.  Upstream's own later comment on the knob reads: *"Trust `X-Tenant-Id` on unauthenticated routes... Enable only when a trusted reverse proxy strips any client-supplied value and sets its own."*  **We set none of these variables, so we run whatever the v0.8.7 default is — and nobody here has established what that default does with a client-supplied header.**  Until someone does, treat "the edge strips `x-tenant-id`" as an unverified assumption rather than a fact.  This is the same species as the config-refresh bug: a mechanism nobody had opened, described confidently by nobody at all.
+
+**Strategy second.**  Upstream is building in-app multi-tenancy (the work spans v0.8.6 → v0.8.8-rc2).  If it lands properly, **instance-per-course stops being the only way to get a tenant boundary** — which is today's headline justification for the fleet.  That would not invalidate the registrar: provisioning, per-course budgets, escrow and identity wiring still have no upstream answer, and the survey found no per-course provisioning tooling anywhere.  But the *tenancy* argument would need rewriting, and we should rewrite it ourselves rather than have it rewritten for us at a pin bump.
+
+**What is NOT true:** LibreChat Projects are not a per-course alternative and never were — they are personal, and other users cannot see your project list.
+
 ### The classroom posture is opt-in
 
 The default USER role ships `agents.share=false` and `peoplePicker.*=false`.  Out of the box, students cannot share agents with each other — which is the opposite of what a course wants.  The `interface` block in [`librechat/librechat.yaml`](../librechat/librechat.yaml) is what turns the classroom posture **on**.
