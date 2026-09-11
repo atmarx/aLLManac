@@ -36,3 +36,7 @@ sbom/
 # Python bytecode (py_compile checks, container mounts)
 __pycache__/
 *.pyc
+
+# The per-audience RAG corpora.  A RENDER of the docs tree via front matter
+# (`just docs-corpus`) — one source, N projections, no second copy to drift.
+corpus/
