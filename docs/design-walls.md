@@ -214,6 +214,21 @@ Pipeline #13 went red teaching us this.
 
 ---
 
+## `config-refresh`'s drift guard can never pass for a service with `env_file:` *(2026-09-11)*
+
+**`docker compose config --hash <svc>` and the `com.docker.compose.config-hash` label compose stamps at create are not the same computation — they diverge for every service that uses `env_file:`.**  `config-refresh` compares the two and fails closed on a mismatch, so any `env_file` service whose read-only bind mtime moves will be SKIPPED forever and take the pipeline red with it.
+
+Cost: two red pipelines (#51 and #52) and an hour, on a stack that was serving correctly the entire time.
+
+The measurement, on a 14-container deploy: **12 services matched exactly, 2 differed — `keycloak` and `librechat`, which are the only two in `compose.yml` carrying `env_file:`.**  That is the whole correlation.  The guard's arithmetic is right everywhere else, which is what makes it convincing when it is wrong.
+
+Two traps inside the trap:
+
+- **The remedy it prints does not work.**  "Run `just up` to recreate it" is wrong twice over: `docker compose up -d` will not recreate these containers at all — a targeted `--dry-run` reports them `Running` with no action planned, because compose's *own* up-to-date check agrees the definition is current.  And `--force-recreate` does not help either: the containers were genuinely rebuilt, new hash stamped, and `config --hash` still disagreed.  There is no verb that clears this.
+- **It looks like realm drift and isn't.**  This surfaced in the same deploy that renamed `realm-northwinds.json` → `realm-classroom.json`, so the obvious reading is that the realm change broke something.  It didn't.  The rename bumped the `./keycloak` directory's mtime, which is merely what *triggers* the check; the mismatch was always there and would have fired on any config touch.  Keycloak served `northwinds` correctly throughout.
+
+**If you are here because the pipeline is red:** confirm the stack is actually healthy (`just smoke` by hand, and probe the realm from inside the network — see [Verifying on the box](#verifying-on-the-box-without-moving-a-token)), then treat the SKIP as a known false positive rather than recreating anything.  The fix is to the guard, not the box: either exclude `env_file` services from the hash comparison and gate them on something else, or stop using `config --hash` as the oracle.
+
 ## Verifying on the box without moving a token
 
 The prod-probe pattern: run the check **inside** the container so the credential never leaves the host.
