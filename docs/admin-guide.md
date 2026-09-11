@@ -83,7 +83,7 @@ After the flip, day-to-day admin work is: new semester → students arrive by lo
 ### Posture and upkeep
 
 - The bundled realm is a **mock**: `sslRequired: none`, Keycloak in `start-dev`, demo passwords.  Fine on a LAN behind a firewall.  Before real users: real TLS in front, `start` (not `start-dev`) with a proper `KC_HOSTNAME`, demo users disabled, `KC_ADMIN_PASSWORD` rotated.
-- **Realm import only happens on first boot** (empty database).  Later changes to `keycloak/realm-classroom.json` do NOT apply to a running install — make changes in the admin console, and export if you want them captured: `docker exec alm-keycloak /opt/keycloak/bin/kc.sh export --dir /tmp/export --realm classroom`
+- **Realm import runs on every boot, and skips any realm that already exists** (`IGNORE_EXISTING`).  So later changes to `keycloak/realm-classroom.json` do NOT apply to a running install — make changes in the admin console, and export if you want them captured: `docker exec alm-keycloak /opt/keycloak/bin/kc.sh export --dir /tmp/export --realm classroom`.  The flip side: a realm file whose `realm:` name the database hasn't seen **is** imported, demo users and all, into a running install.  Renaming the realm file is minting a second realm, not renaming the first.
 - State = the `keycloak-db` volume (see [Backups](#backups)).
 
 ---

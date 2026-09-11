@@ -190,6 +190,18 @@ Pipeline #13 went red teaching us this.
 
 ---
 
+## Keycloak — realm import is per realm NAME, not per database *(2026-09-11)*
+
+`--import-realm` runs on **every** boot with strategy `IGNORE_EXISTING`: each file in `/opt/keycloak/data/import` is imported unless a realm with that `realm:` name already exists.  The admin guide used to say "first boot only (empty database)," and that model predicted the wrong thing the one time it mattered.
+
+The `northwinds` → `classroom` rename (`9208fc2`) reached xdocker03 with `KC_REALM=northwinds` still pinned in `.env` — correctly, so LibreChat and the registrar never moved.  But Keycloak saw a realm name it had never met and imported it: `Realm 'classroom' imported`, five demo users on the public-repo password, two of them `faculty`, sitting beside the live realm.  Nothing trusted it, since the issuer names `northwinds`, and `auth-*` resolves LAN-only.  It's **disabled, not deleted**, which is enough: it exists now, so `IGNORE_EXISTING` will never re-mint it.
+
+- **The realm name lives in two places seeded at different times** — the file's `realm:` (read by Keycloak at every boot) and `KC_REALM` / `OPENID_ISSUER` in `.env` (seeded once from `.env.example`, never clobbered).  On an existing box they drift apart silently; on a fresh box built from a stale `.env`, Keycloak serves `classroom` while the issuer asks for `northwinds` and login breaks with nothing looking wrong.
+- **To rename a live realm, don't rename the file.**  Export, change `realm:`, and treat it as a migration — or leave the live name alone and pin it, which is what xdocker03 does.
+- **Check what a box is actually serving:** `kcadm.sh get realms --fields realm,enabled` inside the container, prod-probe style.  A disabled realm still answers its `.well-known` with 200; the auth endpoint returning 400 is the real test.
+
+---
+
 ## Container & mount scars (Phase 1, paid in crash loops)
 
 - **OpenBao must raft into `/openbao/file`** — the image owns that directory.  Point storage anywhere else and the data lands root-owned and the container crash-loops.
