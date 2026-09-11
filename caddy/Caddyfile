@@ -28,9 +28,17 @@
 }
 
 # The chat — where everyone lives
+#
+# X-Tenant-Id is stripped because our LibreChat pin TRUSTS it: on /oauth and
+# /api/auth, any well-formed client-supplied value scopes every query in the
+# request to that tenant, strict mode or not.  We run single-tenant and set
+# none of the tenancy vars, so the only correct value is no value.  See
+# docs/design-walls.md, "The tenancy machinery is already in our pin."
 {$CHAT_HOST:chat.localhost} {
     tls {$EDGE_TLS:internal}
-    reverse_proxy librechat:3080
+    reverse_proxy librechat:3080 {
+        header_up -X-Tenant-Id
+    }
 }
 
 # The front door — Keycloak (set KC_PROXY_HEADERS=xforwarded in compose.yml)
