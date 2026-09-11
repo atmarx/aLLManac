@@ -238,9 +238,25 @@ Independent of the CA, three things must agree on the auth hostname, and they fa
 - `OPENID_ISSUER` in `.env`
 - `KC_HOSTNAME` on the Keycloak container
 
-On top of that, the edge **aliases `AUTH_HOST` on the compose network** (see the `edge` service in `compose.yml`), because course instances perform OIDC discovery *through* the edge at the public hostname rather than at an internal service name.  Change the auth hostname and that alias has to move with it.
+On top of that, the edge **aliases `AUTH_HOST` on the compose network** (see the `edge` service in `compose.yml`), because course instances perform OIDC discovery *through* the edge at the public hostname rather than at an internal service name.  Change the auth hostname and that alias has to move with it.  In hostname mode this means **`KC_HOSTNAME` is exactly `https://$AUTH_HOST`, and `AUTH_HOST` is a bare hostname** — no port, or the alias names something the issuer never mentions.
 
-That discovery is **one-shot at boot**.  Get it wrong and the instance fails to start rather than degrading later — which is inconvenient and honest, and much better than a course that half-works for a week.
+That discovery is **one-shot at boot**, and it does **not** fail safe.  The instance boots anyway, logs `OpenID Connect configuration failed - strategy not registered` once, and serves a login page whose SSO is dead.  `/api/config` still reports `openidLoginEnabled: true`, because that flag reads env, not the strategy.  The flagship on xdocker03 ran that way from launch night (2026-07-16) to 2026-09-11.  Its `AUTH_HOST` carried the `:8443` LAN-mode shape while `KC_HOSTNAME` named a different, hostname-mode name, so the alias missed and discovery fell out to a DNS answer nothing routed.  **The only honest check is the log line, or following the login redirect to a Keycloak page that renders** — never the config endpoint.
+
+### Behind a TLS-terminating proxy
+
+A campus load balancer, or xdocker03 behind the homelab gateway on xdocker01, puts a second TLS hop in front of the edge.  The edge routes by `Host` and picks its cert by SNI, so the proxy has to preserve both — and **with an HTTPS upstream, Caddy ≥ 2.11 sends neither by default.**  Dialing `https://<edge-ip>:<port>` sends the IP as SNI (the edge answers with a TLS alert) and, it turns out, `Host` as the dial address (the edge matches no site and returns an **empty 200**, which a status-code check calls healthy).  On a Caddy front:
+
+```
+reverse_proxy https://<edge-ip>:<port> {
+    header_up Host {http.request.host}
+    transport http {
+        tls_server_name {http.request.host}
+        tls_insecure_skip_verify    # only if the edge still runs EDGE_TLS=internal
+    }
+}
+```
+
+One wildcard route on the proxy (`*.<ALMANAC_DOMAIN>`) covers chat, auth, gateway and every course, because the edge does the routing — a new course never touches the proxy.  Check bodies, not codes: `content-length: 0` with `via: Caddy` is the signature of a lost `Host`.
 
 ### The trap: "real" certificates that Node still doesn't trust
 

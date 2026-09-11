@@ -247,7 +247,7 @@ The probe itself is a fastmcp `Client` over `StreamableHttpTransport("http://loc
 ## Structure decisions (settled — reopen only with cause)
 
 - **vLLM is its own compose project** so models outlive app deploys.  Restarting the app plane must never evict a loaded model.  It is also **site-local** (`site/inference/`) — see the platform/site line below.
-- **`just deploy` append-migrates missing `.env` vars** and never touches values that are already set.  New config arrives without clobbering a box's local truth.
+- **`just deploy` append-migrates a NAMED LIST of `.env` vars** — the generated secrets plus the `OPENID_ADMIN_ROLE*` trio in `just secrets` — and never touches values that are already set.  New config arrives without clobbering a box's local truth.  Anything *not* on that list is simply absent from an older `.env` and falls back to the code default: xdocker03 had no `ALMANAC_DOMAIN` line at all until 2026-09-11, so the registrar would have minted courses at `<slug>.localhost` without a word.  A var with no sane universal default doesn't belong on the list, so it belongs on the operator's checklist instead.
 - **`just sbom`** = digest-pinned syft SPDX per image.  Regenerate at pin-bump time, not per deploy — see [ci.md](ci.md).
 - **The registrar's reconcile plane is `registrar/planes/`**, one module per system it talks to, with `reconcile.py` as the facade and the single import surface.  The invariant: **a verb may compose planes; a plane may never import a sibling plane.**  Credentials stay auditable because there's exactly one list to read.
 
