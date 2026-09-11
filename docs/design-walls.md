@@ -172,6 +172,8 @@ Both were reachable.  Three call sites minted and *then* escrowed with no cleanu
 
 **A process death between the mint call and the escrow write still leaves an orphan.  No ordering closes that window** — it can only be detected, by joining the ledger to the escrow on the deterministic `key_alias` (`<slug>:<email>`).  That audit is not built.
 
+**A key's fuse may never exceed the pool remainder, and a fuse below `REGISTRAR_MIN_FUSE` is refused rather than minted** *(2026-09-11)*.  LiteLLM enforces the team budget whatever we write on the key, so the clamp buys honesty, not enforcement — it makes what a key says and what a key can do the same number.  The refusal is the other half: a dead-on-arrival credential costs the holder a debugging session and teaches them the platform is broken.  This replaced a `max(0.5, fuse - spent)` floor in rotation that refilled $0.50 on every rotation, which meant the fuse bounded nothing.  A floor and a gate have similar shapes and opposite effects.
+
 `just key` used to call `/key/generate` straight at the gateway: no `team_id` (so it drew on no pool), no escrow, no audit — a fresh orphan on every run, including the roster loop the admin guide used to recommend.  **There is no unescrowed mint path any more**, and `just key` prints metadata, never the key.
 
 ---

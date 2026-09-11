@@ -168,6 +168,9 @@ def main() -> int:
         except KeyError as e:
             print(f"ERROR: {e.args[0]}", file=sys.stderr)
             return 1
+        except reconcile.PoolExhausted as e:
+            print(f"REFUSED: {e}", file=sys.stderr)
+            return 1
         # Metadata only — the key stays in the escrow.  Reading it back is a
         # deliberate, audited act, not a side effect of minting.
         print(json.dumps({k: v for k, v in rec.items() if k != "key"}, indent=2))

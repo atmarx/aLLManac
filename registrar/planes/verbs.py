@@ -14,10 +14,16 @@ from datetime import datetime, timezone
 
 import httpx
 
-from .config import ALMANAC_DOMAIN
+from .config import ALMANAC_DOMAIN, MIN_FUSE
 from .courses import course_models, load_courses, save_courses
 from .escrow import escrow_delete, escrow_read, escrow_write
-from .gateway import ll_delete_key, ll_ensure_team, ll_key_spend, ll_mint_key
+from .gateway import (
+    ll_delete_key,
+    ll_ensure_team,
+    ll_key_spend,
+    ll_mint_key,
+    ll_team_remaining,
+)
 from .keycloak import (
     kc_ensure_client,
     kc_ensure_client_roles,
@@ -28,6 +34,36 @@ from .keycloak import (
 
 def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
+class PoolExhausted(Exception):
+    """Not enough budget left to mint a key that could actually do anything."""
+
+
+async def _fuse_for(cx: httpx.AsyncClient, slug: str, want: float) -> float:
+    """The fuse a new key may actually carry — never more than the pool can pay.
+
+    A key's number is a promise, and a $5 fuse against a course pool with
+    $2 left is a key that stops at $2 and never says why.  The pool is the
+    hard cap and LiteLLM enforces it regardless, so clamping here buys
+    honesty rather than enforcement: what the key says and what the key can
+    do become the same number.
+
+    And when that number is too small to fund a working session, **refuse.**
+    Handing someone a credential that is dead on arrival costs them a
+    debugging session and teaches them the platform is broken; a refusal
+    that names the reason costs them one sentence.
+    """
+    left = await ll_team_remaining(cx, slug)
+    fuse = want if left is None else min(want, left)
+    if fuse < MIN_FUSE:
+        raise PoolExhausted(
+            f"{slug}: a new key would carry ${fuse:.2f}, under the "
+            f"${MIN_FUSE:.2f} a working session needs "
+            f"(this key's remainder ${want:.2f}; course pool "
+            f"{'unreadable' if left is None else f'${left:.2f}'} left)."
+        )
+    return fuse
 
 
 async def _mint_escrowed(cx: httpx.AsyncClient, slug: str, who: str,
@@ -69,9 +105,9 @@ async def _enroll_one(cx: httpx.AsyncClient, slug: str, course: dict,
             await kc_set_client_role(cx, uid, client_uuid, roles["member"], True)
         note = "" if uid else "(no realm user yet — door opens on next sync after first login)"
         if await escrow_read(slug, email) is None:
+            fuse = await _fuse_for(cx, slug, course["budgets"]["key_fuse"])
             await _mint_escrowed(cx, slug, email,
-                                 course_models(course, courses),
-                                 course["budgets"]["key_fuse"], email,
+                                 course_models(course, courses), fuse, email,
                                  alias=f"{slug}:{email}")
             note = (note + " minted+escrowed").strip()
         else:
@@ -138,6 +174,11 @@ async def rotate_student_key(slug: str, email: str) -> dict:
     live keys — and `revoke_pending` records which one still owes a death,
     so an interrupted rotation is a debt we can see rather than a quietly
     doubled fuse.
+
+    There used to be a `max(0.5, ...)` floor here, which meant rotating at
+    exhaustion handed back $0.50 every time — a fuse that refills on demand
+    bounds nothing.  The floor was the wrong instrument: what this needs is a
+    *gate*, not a minimum.  See `_fuse_for`.
     """
     courses = load_courses()
     course = courses["courses"][slug]
@@ -155,7 +196,12 @@ async def rotate_student_key(slug: str, email: str) -> dict:
         extra = {"rotated_from": old.get("minted_at")}
         if old_key:
             spent = await ll_key_spend(cx, old_key)
-            remaining = round(max(0.5, fuse - spent), 2)
+            remaining = round(max(0.0, fuse - spent), 2)
+
+        # Clamp and gate BEFORE revoking anything: a refusal has to leave the
+        # caller exactly as they were, still holding a working key.
+        remaining = await _fuse_for(cx, slug, remaining)
+        if old_key:
             extra["revoke_pending"] = old_key
 
         rec = await _mint_escrowed(cx, slug, email,
@@ -184,9 +230,10 @@ async def mint_key(slug: str, email: str, budget: float | None = None) -> dict:
     if existing is not None:
         return {**existing, "already": True}
     async with httpx.AsyncClient(timeout=30) as cx:
+        fuse = await _fuse_for(
+            cx, slug, budget if budget else course["budgets"]["key_fuse"])
         rec = await _mint_escrowed(cx, slug, email,
-                                   course_models(course, courses),
-                                   budget if budget else course["budgets"]["key_fuse"],
+                                   course_models(course, courses), fuse,
                                    email, alias=f"{slug}:{email}")
     return {**rec, "already": False}
 

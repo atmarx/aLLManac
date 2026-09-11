@@ -133,19 +133,29 @@ A third goes on the page and **must not be red**: `advisory_weekly` never blocks
 
 All three come from LiteLLM.  Nothing is computed locally, so the mailroom cannot drift from the ledger.  `ll_key_spend()` already reads the fuse side; the pool needs a small team-info reader that does not exist yet.
 
-### The rotate button exposes a floor that chat never stressed
+### A key's number must never promise more than the pool can pay *(ruled 2026-09-11)*
 
-Rotation carries the fuse's remainder forward, with a floor (`verbs.py`):
+Rotation used to carry the remainder forward with a floor (`verbs.py`):
 
 ```python
 remaining = round(max(0.5, fuse - spent), 2)
 ```
 
-Rotate at exhaustion and the replacement key arrives with **$0.50**.  Rotate again, another $0.50.
+Rotate at exhaustion and the replacement arrived with **$0.50**.  Rotate again, another $0.50 — a fuse that refills on demand bounds nothing, which is the one job `key_fuse` has.  Today that takes a chat request and nobody does it twice; a Rotate button on a page every student visits makes it the obvious move for exactly the population that thinks their key is broken.
 
-The course team budget still caps real spending, so this is not a quota exploit — but `key_fuse` exists to bound the blast radius of a leaked key, and a floor that refills on demand means it does not bound anything.  Today this takes a chat request and nobody does it twice.  **Put a Rotate button on a page every student visits and it becomes the obvious move for anyone who thinks their key is broken** — which is exactly the population that will be standing there.
+But the floor was the wrong instrument for a wider reason, and the wider rule is what got ruled:
 
-Needs a ruling before the button ships.  Two options: drop the floor when `spent >= fuse`, so rotation returns a dead-on-arrival key and says so; or refuse rotation at exhaustion and point at the grant path instead.  Prefer refusing — handing someone a new key that also doesn't work teaches precisely the wrong lesson about what rotation is for.
+> **A key may never carry a fuse larger than what is actually available, and a fuse too small to fund a working session is not minted at all.**
+
+The floor guaranteed a *minimum*.  What this needs is a **gate**.  Those have similar shapes and opposite effects.
+
+The first half applies well beyond rotation.  Enroll a student late into a course whose pool is nearly spent and today they receive a $5 key against $2 of pool — a key that stops at $2 and never says why.  The pool is the hard cap and LiteLLM enforces it whatever we write, so clamping the fuse to the pool remainder buys no enforcement; **it makes what the key says and what the key can do the same number**, which is the entire reason the mailroom shows a number at all.
+
+The second half is the refusal.  Handing someone a dead-on-arrival credential costs them a debugging session and teaches them the platform is broken.  A refusal that names the reason costs one sentence.
+
+Implemented in `_fuse_for()` (`planes/verbs.py`) across all three mint paths — enrollment, rotation, and the operator's `just key`.  Rotation clamps *before* it revokes, so a refusal leaves the caller exactly as they were, still holding a working key.  An unreadable pool mints optimistically rather than refusing: failing closed on a transient gateway blip would strand a whole roster in exchange for protection LiteLLM already provides.
+
+**`REGISTRAR_MIN_FUSE` is a placeholder.**  Nobody has measured what a short opencode session actually costs against our packs.  It is measurable — run one and read the ledger — and until someone does, the default of $1 is taste, not evidence.
 
 ## Who gets a key
 
@@ -199,7 +209,7 @@ Kept, despite looking skippable:
 
 ## Open, unruled
 
-- The rotation floor at exhaustion — dead-on-arrival key, or refuse and route to a grant.
+- What `REGISTRAR_MIN_FUSE` should actually be.  Needs one measured session, not a judgement call.
 - Whether the open commons has a roster, and therefore whether it has keys.
 - Whether a course-linked project mints its own key or rides the parent course's ([rooms-and-visibility.md](rooms-and-visibility.md) puts it inside the parent's instance; it does not say whose key).
 - Flat course pool vs. base-plus-per-student.  Institutional, and named here only so the two components are on record.

@@ -60,6 +60,31 @@ async def ll_delete_key(cx: httpx.AsyncClient, key: str) -> bool:
     return r.status_code == 200
 
 
+async def ll_team_remaining(cx: httpx.AsyncClient, slug: str) -> float | None:
+    """What is actually left in the course pool — `max_budget - spend`.
+
+    `None` means "no ceiling to clamp against": the team has no `max_budget`,
+    or the read failed.  Callers mint optimistically on `None` rather than
+    refusing, and that is deliberate — **LiteLLM enforces the team budget
+    whatever we write on the key**, so this number buys honesty, not
+    enforcement.  Failing closed on a transient read error would turn one
+    gateway blip into a whole roster that couldn't enroll, in exchange for
+    protection we already have.
+
+    Shape verified against the pin (`TeamInfoResponseObject.team_info` carries
+    `spend` and `max_budget`), not inferred from the docs.
+    """
+    r = await cx.get(f"{LITELLM_URL}/team/info", params={"team_id": slug},
+                     headers=_ll_headers())
+    if r.status_code != 200:
+        return None
+    info = (r.json() or {}).get("team_info") or {}
+    cap = info.get("max_budget")
+    if cap is None:
+        return None
+    return max(0.0, round(float(cap) - float(info.get("spend") or 0.0), 2))
+
+
 async def ll_key_spend(cx: httpx.AsyncClient, key: str) -> float:
     r = await cx.get(f"{LITELLM_URL}/key/info", params={"key": key},
                      headers=_ll_headers())

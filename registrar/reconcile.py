@@ -38,6 +38,7 @@ from planes.config import (
     KC_REALM,
     KNOWN_CAPABILITIES,
     MAX_FUSE,
+    MIN_FUSE,
 )
 from planes.courses import (
     CoursesError,
@@ -59,6 +60,7 @@ from planes.gateway import (
     ll_ensure_team,
     ll_key_spend,
     ll_mint_key,
+    ll_team_remaining,
 )
 from planes.keycloak import (
     kc_ensure_client,
@@ -67,6 +69,7 @@ from planes.keycloak import (
     kc_user_id,
 )
 from planes.verbs import (
+    PoolExhausted,
     apply_roster,
     ensure_course,
     mint_key,

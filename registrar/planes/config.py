@@ -28,6 +28,11 @@ ALMANAC_DOMAIN = os.environ.get("ALMANAC_DOMAIN", "localhost")
 
 DEFAULT_FUSE = float(os.environ.get("REGISTRAR_DEFAULT_FUSE", "5"))
 MAX_FUSE = float(os.environ.get("REGISTRAR_MAX_FUSE", "25"))
+# Below this a key can't fund a short working session, so minting one just
+# produces a credential that looks broken.  PLACEHOLDER — nobody has measured
+# what a real half-hour opencode session costs against our packs; measure it
+# and set this from the ledger rather than from taste.
+MIN_FUSE = float(os.environ.get("REGISTRAR_MIN_FUSE", "1"))
 DEFAULT_COURSE_BUDGET = float(os.environ.get("REGISTRAR_DEFAULT_COURSE_BUDGET", "1000"))
 BASE_MODELS = [
     model.strip()

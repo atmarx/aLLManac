@@ -182,7 +182,18 @@ async def rotate_my_key() -> str:
     course = _course_or_refuse(slug)
     if email not in course.get("students", []):
         raise ToolError(f"No key to rotate — you're not on the {slug} roster.")
-    new = await reconcile.rotate_student_key(slug, email)
+    try:
+        new = await reconcile.rotate_student_key(slug, email)
+    except reconcile.PoolExhausted:
+        # Rotation carries the remainder forward; it has never been a refill.
+        # Say which budget is empty, because "your key stopped working" reads
+        # as a broken key and sends people rotating in circles.
+        raise ToolError(
+            f"Rotating won't help — there's nothing left to carry over for "
+            f"{slug}.  A new key would be dead on arrival, so I won't mint "
+            "one.  Ask your instructor about more budget; `my_usage` shows "
+            "where it went."
+        ) from None
     return (
         f"Rotated.  Your new {slug} key:\n\n    {new['key']}\n\n"
         f"Remaining fuse carried over: ${new['budget']}.  The old key is "
