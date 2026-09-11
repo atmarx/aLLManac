@@ -1,3 +1,19 @@
+---
+title: When does a room get its own instance?
+description: A proposed rule — mint an instance only when someone other than the user needs administrative visibility — run through every room kind, plus the argument for a commons that the registrar spec does not yet make.
+audience: operator
+also_reaches: [builder, faculty]
+status: proposed
+owner: marco
+tags: [tenancy, isolation, multi-tenant, access-control, rbac, least-privilege, attribution, metering, course-rollover, transparency-notice, equity, student-right, faculty-duty, librechat]
+tethered_to:
+  - docs/registrar-spec.md
+  - registrar/server.py
+  - registrar/render.py
+  - registrar/courses.example.yaml
+  - site.example/
+---
+
 # Rooms and visibility — when to mint an instance, and why the commons is different
 
 **Status: proposed, 2026-09-09.**  Not ruled.  The room primitive described here already exists (`kind: course | project | sandbox | office` with an optional `parent:`, see [registrar-spec.md](registrar-spec.md)); what is proposed is a rule for *when each kind gets its own instance*, and a new argument for why a commons should exist at all.

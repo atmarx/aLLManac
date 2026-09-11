@@ -1,3 +1,17 @@
+---
+title: How do I write a page students will read?
+description: The page shapes, the controlled tag vocabulary, and the front matter every file in apex/ carries — plus the two rules that keep the words from drifting away from the running system.
+audience: operator
+also_reaches: [builder]
+status: published
+owner: piper
+tags: [doc-drift, ai-literacy, accountability, faculty-duty, student-right, data-classification]
+tethered_to:
+  - apex/tags.md
+  - mkdocs.yml
+  - docs/design-walls.md
+---
+
 # Authoring the reader-facing pages
 
 *Owner: @piper (pedagogy lane).  Operator/author-facing — this file stays in `docs/` and out of `apex/` on purpose; see "The corpus boundary" below.*
@@ -52,7 +66,7 @@ title: Why is there a vault?
 description: One sentence — used by mkdocs, the tag index, and the RAG chunker.
 audience: student          # student | faculty | builder | operator
 also_reaches: [faculty]    # the overhearing audience; omit if none
-status: scaffold           # scaffold | draft | published
+status: scaffold           # scaffold | draft | proposed | published
 owner: piper
 tags: [secrets-management, escrow, openbao, encryption-at-rest]
 regimes: [ferpa]           # data pages only; omit elsewhere
@@ -122,11 +136,11 @@ Tags are an index, so they only work if the same idea always gets the same word.
 
 **Controls** `access-control` · `rbac` · `sso` · `oidc` · `identity-broker` · `least-privilege` · `secrets-management` · `escrow` · `key-rotation` · `encryption-at-rest` · `encryption-in-transit` · `audit-logging` · `egress-control` · `allowlist`
 
-**Lifecycle** `backup` · `restore` · `retention` · `archival` · `secure-deletion` · `disaster-recovery` · `rpo-rto` · `course-rollover`
+**Lifecycle** `backup` · `restore` · `retention` · `archival` · `secure-deletion` · `disaster-recovery` · `rpo-rto` · `course-rollover` · `deployment` · `supply-chain`
 
-**Architecture** `tenancy` · `isolation` · `multi-tenant` · `gateway` · `chokepoint` · `attribution` · `metering` · `rendered-config`
+**Architecture** `tenancy` · `isolation` · `multi-tenant` · `gateway` · `chokepoint` · `attribution` · `metering` · `rendered-config` · `doc-drift`
 
-**Stack and backends** `openbao` · `keycloak` · `litellm` · `librechat` · `mongodb` · `docker-compose` · `kubernetes` · `azure` · `aws` · `globus` · `vllm`
+**Stack and backends** `openbao` · `keycloak` · `litellm` · `librechat` · `mongodb` · `caddy` · `docker-compose` · `kubernetes` · `azure` · `aws` · `globus` · `vllm`
 
 **Teaching and learning** `assessment-design` · `academic-integrity` · `syllabus-policy` · `detection` · `disclosure` · `ai-literacy` · `critical-evaluation` · `hallucination` · `equity` · `accountability` · `source-verification`
 

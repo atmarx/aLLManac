@@ -1,3 +1,17 @@
+---
+title: How do I deploy this from CI?
+description: Every CI system is the same three-line wrapper — ssh to the box, sync, `just deploy` — with working pipelines for Woodpecker, GitLab and GitHub Actions, and the reasons the sync is spelled out by hand.
+audience: operator
+also_reaches: [builder]
+status: draft
+owner: geordi
+tags: [deployment, secrets-management, rendered-config, supply-chain, docker-compose, kubernetes, azure, operator-duty]
+tethered_to:
+  - justfile
+  - .woodpecker/deploy.yml
+  - compose.yml
+  - docs/design-walls.md
+---
 # CI on anything — the pipeline is three lines
 
 All deployment logic lives in the [`justfile`](../justfile).  Every CI system is the same thin wrapper: **ssh to the box, sync, `just deploy`.**  Below are working pipelines for Woodpecker, GitLab CI and GitHub Actions — swap the host and you're deployed.

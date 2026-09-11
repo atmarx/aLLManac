@@ -1,3 +1,22 @@
+---
+title: What do we already know not to try?
+description: A catalogue of walls — questions already answered the expensive way, from the Actions allowlist whose empty default permits the entire internet to the single-file mount that served stale config through a green reload.
+audience: operator
+also_reaches: [builder, student]
+status: draft
+owner: geordi
+tags: [egress-control, allowlist, access-control, least-privilege, secrets-management, key-rotation, encryption-in-transit, rendered-config, chokepoint, gateway, tenancy, isolation, attribution, metering, docker-compose, kubernetes, librechat, litellm, openbao, keycloak, vllm]
+tethered_to:
+  - compose.yml
+  - justfile
+  - registrar/render.py
+  - registrar/planes/config.py
+  - librechat/librechat.yaml
+  - litellm/config.yaml
+  - caddy/Caddyfile
+  - openbao/config.hcl
+---
+
 # Design walls — do not re-derive
 
 *Every line below cost something to learn: two research agents, an empirical rig, and a handful of red pipelines.  These are **walls**, not preferences — places where the obvious approach is wrong and someone already paid to find out.  If you are about to research one of these questions, stop.  It's answered here.*

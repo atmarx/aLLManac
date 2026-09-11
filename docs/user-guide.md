@@ -1,3 +1,19 @@
+---
+title: How do I build with my course's AI?
+description: The walkthrough for the people in a course — building your own agent, maintaining one as a team of co-editors, and pointing your own code at the campus gateway with an API key.
+audience: student
+also_reaches: [faculty]
+status: draft
+owner: piper
+tags: [sso, access-control, rbac, secrets-management, key-rotation, attribution, metering, assessment-design, ai-literacy, accountability, faculty-duty, student-right, librechat, litellm]
+tethered_to:
+  - registrar/render.py
+  - registrar/planes/gateway.py
+  - usage-mcp/server.py
+  - justfile
+  - docs/admin-guide.md
+---
+
 # The aLLManac — Course Guide
 
 *For the people teaching with it, and the students building on it.*

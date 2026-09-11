@@ -1,3 +1,20 @@
+---
+title: How do I run the aLLManac?
+description: The operator's path through the two consoles that run this stack — Keycloak for who, LiteLLM for how much — plus the chat usage tools, the course fleet, backups, and the free-tier walls you will hit.
+audience: operator
+also_reaches: [faculty]
+status: draft
+owner: geordi
+tags: [keycloak, litellm, librechat, sso, oidc, identity-broker, rbac, key-rotation, escrow, metering, attribution, backup]
+tethered_to:
+  - justfile
+  - litellm/config.yaml
+  - keycloak/realm-classroom.json
+  - usage-mcp/server.py
+  - registrar/planes/gateway.py
+  - registrar/render.py
+---
+
 # The aLLManac — Admin Guide
 
 *Keycloak decides **who**.  LiteLLM decides **how much**.  This guide is those two consoles, the seams between them, and the honest boundaries of the free tier — verified against the exact pinned builds this stack runs.*

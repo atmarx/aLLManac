@@ -1,3 +1,17 @@
+---
+title: What is the meter for, and who is allowed to say the number?
+description: A proposed rule for what a student sees of their own budget, where they see it, and what happens when they run out — grounded in what LibreChat's balance code actually does at our pin.
+audience: operator
+also_reaches: [faculty, builder]
+status: proposed
+owner: marco
+tags: [metering, attribution, gateway, equity, accountability, ai-literacy, litellm, librechat, mongodb]
+tethered_to:
+  - usage-mcp/server.py
+  - registrar/planes/gateway.py
+  - registrar/courses.example.yaml
+---
+
 # Budgets and meters — what the number is for, and who is allowed to say it
 
 **Status: proposed, 2026-09-10.**  Not ruled.  The budget layers described here already exist (`course` as the hard term cap, `key_fuse` as per-key blast radius, `advisory_weekly` as pacing that never blocks — see [registrar-spec.md](registrar-spec.md)); what is proposed is a rule for *what a student sees*, where they see it, and what happens when they run out.  Everything under [What the pin actually does](#what-the-pin-actually-does) is verified against `ghcr.io/danny-avila/librechat:v0.8.7` and is fact, not proposal.

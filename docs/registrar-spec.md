@@ -1,3 +1,20 @@
+---
+title: How a course gets provisioned
+description: The internal record for the registrar — how an instructor's roster becomes a course's own LibreChat instance, a managed group, one minted key per student, and an escrow entry for each.
+audience: operator
+also_reaches: [builder]
+status: draft
+owner: marco
+tags: [tenancy, isolation, multi-tenant, gateway, attribution, metering, rendered-config, escrow, secrets-management, key-rotation, rbac, course-rollover, openbao, keycloak, litellm, librechat, globus]
+tethered_to:
+  - registrar/server.py
+  - registrar/reconcile.py
+  - registrar/render.py
+  - registrar/planes/
+  - registrar/courses.example.yaml
+  - fleet/
+  - justfile
+---
 # The Registrar — rosters, keys, and the escrow
 
 *Spec, not code.  Written 2026-07-22, before any implementation, on purpose.*

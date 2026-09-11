@@ -1,3 +1,19 @@
+---
+title: How do I get certificates for the fleet?
+description: A decision guide for standing the edge up at an institution — the ten questions only your CA can answer, and the measured half of what Caddy does once you have the answers.
+audience: operator
+also_reaches: [builder]
+status: draft
+owner: geordi
+tags: [encryption-in-transit, caddy, gateway, chokepoint, tenancy, rendered-config, key-rotation, oidc, keycloak, operator-duty]
+tethered_to:
+  - caddy/Caddyfile
+  - fleet/caddy/
+  - registrar/render.py
+  - compose.yml
+  - .env.example
+  - justfile
+---
 # TLS at the edge — a decision guide
 
 This page is for whoever is standing the aLLManac up at an institution.  It does not tell you what your certificates should be, because that depends on a CA this project has never met.  It tells you **which questions decide the shape of your deployment, who can answer each one, and what each answer costs you.**
