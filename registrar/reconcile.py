@@ -69,6 +69,7 @@ from planes.keycloak import (
 from planes.verbs import (
     apply_roster,
     ensure_course,
+    mint_key,
     reconcile_students_cmd,
     rotate_student_key,
 )

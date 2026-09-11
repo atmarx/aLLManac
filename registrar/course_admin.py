@@ -5,6 +5,7 @@
     python course_admin.py reconcile <slug>     re-run everything, idempotent
     python course_admin.py render               re-render all files (template bumps)
     python course_admin.py validate             check courses.yaml, touch nothing
+    python course_admin.py mint <slug> <email> [--budget N]   mint + escrow, prints no key
     python course_admin.py show-key <slug> <email>   break-glass escrow read (audited)
     python course_admin.py list
 
@@ -91,6 +92,12 @@ def main() -> int:
 
     sub.add_parser("validate", help="check courses.yaml and change nothing")
 
+    m = sub.add_parser("mint", help="mint + escrow one key through the registrar transaction")
+    m.add_argument("slug")
+    m.add_argument("email")
+    m.add_argument("--budget", type=float, default=None,
+                   help="fuse for this key, USD (default: the course's key_fuse)")
+
     s = sub.add_parser("show-key", help="break-glass: print an escrowed key (bao audits the read)")
     s.add_argument("slug")
     s.add_argument("email")
@@ -152,6 +159,24 @@ def main() -> int:
         render.render_fleet(courses)
         render.render_roster(courses)
         print("fleet.yml + roster.yaml rendered")
+        return 0
+
+    if args.cmd == "mint":
+        slug, email = args.slug.strip().lower(), args.email.strip().lower()
+        try:
+            rec = asyncio.run(reconcile.mint_key(slug, email, args.budget))
+        except KeyError as e:
+            print(f"ERROR: {e.args[0]}", file=sys.stderr)
+            return 1
+        # Metadata only — the key stays in the escrow.  Reading it back is a
+        # deliberate, audited act, not a side effect of minting.
+        print(json.dumps({k: v for k, v in rec.items() if k != "key"}, indent=2))
+        if rec["already"]:
+            print(f"\nalready escrowed for {email} in {slug} — nothing minted.")
+        else:
+            print(f"\nminted + escrowed for {email} in {slug}.")
+        print(f"read it back (break-glass, bao audits the read):"
+              f"\n  just key-show {slug} {email}")
         return 0
 
     if args.cmd == "show-key":

@@ -161,6 +161,21 @@ Consequences we already committed to:
 
 ---
 
+## Mint and escrow are one transaction, and the order is load-bearing *(2026-09-11)*
+
+A virtual key exists in two places — the gateway, where it spends, and OpenBao, where it can be read back.  A key in only one of those is a defect, and which one it's missing from decides how bad:
+
+- **Gateway but no escrow** — live, spending the course pool, and *unreadable by anyone*.  No student can use it, no operator can revoke it deliberately, and nothing can attribute it after the fact.  This is the worse orphan.
+- **Escrow but no gateway key** — the record hands out a credential the gateway already rejects.  Recoverable, but the student hits a wall with no explanation.
+
+Both were reachable.  Three call sites minted and *then* escrowed with no cleanup on failure (`planes/verbs.py`), and rotation revoked the old key *before* minting the replacement — so a failed mint produced both defects at once.  All minting now goes through `_mint_escrowed()`, which revokes on escrow failure; rotation mints first and records `revoke_pending` in the escrow record so an interrupted rotation is a visible debt rather than a quietly doubled fuse.
+
+**A process death between the mint call and the escrow write still leaves an orphan.  No ordering closes that window** — it can only be detected, by joining the ledger to the escrow on the deterministic `key_alias` (`<slug>:<email>`).  That audit is not built.
+
+`just key` used to call `/key/generate` straight at the gateway: no `team_id` (so it drew on no pool), no escrow, no audit — a fresh orphan on every run, including the roster loop the admin guide used to recommend.  **There is no unescrowed mint path any more**, and `just key` prints metadata, never the key.
+
+---
+
 ## opencode
 
 - Official image is **`ghcr.io/anomalyco/opencode`** — the org moved from `sst`.  Old paths are stale.

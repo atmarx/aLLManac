@@ -109,8 +109,8 @@ If step 4 works, the core promise is real.
 Every user gets a **virtual API key**, and every key is minted with an **owner** — the class or lab that answers for the spend:
 
 ```bash
-just key stu.amaya engr301 5     # user, owner, budget ($)
-just spend                       # month-to-date, grouped by owner
+just key engr301 stu.amaya@example.edu   # course, email, [budget] — minted AND escrowed
+just spend                               # month-to-date, grouped by owner
 ```
 
 `owner` is required — no owner, no key. It's stamped into the key's metadata and spend tags, so usage always rolls up to an organizational unit: **the owner is who gets the invoice**, even when the subsidy takes it to zero. A class sees exactly what it used this month, what it would have cost on commercial cloud AI, and what the campus rate saved them. Free-but-visible is the point: cost consciousness without a paywall.

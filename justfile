@@ -649,20 +649,27 @@ bao-unseal:
 # spend tags so monthly usage rolls up to an owner — the join key the
 # accounting/FOCUS export will consume later.  No owner, no key.
 
-# Mint a per-user virtual key:  just key amaya@example.edu engr301 [budget]
-# Use the person's SIGN-IN EMAIL as the user: that's what joins their key
-# spend to their chat spend in the usage tools (a non-email user_id needs an
-# aliases: entry in usage-mcp/roster.yaml to fold back onto the student).
-# NOTE: the owner tag lives in metadata.tags — top-level `tags` is a LiteLLM
-# ENTERPRISE feature (403 license wall).  metadata.tags rolls up to
-# /spend/tags in OSS, a beat behind realtime (spend logs aggregate async).
-key user owner budget="5":
-    @curl -sf http://localhost:${GATEWAY_PORT:-4000}/key/generate \
-      -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
-      -H "Content-Type: application/json" \
-      -d '{"models": ["almanac-chat"], "max_budget": {{budget}}, "user_id": "{{user}}", "metadata": {"owner": "{{owner}}", "tags": ["owner:{{owner}}"]}}' \
-      | python3 -m json.tool
-    @echo "minted for {{user}} — owner {{owner}}, budget \${{budget}}"
+# Use the person's SIGN-IN EMAIL: that's what joins their key spend to their
+# chat spend in the usage tools (a non-email user_id needs an aliases: entry
+# in usage-mcp/roster.yaml to fold back onto the student).  Budget defaults to
+# the course's key_fuse.
+#
+# This prints METADATA, never the key.  It used to call /key/generate straight
+# at the gateway, which made a key that was outside the course team (so it drew
+# on no pool), outside OpenBao (so nobody could ever read it back), and outside
+# every audit — a fresh orphan on every run.  All durable minting now goes
+# through the registrar's mint-and-escrow transaction.  See `just key-show`.
+#
+# Mint a per-user virtual key, escrowed:  just key engr301 amaya@example.edu [budget]
+key slug email budget="0":
+    {{compose}} exec -T registrar python course_admin.py mint "{{slug}}" "{{email}}" --budget {{budget}} </dev/null
+
+# OpenBao audits the read, and this must never run from CI, a health check, or
+# anything a model can reach.
+#
+# Break-glass: print one escrowed key.  just key-show engr301 amaya@example.edu
+key-show slug email:
+    {{compose}} exec -T registrar python course_admin.py show-key "{{slug}}" "{{email}}" </dev/null
 
 # Spend grouped by owner tag (the month-to-date "who used what")
 spend:

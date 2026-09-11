@@ -149,7 +149,8 @@ async def my_key() -> str:
         if email in course.get("instructors", []) or email in course.get("tas", []):
             raise ToolError(
                 "Keys are minted per student.  Staff test keys: the operator "
-                "can mint one with `just key` (or enroll yourself)."
+                "can mint one with `just key <course> <your-email>` (or "
+                "enroll yourself)."
             )
         raise ToolError(
             f"You're not on the roster for {slug} yet — your instructor "

@@ -105,19 +105,17 @@ The model name students see is the `model_name`; where it actually runs is nobod
 
 ### The key contract
 
-**No key without an owner.**  Every key is minted against the org unit that answers for the spend:
+**No key without an owner, and no key without an escrow.**  Every key is minted against the course that answers for the spend, and written into OpenBao in the same transaction:
 
 ```bash
-just key stu.amaya engr301 5      # user, owner, budget ($)
+just key engr301 stu.amaya@example.edu      # course, email, [budget]
 ```
 
-That stamps `metadata.owner` and `metadata.tags: ["owner:engr301"]` into the key; the tag lands in every spend row (`request_tags`), which is what `just spend` and the future FOCUS export roll up.  A whole roster is a loop:
+That stamps `metadata.owner` and `metadata.tags: ["owner:engr301"]` into the key; the tag lands in every spend row (`request_tags`), which is what `just spend` and the future FOCUS export roll up.
 
-```bash
-while read -r user; do just key "$user" engr301 5; done < roster.txt
-```
+**A whole roster is not a loop** — it's the roster upload, in chat or via `just course`.  The registrar mints and escrows one key per student as a side effect of enrollment, so the hand-mint recipe is for staff test keys and one-off repairs, not for provisioning a class.
 
-Each mint prints the key JSON once — that `sk-...` is the student's copy; hand it over individually (LMS message).  It is not retrievable later, only replaceable.
+The recipe prints **metadata, never the key**.  The key is retrievable — that's what the escrow is for — but reading it back is a deliberate, audited act (`just key-show`), not a line of terminal scrollback you have to go find later.  Rotation preserves the remaining fuse; it is not a budget reset.
 
 **Lifecycle** (all verified against our pinned build):
 
@@ -198,9 +196,9 @@ courses:
 admins: []          # platform folks who may pull EVERY course
 ```
 
-- The course slug is the SAME owner slug you mint keys with (`just key ... engr301`) — that's what folds vAPI-key spend into the course rollup.
+- The course slug is the SAME owner slug you mint keys with (`just key engr301 ...`) — that's what folds vAPI-key spend into the course rollup.
 - `students:` powers both the chat-usage join and the "who hasn't started yet" answer.  No roster, no anti-join.
-- Mint keys with the person's **sign-in email** as the user (`just key amaya@example.edu engr301`) and their chat + key usage join automatically.  A key minted under any other user_id needs an `aliases:` entry (email → `[user_ids]`) to fold back onto the student.
+- Mint keys with the person's **sign-in email** as the user (`just key engr301 amaya@example.edu`) and their chat + key usage join automatically.  A key minted under any other user_id needs an `aliases:` entry (email → `[user_ids]`) to fold back onto the student.
 - Faculty need BOTH the `faculty` realm role (that's what makes the role header say ADMIN) and a roster listing (that's what narrows it to *their* course).
 
 ### The "Almanac Usage" agent (one-time, two minutes)

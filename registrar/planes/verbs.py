@@ -9,6 +9,7 @@ the whole reason this file exists separately from the four below it.
 """
 
 import asyncio
+import contextlib
 from datetime import datetime, timezone
 
 import httpx
@@ -29,6 +30,35 @@ def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
+async def _mint_escrowed(cx: httpx.AsyncClient, slug: str, who: str,
+                         models: list[str], budget: float,
+                         user_id: str | None, alias: str,
+                         extra: dict | None = None) -> dict:
+    """Mint at the gateway and escrow in the same breath — the only way a
+    durable key is created.
+
+    A key that is minted but not escrowed is worse than no key at all: it is
+    live at the gateway spending the course pool, and nobody — not the
+    student, not the operator — can ever read it back to revoke it
+    deliberately.  So when the escrow write fails, revoke before raising and
+    let the caller see a clean failure instead of a silent orphan.
+
+    A process death *between* the two calls still leaves one, and no ordering
+    closes that window — it can only be detected.  The deterministic alias
+    (`<slug>:<email>`) is what an audit joins the ledger to the escrow on.
+    """
+    key = await ll_mint_key(cx, slug, models, budget, user_id, alias=alias)
+    rec = {"key": key, "minted_at": _now(), "budget": budget, **(extra or {})}
+    try:
+        await escrow_write(slug, who, rec)
+    except Exception:
+        # Best effort: the escrow failure is the error worth reporting.
+        with contextlib.suppress(Exception):
+            await ll_delete_key(cx, key)
+        raise
+    return rec
+
+
 async def _enroll_one(cx: httpx.AsyncClient, slug: str, course: dict,
                       courses: dict, email: str, roles: dict,
                       client_uuid: str) -> dict:
@@ -39,12 +69,10 @@ async def _enroll_one(cx: httpx.AsyncClient, slug: str, course: dict,
             await kc_set_client_role(cx, uid, client_uuid, roles["member"], True)
         note = "" if uid else "(no realm user yet — door opens on next sync after first login)"
         if await escrow_read(slug, email) is None:
-            fuse = course["budgets"]["key_fuse"]
-            key = await ll_mint_key(cx, slug, course_models(course, courses),
-                                    fuse, email, alias=f"{slug}:{email}")
-            await escrow_write(slug, email, {
-                "key": key, "minted_at": _now(), "budget": fuse,
-            })
+            await _mint_escrowed(cx, slug, email,
+                                 course_models(course, courses),
+                                 course["budgets"]["key_fuse"], email,
+                                 alias=f"{slug}:{email}")
             note = (note + " minted+escrowed").strip()
         else:
             note = (note + " already escrowed").strip()
@@ -99,24 +127,68 @@ async def apply_roster(slug: str, adds: list[str], removes: list[str]) -> list[d
 
 
 async def rotate_student_key(slug: str, email: str) -> dict:
-    """Revoke + re-mint with the fuse's REMAINDER — rotation is not a
-    budget reset (spend read from the ledger via /key/info)."""
+    """Mint the replacement FIRST, then revoke — with the fuse's REMAINDER,
+    because rotation is not a budget reset (spend read from the ledger via
+    /key/info).
+
+    The order is the fix, not a style choice.  Revoking first meant a failed
+    mint left the student with no working key *and* an escrow record still
+    pointing at the dead one, so the next read handed them a credential the
+    gateway had already rejected.  Minting first makes the worst case two
+    live keys — and `revoke_pending` records which one still owes a death,
+    so an interrupted rotation is a debt we can see rather than a quietly
+    doubled fuse.
+    """
     courses = load_courses()
     course = courses["courses"][slug]
     async with httpx.AsyncClient(timeout=30) as cx:
-        old = await escrow_read(slug, email)
+        old = await escrow_read(slug, email) or {}
+
+        # An earlier rotation that died before its revoke landed left this
+        # behind — settle the old debt before taking on a new one.
+        if old.get("revoke_pending"):
+            await ll_delete_key(cx, old["revoke_pending"])
+
         fuse = course["budgets"]["key_fuse"]
         remaining = fuse
-        if old and old.get("key"):
-            spent = await ll_key_spend(cx, old["key"])
+        old_key = old.get("key")
+        extra = {"rotated_from": old.get("minted_at")}
+        if old_key:
+            spent = await ll_key_spend(cx, old_key)
             remaining = round(max(0.5, fuse - spent), 2)
-            await ll_delete_key(cx, old["key"])
-        key = await ll_mint_key(cx, slug, course_models(course, courses),
-                                remaining, email, alias=f"{slug}:{email}")
-        rec = {"key": key, "minted_at": _now(), "budget": remaining,
-               "rotated_from": (old or {}).get("minted_at")}
-        await escrow_write(slug, email, rec)
+            extra["revoke_pending"] = old_key
+
+        rec = await _mint_escrowed(cx, slug, email,
+                                   course_models(course, courses), remaining,
+                                   email, alias=f"{slug}:{email}", extra=extra)
+        if old_key and await ll_delete_key(cx, old_key):
+            del rec["revoke_pending"]
+            await escrow_write(slug, email, rec)  # kv-v2 v2: debt cleared
         return rec
+
+
+async def mint_key(slug: str, email: str, budget: float | None = None) -> dict:
+    """The operator's mint — a staff test key, escrowed like every other.
+
+    Idempotent by escrow: an existing record comes back untouched rather
+    than minting a second key onto the same alias.  There is no unescrowed
+    mint path any more, which is the whole point — the recipe this replaced
+    called `/key/generate` directly, so every key it ever made was born
+    orphaned, outside the course team, and invisible to the pool.
+    """
+    courses = load_courses()
+    course = courses["courses"].get(slug)
+    if course is None:
+        raise KeyError(f"no such course: {slug}")
+    existing = await escrow_read(slug, email)
+    if existing is not None:
+        return {**existing, "already": True}
+    async with httpx.AsyncClient(timeout=30) as cx:
+        rec = await _mint_escrowed(cx, slug, email,
+                                   course_models(course, courses),
+                                   budget if budget else course["budgets"]["key_fuse"],
+                                   email, alias=f"{slug}:{email}")
+    return {**rec, "already": False}
 
 
 async def ensure_course(slug: str) -> dict:
@@ -133,10 +205,10 @@ async def ensure_course(slug: str) -> dict:
         summary["team"] = f"{slug} (${course['budgets']['course']:g} pool)"
         svc = await escrow_read(slug, "service")
         if svc is None:
-            key = await ll_mint_key(cx, slug, models, course["budgets"]["course"],
-                                    None, alias=f"svc-{slug}")
-            svc = {"key": key, "minted_at": _now(), "kind": "service"}
-            await escrow_write(slug, "service", svc)
+            svc = await _mint_escrowed(cx, slug, "service", models,
+                                       course["budgets"]["course"], None,
+                                       alias=f"svc-{slug}",
+                                       extra={"kind": "service"})
             summary["service_key"] = "minted + escrowed"
         else:
             summary["service_key"] = "already escrowed"
