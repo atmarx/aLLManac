@@ -69,7 +69,11 @@ Share-groups are managed in the bundled **admin panel on `:3082`**.  Not 3081 �
 
 Two consequences, and they point opposite ways.
 
-**Security first.**  A request header named `x-tenant-id` is parsed at the server entry.  Upstream's own later comment on the knob reads: *"Trust `X-Tenant-Id` on unauthenticated routes... Enable only when a trusted reverse proxy strips any client-supplied value and sets its own."*  **We set none of these variables, so we run whatever the v0.8.7 default is — and nobody here has established what that default does with a client-supplied header.**  Until someone does, treat "the edge strips `x-tenant-id`" as an unverified assumption rather than a fact.  This is the same species as the config-refresh bug: a mechanism nobody had opened, described confidently by nobody at all.
+**Security first.**  A request header named `x-tenant-id` is parsed at the server entry.  Upstream's own later comment on the knob reads: *"Trust `X-Tenant-Id` on unauthenticated routes... Enable only when a trusted reverse proxy strips any client-supplied value and sets its own."*  **We set none of these variables, so we run whatever the v0.8.7 default is.**  Opened *(2026-09-11)*, in the pinned image's `packages/api/dist/index.cjs`, not the repo: `preAuthTenantMiddleware` sits on `/oauth/*` and `/api/auth/*`, and it **trusts any well-formed client-supplied `X-Tenant-Id`** (≤128 chars, `[-a-zA-Z0-9_.]`, not `__SYSTEM__`) with strict mode on *or* off.  The Mongoose `tenantIsolation` plugin then adds `{tenantId: <that value>}` to every query in the request.  Our documents carry no `tenantId`, so from inside that request the database looks empty.  The chain nobody has ruled out: LibreChat makes the first user it counts an ADMIN, and a count scoped to an empty tenant returns zero.  Unproven, and not something to prove on prod.
+
+- **The edge strips it now** — `header_up -X-Tenant-Id` on the flagship chat block in `caddy/Caddyfile` and on every rendered course vhost (`render_course_vhost`).  Single-tenant means the only correct value is no value.
+- **The edge is not the only door.**  `compose.yml` publishes LibreChat on `${CHAT_PORT}` on all interfaces (xdocker03: `:3081`), and a client hitting that port never meets Caddy.  Until the chat port binds to loopback, the strip covers the edge only.  That's a front-door decision, not a one-liner.
+- Setting `TENANT_ISOLATION_STRICT` doesn't fix this.  It makes queries *without* a tenant fail; it does nothing about a client *supplying* one.
 
 **Strategy second.**  Upstream is building in-app multi-tenancy (the work spans v0.8.6 → v0.8.8-rc2).  If it lands properly, **instance-per-course stops being the only way to get a tenant boundary** — which is today's headline justification for the fleet.  That would not invalidate the registrar: provisioning, per-course budgets, escrow and identity wiring still have no upstream answer, and the survey found no per-course provisioning tooling anywhere.  But the *tenancy* argument would need rewriting, and we should rewrite it ourselves rather than have it rewritten for us at a pin bump.
 
@@ -204,6 +208,18 @@ Silent by design, and it looks exactly like a client that forgot to send the hea
 `dotenv-load` **snapshots `.env` at invocation start.**  A recipe that appends a variable to `.env` and then consumes it in the same run reads the *old* snapshot — the value is on disk and still invisible.  Recipes consuming freshly-appended vars must **grep the FILE**, not the environment.
 
 Pipeline #13 went red teaching us this.
+
+---
+
+## Keycloak — realm import is per realm NAME, not per database *(2026-09-11)*
+
+`--import-realm` runs on **every** boot with strategy `IGNORE_EXISTING`: each file in `/opt/keycloak/data/import` is imported unless a realm with that `realm:` name already exists.  The admin guide used to say "first boot only (empty database)," and that model predicted the wrong thing the one time it mattered.
+
+The `northwinds` → `classroom` rename (`9208fc2`) reached xdocker03 with `KC_REALM=northwinds` still pinned in `.env` — correctly, so LibreChat and the registrar never moved.  But Keycloak saw a realm name it had never met and imported it: `Realm 'classroom' imported`, five demo users on the public-repo password, two of them `faculty`, sitting beside the live realm.  Nothing trusted it, since the issuer names `northwinds`, and `auth-*` resolves LAN-only.  It's **disabled, not deleted**, which is enough: it exists now, so `IGNORE_EXISTING` will never re-mint it.
+
+- **The realm name lives in two places seeded at different times** — the file's `realm:` (read by Keycloak at every boot) and `KC_REALM` / `OPENID_ISSUER` in `.env` (seeded once from `.env.example`, never clobbered).  On an existing box they drift apart silently; on a fresh box built from a stale `.env`, Keycloak serves `classroom` while the issuer asks for `northwinds` and login breaks with nothing looking wrong.
+- **To rename a live realm, don't rename the file.**  Export, change `realm:`, and treat it as a migration — or leave the live name alone and pin it, which is what xdocker03 does.
+- **Check what a box is actually serving:** `kcadm.sh get realms --fields realm,enabled` inside the container, prod-probe style.  A disabled realm still answers its `.well-known` with 200; the auth endpoint returning 400 is the real test.
 
 ---
 
