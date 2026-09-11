@@ -57,6 +57,8 @@ Both are wrong, for one reason: **same origin means LibreChat's JavaScript can c
 
 That is not a theoretical concern on our pin.  The image ships **no CSP and no `helmet`, and mounts bare `cors()` with no origin restriction** ([budgets-and-meters.md](budgets-and-meters.md)).  A separate origin is the mitigation that holds in a codebase we don't control and can't harden.
 
+It stopped being theoretical the same day this was written.  `preAuthTenantMiddleware` in the pinned image **trusts any well-formed client-supplied `X-Tenant-Id`** on `/oauth` and `/api/auth`, scoping every query in the request to it, strict mode or not — found on 2026-09-11 and now stripped at the edge ([design-walls.md](design-walls.md#librechat-v087)).  That is the same class of defect this section is guarding against, in the same image, discovered by looking rather than by reasoning.  **The argument for a separate origin is not that LibreChat is badly written; it is that we cannot audit it faster than it changes.**
+
 The vestibule has a second problem: it is the demo environment, the instance most likely to be poked at by whoever is in the room and most likely to be torn down between demos.  A credential hatch pinned to that origin inherits both.
 
 A new subdomain is also *cheaper* than the apex, not dearer.  The Caddyfile already assumes wildcard DNS at `*.{ALMANAC_DOMAIN}` with one wildcard cert covering the fleet (`caddy/Caddyfile`, the fleet import comment); a new name is covered the moment it exists, and on `tls internal` it costs nothing either.  About six lines, and no decision about what the apex serves.
