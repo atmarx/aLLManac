@@ -108,7 +108,7 @@ The forty-line patch is smaller and less fragile than the proxy hack.  That reve
 
 **The insufficient-funds experience is currently the whole pedagogy, and it is one hardcoded English sentence.**  `client/src/components/Messages/Content/Error.tsx:103-127` renders `Insufficient Funds! Balance: 12345. Prompt tokens: 800. Cost: 900.` in a red bubble inside the message stream — unlocalized, no toast, no banner, no composer lockout, no mention of the fallback.  A student sends a question and gets that.  Everything else in this document is downstream of that string, and it is one line in the same patch as the display.
 
-**A course budget caps the course's spend, never a student's access.**  Basic Copilot is licensed campus-wide at no incremental cost.  That converts an equity objection into a routing question — but only if the student learns it *before* they hit the wall.  Discovered at the boundary, it reads as a brush-off.
+**A course budget caps the course's spend, never a student's access.**  This holds wherever the institution already licenses a general-purpose assistant campus-wide at no incremental cost — state the dependency rather than assuming it.  That converts an equity objection into a routing question — but only if the student learns it *before* they hit the wall.  Discovered at the boundary, it reads as a brush-off.
 
 **Honest gap:** the fallback covers *asking* and not *building*.  A student halfway through an agent for Friday cannot finish it in a general chat box.  The running-low message is the only place we would ever know which of the two they were doing.
 

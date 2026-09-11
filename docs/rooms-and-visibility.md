@@ -53,9 +53,9 @@ A commons wants its own allowance, separate from any course, so that exploring n
 
 ### Falling back is not the same as being cut off
 
-A student who exhausts a course budget is not without AI: basic Copilot is already licensed campus-wide at no incremental cost.  A course budget caps *that course's spend*, never a student's access.  This is worth stating on every page that explains budgets, because it converts an equity objection into a routing question.
+A student who exhausts a course budget is not without AI, wherever the institution already licenses a general-purpose assistant campus-wide at no incremental cost.  A course budget caps *that course's spend*, never a student's access.  This is worth stating on every page that explains budgets, because it converts an equity objection into a routing question.
 
-**But the fallback does not cover the commons.**  Copilot is a chat box; it does not hand a student agent-building, knowledge files, or a persistent custom project.  The capability the commons protects is the *building*, and that is precisely what the general-purpose fallback cannot substitute for.
+**But the fallback does not cover the commons.**  A general-purpose assistant is a chat box; it does not hand a student agent-building, knowledge files, or a persistent custom project.  The capability the commons protects is the *building*, and that is precisely what the general-purpose fallback cannot substitute for.
 
 ---
 
