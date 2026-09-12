@@ -416,7 +416,20 @@ Then the three things in the tracked stack that do reach out.
 
 So a digest-pinned image prices differently depending on whether it reached GitHub that morning, and an air-gapped box prices a current cloud model at **$0** with no error.  We pin images precisely so upgrades stay boring, and then let the ledger's rates arrive over the wire — which is the same un-versioned-config problem as the model roster living in Postgres, wearing a different hat.  All-local deployments should set the flag: campus models meter at $0 by design, so the map buys nothing and the fetch is pure attack surface.  Anyone metering a cloud model without Foundry must declare the rates themselves.
 
-**2. The RAG service downloads its embedding model on first boot.**  `EMBEDDINGS_PROVIDER: huggingface` with `BAAI/bge-small-en-v1.5`, cached into the `hf-cache` volume.  Warm, it is fine forever; a genuinely cold air-gapped first boot has no embeddings and therefore no knowledge files on any agent.  Pre-seed that volume before claiming the install runs offline.
+**2. The RAG service downloads its embedding model on first use.**  `EMBEDDINGS_PROVIDER: huggingface` with `BAAI/bge-small-en-v1.5`, cached into the `hf-cache` volume (129 MB, 11 files).  Warm, it is fine forever; cold and air-gapped it simply fails, and the symptom is not an error anybody sees — it is **every agent talking and knowing nothing**, because knowledge files cannot embed.
+
+So it is staged deliberately, as an operator act, and never fetched at runtime:
+
+```bash
+just embed-check                      # what is staged?  touches no network
+just embed-stage                      # download it now (needs egress THIS ONCE)
+just embed-export hf-cache.tar        # on a staging box with internet
+just embed-import hf-cache.tar        # on the air-gapped one
+```
+
+Verified end to end on a live stack: staged → export → wipe the cache → `embed-check` fails loudly and non-zero → import → staged again.  That round trip is the evidence for "it runs with no external access"; the claim is not worth making without it.
+
+This is the general rule, not a workaround for one model.  **Nothing in the platform fetches a model at runtime.**  Runtime fetching is egress from a service that should need none, it installs a model nobody approved, and it turns an availability problem into a silent correctness one.  Approved models are pre-staged by a person, which is also the only posture under which "we know exactly what weights are on this box" is a true sentence.
 
 **3. `models: fetch: true`** in `librechat.yaml` asks the gateway for its model list — internal, not egress, but it is the reason a LiteLLM that failed to start shows up as an empty picker rather than an error.
 

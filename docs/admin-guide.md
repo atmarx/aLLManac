@@ -310,6 +310,31 @@ diff -u site/librechat/librechat.yaml librechat/librechat.yaml
 
 Every course gets **its own LibreChat instance** at its own hostname — `engr301-2026fall.<your-domain>` — with the teaching staff as its admins and the roster gating its door.  The full design (and every decision's why) is `docs/registrar-spec.md`; this is the operator's path.
 
+### Staging the embedding model (before the box has no internet)
+
+The RAG service embeds knowledge files with a local CPU model, and it downloads that model the first time something needs embedding.  On a box with internet you will never notice.  On an air-gapped one the failure is quiet and nasty: agents come up, answer, and know nothing, because no knowledge file can be embedded.
+
+Stage it on purpose instead:
+
+```bash
+just embed-check                      # what is staged?  reads the cache, no network
+just embed-stage                      # download it now — needs egress for this command only
+```
+
+For a site that will never have egress, do it on a staging box and carry the tarball:
+
+```bash
+just embed-export hf-cache.tar        # on the box with internet  (129 MB)
+# copy it over
+just embed-import hf-cache.tar        # on the air-gapped one
+```
+
+`embed-check` exits non-zero when the cache is cold, so it is safe in a pre-flight script.  It is deliberately **not** part of `just deploy` — a fresh install with internet works fine without staging, and failing the deploy there would be wrong.
+
+The rule behind it: **nothing fetches a model at runtime.**  Approved weights are put on the box by a person, which is the only way "we know what is on this box" stays true.
+
+---
+
 ### Which model the guides run on
 
 The guides' job is narrow — regurgitate the attached documentation, hold a boundary, call one or two constrained tools, never invent.  That reads like the easiest workload on the platform and it is not: it needs **grounding and instruction-hierarchy at the same time**, and those turn out to be separate capabilities.  Four local models were measured against it and none held it; one jailbroke on the first try, one invented a storage architecture it had never read about, one returned an empty message.  The numbers are in [design-walls.md](design-walls.md#the-guide-agents-need-a-small-frontier-model-not-a-small-local-one-measured-2026-09-12).

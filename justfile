@@ -535,6 +535,63 @@ vllm-smoke:
     echo "  FAIL  vllm (http://localhost:${VLLM_PORT:-8000}/health) — cold model loads take minutes: just vllm-logs"
     exit 1
 
+# ---- Pre-staged models (nothing is fetched at runtime) -----------------------
+# The RAG service embeds with a local CPU model and will DOWNLOAD IT ON FIRST
+# USE if the cache is cold.  That is one runtime fetch too many: it is egress
+# from a service that should need none, it is a model nobody approved, and on
+# an air-gapped box it simply fails — leaving every agent talking and knowing
+# nothing, because knowledge files cannot embed.  So stage it deliberately,
+# once, as an operator act.  See docs/design-walls.md, "The inference runtime
+# gets no egress".
+
+# What is actually staged?  Reads the cache, touches no network.
+embed-check:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    {{compose}} run --rm --no-deps -T rag_api sh -c '
+        m="${EMBEDDINGS_MODEL:-?}"
+        d="/root/.cache/huggingface/hub/models--$(echo "$m" | tr "/" "-" | sed "s/-/--/")"
+        echo "  model    $m"
+        if [ ! -d "$d" ]; then
+            echo "  FAIL     not staged — first embed will try to download it"
+            echo "           stage it:  just embed-stage"
+            exit 1
+        fi
+        n=$(find "$d/snapshots" \( -type f -o -type l \) 2>/dev/null | wc -l)
+        echo "  ok       staged, $n files, $(du -sh "$d" | cut -f1)"
+        find "$d/snapshots" -name "*.safetensors" -o -name "*.bin" | head -3 | sed "s|.*/|           |"
+    '
+
+# Air-gapped sites: run this on a staging box, then `just embed-export` there
+# and `just embed-import` here.
+# Download the embedding model into the cache volume now (needs egress ONCE).
+embed-stage:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "staging the embedding model (needs network for this command only)"
+    {{compose}} run --rm --no-deps -T rag_api python -c 'import os; from huggingface_hub import snapshot_download; m=os.environ["EMBEDDINGS_MODEL"]; print("  downloading "+m); print("  cached at "+snapshot_download(m))'
+    just embed-check
+
+# Tar the staged cache for transport to a box with no internet.
+embed-export out="hf-cache.tar":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    d=$(cd "$(dirname "{{out}}")" && pwd); f=$(basename "{{out}}")
+    {{compose}} run --rm --no-deps -T -v "$d:/xfer" rag_api \
+        tar -C /root/.cache/huggingface -cf "/xfer/$f" .
+    echo "  wrote $d/$f  ($(du -h "$d/$f" | cut -f1))"
+    echo "  copy it to the target box, then:  just embed-import $f"
+
+# Load a tarball from `just embed-export` into this box's cache volume.
+embed-import tarball="hf-cache.tar":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ -f "{{tarball}}" ] || { echo "no such file: {{tarball}}"; exit 1; }
+    d=$(cd "$(dirname "{{tarball}}")" && pwd); f=$(basename "{{tarball}}")
+    {{compose}} run --rm --no-deps -T -v "$d:/xfer" rag_api \
+        tar -C /root/.cache/huggingface -xf "/xfer/$f"
+    just embed-check
+
 # Tail logs (all services, or one: just logs librechat)
 logs svc="": _fleet
     {{compose}} logs -f --tail=100 {{svc}}
