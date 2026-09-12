@@ -325,7 +325,7 @@ smoke:
     }
     echo "smoke:"
     check "librechat (UI)"     "http://localhost:${CHAT_PORT:-3080}/"
-    check "admin panel"        "http://localhost:${ADMIN_PANEL_PORT:-3081}/"
+    check "admin panel"        "http://localhost:${ADMIN_PANEL_PORT:-3082}/"
     check "litellm (gateway)"  "http://localhost:${GATEWAY_PORT:-4000}/health/liveliness"
     check "usage-mcp (stats)"  "http://127.0.0.1:${USAGE_MCP_PORT:-8090}/health"
     check "registrar (rosters)" "http://127.0.0.1:${REGISTRAR_PORT:-8091}/health"

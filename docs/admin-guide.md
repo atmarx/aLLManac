@@ -31,6 +31,14 @@ tethered_to:
 | LibreChat admin panel | `:3082` | faculty SSO (same button) | **Local groups** for agent sharing, role permissions, config overrides |
 | LibreChat | `:3080` | SSO | The chat itself — mostly runs itself |
 
+**Those four ports bind loopback** (`PUBLISH_BIND`, default `127.0.0.1`) — they are admin surfaces and a bypass of every rule the edge enforces, so from anywhere but the box itself they need a tunnel:
+
+```bash
+ssh -L 3082:127.0.0.1:3082 -L 4000:127.0.0.1:4000 -L 8080:127.0.0.1:8080 <box>
+```
+
+Then reach them at `http://localhost:<port>`.  Chat is the exception that needs no tunnel: it has a front door at `CHAT_HOST`, which is the whole point of the edge.
+
 Three things in this stack are called "groups," and confusing them costs an afternoon:
 
 - **Keycloak groups/roles** — identity facts.  The `faculty` realm role is the one that matters: it makes someone a LibreChat ADMIN at login.
