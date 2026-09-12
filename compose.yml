@@ -128,6 +128,14 @@ services:
       POSTGRES_USER: rag
       POSTGRES_PASSWORD: "${RAG_DB_PASSWORD}"
       RAG_PORT: "8000"
+      # WITHOUT this the auth middleware FAILS OPEN — app/middleware.py returns
+      # early when JWT_SECRET is unset, so every request passes unauthenticated
+      # and `GET /documents?ids=<uuid>` hands back file content to anything on
+      # this network.  rag_api + vectordb are shared by the WHOLE fleet, so that
+      # is a cross-course read.  Passed explicitly rather than via env_file:,
+      # which would hand this container every secret in .env and add a third
+      # service to the config-refresh drift bug (docs/design-walls.md).
+      JWT_SECRET: "${JWT_SECRET}"
       # Local embeddings (CPU) — no second GPU model, no gateway coupling. To
       # route embeddings through LiteLLM instead, set EMBEDDINGS_PROVIDER=openai
       # and RAG_OPENAI_BASEURL=http://litellm:4000/v1 (see litellm/config.yaml).

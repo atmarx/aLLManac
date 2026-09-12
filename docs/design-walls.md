@@ -147,6 +147,35 @@ A typo in `endpoints.agents.capabilities` (`file_serach`) is accepted by the sch
 
 ---
 
+## `rag_api` fails OPEN without `JWT_SECRET`, and it is shared by the whole fleet *(2026-09-12)*
+
+`app/middleware.py:18-21` in the pinned RAG image:
+
+```python
+jwt_secret = os.getenv("JWT_SECRET")
+if not jwt_secret:
+    logger.warn("JWT_SECRET not found in environment variables")
+    return await next_middleware_call()     # auth skipped entirely
+```
+
+**The absence of a secret disables authentication rather than refusing to start.**  The only symptom is one `WARNING` line at boot, which looks like a note about an optional feature.
+
+Our `compose.yml` did not pass it.  `JWT_SECRET` reaches LibreChat through `env_file:`, and `rag_api` has no `env_file:`, so it never saw one.  Measured 2026-09-12 from *the registrar container* — a service with no business reading the vector store, holding no credential for it:
+
+```
+GET http://rag_api:8000/documents?ids=<uuid>   ->  200, 37,963 bytes of document content
+```
+
+No `Authorization` header.  The earlier probe without `ids` returned **422 (validation)**, not 401 — a validation error on an unauthenticated request is the tell: the request had already passed auth and failed only on a missing parameter.
+
+**This crosses the tenancy boundary.**  `rag_api` and `vectordb` are single shared services (`compose.yml`), not per-course like Meilisearch — so every course's uploaded knowledge files live in one store that anything on the compose network can read, and every per-course LibreChat instance is on that network.  Needing a file id first is obscurity, not a boundary.
+
+Fixed by passing `JWT_SECRET` explicitly.  **Not via `env_file:`** — that would hand the RAG container every secret in `.env` and add a third service to the [drift-guard bug](#config-refreshs-drift-guard-can-never-pass-for-a-service-with-env_file).
+
+The general shape, worth carrying to the next dependency: **a service that treats a missing credential as "no auth configured" rather than as a fatal error will run happily and silently open.**  Grep a new image for what it does when its auth secret is absent before trusting that leaving it out is safe.
+
+---
+
 ## LiteLLM (pin ≈ v1.91.1) — the free/Enterprise line
 
 Drawn empirically against the pinned build.  Vendor docs do not mark these boundaries reliably, which is why the rig exists.
