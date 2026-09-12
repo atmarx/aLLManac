@@ -102,6 +102,18 @@ Unresolved: whether `interface.modelSelect: false` alone hides raw models while 
 
 ---
 
+### Bare `docker compose` silently drops the `site/` layer *(2026-09-12)*
+
+`just` composes the stack as `docker compose -f compose.yml -f site/compose.yml` when that second file exists.  Type `docker compose up -d <svc>` by hand on a box and you get **only the core file** — the site overrides are not merged, and compose happily recreates the container without them.
+
+Measured: recreating `librechat` by hand on a box whose `site/compose.yml` repoints the config mount reverted it to the tracked `./librechat` directory.  No error, no warning; the container came up healthy and the flagship simply served the platform's config instead of the box's.  `just agents-check` went from six specs to none in one command.
+
+**On a box with a `site/` layer, bring services up with `just`** (`just up`, `just deploy`), or spell out both `-f` flags.  `just config <svc>` is the way to check which you actually got — the mount source in its output is the tell.
+
+The failure mode is the one that makes this wall-worthy rather than a footnote: an override that vanishes leaves a *working* system, just not yours.  Everything is healthy and the thing you configured is quietly gone.
+
+---
+
 ### The file-upload limiter, and why the seeder uploads before it deletes *(2026-09-12)*
 
 `POST /api/files` is rate-limited, and the numbers are small enough to matter to an operator, not just to an abuser.  From `api/server/middleware/limiters/uploadLimiters.js` on our pin:

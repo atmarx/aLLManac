@@ -280,6 +280,8 @@ services:
       - ./site/librechat:/app/conf:ro
 ```
 
+From here on, bring this box up with **`just`** — `just up`, `just deploy`.  A bare `docker compose up -d librechat` merges only `compose.yml`, silently recreates the container without your override, and leaves you a healthy flagship serving the platform's config instead of yours.  (Learned the same afternoon it was written.)
+
 A DIRECTORY mount, matching core — never bind a single file that gets rewritten.  Compose merges `volumes:` by target, so this one line replaces the core bind and inherits the rest — `just config librechat` shows you the merged result rather than making you guess at compose's merge rules.  Then `just up`, and the flagship reads your copy.
 
 ### Then check it, because every step here fails quietly
