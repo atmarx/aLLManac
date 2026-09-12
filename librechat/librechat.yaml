@@ -27,7 +27,11 @@ interface:
     use: true
     create: true
     share: true
-    public: false
+    # TRUE on the flagship only.  The flagship is the vestibule — the one room
+    # everyone can walk into — and the guide agents are platform artifacts that
+    # everybody is meant to reach.  Course instances render their own config and
+    # keep the classroom posture (sharing off by default, docs/design-walls.md).
+    public: true
   peoplePicker:
     users: true
     groups: true

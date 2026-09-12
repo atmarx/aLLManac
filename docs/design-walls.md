@@ -79,6 +79,25 @@ Two consequences, and they point opposite ways.
 
 **What is NOT true:** LibreChat Projects are not a per-course alternative and never were — they are personal, and other users cannot see your project list.
 
+### `modelSpecs` needs literal agent ids, and the flagship config can't hold them *(2026-09-12)*
+
+Making the vestibule agents-only means `modelSpecs` with `enforce: true` and one spec per guide — `enforce` is the only switch that removes raw models from the picker.  Each spec carries `preset.agent_id`.
+
+Three facts collide:
+
+- **Agent ids are per deployment.**  They are minted by whatever seeds the agents, so they differ on every box.
+- **`librechat.yaml` gets no general env-var substitution.**  `extractEnvVariable` is applied to specific endpoint fields (`apiKey`, `baseURL`, the Azure block) — `loadCustomConfig.js` never calls it on the document — so `agent_id: "${SOME_VAR}"` stays a literal string.
+- **`librechat/librechat.yaml` is tracked**, and `just sync` does `git reset --hard origin/main`.  Measured 2026-09-12: a hand edit for `modelSpecs` was silently reverted by the next deploy; only the untracked `.pre-flip` backup beside it survived, which is what made the revert visible at all.
+
+So a per-box id cannot live in the tracked flagship config, and hand-editing that file on a box is not a workaround — it is a change with a deploy-shaped expiry date.  **This is the `site/` rule arriving from a direction nobody planned for**, and it wants one of two real answers:
+
+- **Render the flagship's `librechat.yaml`**, the way `render_course` already renders each course instance's, with agent ids from a per-box source.  The flagship is currently the one instance that is hand-written rather than rendered.
+- **Override the whole config from `site/`** — `site/` is gitignored and survives the reset, but the box then stops inheriting platform changes to that file.
+
+Unresolved: whether `interface.modelSelect: false` alone hides raw models while leaving agents selectable.  Agents are an *endpoint* in LibreChat, so the control that picks a model may be the control that picks an agent — if it is, that flag makes the vestibule unusable rather than focused.  The client bundle is minified and reading it settled nothing; this needs a live look, not another grep.
+
+---
+
 ### The agents API: a browser User-Agent, and ids are an interface *(2026-09-11)*
 
 Three things that each look like a different bug than they are, paid for while seeding the guide agents:
