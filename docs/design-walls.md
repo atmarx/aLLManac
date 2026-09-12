@@ -397,6 +397,37 @@ The conclusion is the one the operator had already reached from the other side: 
 
 ---
 
+## The inference runtime gets no egress, and three other things that phone home *(2026-09-12)*
+
+The homelab posture is that the stack **works with no external access**, and that is a claim you can only make by going and looking.  We looked.
+
+**The runtime first.**  A model server is a binary you hand your entire corpus to, that wants to talk to the internet, and whose release cadence you do not control.  It needs to *serve*, and serving requires no egress at all — a GGUF you downloaded and imported yourself loads exactly the same on a box with no route out.  So don't give it one: on the house rig the Ollama container sits on an internal-only Docker bridge (no gateway, resolves nothing, not even the local registry mirror) with `OLLAMA_NO_CLOUD=1` on top of that.  Belt and braces at two layers, because the config flag is the vendor's promise and the missing route is ours.
+
+The cost of that fence is that `ollama pull` can never work from inside the container.  That is not a bug to work around; download the GGUF on the host and import it.  Anyone who loses twenty minutes to a DNS error there has found the fence working.
+
+Then the three things in the tracked stack that do reach out.
+
+**1. The cost map is not part of the pin.**  `get_model_cost_map` re-downloads the pricing table at every import unless `LITELLM_LOCAL_MODEL_COST_MAP` is set, and **falls back to a bundled backup silently on any failure**.  The two are not the same table — measured on our pin (1.91.1):
+
+| source | models | knows the current hosted families |
+|---|---|---|
+| fetched at boot | 3889 | yes |
+| bundled backup | 2909 | **no** |
+
+So a digest-pinned image prices differently depending on whether it reached GitHub that morning, and an air-gapped box prices a current cloud model at **$0** with no error.  We pin images precisely so upgrades stay boring, and then let the ledger's rates arrive over the wire — which is the same un-versioned-config problem as the model roster living in Postgres, wearing a different hat.  All-local deployments should set the flag: campus models meter at $0 by design, so the map buys nothing and the fetch is pure attack surface.  Anyone metering a cloud model without Foundry must declare the rates themselves.
+
+**2. The RAG service downloads its embedding model on first boot.**  `EMBEDDINGS_PROVIDER: huggingface` with `BAAI/bge-small-en-v1.5`, cached into the `hf-cache` volume.  Warm, it is fine forever; a genuinely cold air-gapped first boot has no embeddings and therefore no knowledge files on any agent.  Pre-seed that volume before claiming the install runs offline.
+
+**3. `models: fetch: true`** in `librechat.yaml` asks the gateway for its model list — internal, not egress, but it is the reason a LiteLLM that failed to start shows up as an empty picker rather than an error.
+
+### The empty-value comment trap
+
+`HF_TOKEN=               # only needed for GATED models` did not set an empty token.  Compose strips a trailing comment from a **non-empty** value and keeps it as the value of an **empty** one, so the token became the literal string `# only needed for GATED models (e.g. Llama)` — and `${HF_TOKEN:-}` passed it straight through, because it is not empty.  vLLM then sends it as a bearer token and **401s downloading a public, ungated model**, which is the default this repo ships.
+
+Verified against the running stack: the `ALLOW_EMAIL_LOGIN` / `ALLOW_REGISTRATION` / `ALLOW_SOCIAL_LOGIN` lines use the same trailing-comment style and are clean, because they have values.  Only the empty one bites.  Put the comment on its own line whenever the value is empty.
+
+---
+
 ## Structure decisions (settled — reopen only with cause)
 
 - **vLLM is its own compose project** so models outlive app deploys.  Restarting the app plane must never evict a loaded model.  It is also **site-local** (`site/inference/`) — see the platform/site line below.

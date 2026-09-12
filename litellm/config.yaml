@@ -33,13 +33,26 @@ model_list:
   # agents, low volume, and a knowledge corpus that is this repository's own
   # public documentation, so nothing leaving the box is unpublished.
   #
-  # PRICES ARE NOT SET HERE, deliberately.  Against Azure AI Foundry, LiteLLM
-  # reads the real per-deployment rates when it polls the endpoint, so the
-  # ledger carries true pricing instead of a number somebody typed; against
-  # the vendor's own API it falls back to the pinned cost map.  Either beats a
-  # hand-entered figure that is wrong and looks plausible.  If a model is
-  # newer than our LiteLLM pin AND not behind Foundry, it will be in neither —
-  # check before you trust the ledger, because the symptom is $0, not an error.
+  # PRICES.  Best case is Azure AI Foundry: LiteLLM reads the real
+  # per-deployment rates when it polls the endpoint, so the ledger carries
+  # true pricing instead of a number somebody typed.  Use that where you have
+  # it and set nothing here.
+  #
+  # Otherwise LiteLLM prices from its cost map, and THE COST MAP IS NOT PART
+  # OF THE PIN.  It is re-downloaded at every boot and falls back silently to
+  # a bundled backup that is nearly a thousand models smaller (measured
+  # 2026-09-12: 3889 fetched vs 2909 bundled, with the current hosted
+  # families in the first and absent from the second).  So a digest-pinned
+  # image prices differently depending on whether it reached GitHub at
+  # startup, and on an air-gapped box it prices a current model at $0 with no
+  # error.  See docs/design-walls.md, "The cost map is not part of the pin".
+  #
+  # If you are not on Foundry, either leave LITELLM_LOCAL_MODEL_COST_MAP unset
+  # and accept boot-time egress plus drift, or set it True and declare the two
+  # rates below yourself.  Do not assume the pin knows a model it has never
+  # heard of.
+  #     input_cost_per_token: 0.0000002     # $0.20 / Mtok  — VERIFY, rates move
+  #     output_cost_per_token: 0.0000012    # $1.20 / Mtok
   # - model_name: almanac-office
   #   litellm_params:
   #     model: os.environ/OFFICE_MODEL          # azure_ai/... via Foundry, else openai/...

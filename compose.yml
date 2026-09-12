@@ -58,6 +58,8 @@ services:
       LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY}"
       DATABASE_URL: "postgresql://litellm:${LITELLM_DB_PASSWORD}@litellm-db:5432/litellm"
       STORE_MODEL_IN_DB: "True"
+      # Empty = LiteLLM downloads its cost map at boot (see .env.example).
+      LITELLM_LOCAL_MODEL_COST_MAP: "${LITELLM_LOCAL_MODEL_COST_MAP:-}"
       # Where the tokens actually come from — see litellm/config.yaml.  The
       # default reaches the site/inference/ vLLM stack published on THIS
       # box's host (see extra_hosts below); a remote GPU box or cloud URL
