@@ -65,6 +65,13 @@ services:
       INFERENCE_BASE_URL: "${INFERENCE_BASE_URL:-http://host.docker.internal:8000/v1}"
       INFERENCE_API_KEY: "${INFERENCE_API_KEY:-dummy-local-endpoints-ignore-this}"
       INFERENCE_MODEL: "${INFERENCE_MODEL:-openai/qwen2.5}"
+      # For the optional almanac-office block in litellm/config.yaml.  Empty
+      # by default and harmless while that block stays commented; passed in
+      # unconditionally so enabling it is an uncomment, not an uncomment plus
+      # a compose edit nobody remembers.
+      OFFICE_MODEL: "${OFFICE_MODEL:-}"
+      OFFICE_BASE_URL: "${OFFICE_BASE_URL:-}"
+      OFFICE_API_KEY: "${OFFICE_API_KEY:-}"
     volumes:
       # Directory mount for the same reason as librechat's above.
       - ./litellm:/app/conf:ro

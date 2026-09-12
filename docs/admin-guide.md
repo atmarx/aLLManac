@@ -310,6 +310,30 @@ diff -u site/librechat/librechat.yaml librechat/librechat.yaml
 
 Every course gets **its own LibreChat instance** at its own hostname — `engr301-2026fall.<your-domain>` — with the teaching staff as its admins and the roster gating its door.  The full design (and every decision's why) is `docs/registrar-spec.md`; this is the operator's path.
 
+### Which model the guides run on
+
+The guides' job is narrow — regurgitate the attached documentation, hold a boundary, call one or two constrained tools, never invent.  That reads like the easiest workload on the platform and it is not: it needs **grounding and instruction-hierarchy at the same time**, and those turn out to be separate capabilities.  Four local models were measured against it and none held it; one jailbroke on the first try, one invented a storage architecture it had never read about, one returned an empty message.  The numbers are in [design-walls.md](design-walls.md#the-guide-agents-need-a-small-frontier-model-not-a-small-local-one-measured-2026-09-12).
+
+So the vestibule is where a **small hosted model** earns its keep, and it is the cheapest place on the platform to put one: six agents, low volume, and a knowledge corpus that is this repository's own published documentation, so nothing that leaves the box is unpublished text.  Course instances are a separate decision with a different answer — student conversations are not published text.
+
+To switch:
+
+1. Uncomment the `almanac-office` block in `litellm/config.yaml`.
+2. Set `OFFICE_MODEL`, `OFFICE_BASE_URL`, `OFFICE_API_KEY` in `.env`.  Prefer the **Azure AI Foundry** shape (`azure_ai/<deployment>`) where you have it: LiteLLM reads the real per-deployment rates when it polls the endpoint, so the ledger carries true pricing instead of a figure somebody typed.  The vendor's own API (`openai/<id>`) falls back to LiteLLM's pinned cost map.
+3. `just deploy`.
+4. `AGENT_MODEL=almanac-office just agents-seed <owner-email>` — `AGENT_MODEL` must be explicit or the seeder preserves whatever model each agent already has, which is the behaviour you want every other time you run it.
+5. Paste the reprinted `modelSpecs` block (the `model:` line changes on every row) and check with `just agents-check`.
+
+**Then confirm a spend row actually lands**, with real dollars on it:
+
+```bash
+just spend | head            # a $0.00 row for almanac-office is a failure, not a bargain
+```
+
+A model newer than our LiteLLM pin and *not* behind Foundry is in neither price source.  It answers perfectly and meters at zero, and zero is an absence rather than an error — the same failure that once moved every guide onto an unpriced alias and quietly stopped attributing the vestibule to anybody.
+
+---
+
 ### Once per box: open the escrow
 
 ```

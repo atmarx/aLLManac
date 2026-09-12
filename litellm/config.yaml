@@ -18,8 +18,37 @@ model_list:
       api_base: os.environ/INFERENCE_BASE_URL
       api_key: os.environ/INFERENCE_API_KEY
 
+  # ---- almanac-office: the hosted model the front office runs on -----------
+  # Uncomment, set the three OFFICE_* vars in .env, redeploy.  A separate
+  # model_name on purpose, NOT a re-point of almanac-chat: per-course `models:`
+  # lists are what decide who may spend cloud money, and that only works if
+  # the cloud model has its own name (docs/registrar-spec.md).
+  #
+  # WHY THIS EXISTS: the vestibule's guide agents regurgitate attached docs,
+  # hold a boundary, and call one or two constrained tools.  Four local models
+  # were measured against that job and none held it — one jailbroke, one
+  # invented an entire storage architecture, one returned an empty message
+  # (docs/design-walls.md, "The guide agents need a small *frontier* model").
+  # It is also the cheapest place in the platform to spend cloud tokens: six
+  # agents, low volume, and a knowledge corpus that is this repository's own
+  # public documentation, so nothing leaving the box is unpublished.
+  #
+  # PRICES ARE NOT SET HERE, deliberately.  Against Azure AI Foundry, LiteLLM
+  # reads the real per-deployment rates when it polls the endpoint, so the
+  # ledger carries true pricing instead of a number somebody typed; against
+  # the vendor's own API it falls back to the pinned cost map.  Either beats a
+  # hand-entered figure that is wrong and looks plausible.  If a model is
+  # newer than our LiteLLM pin AND not behind Foundry, it will be in neither —
+  # check before you trust the ledger, because the symptom is $0, not an error.
+  # - model_name: almanac-office
+  #   litellm_params:
+  #     model: os.environ/OFFICE_MODEL          # azure_ai/... via Foundry, else openai/...
+  #     api_base: os.environ/OFFICE_BASE_URL
+  #     api_key: os.environ/OFFICE_API_KEY
+
   # More models = more blocks (or add them live in the admin UI — models added
-  # there persist in the database via STORE_MODEL_IN_DB).
+  # there persist in the database via STORE_MODEL_IN_DB, which is config that
+  # lives in a Postgres volume instead of in git; prefer a block here).
   # - model_name: almanac-code
   #   litellm_params:
   #     model: openai/qwen2.5-coder
