@@ -78,6 +78,13 @@ STATE = ROOT / "site" / "agents-state.json"
 # corpus/<slug>/SYSTEM-PROMPT.md, rendered from docs/agent-contract.md — this
 # file never holds prompt prose.
 GUIDES = [
+    # FIRST on purpose: model_specs() marks entry 0 `default`, and the default
+    # is a message whether we mean it or not.  Opening an instructor in the
+    # Student Guide reads as the platform having sorted them, wrongly, before
+    # they typed a word — so the default has to be the one entry that
+    # classifies nobody.  See docs/agent-contract.md, "The welcome desk".
+    ("welcome", "Welcome",
+     "New here?  Start with this and it will point you at the right guide."),
     ("student-guide", "Student Guide",
      "Using the Almanac in your courses — agents, knowledge files, API keys, and what the budget numbers mean."),
     ("instructor-guide", "Instructor Guide",
@@ -208,8 +215,11 @@ async function syncFiles(agent) {
       name: a.name, description: a.description, instructions: a.instructions,
       provider: PROVIDER, model: MODEL,
       // Without this the files upload, embed, attach — and the model still
-      // cannot see them, because nothing gave it the tool to look.
-      tools: ['file_search'],
+      // cannot see them, because nothing gave it the tool to look.  The
+      // welcome desk has no corpus, and handing it a file_search over an
+      // empty store is how you get an agent that searches, finds nothing,
+      // and answers anyway.
+      tools: (a.want && a.want.length) ? ['file_search'] : [],
     });
     const id = byName.get(a.name);
     const r = id
@@ -227,7 +237,7 @@ async function syncFiles(agent) {
     id ? updated++ : made++;
     a.id = out;
     seeded.push({ slug: a.slug, name: a.name, id: out });
-    if (!SKIP_FILES) {
+    if (!SKIP_FILES && a.want && a.want.length) {
       const out = await syncFiles(a);
       failed += out.bad;
       seeded[seeded.length - 1].files = out.state;
@@ -317,9 +327,10 @@ def main() -> int:
                          if not l.startswith("<!--")).strip()
         a = {"slug": slug, "name": name, "description": desc,
              "instructions": text}
-        if not skip_files:
-            a["want"] = [{"name": f.name, "sha": sha(f)} for f in knowledge(slug)]
-            a["known"] = (state.get(slug) or {}).get("files") or {}
+        # `want` is computed even with --skip-files: it is what decides
+        # whether the agent gets file_search at all.
+        a["want"] = [{"name": f.name, "sha": sha(f)} for f in knowledge(slug)]
+        a["known"] = (state.get(slug) or {}).get("files") or {}
         agents.append(a)
 
     js = (JS.replace("__AGENTS__", json.dumps(agents, indent=2))

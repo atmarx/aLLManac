@@ -15,7 +15,10 @@ in the order they go wrong:
      points at nothing.
   4. Does every guide carry `file_search` and some files?  An agent with the
      tool and no knowledge answers from the base model, which is exactly the
-     fabrication the contract exists to stop.
+     fabrication the contract exists to stop.  The welcome desk is the one
+     deliberate exception — it routes rather than answers, so it gets no
+     corpus and no `file_search`, and `corpus/<slug>/` is what says which
+     case a guide is in.
 
 It reads the config **from inside the container**, with LibreChat's own YAML
 parser, because `/api/config` will lie to you: unauthenticated requests get a
@@ -33,6 +36,10 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 OK, BAD, MEH = "  ok   ", "  FAIL ", "  warn "
+
+# Rendered for the operator, not the model — the same list seed_agents.py
+# holds.  A corpus directory with only these in it has no knowledge in it.
+NOT_KNOWLEDGE = {"MANIFEST.md", "SYSTEM-PROMPT.md", "EVALS.md"}
 
 
 def dc(*args: str) -> str:
@@ -117,6 +124,19 @@ def main() -> int:
             bad += 1
             continue
         n = len(a["files"])
+        # A spec's `name` is the corpus slug (model_specs writes it that way),
+        # so the render itself says whether this guide is meant to have
+        # knowledge.  No guessing from the agent's own state.
+        slug = spec.get("name") or ""
+        pages = sorted((ROOT / "corpus" / slug).glob("*.md")) if slug else []
+        wants_knowledge = any(f.name not in NOT_KNOWLEDGE for f in pages)
+        if not wants_knowledge:
+            extra = "" if not n else f" — but it has {n}, which is wrong"
+            print(f"{OK if not n else BAD}{label:20} {aid}  "
+                  f"no corpus by design (routes, does not answer){extra}")
+            if n:
+                bad += 1
+            continue
         if "file_search" not in a["tools"]:
             print(f"{BAD}{label:20} {aid}  no file_search tool — "
                   f"it cannot reach its knowledge")
