@@ -69,7 +69,7 @@ services:
       # Directory mount for the same reason as librechat's above.
       - ./litellm:/app/conf:ro
     ports:
-      - "${GATEWAY_PORT:-4000}:4000"
+      - "${PUBLISH_BIND:-127.0.0.1}:${GATEWAY_PORT:-4000}:4000"
     # So the default INFERENCE_BASE_URL can reach the separate site/inference/
     # vLLM stack (or anything else) published on this box's host ports:
     extra_hosts:
@@ -144,7 +144,7 @@ services:
     image: ${LIBRECHAT_IMAGE:-ghcr.io/danny-avila/librechat:v0.8.7}
     container_name: alm-librechat
     ports:
-      - "${CHAT_PORT:-3080}:3080"
+      - "${PUBLISH_BIND:-127.0.0.1}:${CHAT_PORT:-3080}:3080"
     env_file:
       - .env
     environment:
@@ -205,7 +205,7 @@ services:
       # SSO PKCE callback dies; harmless when TLS terminates in front:
       SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"
     ports:
-      - "${ADMIN_PANEL_PORT:-3082}:3000"
+      - "${PUBLISH_BIND:-127.0.0.1}:${ADMIN_PANEL_PORT:-3082}:3000"
     depends_on:
       librechat:
         condition: service_started
@@ -376,7 +376,7 @@ services:
       # reads every *.json here, so keep this directory realms-only.
       - ./keycloak:/opt/keycloak/data/import:ro
     ports:
-      - "${AUTH_PORT:-8080}:8080"
+      - "${PUBLISH_BIND:-127.0.0.1}:${AUTH_PORT:-8080}:8080"
     depends_on:
       keycloak-db:
         condition: service_healthy
