@@ -47,6 +47,20 @@ SCOPE = {
         "exercises that test them.",
 }
 
+# The directory of guides, rendered into BOTH the shared preamble (as the
+# first escape hatch) and the welcome desk's own fence.  One authority on
+# purpose: a guide that names a sibling guide wrongly is a redirect that
+# points nowhere, which is the failure the hatch list exists to prevent.
+# Routing lines, not SCOPE's agent-voice lines — the reader is choosing.
+DIRECTORY = """\
+      Student Guide      using the Almanac in a course you are taking
+      Instructor Guide   running a course on it — rosters, class setup,
+                         shared agents, what students can see
+      Platform Guide     how the Almanac is built, and why
+      Dev Guide          deploying and operating it
+      SecurityBot3000    the security posture, and the exercises that test it\
+"""
+
 # Deployment config, not code: a different institution names a different
 # fallback (docs/registrar-spec.md, Decision 18 — boundary verbiage is
 # config).  Generic default so tracked files name no institution.
@@ -114,7 +128,17 @@ def contract() -> tuple[str, str]:
     if "## The evals" not in body:
         raise SystemExit(f"{CONTRACT}: no '## The evals' section")
     evals = body.split("## The evals", 1)[1].split("\n---", 1)[0].strip()
-    return preamble.replace("{{FALLBACK_ASSISTANT}}", FALLBACK), evals, body
+    return fill(preamble), evals, body
+
+
+def fill(text: str) -> str:
+    """Deployment + directory substitution.  Loud if a token survives."""
+    text = (text.replace("{{FALLBACK_ASSISTANT}}", FALLBACK)
+                .replace("{{GUIDE_DIRECTORY}}", DIRECTORY))
+    if "{{" in text:
+        stray = text[text.index("{{"):][:40]
+        raise SystemExit(f"{CONTRACT}: unsubstituted template token {stray!r}")
+    return text
 
 
 def load(path: pathlib.Path):
@@ -202,7 +226,7 @@ def main() -> int:
     (d / "SYSTEM-PROMPT.md").write_text(
         "<!-- rendered from docs/agent-contract.md by `just docs-corpus` "
         "— edit the source, not this -->\n\n"
-        + welcome(contract_body).replace("{{FALLBACK_ASSISTANT}}", FALLBACK) + "\n")
+        + fill(welcome(contract_body)) + "\n")
     (d / "EVALS.md").write_text(
         "# welcome — eval cases\n\n"
         "<!-- rendered from docs/agent-contract.md — edit the source -->\n\n"
