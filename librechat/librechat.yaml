@@ -1,5 +1,17 @@
 # LibreChat config.  Docs: https://librechat.ai/docs/configuration/librechat_yaml
 # If LibreChat warns about the version, bump it to match your image.
+#
+# THIS FILE IS THE PLATFORM'S COPY, and it is tracked — `just sync` runs
+# `git reset --hard origin/main`, so an edit made on a box to make that box
+# work does not survive the next deploy.  It happened, and the backup beside
+# it is the only reason anyone noticed.
+#
+# The flagship's `modelSpecs` block is the known case: it carries agent ids,
+# which are minted per deployment, and nothing substitutes env vars into this
+# document.  That copy lives in `site/librechat/librechat.yaml` with the mount
+# repointed in `site/compose.yml` — the procedure is docs/admin-guide.md,
+# "The vestibule".  A box using that override does NOT inherit changes made
+# here; merge them by hand with a diff.
 version: 1.2.8
 cache: true
 

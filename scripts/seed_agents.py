@@ -2,15 +2,39 @@
 """Seed or refresh the guide agents on the flagship instance from corpus/.
 
 Run ON the box (the justfile owns the docker lifecycle around it, same as
-course_admin.py).  Idempotent, and deliberately UPDATE-IN-PLACE rather than
-delete-and-recreate:
+course_admin.py).  One command does the whole guide pipeline:
+
+    prompts   corpus/<slug>/SYSTEM-PROMPT.md  ->  the agent's instructions
+    knowledge corpus/<slug>/*.md              ->  file_search attachments
+    ids       the agent ids                   ->  the modelSpecs block to paste
+
+Idempotent, and deliberately UPDATE-IN-PLACE rather than delete-and-recreate:
 
     modelSpecs entries in librechat.yaml reference agent_id.  Recreating an
     agent mints a new id and silently orphans every spec pointing at the old
     one, which presents as a vestibule whose guides have vanished.  Agent ids
     are a published interface; keep them stable.
 
-Two gotchas this encodes, both paid for once (docs/design-walls.md):
+Knowledge syncs by CONTENT HASH, and uploads before it deletes.  Both halves
+of that were bought the hard way — see "The file-upload limiter" in
+docs/design-walls.md.  LibreChat rate-limits uploads to 50 per user and 100
+per IP per 15 minutes, and the corpus is fifty files, so "delete everything
+then re-upload everything" spends the entire budget on its first run and, on
+its second, deletes all five agents' knowledge and then gets 429'd on every
+single upload.  Measured, not theorized: it happened here.
+
+So: hash each rendered page, keep what already matches, upload only what
+changed, and detach the old copies only AFTER the new ones are in.  A 429
+mid-run now leaves the previous knowledge attached and working.  The hashes
+live in `site/agents-state.json` — per box, gitignored — but the API is still
+the authority on what is *attached*; the state file only says what content a
+given file_id held, and a file_id the agent no longer carries is re-uploaded
+regardless of what the state claims.
+
+`--skip-files` refreshes only the prompts, which is the common case while
+iterating on the contract.
+
+Four gotchas this encodes, all paid for once (docs/design-walls.md):
 
   * Every route under /api/agents sits behind uaParser, which rejects any
     request whose User-Agent does not parse as a BROWSER — the response is an
@@ -19,15 +43,36 @@ Two gotchas this encodes, both paid for once (docs/design-walls.md):
   * /api/agents/v1 is the OpenAI-compatible router (API-key auth).  Agent CRUD
     is mounted at the ROOT, /api/agents.  Posting to the /v1 path returns
     "Invalid API key" and looks like an auth problem, which it is not.
+  * POST /api/files does upload, embed AND attach in one call — it ends in
+    addAgentResourceFile.  There is no separate "attach" verb to look for.
+    It needs `agent_id` and `tool_resource`, and it needs the agent to carry
+    `file_search` in `tools` or the model never reaches what you uploaded.
+  * A 429 from that route is not just a failed upload.  It logs a FILE_UPLOAD
+    violation against the OWNER, and violations are what `BAN_VIOLATIONS`
+    counts — a seeder that charges through fifty of them is working toward
+    banning the account it runs as.  This one stops at the first.
 """
+import hashlib
 import json
-import os
 import pathlib
+import os
 import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CORPUS = ROOT / "corpus"
+
+# Rendered FOR the operator, not for the model: the manifest is a table of
+# contents, the prompt is what the agent is told, and the evals are how we
+# test it.  Uploading any of them would have the agent quoting its own
+# instructions back as if they were documentation.
+NOT_KNOWLEDGE = {"MANIFEST.md", "SYSTEM-PROMPT.md", "EVALS.md"}
+
+# What this box uploaded, and what it hashed to.  Lives in site/ because it is
+# per-deployment truth, same as the agent ids themselves — and it is a CACHE,
+# not a record: delete it and the next run re-uploads everything, which is
+# correct, just slower.
+STATE = ROOT / "site" / "agents-state.json"
 
 # name + one-line description per corpus folder.  The INSTRUCTIONS come from
 # corpus/<slug>/SYSTEM-PROMPT.md, rendered from docs/agent-contract.md — this
@@ -46,75 +91,222 @@ GUIDES = [
 ]
 
 JS = r"""
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+
 const AGENTS = __AGENTS__;
 const OWNER_ID = '__OWNER__';
 const MODEL = '__MODEL__';
 const PROVIDER = '__PROVIDER__';
+const SKIP_FILES = __SKIP_FILES__;
+const CORPUS = '/app/api/.seed-corpus';
+const OUT = '/app/api/.seed-agents.json';
 const BASE = 'http://127.0.0.1:3080';
 // uaParser demands a browser UA on every /api/agents route (see the module
 // docstring in scripts/seed_agents.py).
 const UA = 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0';
 
-(async () => {
-  const token = jwt.sign({ id: OWNER_ID }, process.env.JWT_SECRET, { expiresIn: '15m' });
-  const H = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json',
-              'User-Agent': UA };
+// An hour, not the fifteen minutes the prompt-only version needed: embedding
+// fifty files is measured in minutes and a token that expires mid-run fails
+// halfway through a replace, which is the one state worse than either end.
+const token = jwt.sign({ id: OWNER_ID }, process.env.JWT_SECRET, { expiresIn: '60m' });
+const AUTH = { Authorization: `Bearer ${token}`, 'User-Agent': UA };
+const H = { ...AUTH, 'Content-Type': 'application/json' };
 
+async function syncFiles(agent) {
+  const dir = path.join(CORPUS, agent.slug);
+
+  // The API is the authority on what is ATTACHED; the state file only says
+  // what content a given file_id held.  A file_id the agent no longer carries
+  // is re-uploaded no matter what the state claims.
+  const cr = await fetch(`${BASE}/api/files/agent/${agent.id}`, { headers: H });
+  let attached = [];
+  try { attached = JSON.parse(await cr.text()); } catch {}
+  if (!Array.isArray(attached)) attached = [];
+
+  const stale = new Map(attached.map((f) => [f.file_id, f]));
+  const known = agent.known || {};
+  const state = {};
+  const todo = [];
+  for (const w of agent.want) {
+    const k = known[w.name];
+    if (k && k.sha === w.sha && stale.has(k.file_id)) {
+      stale.delete(k.file_id);          // matches the render — keep it
+      state[w.name] = k;
+    } else {
+      todo.push(w);
+    }
+  }
+
+  let uploaded = 0, failed = 0, limited = false;
+  for (const w of todo) {
+    const fd = new FormData();
+    // Blob type matters: multer takes the part's Content-Type as the
+    // mimetype, and filterFile checks it against the endpoint's allowlist.
+    fd.set('file', new Blob([fs.readFileSync(path.join(dir, w.name))],
+                            { type: 'text/markdown' }), w.name);
+    fd.set('file_id', crypto.randomUUID());
+    fd.set('endpoint', 'agents');
+    fd.set('agent_id', agent.id);
+    fd.set('tool_resource', 'file_search');
+    // No Content-Type header here on purpose — fetch has to set the
+    // multipart boundary itself, and naming the type steamrolls it.
+    const r = await fetch(`${BASE}/api/files`, { method: 'POST', headers: AUTH, body: fd });
+    const t = await r.text();
+    if (r.status === 429) {
+      // Every one of these logs a violation against the owner.  Stop.
+      console.log(`    RATE LIMITED at ${w.name} — 50 uploads/user, 100/IP per 15 min.`);
+      console.log('    Nothing detached: the previous knowledge is still attached.');
+      limited = true;
+      break;
+    }
+    if (!r.ok) { failed++; console.log(`    ${w.name}: ${r.status} ${t.slice(0, 160)}`); continue; }
+    let fid = null;
+    try { fid = (JSON.parse(t) || {}).file_id; } catch {}
+    if (fid) state[w.name] = { sha: w.sha, file_id: fid };
+    uploaded++;
+  }
+
+  // AFTER the new copies are in, never before.  Same rule as mint-then-escrow
+  // in the registrar: the constructive step first, so a failure degrades to
+  // "stale but working" instead of "empty".
+  if (!limited && stale.size) {
+    const r = await fetch(`${BASE}/api/files`, {
+      method: 'DELETE', headers: H,
+      body: JSON.stringify({
+        agent_id: agent.id, tool_resource: 'file_search',
+        // filepath is REQUIRED by the delete route's filter — a file without
+        // one is silently dropped from the request and leaks as an orphan.
+        files: [...stale.values()].map((f) => ({
+          file_id: f.file_id, filepath: f.filepath,
+          embedded: f.embedded, source: f.source,
+        })),
+      }),
+    });
+    if (!r.ok) console.log(`    detach ${stale.size} old: ${r.status} ${(await r.text()).slice(0, 120)}`);
+  }
+
+  const kept = agent.want.length - todo.length;
+  console.log(`    ${kept} unchanged, ${uploaded} embedded, ${stale.size} retired`
+              + (failed ? `, ${failed} FAILED` : '') + (limited ? ', RATE LIMITED' : ''));
+  return { state, bad: failed + (limited ? 1 : 0) };
+}
+
+(async () => {
   const lr = await fetch(`${BASE}/api/agents`, { headers: H });
   const lb = await lr.text();
   let byName = new Map();
   try { for (const a of (JSON.parse(lb).data || [])) byName.set(a.name, a.id); }
-  catch { console.log(`  (could not read the agent list: ${lr.status} ${lb.slice(0,100)})`); }
+  catch { console.log(`  (could not read the agent list: ${lr.status} ${lb.slice(0, 100)})`); }
 
   let made = 0, updated = 0, failed = 0;
+  const seeded = [];
   for (const a of AGENTS) {
     const body = JSON.stringify({
       name: a.name, description: a.description, instructions: a.instructions,
       provider: PROVIDER, model: MODEL,
+      // Without this the files upload, embed, attach — and the model still
+      // cannot see them, because nothing gave it the tool to look.
+      tools: ['file_search'],
     });
     const id = byName.get(a.name);
     const r = id
       ? await fetch(`${BASE}/api/agents/${id}`, { method: 'PATCH', headers: H, body })
       : await fetch(`${BASE}/api/agents`, { method: 'POST', headers: H, body });
     const t = await r.text();
-    if (r.ok) {
-      let out = id;
-      try { out = JSON.parse(t).id || id; } catch {}
-      console.log(`  ${(id ? 'update' : 'create').padEnd(6)} ${a.name.padEnd(18)} ${out}`);
-      id ? updated++ : made++;
-    } else {
+    if (!r.ok) {
       console.log(`  ${String(r.status).padEnd(6)} ${a.name.padEnd(18)} ${t.slice(0, 200)}`);
       failed++;
+      continue;
+    }
+    let out = id;
+    try { out = JSON.parse(t).id || id; } catch {}
+    console.log(`  ${(id ? 'update' : 'create').padEnd(6)} ${a.name.padEnd(18)} ${out}`);
+    id ? updated++ : made++;
+    a.id = out;
+    seeded.push({ slug: a.slug, name: a.name, id: out });
+    if (!SKIP_FILES) {
+      const out = await syncFiles(a);
+      failed += out.bad;
+      seeded[seeded.length - 1].files = out.state;
     }
   }
+  fs.writeFileSync(OUT, JSON.stringify(seeded, null, 2));
   console.log(`\n${made} created, ${updated} updated, ${failed} failed`);
   if (failed) process.exit(1);
 })();
 """
 
 
-def compose(*args: str) -> str:
+def knowledge(slug: str) -> list[pathlib.Path]:
+    """The pages that become an agent's file_search knowledge."""
+    return sorted(p for p in (CORPUS / slug).glob("*.md")
+                  if p.name not in NOT_KNOWLEDGE)
+
+
+def sha(path: pathlib.Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
+def compose(*args: str, **kw) -> subprocess.CompletedProcess:
     return subprocess.run(["docker", "compose", *args], cwd=ROOT,
-                          capture_output=True, text=True, check=True).stdout
+                          stdin=subprocess.DEVNULL, text=True, **kw)
 
 
 def owner_id(email: str) -> str:
-    q = (f'db.users.findOne({{email:"{email}"}},{{_id:1}})?._id.toString() '
-         f'?? "NOTFOUND"')
+    # String(u._id), not u?._id.toString() — the optional-chain form throws
+    # "Cannot read properties of undefined (reading 'toHexString')" on some
+    # mongosh builds, and the script reads that as "no such user."
+    q = (f'var u = db.users.findOne({{email:"{email}"}}, {{_id:1}}); '
+         f'print(u ? String(u._id) : "NOTFOUND")')
     out = compose("exec", "-T", "mongodb", "mongosh", "--quiet", "LibreChat",
-                  "--eval", q).strip().strip('"')
+                  "--eval", q, capture_output=True, check=True).stdout
+    out = out.strip().strip('"')
     if not out or out == "NOTFOUND":
         sys.exit(f"no LibreChat user with email {email} — they must sign in once first.")
     return out
 
 
+def model_specs(seeded: list[dict], model: str) -> str:
+    """The paste-me block for this box's librechat.yaml.
+
+    Agent ids are minted per deployment and librechat.yaml gets no env
+    substitution, so this block cannot be tracked — it is hand-written once
+    per instance, into site/.  See docs/admin-guide.md, "The guide agents".
+    """
+    lines = ["modelSpecs:",
+             "  enforce: true          # agents only — no raw model picker",
+             "  prioritize: true",
+             "  list:"]
+    for i, a in enumerate(seeded):
+        lines += [f"    - name: {a['slug']}",
+                  f"      label: {a['name']}",
+                  f"      default: {'true' if i == 0 else 'false'}",
+                  "      preset:",
+                  "        endpoint: agents",
+                  f"        agent_id: {a['id']}",
+                  f"        model: {model}"]
+    return "\n".join(lines)
+
+
 def main() -> int:
-    if len(sys.argv) < 2:
-        sys.exit("usage: seed_agents.py <owner-email>   (the account that will own the guides)")
-    email = sys.argv[1].strip().lower()
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    skip_files = "--skip-files" in sys.argv[1:]
+    if not args:
+        sys.exit("usage: seed_agents.py <owner-email> [--skip-files]   "
+                 "(the account that will own the guides)")
+    email = args[0].strip().lower()
     model = os.environ.get("AGENT_MODEL", "almanac-chat")
     provider = os.environ.get("AGENT_PROVIDER", "Almanac")
+
+    state = {}
+    if STATE.exists():
+        try:
+            state = json.loads(STATE.read_text())
+        except json.JSONDecodeError:
+            print(f"{STATE} is unreadable — re-uploading everything")
 
     agents = []
     for slug, name, desc in GUIDES:
@@ -123,29 +315,68 @@ def main() -> int:
             sys.exit(f"{p} missing — run `just docs-corpus` first.")
         text = "\n".join(l for l in p.read_text().splitlines()
                          if not l.startswith("<!--")).strip()
-        agents.append({"name": name, "description": desc, "instructions": text})
+        a = {"slug": slug, "name": name, "description": desc,
+             "instructions": text}
+        if not skip_files:
+            a["want"] = [{"name": f.name, "sha": sha(f)} for f in knowledge(slug)]
+            a["known"] = (state.get(slug) or {}).get("files") or {}
+        agents.append(a)
 
     js = (JS.replace("__AGENTS__", json.dumps(agents, indent=2))
             .replace("__OWNER__", owner_id(email))
             .replace("__MODEL__", model)
-            .replace("__PROVIDER__", provider))
+            .replace("__PROVIDER__", provider)
+            .replace("__SKIP_FILES__", "true" if skip_files else "false"))
 
     print(f"seeding {len(agents)} guide agents as {email} "
-          f"(provider {provider}, model {model})")
-    # Written into /app/api so node resolves jsonwebtoken from the app's
-    # node_modules — require() resolves from the SCRIPT's path, not cwd.
+          f"(provider {provider}, model {model})"
+          f"{'' if skip_files else ', with knowledge'}")
+
+    if not skip_files:
+        # docker cp, not a bind mount: the corpus is a build input for this
+        # one run, and mounting it would make the container's view of it
+        # permanent in a way `just deploy` would have to know about.
+        compose("exec", "-T", "librechat", "rm", "-rf", "/app/api/.seed-corpus",
+                capture_output=True)
+        staged = 0
+        for slug, _, _ in GUIDES:
+            compose("exec", "-T", "librechat", "mkdir", "-p",
+                    f"/app/api/.seed-corpus/{slug}", check=True, capture_output=True)
+            for f in knowledge(slug):
+                compose("cp", str(f), f"librechat:/app/api/.seed-corpus/{slug}/{f.name}",
+                        check=True, capture_output=True)
+                staged += 1
+        print(f"staged {staged} knowledge files")
+
     subprocess.run(["docker", "compose", "exec", "-T", "librechat",
                     "sh", "-c", "cat > /app/api/.seed-agents.js"],
                    cwd=ROOT, input=js, text=True, check=True)
     try:
-        r = subprocess.run(["docker", "compose", "exec", "-T", "librechat",
-                            "node", "/app/api/.seed-agents.js"],
-                           cwd=ROOT, stdin=subprocess.DEVNULL)
+        r = compose("exec", "-T", "librechat", "node", "/app/api/.seed-agents.js")
+        seeded = compose("exec", "-T", "librechat", "cat", "/app/api/.seed-agents.json",
+                         capture_output=True).stdout
     finally:
-        subprocess.run(["docker", "compose", "exec", "-T", "librechat",
-                        "rm", "-f", "/app/api/.seed-agents.js"],
-                       cwd=ROOT, stdin=subprocess.DEVNULL,
-                       capture_output=True)
+        compose("exec", "-T", "librechat", "rm", "-rf",
+                "/app/api/.seed-agents.js", "/app/api/.seed-agents.json",
+                "/app/api/.seed-corpus", capture_output=True)
+
+    try:
+        rows = json.loads(seeded)
+    except (json.JSONDecodeError, TypeError):
+        rows = []
+    if rows and not skip_files:
+        for row in rows:
+            state[row["slug"]] = {"id": row["id"], "files": row.get("files") or {}}
+        try:
+            STATE.parent.mkdir(parents=True, exist_ok=True)
+            STATE.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
+        except OSError as e:
+            print(f"could not write {STATE}: {e} — next run re-uploads everything")
+
+    if rows:
+        print("\n--- paste into this box's librechat.yaml "
+              "(docs/admin-guide.md, \"The guide agents\") ---\n")
+        print(model_specs(rows, model))
     return r.returncode
 
 

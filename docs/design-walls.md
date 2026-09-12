@@ -89,12 +89,37 @@ Three facts collide:
 - **`librechat.yaml` gets no general env-var substitution.**  `extractEnvVariable` is applied to specific endpoint fields (`apiKey`, `baseURL`, the Azure block) — `loadCustomConfig.js` never calls it on the document — so `agent_id: "${SOME_VAR}"` stays a literal string.
 - **`librechat/librechat.yaml` is tracked**, and `just sync` does `git reset --hard origin/main`.  Measured 2026-09-12: a hand edit for `modelSpecs` was silently reverted by the next deploy; only the untracked `.pre-flip` backup beside it survived, which is what made the revert visible at all.
 
-So a per-box id cannot live in the tracked flagship config, and hand-editing that file on a box is not a workaround — it is a change with a deploy-shaped expiry date.  **This is the `site/` rule arriving from a direction nobody planned for**, and it wants one of two real answers:
+So a per-box id cannot live in the tracked flagship config, and hand-editing that file on a box is not a workaround — it is a change with a deploy-shaped expiry date.  **This is the `site/` rule arriving from a direction nobody planned for.**
 
-- **Render the flagship's `librechat.yaml`**, the way `render_course` already renders each course instance's, with agent ids from a per-box source.  The flagship is currently the one instance that is hand-written rather than rendered.
-- **Override the whole config from `site/`** — `site/` is gitignored and survives the reset, but the box then stops inheriting platform changes to that file.
+**Ruled 2026-09-12: the flagship config is copied into `site/` and hand-written once per instance.**  `site/librechat/librechat.yaml`, with one line in `site/compose.yml` repointing the mount (`volumes:` merges by target, so the site bind replaces the core one and everything else is inherited — verified with `just config`).  `just agents-seed` prints the `modelSpecs` block to paste; the procedure is [admin-guide.md](admin-guide.md), "The vestibule".
+
+The alternative — *render* the flagship's config the way `render_course` renders each course instance's — stays on the table and is the answer if a second per-box value ever shows up.  For one value, a rendered template is machinery built to avoid a paragraph of documentation.  The cost of the ruling is stated where an operator will meet it: **this box stops inheriting platform changes to `librechat.yaml`**, and merges them by hand with a `diff -u`.
+
+**`/api/config` will lie to you about this.**  Unauthenticated requests get a *pre-login* payload — a 200, an otherwise plausible body, and no `modelSpecs` key at all, whether or not the config loaded (`api/server/routes/config.js` returns early before the authenticated payload is built).  Curling it and seeing no specs proves nothing.  `just agents-check` reads the config from inside the container with LibreChat's own YAML parser instead, which also means a `site/` override is picked up for free.
 
 Unresolved: whether `interface.modelSelect: false` alone hides raw models while leaving agents selectable.  Agents are an *endpoint* in LibreChat, so the control that picks a model may be the control that picks an agent — if it is, that flag makes the vestibule unusable rather than focused.  The client bundle is minified and reading it settled nothing; this needs a live look, not another grep.
+
+---
+
+### The file-upload limiter, and why the seeder uploads before it deletes *(2026-09-12)*
+
+`POST /api/files` is rate-limited, and the numbers are small enough to matter to an operator, not just to an abuser.  From `api/server/middleware/limiters/uploadLimiters.js` on our pin:
+
+| Limiter | Default | Window | Env |
+|---|---|---|---|
+| per user | **50** uploads | 15 min | `FILE_UPLOAD_USER_MAX` / `FILE_UPLOAD_USER_WINDOW` |
+| per IP | **100** uploads | 15 min | `FILE_UPLOAD_IP_MAX` / `FILE_UPLOAD_IP_WINDOW` |
+
+The guide corpus is **fifty files**.  So a full seed spends the owner's entire per-user budget in one run, and the second run inside the window gets a 429 on every upload.
+
+That is survivable.  What was not: the first version of `seed_agents.py` replaced knowledge by **detaching and deleting everything, then uploading the current render**.  Measured 2026-09-12 on the dev stack — the second run deleted all five agents' knowledge, then took a 429 on all fifty uploads, and left every guide with **zero files**.  A destructive step followed by a rate limit is a reliable way to produce an empty agent.
+
+Two fixes, and the first is the general one:
+
+- **Upload before you delete.**  Same rule as mint-then-escrow in the registrar: do the constructive step first, so a failure degrades to *stale but working* rather than *empty*.  The seeder now detaches the old copies only after the new ones are in, and skips the detach entirely if it was rate-limited.
+- **Sync by content hash**, so a re-seed after a doc edit costs one or two uploads instead of fifty.  The hashes live in `site/agents-state.json` (per box, gitignored, a cache — delete it and the next run re-uploads everything).  The API stays the authority on what is *attached*; the state file only says what content a given `file_id` held.
+
+One more edge with teeth: **a 429 logs a `FILE_UPLOAD` violation against the owner**, and violations are what `BAN_VIOLATIONS` counts.  A seeder that charges through fifty of them is working toward banning the account it runs as — the same trap as the NON_BROWSER violations above.  The seeder stops at the first 429.
 
 ---
 

@@ -8,6 +8,9 @@ owner: geordi
 tags: [keycloak, litellm, librechat, sso, oidc, identity-broker, rbac, key-rotation, escrow, metering, attribution, backup]
 tethered_to:
   - justfile
+  - scripts/seed_agents.py
+  - scripts/agents_check.py
+  - librechat/librechat.yaml
   - litellm/config.yaml
   - keycloak/realm-classroom.json
   - usage-mcp/server.py
@@ -215,6 +218,81 @@ The tools exist as soon as the stack is up; an agent is how the class meets them
 5. Share it to everyone (or to course groups) — the marketplace makes it discoverable.
 
 The first custom GPT students meet is a live demo of exactly what they're about to build.  The platform demos itself.
+
+---
+
+## The vestibule (the flagship instance)
+
+The flagship at `chat.<ALMANAC_DOMAIN>` is the room everyone can reach — the one place a student or an instructor can ask *how does this platform work* without spending course tokens to find out.  What it offers is **the five guide agents**, not a model picker: a raw model list here is a general-purpose chatbot on a central budget, which is a different product with a different bill.
+
+### The guide agents (once per box, and again whenever the docs change)
+
+```
+just agents-seed you@example.edu
+```
+
+The owner must have signed in at least once — LibreChat creates the account on first OIDC login, and the seeder needs a user to own the agents.  One command does the whole pipeline:
+
+1. renders `corpus/` from front matter (`just docs-corpus`),
+2. creates or **updates in place** the five agents, with instructions from `corpus/<slug>/SYSTEM-PROMPT.md`,
+3. syncs each agent's knowledge to that guide's corpus — by content hash, uploading what changed before retiring what it replaces,
+4. prints the `modelSpecs` block for this box.
+
+**Update-in-place is the whole reason this is a script.**  `modelSpecs` entries reference `agent_id`; recreating an agent mints a new id and silently orphans every spec pointing at the old one, which presents as a vestibule whose guides have vanished.  Agent ids are a published interface.  Never edit an agent's instructions in the UI either — the next run overwrites them, and the version that matters is the one in `docs/agent-contract.md`.
+
+**Knowledge syncs by hash, and the first seed is close to a limit.**  LibreChat rate-limits uploads to **50 per user and 100 per IP per 15 minutes**, and the corpus is fifty files — so the first run on a fresh box spends the owner's whole budget, and a second full run inside that window will be refused.  After that first seed it's cheap: a doc edit costs one or two uploads, because only changed pages are re-embedded.  If you do get rate-limited, the run stops at the first 429 and leaves the previous knowledge attached — wait out the window and run it again.  (Raise `FILE_UPLOAD_USER_MAX` in `.env` if a box genuinely needs a bigger corpus in one pass; it's an abuse control, so raise it deliberately.)
+
+The hashes live in `site/agents-state.json` — per box, gitignored, and a cache rather than a record.  Delete it and the next run re-uploads everything, which is correct, just slower.
+
+While iterating on the prompts, `just agents-seed you@example.edu --skip-files` refreshes only the instructions and touches no files at all.
+
+### The `modelSpecs` block is hand-written, once per instance
+
+Three facts collide here, and the collision is the design:
+
+- `modelSpecs` needs a **literal** `preset.agent_id`, and agent ids are minted per deployment.
+- `librechat.yaml` gets **no general env substitution** — `loadCustomConfig` never calls `extractEnvVariable` on the document, so `agent_id: ${AGENT_ID}` reaches LibreChat as that literal string.
+- `librechat/librechat.yaml` is **tracked**, and `just sync` is `git reset --hard origin/main`.  A box-local edit to it has a deploy-shaped expiry date.
+
+So a per-box agent id has nowhere to live in the platform's copy, and this is one of the things `site/` exists for.  Copy the config across once:
+
+```
+mkdir -p site/librechat
+cp librechat/librechat.yaml site/librechat/librechat.yaml
+```
+
+Paste the block `just agents-seed` printed at the bottom of its run, and point the mount at your copy in `site/compose.yml`:
+
+```yaml
+services:
+  librechat:
+    volumes:
+      # This box's flagship config — it carries agent ids, which are per-box.
+      # See docs/admin-guide.md, "The vestibule".
+      - ./site/librechat:/app/conf:ro
+```
+
+A DIRECTORY mount, matching core — never bind a single file that gets rewritten.  Compose merges `volumes:` by target, so this one line replaces the core bind and inherits the rest — `just config librechat` shows you the merged result rather than making you guess at compose's merge rules.  Then `just up`, and the flagship reads your copy.
+
+### Then check it, because every step here fails quietly
+
+```
+just agents-check
+```
+
+Read-only, and it asks the four questions in the order they go wrong: is there a `modelSpecs` list on this box at all, is `enforce` set, does every spec point at an agent that exists, and does every guide actually carry knowledge.  The orphan case is the one worth running it for — a spec pointing at an id that no longer exists doesn't error, it just quietly serves a vestibule with a guide missing.
+
+**The cost, stated plainly:** this box no longer inherits platform changes to `librechat.yaml`.  When a release touches it, merge by hand —
+
+```
+diff -u site/librechat/librechat.yaml librechat/librechat.yaml
+```
+
+— which is the honest trade for a file that has to know something only this box knows.  A course instance never has this problem: the registrar *renders* `fleet/<slug>.librechat.yaml`, so per-instance values have a template to come from.  The flagship is the one hand-written instance, and it stays that way until there's a second reason to render it.
+
+### `enforce: true` is what hides the raw models
+
+`modelSpecs.enforce: true` restricts the picker to the specs you listed.  `interface.modelSelect: false` is the *other* control people reach for and it is not the same thing — agents are an endpoint in LibreChat, so that flag may hide the agent picker along with the model list.  Verify it against the running instance before trusting either reading.
 
 ---
 

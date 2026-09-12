@@ -291,6 +291,15 @@ config-refresh:
       echo "config-refresh — restarted $n of $checked"
     fi
 
+# The MERGED compose — core plus site/, with every variable resolved.  The
+# honest way to answer "did my site/ override actually take?", which compose
+# merge rules make genuinely hard to guess (volumes merge by target, command
+# replaces wholesale).
+#
+# Show the resolved stack:  just config [service]
+config svc="":
+    @{{compose}} config {{svc}}
+
 # Sync the checkout to origin/main (destructive to local edits — it's a deploy box)
 sync:
     git fetch origin
@@ -664,17 +673,34 @@ bao-unseal:
 key slug email budget="0":
     {{compose}} exec -T registrar python course_admin.py mint "{{slug}}" "{{email}}" --budget {{budget}} </dev/null
 
+# Prompts AND knowledge, in one pass: instructions from corpus/<slug>/
+# SYSTEM-PROMPT.md, knowledge from that guide's corpus (replaced wholesale —
+# corpus/ is a render, so what is attached has no authority worth keeping).
+# Ends by printing this box's modelSpecs block, which is hand-written once per
+# instance into site/ — see docs/admin-guide.md, "The vestibule".
+#
 # Idempotent, and UPDATE-IN-PLACE on purpose: modelSpecs entries reference
 # agent_id, so recreating an agent mints a new id and silently orphans every
 # spec pointing at the old one — the guides just vanish from the picker.
 # The owner must have signed in at least once (LibreChat creates the user on
-# first OIDC login).  Prompts come from corpus/, rendered from
-# docs/agent-contract.md — never edit an agent's instructions in the UI.
+# first OIDC login).  Never edit an agent's instructions in the UI — the next
+# run overwrites them; the version that matters is docs/agent-contract.md.
+#
+# --skip-files refreshes only the prompts (seconds, not minutes).
 #
 # Seed/refresh the guide agents on the flagship:  just agents-seed you@example.edu
-agents-seed owner:
+agents-seed owner *flags="":
     @{{just_executable()}} docs-corpus
-    python3 scripts/seed_agents.py "{{owner}}"
+    python3 scripts/seed_agents.py "{{owner}}" {{flags}}
+
+# Read-only, and safe to run any time.  The four ways the vestibule goes
+# wrong, in the order it goes wrong: no modelSpecs block on this box, enforce
+# not set, a spec pointing at an agent id that no longer exists, or a guide
+# with no knowledge attached.
+#
+# Verify the flagship's guides:  just agents-check
+agents-check:
+    @python3 scripts/agents_check.py
 
 # OpenBao audits the read, and this must never run from CI, a health check, or
 # anything a model can reach.
