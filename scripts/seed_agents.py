@@ -106,6 +106,7 @@ const jwt = require('jsonwebtoken');
 const AGENTS = __AGENTS__;
 const OWNER_ID = '__OWNER__';
 const MODEL = '__MODEL__';
+const MODEL_EXPLICIT = __MODEL_EXPLICIT__;
 const PROVIDER = '__PROVIDER__';
 const SKIP_FILES = __SKIP_FILES__;
 const CORPUS = '/app/api/.seed-corpus';
@@ -205,15 +206,23 @@ async function syncFiles(agent) {
   const lr = await fetch(`${BASE}/api/agents`, { headers: H });
   const lb = await lr.text();
   let byName = new Map();
-  try { for (const a of (JSON.parse(lb).data || [])) byName.set(a.name, a.id); }
+  try { for (const a of (JSON.parse(lb).data || [])) byName.set(a.name, a); }
   catch { console.log(`  (could not read the agent list: ${lr.status} ${lb.slice(0, 100)})`); }
 
   let made = 0, updated = 0, failed = 0;
   const seeded = [];
   for (const a of AGENTS) {
+    const prev = byName.get(a.name);
+    // An update must not silently re-point an agent at a different model.
+    // The default here is a DEFAULT, not an instruction: without this, a
+    // prompt refresh on a box that never set AGENT_MODEL moved every guide
+    // from the priced `almanac-chat-30b` onto the unpriced `almanac-chat`,
+    // and vestibule spend quietly stopped being attributed.  Measured
+    // 2026-09-12.  Set AGENT_MODEL to change a model on purpose.
+    const model = (MODEL_EXPLICIT || !prev?.model) ? MODEL : prev.model;
     const body = JSON.stringify({
       name: a.name, description: a.description, instructions: a.instructions,
-      provider: PROVIDER, model: MODEL,
+      provider: PROVIDER, model,
       // Without this the files upload, embed, attach — and the model still
       // cannot see them, because nothing gave it the tool to look.  The
       // welcome desk has no corpus, and handing it a file_search over an
@@ -221,7 +230,7 @@ async function syncFiles(agent) {
       // and answers anyway.
       tools: (a.want && a.want.length) ? ['file_search'] : [],
     });
-    const id = byName.get(a.name);
+    const id = prev?.id;
     const r = id
       ? await fetch(`${BASE}/api/agents/${id}`, { method: 'PATCH', headers: H, body })
       : await fetch(`${BASE}/api/agents`, { method: 'POST', headers: H, body });
@@ -233,10 +242,11 @@ async function syncFiles(agent) {
     }
     let out = id;
     try { out = JSON.parse(t).id || id; } catch {}
-    console.log(`  ${(id ? 'update' : 'create').padEnd(6)} ${a.name.padEnd(18)} ${out}`);
+    console.log(`  ${(id ? 'update' : 'create').padEnd(6)} ${a.name.padEnd(18)} `
+                + `${String(out).padEnd(26)} ${model}`);
     id ? updated++ : made++;
     a.id = out;
-    seeded.push({ slug: a.slug, name: a.name, id: out });
+    seeded.push({ slug: a.slug, name: a.name, id: out, model });
     if (!SKIP_FILES && a.want && a.want.length) {
       const out = await syncFiles(a);
       failed += out.bad;
@@ -280,6 +290,8 @@ def owner_id(email: str) -> str:
 
 
 def model_specs(seeded: list[dict], model: str) -> str:
+    # `model` is the fallback; a row carrying its own wins, because after the
+    # AGENT_MODEL fix two guides can legitimately differ.
     """The paste-me block for this box's librechat.yaml.
 
     Agent ids are minted per deployment and librechat.yaml gets no env
@@ -308,6 +320,7 @@ def main() -> int:
         sys.exit("usage: seed_agents.py <owner-email> [--skip-files]   "
                  "(the account that will own the guides)")
     email = args[0].strip().lower()
+    model_explicit = "AGENT_MODEL" in os.environ
     model = os.environ.get("AGENT_MODEL", "almanac-chat")
     provider = os.environ.get("AGENT_PROVIDER", "Almanac")
 
@@ -337,10 +350,12 @@ def main() -> int:
             .replace("__OWNER__", owner_id(email))
             .replace("__MODEL__", model)
             .replace("__PROVIDER__", provider)
-            .replace("__SKIP_FILES__", "true" if skip_files else "false"))
+            .replace("__SKIP_FILES__", "true" if skip_files else "false")
+            .replace("__MODEL_EXPLICIT__", "true" if model_explicit else "false"))
 
     print(f"seeding {len(agents)} guide agents as {email} "
-          f"(provider {provider}, model {model})"
+          f"(provider {provider}, model {model}"
+          f"{' — EXPLICIT, existing agents will be re-pointed' if model_explicit else ' for new agents; existing keep theirs'})"
           f"{'' if skip_files else ', with knowledge'}")
 
     if not skip_files:
