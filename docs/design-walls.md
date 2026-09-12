@@ -79,6 +79,16 @@ Two consequences, and they point opposite ways.
 
 **What is NOT true:** LibreChat Projects are not a per-course alternative and never were — they are personal, and other users cannot see your project list.
 
+### The agents API: a browser User-Agent, and ids are an interface *(2026-09-11)*
+
+Three things that each look like a different bug than they are, paid for while seeding the guide agents:
+
+- **Every route under `/api/agents` sits behind `uaParser`** (`api/server/middleware/uaParser.js:20-29`), which rejects any request whose `User-Agent` does not parse as a *browser*.  The response is an SSE body — `event: error data: {"message":"Illegal request"}` — so a client that calls `.json()` on it dies on a syntax error pointing at the parse, not at the request.  It also logs a `NON_BROWSER` violation against the caller each time, so a debugging loop quietly accrues violation score on a real account.  **A script must send a browser UA to reach the agents API at all.**
+- **`/api/agents/v1` is the OpenAI-compatible router, not "version 1" of agent CRUD.**  It authenticates with an API key, so posting an agent there returns `{"error": {"message": "Invalid API key"}}` and reads exactly like a broken token.  Agent CRUD is mounted at the **root** (`routes/agents/index.js:331`, `router.use('/', v1)`) — `POST /api/agents`, `GET /api/agents`.
+- **Agent ids are a published interface.**  `modelSpecs[].preset.agent_id` in `librechat.yaml` points at them, so delete-and-recreate orphans every spec and the guides disappear from the picker with no error anywhere.  Re-import must `PATCH` in place — which is what `just agents-seed` does.
+
+---
+
 ### The classroom posture is opt-in
 
 The default USER role ships `agents.share=false` and `peoplePicker.*=false`.  Out of the box, students cannot share agents with each other — which is the opposite of what a course wants.  The `interface` block in [`librechat/librechat.yaml`](../librechat/librechat.yaml) is what turns the classroom posture **on**.

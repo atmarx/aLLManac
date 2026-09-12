@@ -664,6 +664,18 @@ bao-unseal:
 key slug email budget="0":
     {{compose}} exec -T registrar python course_admin.py mint "{{slug}}" "{{email}}" --budget {{budget}} </dev/null
 
+# Idempotent, and UPDATE-IN-PLACE on purpose: modelSpecs entries reference
+# agent_id, so recreating an agent mints a new id and silently orphans every
+# spec pointing at the old one — the guides just vanish from the picker.
+# The owner must have signed in at least once (LibreChat creates the user on
+# first OIDC login).  Prompts come from corpus/, rendered from
+# docs/agent-contract.md — never edit an agent's instructions in the UI.
+#
+# Seed/refresh the guide agents on the flagship:  just agents-seed you@example.edu
+agents-seed owner:
+    @{{just_executable()}} docs-corpus
+    python3 scripts/seed_agents.py "{{owner}}"
+
 # OpenBao audits the read, and this must never run from CI, a health check, or
 # anything a model can reach.
 #
