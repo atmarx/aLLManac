@@ -397,6 +397,25 @@ The conclusion is the one the operator had already reached from the other side: 
 
 ---
 
+## A chat template is code, and it can refuse — two system messages is where it does *(2026-09-13)*
+
+The eval harness sent the agent contract as one `system` message and the retrieved knowledge as a second one.  Valid OpenAI JSON, accepted by `unsloth/Qwen3.8-27B` without comment, and a hard **400** on `agentionai/Signal-3.8-27B` — same architecture, same quant, same Ollama, same box.
+
+```
+Jinja Exception: System message must be at the beginning.
+    raise_exception('System message must be at the beginning.')
+```
+
+The template ships inside the GGUF, and this one calls `raise_exception` rather than concatenating.  Ollama surfaces that as `400 Bad Request` with the Jinja traceback in the body, which is the only reason it was findable at all.
+
+**The tell was which agents failed.**  The welcome desk passed every case; all five guides failed every case.  That looks like a corpus problem or a context-length problem and is neither — the welcome desk is the one agent that [carries no knowledge files](agent-contract.md#the-welcome-desk), so it is the one agent whose prompt only ever had a single system message.  When a failure sorts cleanly by *one* structural difference between agents, that difference is the bug, and it is faster to find than the stack trace.
+
+**So: one system message.**  Everything the agent is told goes in it, and anything retrieved goes in it too or into the user turn — never a second `system` role.  This is not a preference; it is the only shape that is portable across models we do not pick.  The Almanac [consumes inference and does not manage it](#structure-decisions-settled--reopen-only-with-cause) — at work the runtime is vLLM serving whatever the approved roster holds, and every one of those models brings its own template with its own opinions.  A prompt shape that works is not a prompt shape that is *valid*; it is one that survives the template it happens to land on.
+
+**And the client has to show you the body.**  `urllib` renders an HTTPError as `<HTTPError 400: 'Bad Request'>` and throws the response away unless you read it.  Retrying on top of that — a 400 is deterministic, so the retry can only hide it — turned a one-line diagnosis into an overnight run that measured nothing.  Anything that talks to an inference endpoint logs the error body, and retries timeouts and 5xx only.
+
+---
+
 ## The inference runtime gets no egress, and three other things that phone home *(2026-09-12)*
 
 The homelab posture is that the stack **works with no external access**, and that is a claim you can only make by going and looking.  We looked.
