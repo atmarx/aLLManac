@@ -23,6 +23,28 @@
 
 services: {}
 
+# ---- Two overrides nearly every deployment ends up needing --------------------
+# Both exist because the tracked file is deliberately GENERIC and the real one
+# is per-box.  Both are DIRECTORY mounts, matching core.  Copy the tracked file
+# into `site/`, edit it there, and leave the tracked one alone — a local
+# modification to a tracked file does not survive `just sync`, which is
+# `git reset --hard origin/main`.
+#
+# The flagship's config, because it carries agent ids and those are minted per
+# deployment (docs/admin-guide.md, "The vestibule"):
+#
+#   librechat:
+#     volumes:
+#       - ./site/librechat:/app/conf:ro
+#
+# The gateway's model roster, because the tags are per-deployment — and because
+# `STORE_MODEL_IN_DB` now defaults False, so the admin UI is not a place to put
+# them (docs/design-walls.md):
+#
+#   litellm:
+#     volumes:
+#       - ./site/litellm:/app/conf:ro
+
 # ---- Overriding a core service -----------------------------------------------
 # The gateway's ledger on a mounted volume instead of a docker one, because
 # this box backs up /srv and not /var/lib/docker:
