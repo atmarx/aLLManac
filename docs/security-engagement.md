@@ -2,7 +2,7 @@
 title: What should a student team try to break first?
 description: A reusable engagement brief for a student blue/purple team probing the aLLManac — rules of engagement first, then the boundaries the platform claims to hold, what would disprove each one, and what a finding has to contain to be worth acting on.
 audience: builder
-also_reaches: [operator, student]
+also_reaches: [operator]
 status: draft
 owner: geordi
 tags: [access-control, rbac, least-privilege, oidc, identity-broker, secrets-management, escrow, egress-control, allowlist, audit-logging, tenancy, isolation, chokepoint, gateway, supply-chain, attribution, metering, rendered-config, hallucination, critical-evaluation, accountability]

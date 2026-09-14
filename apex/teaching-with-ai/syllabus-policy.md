@@ -2,7 +2,6 @@
 title: Your syllabus policy
 description: Writing an AI policy students can follow — one principle in the syllabus, one rule per assignment, and drop-in language you can adapt for each permission level.
 audience: faculty
-also_reaches: [student]
 status: draft
 owner: piper
 tags: [syllabus-policy, accountability, academic-integrity, disclosure, assessment-design, source-verification, faculty-duty]

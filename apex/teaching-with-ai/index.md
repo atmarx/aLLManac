@@ -2,7 +2,6 @@
 title: Teaching with AI
 description: Designing courses where students use language models, built on one principle — a student is fully responsible for what they submit, because a model cannot accept blame.
 audience: faculty
-also_reaches: [student]
 status: draft
 owner: piper
 tags: [accountability, assessment-design, academic-integrity, syllabus-policy, ai-literacy, equity, disclosure, source-verification, faculty-duty]

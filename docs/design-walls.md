@@ -2,7 +2,7 @@
 title: What do we already know not to try?
 description: A catalogue of walls — questions already answered the expensive way, from the Actions allowlist whose empty default permits the entire internet to the single-file mount that served stale config through a green reload.
 audience: operator
-also_reaches: [builder, student]
+also_reaches: [builder]
 status: draft
 owner: geordi
 tags: [egress-control, allowlist, access-control, least-privilege, secrets-management, key-rotation, encryption-in-transit, rendered-config, chokepoint, gateway, tenancy, isolation, attribution, metering, docker-compose, kubernetes, librechat, litellm, openbao, keycloak, vllm]
