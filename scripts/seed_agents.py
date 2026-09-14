@@ -219,7 +219,25 @@ async function syncFiles(agent) {
     // from the priced `almanac-chat-30b` onto the unpriced `almanac-chat`,
     // and vestibule spend quietly stopped being attributed.  Measured
     // 2026-09-12.  Set AGENT_MODEL to change a model on purpose.
-    const model = (MODEL_EXPLICIT || !prev?.model) ? MODEL : prev.model;
+    //
+    // 2026-09-14: that guard had never once fired.  It read `prev.model`
+    // off the LIST response, and the list does not project `model` — so
+    // every refresh took the `!prev?.model` branch and re-pointed all six
+    // guides anyway, silently, exactly as if the guard were not there.
+    // The list not mentioning a model is not evidence the agent has none;
+    // ask the agent.  One extra GET, and only when the list came up empty.
+    let prevModel = prev?.model;
+    if (prev && !prevModel) {
+      const pr = await fetch(`${BASE}/api/agents/${prev.id}`, { headers: H });
+      if (pr.ok) {
+        try { prevModel = JSON.parse(await pr.text()).model; } catch {}
+      }
+      if (!prevModel) {
+        console.log(`  WARN   ${a.name.padEnd(18)} could not read its current `
+                    + `model; falling back to ${MODEL}`);
+      }
+    }
+    const model = (MODEL_EXPLICIT || !prevModel) ? MODEL : prevModel;
     const body = JSON.stringify({
       name: a.name, description: a.description, instructions: a.instructions,
       provider: PROVIDER, model,
