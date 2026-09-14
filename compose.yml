@@ -57,7 +57,11 @@ services:
     environment:
       LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY}"
       DATABASE_URL: "postgresql://litellm:${LITELLM_DB_PASSWORD}@litellm-db:5432/litellm"
-      STORE_MODEL_IN_DB: "True"
+      # False by default: a model added in the admin UI persists ENCRYPTED,
+      # so it is discoverable from neither the repo nor the database.  The
+      # roster belongs in litellm/config.yaml.  Set True in .env only if you
+      # mean it.
+      STORE_MODEL_IN_DB: "${STORE_MODEL_IN_DB:-False}"
       # Empty = LiteLLM downloads its cost map at boot (see .env.example).
       LITELLM_LOCAL_MODEL_COST_MAP: "${LITELLM_LOCAL_MODEL_COST_MAP:-}"
       # Where the tokens actually come from — see litellm/config.yaml.  The

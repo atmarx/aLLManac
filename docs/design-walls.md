@@ -397,6 +397,23 @@ The conclusion is the one the operator had already reached from the other side: 
 
 ---
 
+## A UI-added model is invisible in BOTH places you would look *(2026-09-13)*
+
+The vestibule on one box returned `404 ... model 'qwen3:30b-a3b' not found.  Received Model Group=almanac-chat-30b`.  That model group appeared in no config file, on any host, in the repo — and the inference box had no such tag either.  It took a search across three deployments to find.
+
+`STORE_MODEL_IN_DB: "True"` was the answer.  Four groups had been added through the LiteLLM admin UI and lived only in Postgres: `almanac-code`, `almanac-chat-lite`, `almanac-reason`, `almanac-chat-30b`.  **And you cannot read them out of the database either** — LiteLLM encrypts `litellm_params` with the master key, so `select` on `LiteLLM_ProxyModelTable` returns base64 for the model and the api_base.  The roster was undiscoverable from the repo *and* undiscoverable from its own store.  The only way to see it is `GET /model/info` against the running proxy with the master key, which means the answer exists only while the broken thing is up.
+
+Two of the four had outlived their Ollama tags — `qwen3:30b-a3b` and `qwen2.5-coder:7b` had been deleted from the inference box months apart, and nothing noticed, because nothing was watching a list nobody could see.  The one that mattered was pinned into all six guide agents: LibreChat stores the model **per agent**, and a prompt refresh deliberately does not re-point it (that is a feature — see `scripts/seed_agents.py`), so the agents kept asking for a group whose target had been deleted underneath them.
+
+**A dead pointer in a place you can read is a bug; a dead pointer in a place you cannot read is an outage with no first move.**  The fix was to transcribe all four into `litellm/config.yaml`, where a human can diff them against `ollama list`, and default the flag to `False`.
+
+Two things worth keeping from the search, because both cost time:
+
+- **Check which box before diagnosing.** The first twenty minutes went into a stack that was not the one serving the error.  `docker inspect <container> --format '{{range .Mounts}}...'` tells you which checkout a container actually reads, and it is not always the worktree you are standing in.
+- **The agents are the record of record for the model name.**  `librechat.yaml`'s `modelSpecs` said `almanac-chat`; Mongo's `agents` collection said `almanac-chat-30b`; the second one is what gets sent.  Ask Mongo, not the config.
+
+---
+
 ## A chat template is code, and it can refuse — two system messages is where it does *(2026-09-13)*
 
 The eval harness sent the agent contract as one `system` message and the retrieved knowledge as a second one.  Valid OpenAI JSON, accepted by `unsloth/Qwen3.8-27B` without comment, and a hard **400** on `agentionai/Signal-3.8-27B` — same architecture, same quant, same Ollama, same box.
@@ -463,7 +480,7 @@ Verified against the running stack: the `ALLOW_EMAIL_LOGIN` / `ALLOW_REGISTRATIO
 ## Structure decisions (settled — reopen only with cause)
 
 - **The Almanac consumes inference; it does not manage it** *(ruled 2026-09-12)*.  It is given a model and it uses that model — nothing more, nothing less.  Which weights exist, who approved them, when they load, and what hardware they sit on are decisions on the other side of `INFERENCE_BASE_URL`, and at a real institution they belong to a different team with a different change process.  The structure already enforces this and should keep doing so: `site/inference/` is gitignored, only an *example* vLLM stack is tracked, and every `just vllm-*` recipe is guarded by `_vllm-here`, which tells a box with no GPU that having no local inference is *a supported state, not a broken one*.  The house rig may co-locate a runtime for convenience; the platform must never require one, and must never grow a verb that pulls, evicts, or selects a served model.  The two carve-outs are narrow and stay narrow: `just embed-stage` materialises a model the platform *pins for its own machinery* (`EMBEDDINGS_MODEL` in `compose.yml` — it picks nothing, it only fetches what was already chosen), and `litellm/config.yaml` names models to *route to*, which is the handing-over, not the choosing.
-- **Therefore the model roster should come from git, not from a database.**  `STORE_MODEL_IN_DB: "True"` lets anyone with gateway admin add a served model through a web UI at runtime — un-versioned, invisible to review, and gone if the volume is.  That is the platform selecting models, which the rule above forbids.  It is still `True` today because a live box's roster was built that way; flipping it means moving those entries into `litellm/config.yaml` first.  **Open, with a known fix** — not settled.
+- **Therefore the model roster comes from git, not from a database.**  `STORE_MODEL_IN_DB` lets anyone with gateway admin add a served model through a web UI at runtime — un-versioned, invisible to review, and gone if the volume is.  That is the platform selecting models, which the rule above forbids.  **Settled 2026-09-13** — it now defaults to `False`, and the entry below is what closing it cost.
 
 
 - **`site/inference/` (vLLM) needs compute capability ≥ 7.5** — Turing or newer.  Pascal (GTX 10-series, 6.1) is below the floor and the container will not start; this is a hard requirement, not a performance note.  A box with older GPUs runs Ollama and points `INFERENCE_BASE_URL` at it, which the platform cannot tell apart.  Consequence worth knowing before you choose: Ollama's OpenAI-compatible endpoint silently drops controls its native API accepts — `think: false` works on `/api/chat` and is ignored on `/v1`, so a reasoning model served through the gateway will reason whether you want it to or not.  vLLM exposes the same switch as `chat_template_kwargs`.  Measured 2026-09-12 on Qwen3.8-27B: 164 s with thinking, 29 s without, same question, better answer without.

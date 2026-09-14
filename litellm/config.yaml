@@ -59,9 +59,13 @@ model_list:
   #     api_base: os.environ/OFFICE_BASE_URL
   #     api_key: os.environ/OFFICE_API_KEY
 
-  # More models = more blocks (or add them live in the admin UI — models added
-  # there persist in the database via STORE_MODEL_IN_DB, which is config that
-  # lives in a Postgres volume instead of in git; prefer a block here).
+  # More models = more blocks, HERE, in git.  Do not add them in the admin UI:
+  # STORE_MODEL_IN_DB now defaults to False, so anything added there is not
+  # persisted at all — and while it was True, what it persisted was ENCRYPTED
+  # with the master key, so a UI-added model was discoverable from neither the
+  # repo nor the database.  One of them outlived the tag it pointed at and took
+  # a whole vestibule down with a 404 naming a model that existed in no file on
+  # any host (docs/design-walls.md).
   # - model_name: almanac-code
   #   litellm_params:
   #     model: openai/qwen2.5-coder
