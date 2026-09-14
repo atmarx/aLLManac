@@ -196,7 +196,7 @@ LibreChat connects per user and stamps two headers on every tool call — who is
 
 ### The roster
 
-Course scoping lives in `usage-mcp/roster.yaml` on the box — gitignored, because a student roster is deployment data, not code.  First `just up` seeds it from the example; edits after that are picked up live:
+Course scoping lives in `usage-mcp/roster.yaml` on the box — gitignored, because a student roster is deployment data, not code.  **It is a render, not the file you edit**: the registrar rewrites it from `registrar/courses.yaml` on every roster change ([below](#the-roster-is-a-chat-message-now)).  The shape below is what the service reads, so you can tell what a rollup is doing; first `just up` seeds it, and changes are picked up live:
 
 ```yaml
 courses:
