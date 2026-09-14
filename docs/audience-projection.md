@@ -56,13 +56,13 @@ Self-selection does the rest.  A student who wants the runbook picks the Dev Gui
 
 ## Not every bot is an audience
 
-**SecurityBot3000** — the blue-team/purple-team corpus — is the case that keeps the schema honest.  It is not a fifth `audience:` value, and making it one would start the enum's career as a junk drawer.  Security material is a **cross-cut**: the vault page speaks to builders, the egress wall speaks to operators, and a tenancy page speaks to students, but all three belong in a defender's corpus.
+**The Security Guide** — the blue-team/purple-team corpus — is the case that keeps the schema honest.  It is not a fifth `audience:` value, and making it one would start the enum's career as a junk drawer.  Security material is a **cross-cut**: the vault page speaks to builders, the egress wall speaks to operators, and a tenancy page speaks to students, but all three belong in a defender's corpus.
 
-So the generalisation is one line: **a corpus is a query over front matter, and the field it queries is a choice.**  The four guides query `audience:`.  SecurityBot3000 queries `tags:` — the Controls group in [pedagogy-authoring.md](pedagogy-authoring.md) (`access-control`, `least-privilege`, `secrets-management`, `escrow`, `key-rotation`, `encryption-at-rest`, `audit-logging`, `egress-control`, `allowlist`, `rbac`, `sso`, `oidc`) plus the architecture tags that describe the chokepoint (`tenancy`, `isolation`, `gateway`, `chokepoint`).
+So the generalisation is one line: **a corpus is a query over front matter, and the field it queries is a choice.**  The four guides query `audience:`.  The Security Guide queries `tags:` — the Controls group in [pedagogy-authoring.md](pedagogy-authoring.md) (`access-control`, `least-privilege`, `secrets-management`, `escrow`, `key-rotation`, `encryption-at-rest`, `audit-logging`, `egress-control`, `allowlist`, `rbac`, `sso`, `oidc`) plus the architecture tags that describe the chokepoint (`tenancy`, `isolation`, `gateway`, `chokepoint`).
 
 Which means it is buildable before its own content exists.  Those tags are already carried by thirteen pages across `apex/`, and [design-walls.md](design-walls.md) is the densest security text in the repo once it is labelled — a catalogue of the SSRF allowlist's inverted default, the `actions.allowedDomains` trap, the single-file mount that served a stale config through a green reload.  A defender learns more from that file than from anything we would write on purpose.
 
-**The exercises themselves are unwritten.**  Nothing in the tree is blue- or purple-team content today; the matches are incidental prose.  SecurityBot3000 is therefore a corpus definition waiting on a corpus, and the useful order is: label what exists, see what the tag query already returns, then write into the gaps it exposes.
+**The exercises themselves are unwritten.**  Nothing in the tree is blue- or purple-team content today; the matches are incidental prose.  The Security Guide is therefore a corpus definition waiting on a corpus, and the useful order is: label what exists, see what the tag query already returns, then write into the gaps it exposes.
 
 ## The byproduct
 

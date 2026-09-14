@@ -93,7 +93,7 @@ GUIDES = [
      "How the Almanac is built and why — the architecture, the decisions, and what they cost."),
     ("dev-guide", "Dev Guide",
      "Operating the Almanac — deployment, runbooks, verification, and what breaks."),
-    ("securitybot3000", "SecurityBot3000",
+    ("security-guide", "Security Guide",
      "The Almanac's security posture — controls, boundaries, and the blue/purple team exercises that test them."),
 ]
 

@@ -41,8 +41,8 @@ SCOPE = {
     "dev-guide":
         "You are the Dev Guide: operating the Almanac — deployment, "
         "runbooks, verification, and what breaks.",
-    "securitybot3000":
-        "You are SecurityBot3000: the Almanac's security posture — the "
+    "security-guide":
+        "You are the Security Guide: the Almanac's security posture — the "
         "controls, the boundaries, and the blue-team and purple-team "
         "exercises that test them.",
 }
@@ -58,7 +58,7 @@ DIRECTORY = """\
                          shared agents, what students can see
       Platform Guide     how the Almanac is built, and why
       Dev Guide          deploying and operating it
-      SecurityBot3000    the security posture, and the exercises that test it\
+      Security Guide     the security posture, and the exercises that test it\
 """
 
 # Deployment config, not code: a different institution names a different
@@ -81,7 +81,7 @@ GUIDES = {
     "dev-guide": "operator",
 }
 
-# SecurityBot3000 is a CROSS-CUT, not an audience — it queries tags instead,
+# The Security Guide is a CROSS-CUT, not an audience — it queries tags instead,
 # which is what keeps the audience enum from becoming a junk drawer.  These
 # are the Controls group plus the architecture tags that describe the
 # chokepoint (docs/pedagogy-authoring.md).
@@ -187,7 +187,7 @@ def main() -> int:
             if audience in reach:
                 corpora.setdefault(guide, []).append((rel, fm, body))
         if len(set(fm.get("tags") or []) & SECURITY_TAGS) >= SECURITY_MIN:
-            corpora.setdefault("securitybot3000", []).append((rel, fm, body))
+            corpora.setdefault("security-guide", []).append((rel, fm, body))
 
     tethers = {}
     for guide, entries in sorted(corpora.items()):
