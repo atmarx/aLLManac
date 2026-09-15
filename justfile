@@ -251,22 +251,34 @@ config-refresh:
         # for the new topology — restarting boots new config into the old shape.
         # (The concrete case: the edge's Caddyfile importing /etc/caddy-fleet,
         # restarted into a container that only mounts /etc/caddy/fleet — empty
-        # import glob, fatal, edge down and unable to boot.)  Compose stamps a
-        # config-hash label at create; compare it against the hash the current
-        # files produce.  Fail CLOSED: if the hashes differ or can't be
-        # computed, refuse the restart and fail the run — `just up` (recreate)
-        # is the correct verb for definition drift, not restart.  In `deploy`
-        # this never fires, because `up` reconciles definitions first.
+        # import glob, fatal, edge down and unable to boot.)  Fail CLOSED: if
+        # the definition drifted or can't be checked, refuse the restart and
+        # fail the run — `just up` (recreate) is the verb for definition
+        # drift, not restart.  In `deploy` this never fires, because `up`
+        # reconciles definitions first.
+        #
+        # The oracle is compose's OWN diff: `up --dry-run` says "Recreate" for
+        # a container whose definition moved and "Running" for one that
+        # didn't.  It used to be `config --hash` against the config-hash
+        # label, and that was a false positive for every service with an
+        # env_file: compose 5.3 stamps one hash at create and computes a
+        # different one from `config`, for the same files, seconds apart,
+        # with or without --no-env-resolution (measured 2026-09-15 on
+        # librechat and keycloak; registrar, no env_file, matched).  Pipeline
+        # #72 went red on a container `up` had just declined to recreate.
         svc=$(docker inspect "$c" --format '{{{{index .Config.Labels "com.docker.compose.service"}}' 2>/dev/null)
         pdir=$(docker inspect "$c" --format '{{{{index .Config.Labels "com.docker.compose.project.working_dir"}}' 2>/dev/null)
         files=$(docker inspect "$c" --format '{{{{index .Config.Labels "com.docker.compose.project.config_files"}}' 2>/dev/null)
-        running_hash=$(docker inspect "$c" --format '{{{{index .Config.Labels "com.docker.compose.config-hash"}}' 2>/dev/null)
-        want_hash=""
+        verdict=""
         if [ -n "$svc" ] && [ -n "$pdir" ] && [ -n "$files" ]; then
           fargs=""; IFS=','; for f in $files; do fargs="$fargs -f $f"; done; unset IFS
-          want_hash=$(docker compose --project-directory "$pdir" $fargs config --hash "$svc" 2>/dev/null | awk '{print $2}')
+          plan=$(docker compose --project-directory "$pdir" $fargs up -d --dry-run --no-deps "$svc" 2>&1 || true)
+          case "$plan" in
+            *"$c Recreate"*) verdict="drifted" ;;
+            *"$c Running"*|*"$c Started"*|*"$c Healthy"*) verdict="same" ;;
+          esac
         fi
-        if [ -z "$want_hash" ] || [ "$want_hash" != "$running_hash" ]; then
+        if [ "$verdict" != "same" ]; then
           echo "  SKIP     $c — config changed AND its compose definition drifted (or can't be checked)."
           echo "           A restart would boot the new config into the old container shape."
           echo "           Run \`just up\` to recreate it, then re-run config-refresh."
