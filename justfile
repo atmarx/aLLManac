@@ -751,17 +751,20 @@ key slug email budget="0":
 # Idempotent, and UPDATE-IN-PLACE on purpose: modelSpecs entries reference
 # agent_id, so recreating an agent mints a new id and silently orphans every
 # spec pointing at the old one — the guides just vanish from the picker.
-# The owner must have signed in at least once (LibreChat creates the user on
-# first OIDC login) AND be an ADMIN — the seeder opens AGENTS.CREATE on the
-# ADMIN role for the run, because the vestibule seeds it false for everyone.  Never edit an agent's instructions in the UI — the next
+# The guides are owned by a SERVICE ACCOUNT the seeder creates in Mongo
+# (guides@almanac.invalid — no credentials, cannot sign in).  Never a person:
+# whoever owns the guides can delete their knowledge files from "Manage
+# files," and a faculty owner did exactly that (2026-09-15).  The seeder
+# opens AGENTS.CREATE on the ADMIN role for the run, because the vestibule
+# seeds it false for everyone.  Never edit an agent's instructions in the UI — the next
 # run overwrites them; the version that matters is docs/agent-contract.md.
 #
 # --skip-files refreshes only the prompts (seconds, not minutes).
 #
-# Seed/refresh the guide agents on the flagship:  just agents-seed you@example.edu
-agents-seed owner *flags="":
+# Seed/refresh the guide agents on the flagship:  just agents-seed
+agents-seed *flags="":
     @{{just_executable()}} docs-corpus
-    python3 scripts/seed_agents.py "{{owner}}" {{flags}}
+    python3 scripts/seed_agents.py {{flags}}
 
 # Read-only, and safe to run any time.  The four ways the vestibule goes
 # wrong, in the order it goes wrong: no modelSpecs block on this box, enforce

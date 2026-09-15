@@ -239,10 +239,10 @@ The flagship at `chat.<ALMANAC_DOMAIN>` is the room everyone can reach — the o
 ### The guide agents (once per box, and again whenever the docs change)
 
 ```
-just agents-seed you@example.edu
+just agents-seed
 ```
 
-The owner must have signed in at least once — LibreChat creates the account on first OIDC login, and the seeder needs a user to own the agents — **and must be an ADMIN** (faculty are, via `OPENID_ADMIN_ROLE`): the vestibule seeds `agents.create=false` into every role, LibreChat gates agent *updates* on that same permission, so the seeder opens a `CREATE` window on the ADMIN role through the roles API for the length of its run and closes it after.  One command does the whole pipeline:
+The guides are owned by a **service account** the seeder creates on first run — `guides@almanac.invalid`, a user document with no password and no identity-provider link, so nobody can sign in as it.  Never seed them under a person: whoever owns an agent sees its knowledge files under *Manage files* and can delete them, and LibreChat will let them — a faculty owner did exactly that to the Security Guide on 2026-09-15.  Boxes seeded under a human before that date are adopted into the service account automatically on the next run.  The vestibule seeds `agents.create=false` into every role and LibreChat gates agent *updates* on that same permission, so the seeder opens a `CREATE` window on the ADMIN role through the roles API for the length of its run and closes it after.  One command does the whole pipeline:
 
 1. renders `corpus/` from front matter (`just docs-corpus`),
 2. creates or **updates in place** the five agents, with instructions from `corpus/<slug>/SYSTEM-PROMPT.md`,
@@ -255,7 +255,7 @@ The owner must have signed in at least once — LibreChat creates the account on
 
 The hashes live in `site/agents-state.json` — per box, gitignored, and a cache rather than a record.  Delete it and the next run re-uploads everything, which is correct, just slower.
 
-While iterating on the prompts, `just agents-seed you@example.edu --skip-files` refreshes only the instructions and touches no files at all.
+While iterating on the prompts, `just agents-seed --skip-files` refreshes only the instructions and touches no files at all.
 
 ### The `modelSpecs` block is hand-written, once per instance
 
@@ -349,7 +349,7 @@ To switch:
 1. Uncomment the `almanac-office` block in `litellm/config.yaml`.
 2. Set `OFFICE_MODEL`, `OFFICE_BASE_URL`, `OFFICE_API_KEY` in `.env`.  Prefer the **Azure AI Foundry** shape (`azure_ai/<deployment>`) where you have it: LiteLLM reads the real per-deployment rates when it polls the endpoint, so the ledger carries true pricing instead of a figure somebody typed.  The vendor's own API (`openai/<id>`) falls back to LiteLLM's pinned cost map.
 3. `just deploy`.
-4. `AGENT_MODEL=almanac-office just agents-seed <owner-email>` — `AGENT_MODEL` must be explicit or the seeder preserves whatever model each agent already has, which is the behaviour you want every other time you run it.
+4. `AGENT_MODEL=almanac-office just agents-seed` — `AGENT_MODEL` must be explicit or the seeder preserves whatever model each agent already has, which is the behaviour you want every other time you run it.
 5. Paste the reprinted `modelSpecs` block (the `model:` line changes on every row) and check with `just agents-check`.
 
 **Then confirm a spend row actually lands**, with real dollars on it:

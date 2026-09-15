@@ -325,18 +325,69 @@ def compose(*args: str, **kw) -> subprocess.CompletedProcess:
                           stdin=subprocess.DEVNULL, text=True, **kw)
 
 
+def _mongo(q: str) -> str:
+    out = compose("exec", "-T", "mongodb", "mongosh", "--quiet", "LibreChat",
+                  "--eval", q, capture_output=True, check=True).stdout
+    return out.strip().strip('"')
+
+
+# The guides' owner is a SERVICE ACCOUNT, not a person.  It is a user document
+# and nothing else: no password, no identity-provider link, an email on the
+# reserved .invalid TLD, so nobody can ever sign in as it — and so no human's
+# file manager ever lists the corpus.  Found 2026-09-15: the guides were owned
+# by the faculty account that seeded them, that account saw forty-four
+# knowledge files under "Manage files," selected two, and deleted them out
+# from under the Security Guide.  LibreChat let it, because they were theirs.
+SERVICE_OWNER = {"email": "guides@almanac.invalid", "username": "almanac-guides",
+                 "name": "Almanac Guides"}
+
+
+def service_owner_id() -> str:
+    q = (f'var u = db.users.findOne({{email:"{SERVICE_OWNER["email"]}"}}, {{_id:1}}); '
+         f'if (!u) {{ var r = db.users.insertOne({{email:"{SERVICE_OWNER["email"]}", '
+         f'username:"{SERVICE_OWNER["username"]}", name:"{SERVICE_OWNER["name"]}", '
+         f'provider:"local", role:"ADMIN", emailVerified:true, '
+         f'createdAt:new Date(), updatedAt:new Date()}}); '
+         f'print("CREATED " + String(r.insertedId)); }} else {{ print(String(u._id)); }}')
+    out = _mongo(q)
+    if out.startswith("CREATED "):
+        print(f"service owner created: {SERVICE_OWNER['email']} (no credentials — cannot sign in)")
+        out = out[len("CREATED "):]
+    if not out:
+        sys.exit("could not find or create the service owner in LibreChat's users")
+    return out
+
+
 def owner_id(email: str) -> str:
+    """A HUMAN owner — legacy, explicit, and not what you want: whoever owns
+    the guides can delete their knowledge files from the file manager."""
     # String(u._id), not u?._id.toString() — the optional-chain form throws
     # "Cannot read properties of undefined (reading 'toHexString')" on some
     # mongosh builds, and the script reads that as "no such user."
     q = (f'var u = db.users.findOne({{email:"{email}"}}, {{_id:1}}); '
          f'print(u ? String(u._id) : "NOTFOUND")')
-    out = compose("exec", "-T", "mongodb", "mongosh", "--quiet", "LibreChat",
-                  "--eval", q, capture_output=True, check=True).stdout
-    out = out.strip().strip('"')
+    out = _mongo(q)
     if not out or out == "NOTFOUND":
         sys.exit(f"no LibreChat user with email {email} — they must sign in once first.")
     return out
+
+
+def adopt(owner: str, agent_ids: list[str]) -> None:
+    """Move agents this box already seeded — and every file they carry — to
+    OWNER.  The API cannot reassign authorship; Mongo can.  Idempotent."""
+    if not agent_ids:
+        return
+    ids = json.dumps(agent_ids)
+    q = (f'var o = new ObjectId("{owner}"); var ids = {ids}; '
+         f'var ag = db.agents.find({{id:{{$in:ids}}, author:{{$ne:o}}}}).toArray(); '
+         f'var fids = []; ag.forEach(function(a){{ var t=a.tool_resources||{{}}; '
+         f'Object.keys(t).forEach(function(k){{ (t[k].file_ids||[]).forEach(function(f){{ fids.push(f); }}); }}); }}); '
+         f'var ra = db.agents.updateMany({{id:{{$in:ids}}}}, {{$set:{{author:o}}}}); '
+         f'var rf = fids.length ? db.files.updateMany({{file_id:{{$in:fids}}}}, {{$set:{{user:o}}}}) : {{modifiedCount:0}}; '
+         f'print(ra.modifiedCount + " " + rf.modifiedCount)')
+    moved_agents, moved_files = _mongo(q).split()
+    if int(moved_agents) or int(moved_files):
+        print(f"adopted into the service owner: {moved_agents} agent(s), {moved_files} file(s)")
 
 
 def model_specs(seeded: list[dict], model: str) -> str:
@@ -366,10 +417,12 @@ def model_specs(seeded: list[dict], model: str) -> str:
 def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
     skip_files = "--skip-files" in sys.argv[1:]
-    if not args:
-        sys.exit("usage: seed_agents.py <owner-email> [--skip-files]   "
-                 "(the account that will own the guides)")
-    email = args[0].strip().lower()
+    # No owner argument: the guides belong to the service account.  An email
+    # is accepted as an explicit, legacy override and warned about.
+    email = args[0].strip().lower() if args else None
+    if email:
+        print(f"WARN: seeding under a human owner ({email}) — that account can delete "
+              "the guides' knowledge files from its file manager.  Omit the email.")
     model_explicit = "AGENT_MODEL" in os.environ
     model = os.environ.get("AGENT_MODEL", "almanac-chat")
     provider = os.environ.get("AGENT_PROVIDER", "Almanac")
@@ -399,8 +452,11 @@ def main() -> int:
         a["id"] = (state.get(slug) or {}).get("id")
         agents.append(a)
 
+    owner = owner_id(email) if email else service_owner_id()
+    adopt(owner, [v["id"] for v in state.values() if isinstance(v, dict) and v.get("id")])
+
     js = (JS.replace("__AGENTS__", json.dumps(agents, indent=2))
-            .replace("__OWNER__", owner_id(email))
+            .replace("__OWNER__", owner)
             .replace("__MODEL__", model)
             .replace("__PROVIDER__", provider)
             .replace("__SKIP_FILES__", "true" if skip_files else "false")
