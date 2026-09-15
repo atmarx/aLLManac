@@ -23,6 +23,26 @@
 
 services: {}
 
+# ---- Branding is a site/ concern, never the platform's --------------------------
+# The platform ships an unbranded Keycloak login and LibreChat's stock title,
+# logo and favicons on purpose: whose box this is, and what it's called there,
+# is institutional and lives in this layer.  The shape that works — an
+# institution's login theme mounted under /opt/keycloak/themes/<name>
+# (read-only; the realm's loginTheme is then set live with kcadm inside the
+# container), and the chat's static assets as read-only single-file mounts
+# over /app/client/dist/assets/{logo.svg,favicon-*.png,...}.  Single-file
+# mounts are fine HERE because these files are never rewritten; the mount wall
+# in docs/design-walls.md is about files that are.  APP_TITLE and
+# CUSTOM_FOOTER in .env do the rest — quote any value with spaces, or just's
+# dotenv parser refuses the file and every recipe dies with it.
+#
+#   keycloak:
+#     volumes:
+#       - ./site/branding/<theme>:/opt/keycloak/themes/<theme>:ro
+#   librechat:
+#     volumes:
+#       - ./site/branding/logo.svg:/app/client/dist/assets/logo.svg:ro
+
 # ---- Two overrides nearly every deployment ends up needing --------------------
 # Both exist because the tracked file is deliberately GENERIC and the real one
 # is per-box.  Both are DIRECTORY mounts, matching core.  Copy the tracked file
