@@ -128,17 +128,65 @@ def contract() -> tuple[str, str]:
     if "## The evals" not in body:
         raise SystemExit(f"{CONTRACT}: no '## The evals' section")
     evals = body.split("## The evals", 1)[1].split("\n---", 1)[0].strip()
-    return fill(preamble), evals, body
+    return preamble, evals, body
 
 
-def fill(text: str) -> str:
-    """Deployment + directory substitution.  Loud if a token survives."""
+def fill(text: str, vocab: str = "") -> str:
+    """Deployment + directory + vocabulary substitution.  Loud if a token survives.
+
+    VOCABULARY is per-guide, so this runs once per guide rather than once for
+    the shared preamble — which is why contract() hands the preamble back raw.
+    """
     text = (text.replace("{{FALLBACK_ASSISTANT}}", FALLBACK)
-                .replace("{{GUIDE_DIRECTORY}}", DIRECTORY))
+                .replace("{{GUIDE_DIRECTORY}}", DIRECTORY)
+                .replace("{{VOCABULARY}}", vocab))
     if "{{" in text:
         stray = text[text.index("{{"):][:40]
         raise SystemExit(f"{CONTRACT}: unsubstituted template token {stray!r}")
     return text
+
+
+def vocabulary(body: str) -> list[str]:
+    """The platform's nouns, from the contract's own list.  One per line."""
+    try:
+        section = body.split("## The vocabulary", 1)[1]
+        fence = section.split("```text", 1)[1].split("```", 1)[0]
+    except IndexError:
+        raise SystemExit(f"{CONTRACT}: no ```text fence under '## The vocabulary'")
+    terms = [ln.strip() for ln in fence.splitlines() if ln.strip()]
+    if not terms:
+        raise SystemExit(f"{CONTRACT}: '## The vocabulary' fence is empty")
+    return terms
+
+
+def vocab_block(terms: list[str], entries, tags: set) -> tuple[str, set]:
+    """One guide's vocabulary: its own terms, and the files of ITS OWN that use them.
+
+    A term is listed only where the guide can actually follow it up.  That is
+    the whole safety property — a guide is never handed a word whose page it
+    was not given, so "start with the file named beside the term" is always a
+    reachable instruction rather than a dead pointer.
+
+    Returns the rendered block and the terms that landed, so main() can fail
+    the render on a term no corpus uses at all.
+    """
+    rows, found = [], set()
+    for term in terms:
+        hits = []
+        for rel, _fm, body in entries:
+            n = body.lower().count(term.lower())
+            if n:
+                hits.append((n, flat_name(rel)))
+        if not hits:
+            continue
+        found.add(term)
+        hits.sort(key=lambda x: (-x[0], x[1]))
+        rows.append(f"  {term:<24} {', '.join(name for _n, name in hits[:3])}")
+    block = "\n".join(rows)
+    if tags:
+        block += ("\n\n  Concepts these same files cover:\n    "
+                  + ", ".join(sorted(tags)))
+    return block, found
 
 
 def load(path: pathlib.Path):
@@ -159,6 +207,8 @@ def flat_name(rel: pathlib.Path) -> str:
 
 def main() -> int:
     preamble, evals, contract_body = contract()
+    terms = vocabulary(contract_body)
+    seen_terms = set()
     pages, unlabelled = [], []
     for base in ("apex", "docs"):
         for path in sorted((ROOT / base).rglob("*.md")):
@@ -210,9 +260,13 @@ def main() -> int:
         (d / "MANIFEST.md").write_text("\n".join(lines) + "\n")
         scope = SCOPE.get(guide)
         if scope:
+            tags = {tg for _r, fm, _b in entries for tg in (fm.get("tags") or [])}
+            block, found = vocab_block(terms, entries, tags)
+            seen_terms |= found
             (d / "SYSTEM-PROMPT.md").write_text(
                 f"<!-- rendered from docs/agent-contract.md by `just docs-corpus` "
-                f"— edit the source, not this -->\n\n{scope}\n\n{preamble}\n")
+                f"— edit the source, not this -->\n\n{scope}\n\n"
+                f"{fill(preamble, block)}\n")
             (d / "EVALS.md").write_text(
                 f"# {guide} — eval cases\n\n"
                 "<!-- rendered from docs/agent-contract.md — edit the source -->\n\n"
@@ -227,6 +281,15 @@ def main() -> int:
         "<!-- rendered from docs/agent-contract.md by `just docs-corpus` "
         "— edit the source, not this -->\n\n"
         + fill(welcome(contract_body)) + "\n")
+
+    # A term no corpus page uses anywhere is a name the platform has stopped
+    # using — or never had.  Six agents reciting it is the doc-drift failure
+    # this list would otherwise cause, so it is a build error, not a warning.
+    dead = [x for x in terms if x not in seen_terms]
+    if dead:
+        raise SystemExit(f"{CONTRACT}: '## The vocabulary' names "
+                         f"{len(dead)} term(s) no corpus page uses: "
+                         + ", ".join(repr(x) for x in dead))
     (d / "EVALS.md").write_text(
         "# welcome — eval cases\n\n"
         "<!-- rendered from docs/agent-contract.md — edit the source -->\n\n"
