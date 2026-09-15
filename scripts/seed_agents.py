@@ -205,14 +205,20 @@ async function syncFiles(agent) {
 (async () => {
   const lr = await fetch(`${BASE}/api/agents`, { headers: H });
   const lb = await lr.text();
-  let byName = new Map();
-  try { for (const a of (JSON.parse(lb).data || [])) byName.set(a.name, a); }
-  catch { console.log(`  (could not read the agent list: ${lr.status} ${lb.slice(0, 100)})`); }
+  // Match by the id this box recorded for the slug FIRST, and by name only
+  // for an agent this box has never seeded.  Matching by name alone meant a
+  // rename ("Welcome" -> "Front Desk", 2026-09-15) created a second agent
+  // and orphaned the modelSpecs entry pointing at the first — exactly the
+  // failure the update-in-place rule exists to prevent.
+  let byName = new Map(), byId = new Map();
+  try {
+    for (const a of (JSON.parse(lb).data || [])) { byName.set(a.name, a); byId.set(a.id, a); }
+  } catch { console.log(`  (could not read the agent list: ${lr.status} ${lb.slice(0, 100)})`); }
 
   let made = 0, updated = 0, failed = 0;
   const seeded = [];
   for (const a of AGENTS) {
-    const prev = byName.get(a.name);
+    const prev = (a.id && byId.get(a.id)) || byName.get(a.name);
     // An update must not silently re-point an agent at a different model.
     // The default here is a DEFAULT, not an instruction: without this, a
     // prompt refresh on a box that never set AGENT_MODEL moved every guide
@@ -362,6 +368,9 @@ def main() -> int:
         # whether the agent gets file_search at all.
         a["want"] = [{"name": f.name, "sha": sha(f)} for f in knowledge(slug)]
         a["known"] = (state.get(slug) or {}).get("files") or {}
+        # The id this box minted for the slug last time — the identity the
+        # seeder updates in place, whatever the display name is now.
+        a["id"] = (state.get(slug) or {}).get("id")
         agents.append(a)
 
     js = (JS.replace("__AGENTS__", json.dumps(agents, indent=2))
