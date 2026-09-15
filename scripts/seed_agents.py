@@ -382,12 +382,19 @@ def adopt(owner: str, agent_ids: list[str]) -> None:
          f'var ag = db.agents.find({{id:{{$in:ids}}, author:{{$ne:o}}}}).toArray(); '
          f'var fids = []; ag.forEach(function(a){{ var t=a.tool_resources||{{}}; '
          f'Object.keys(t).forEach(function(k){{ (t[k].file_ids||[]).forEach(function(f){{ fids.push(f); }}); }}); }}); '
+         # Visibility in LibreChat 0.8.x is the ACL, not the author field: an
+         # agent whose author changed but whose owner ACL entry did not is
+         # invisible to the new owner, and the seeder (listing as that owner)
+         # will mint a duplicate.  Move the owner-type entries too.
+         f'var oids = ag.map(function(a){{ return a._id; }}); '
+         f'var rl = db.aclentries.updateMany({{resourceType:"agent", resourceId:{{$in:oids}}, principalType:"user"}}, {{$set:{{principalId:o, grantedBy:o}}}}); '
          f'var ra = db.agents.updateMany({{id:{{$in:ids}}}}, {{$set:{{author:o}}}}); '
          f'var rf = fids.length ? db.files.updateMany({{file_id:{{$in:fids}}}}, {{$set:{{user:o}}}}) : {{modifiedCount:0}}; '
-         f'print(ra.modifiedCount + " " + rf.modifiedCount)')
-    moved_agents, moved_files = _mongo(q).split()
+         f'print(ra.modifiedCount + " " + rf.modifiedCount + " " + rl.modifiedCount)')
+    moved_agents, moved_files, moved_acl = _mongo(q).split()
     if int(moved_agents) or int(moved_files):
-        print(f"adopted into the service owner: {moved_agents} agent(s), {moved_files} file(s)")
+        print(f"adopted into the service owner: {moved_agents} agent(s), "
+              f"{moved_files} file(s), {moved_acl} ACL entr(ies)")
 
 
 def model_specs(seeded: list[dict], model: str) -> str:
