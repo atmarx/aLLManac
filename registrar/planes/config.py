@@ -25,6 +25,9 @@ BAO_SECRET_ID = os.environ.get("BAO_REGISTRAR_SECRET_ID", "")
 BAO_MOUNT = os.environ.get("BAO_MOUNT", "almanac")
 
 ALMANAC_DOMAIN = os.environ.get("ALMANAC_DOMAIN", "localhost")
+# The flagship's hostname — read here ONLY so validate_courses can refuse
+# to mint courses at <slug>.localhost on a box that clearly isn't one.
+CHAT_HOST = os.environ.get("CHAT_HOST", "chat.localhost")
 
 DEFAULT_FUSE = float(os.environ.get("REGISTRAR_DEFAULT_FUSE", "5"))
 MAX_FUSE = float(os.environ.get("REGISTRAR_MAX_FUSE", "25"))

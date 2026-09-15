@@ -67,7 +67,7 @@ def _preflight() -> int:
     errors, warnings = reconcile.validate_courses()
     _report(errors, warnings)
     if errors:
-        print(f"\n{len(errors)} error(s) in courses.yaml — nothing was changed.",
+        print(f"\n{len(errors)} error(s) — nothing was changed.",
               file=sys.stderr)
     return 1 if errors else 0
 

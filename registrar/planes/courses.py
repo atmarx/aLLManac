@@ -21,6 +21,7 @@ from .config import (
     MAX_FUSE,
     SLUG_RE,
     ALMANAC_DOMAIN,
+    CHAT_HOST,
 )
 
 
@@ -169,6 +170,21 @@ def validate_courses() -> tuple[list[str], list[str]]:
     warnings: list[str] = []
     colleges = raw.get("colleges") or {}
     courses = raw.get("courses") or {}
+
+    # Deployment, not roster — but this is the one checkpoint every mutating
+    # verb passes through.  `just deploy` append-migrates a NAMED list of
+    # .env vars, and ALMANAC_DOMAIN isn't on it (it has no sane universal
+    # default), so an older box can be serving a real CHAT_HOST while the
+    # fleet domain silently fell back to localhost: every course would render
+    # at <slug>.localhost, the OIDC client would get a localhost redirect URI,
+    # and the registrar would report success.  Refuse instead.
+    if ALMANAC_DOMAIN == "localhost" and not (
+            CHAT_HOST == "localhost" or CHAT_HOST.endswith(".localhost")):
+        errors.append(
+            f"ALMANAC_DOMAIN is unset (defaulting to localhost) but CHAT_HOST is "
+            f"{CHAT_HOST!r} — courses would render at <slug>.localhost on a box "
+            f"that isn't one.  Set ALMANAC_DOMAIN in .env (usually the part of "
+            f"CHAT_HOST after 'chat.') and restart the registrar.")
 
     for e in (raw.get("admins") or []):
         if not EMAILISH_RE.match(str(e).strip()):

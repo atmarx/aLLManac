@@ -105,7 +105,9 @@ Two things settle the rest of the debate:
 
 **Whatever the unit, it must have resolution at the low end.**  Cost intuition is built from ratios — this kind of question costs 10× that kind — and `$0.00` versus `$0.01` cannot express a 10× difference.  Upstream's `formatCost` already solves this better than anything we proposed: below a cent it renders `<$0.01` rather than `$0.00`, and between a cent and a dollar it gives four decimals.
 
-**Kill the `> 0.005` gate in `usage-mcp/server.py`.**  It renders nothing until the number stops being negligible — which is the individual-reasoning trap written into our own code.  It also hides efficiency from the efficient: the narrow, focused student, whose economy is already invisible to them, gets it confirmed that nothing is happening.  The number should be present from message one, small and boring, so it never has a debut.
+**Ruled 2026-09-15: dollars, no SU.**  The real world runs on dollars, so the meter shows them — no invented unit, no costume.  The compute-weighted argument above stays on the record as the one version of an SU that would have meant something; it is not a build.
+
+**Killed the `> 0.005` gate in `usage-mcp/server.py`** *(done 2026-09-15; the spend line now always prints, with `formatCost`'s low-end shape — `<$0.01`, four places under a dollar)*.  The gate rendered nothing until the number stopped being negligible — which is the individual-reasoning trap written into our own code.  It also hides efficiency from the efficient: the narrow, focused student, whose economy is already invisible to them, gets it confirmed that nothing is happening.  The number should be present from message one, small and boring, so it never has a debut.
 
 ## Getting it on screen
 

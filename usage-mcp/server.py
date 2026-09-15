@@ -123,6 +123,20 @@ def _since(days: int) -> str:
     return (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
 
+
+def _usd(d: float) -> str:
+    """Dollars with resolution at the low end, the way upstream's formatCost
+    does it: cost intuition is built from ratios, and "$0.00" vs "$0.01"
+    can't express a 10x difference.  Below a cent says so; under a dollar
+    keeps four places; from a dollar up, the two everyone expects."""
+    if d <= 0:
+        return "$0.00"
+    if d < 0.01:
+        return "<$0.01"
+    if d < 1:
+        return f"${d:.4f}"
+    return f"${d:,.2f}"
+
 def _n(v) -> str:
     return f"{int(v or 0):,}"
 
@@ -210,8 +224,10 @@ async def my_usage(days: int = 7) -> str:
             f"| {r['m']} | {_n(r['reqs'])} | {_n(r['toks'])} "
             f"({_n(r['toks_in'])} / {_n(r['toks_out'])}) | {_ts(r['last_seen'])} |"
         )
-    if dollars > 0.005:
-        out += ["", f"Spend: ${dollars:.2f}"]
+    # Always printed, even when it rounds to $0.00: the meter exists so a
+    # student can *tell* what things cost, and the light user is exactly
+    # who a hidden line teaches nothing (docs/budgets-and-meters.md).
+    out += ["", f"Spend: {_usd(dollars)}"]
     return "\n".join(out)
 
 
@@ -289,8 +305,7 @@ async def course_usage(course: str, days: int = 30) -> str:
                 f"| {who} | {_n(f['reqs'])} | {_n(f['toks'])} | {_ts(f['last_seen'])} |"
             )
         dollars = sum(f["dollars"] for f in folded.values())
-        if dollars > 0.005:
-            out += ["", f"Spend: ${dollars:.2f}"]
+        out += ["", f"Spend: {_usd(dollars)}"]
     not_started = [e for e in emails if e not in folded]
     if not_started:
         out += ["", f"Not started yet: {', '.join(not_started)}"]
