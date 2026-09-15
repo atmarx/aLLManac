@@ -242,7 +242,7 @@ The flagship at `chat.<ALMANAC_DOMAIN>` is the room everyone can reach — the o
 just agents-seed you@example.edu
 ```
 
-The owner must have signed in at least once — LibreChat creates the account on first OIDC login, and the seeder needs a user to own the agents.  One command does the whole pipeline:
+The owner must have signed in at least once — LibreChat creates the account on first OIDC login, and the seeder needs a user to own the agents — **and must be an ADMIN** (faculty are, via `OPENID_ADMIN_ROLE`): the vestibule seeds `agents.create=false` into every role, LibreChat gates agent *updates* on that same permission, so the seeder opens a `CREATE` window on the ADMIN role through the roles API for the length of its run and closes it after.  One command does the whole pipeline:
 
 1. renders `corpus/` from front matter (`just docs-corpus`),
 2. creates or **updates in place** the five agents, with instructions from `corpus/<slug>/SYSTEM-PROMPT.md`,

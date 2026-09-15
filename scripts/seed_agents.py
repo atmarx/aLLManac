@@ -202,7 +202,33 @@ async function syncFiles(agent) {
   return { state, bad: failed + (limited ? 1 : 0) };
 }
 
+// The vestibule is locked down: interface.agents.create=false is seeded into
+// USER and ADMIN alike, and LibreChat gates agent create AND update on
+// AGENTS.CREATE — so with the lockdown in place every PATCH here is a 403
+// (2026-09-15, all six guides).  Open the window for the length of the run
+// through the sanctioned roles API (admin-only, invalidates the permission
+// cache), and close it again whatever happens.  The owner must therefore be
+// an ADMIN — faculty are, via OPENID_ADMIN_ROLE.
+async function agentsCreateWindow(open) {
+  const cur = await fetch(`${BASE}/api/roles/ADMIN`, { headers: H });
+  const role = cur.ok ? JSON.parse(await cur.text()) : null;
+  const was = role?.permissions?.AGENTS?.CREATE ?? role?.AGENTS?.CREATE;
+  if (open && was === true) return null;                 // nothing to restore
+  const r = await fetch(`${BASE}/api/roles/ADMIN/agents`, {
+    method: 'PUT', headers: H, body: JSON.stringify({ CREATE: open }),
+  });
+  if (!r.ok) console.log(`  WARN   could not ${open ? 'open' : 'close'} AGENTS.CREATE on ADMIN: ${r.status} ${(await r.text()).slice(0, 100)}`);
+  return open ? (was ?? false) : null;
+}
+
 (async () => {
+  const restoreCreate = await agentsCreateWindow(true);
+  try { await seedAll(); } finally {
+    if (restoreCreate !== null) await agentsCreateWindow(false);
+  }
+})();
+
+async function seedAll() {
   const lr = await fetch(`${BASE}/api/agents`, { headers: H });
   const lb = await lr.text();
   // Match by the id this box recorded for the slug FIRST, and by name only
@@ -279,8 +305,8 @@ async function syncFiles(agent) {
   }
   fs.writeFileSync(OUT, JSON.stringify(seeded, null, 2));
   console.log(`\n${made} created, ${updated} updated, ${failed} failed`);
-  if (failed) process.exit(1);
-})();
+  if (failed) process.exitCode = 1;   // exit AFTER the finally closes the window
+}
 """
 
 

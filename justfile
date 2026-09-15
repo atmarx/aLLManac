@@ -752,7 +752,8 @@ key slug email budget="0":
 # agent_id, so recreating an agent mints a new id and silently orphans every
 # spec pointing at the old one — the guides just vanish from the picker.
 # The owner must have signed in at least once (LibreChat creates the user on
-# first OIDC login).  Never edit an agent's instructions in the UI — the next
+# first OIDC login) AND be an ADMIN — the seeder opens AGENTS.CREATE on the
+# ADMIN role for the run, because the vestibule seeds it false for everyone.  Never edit an agent's instructions in the UI — the next
 # run overwrites them; the version that matters is docs/agent-contract.md.
 #
 # --skip-files refreshes only the prompts (seconds, not minutes).
