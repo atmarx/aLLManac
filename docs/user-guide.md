@@ -90,7 +90,7 @@ The agent has one body — edits overwrite, last save wins, and there's no merge
 ### Sharing with the class
 
 - **The Agent Marketplace** (sidebar → Agent Marketplace) is where shared agents get discovered — browse by category, find what teams have published.
-- To make a team's agent visible class-wide, share it **Viewer** to the course-wide group (faculty set one up, e.g. `engr301-all`) — or ask your instructor to promote it in the marketplace.
+- To make a team's agent visible class-wide, share it **Viewer** to the course-wide group (faculty set one up, e.g. `engr301-all`) — or ask your instructor to share it there for you.
 - **Nobody publishes an agent platform-wide from the chat window — not you, and not your instructor either.**  That switch is off for every account on the instance, so the class-wide group above is as wide as an agent goes without the people who run the servers getting involved.  If a course genuinely needs one agent visible to everyone, that is a conversation with them, not a button anybody is missing.
 
 **A caution worth repeating from the platform docs:** anyone who can chat with an agent can eventually coax out what's in its files.  Attach materials you'd hand the class anyway — never answer keys, never solutions, never anything private.

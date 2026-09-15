@@ -12,7 +12,7 @@ tethered_to:
 
 # Teaching a course on the aLLManac
 
-*Everything here happens in the browser.*  You sign in with the same SSO button your students use, and the platform recognizes faculty — it hands you the sharing controls, the people picker, the marketplace curation tools, and the admin panel (`:3082`).  Anything that needs a shell on the server is the admin's job, not yours; where that is the case below, it says so and tells you what to ask for.
+*Everything here happens in the browser.*  You sign in with the same SSO button your students use, and the platform recognizes faculty — it hands you the sharing controls, the people picker, and your course's admin panel.  The panel lives next door to your course's chat: if students chat at `engr301.` followed by your campus domain, the panel is at `engr301-admin.` on the same domain, same SSO button.  Anything that needs a shell on the server is the admin's job, not yours; where that is the case below, it says so and tells you what to ask for.
 
 Your students' own walkthrough is the [course guide](user-guide.md) — worth reading, because it is what they will be working from.
 
@@ -39,7 +39,7 @@ What you never do is send them to the Registrar's Office, and there is no LMS in
 
 - **The course TA agent.**  You build it, attach the syllabus and lab manual, share **Viewer** to `engr301-all`.  Twenty questions about the late policy answer themselves.
 - **Team-built agents as coursework.**  Each team gets Editor on their own agent (or creates it themselves — students can).  The assignment is the agent: instructions are graded prose, knowledge-file curation is graded research, and the iteration log is the lab notebook.
-- **Peer review via the marketplace.**  Teams share final agents to `engr301-all` as Viewer; classmates stress-test each other's work.  You promote the best.
+- **Peer review via the marketplace.**  Teams share final agents to `engr301-all` as Viewer; classmates stress-test each other's work.  Nobody can publish an agent beyond the course from the chat window, you included, so the course-wide group is the widest stage there is.  To feature the best, share it to that group yourself and point the class at it.
 - **Watching the ledger.**  Ask the **Almanac Usage** agent: "how's engr301 tracking this month?" — or the week-before-deadline favorite, "who hasn't started yet?"  Totals, per-student activity, and the model mix, scoped to exactly your course, in the same chat window.  (Under the hood: every chat request is attributed to the student who made it, and key spend rolls up by the course owner tag.)  Want raw dashboards instead?  Ask your admin for a read-only analytics login — it is one invitation link away.
 - **Term end.**  Ask the admin to sweep the course's keys.  Agents keep; keys retire.
 
