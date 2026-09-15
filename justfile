@@ -49,7 +49,7 @@ default:
 # any pin .env sets itself: that pin wins over the channel, which is right
 # for a hotfix and wrong for an .env that predates channels and still carries
 # the old image lines — a box like that never leaves the pins it was born with.
-channel:
+channel: _fleet
     #!/usr/bin/env bash
     set -euo pipefail
     echo "channel: {{channel}}  ({{channel_env}})"
