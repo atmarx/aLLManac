@@ -31,8 +31,9 @@ services: {}
 # (read-only; the realm's loginTheme is then set live with kcadm inside the
 # container), and the chat's static assets as read-only single-file mounts
 # over /app/client/dist/assets/{logo.svg,favicon-*.png,...}.  Single-file
-# mounts are fine HERE because these files are never rewritten; the mount wall
-# in docs/design-walls.md is about files that are.  APP_TITLE and
+# mounts work HERE only because whatever updates them must also RECREATE the
+# container: a git pull replaces a file by rename and the running container
+# keeps the old inode (docs/design-walls.md, "Mounts").  APP_TITLE and
 # CUSTOM_FOOTER in .env do the rest — quote any value with spaces, or just's
 # dotenv parser refuses the file and every recipe dies with it.
 #
