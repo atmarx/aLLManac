@@ -15,7 +15,7 @@ in the order they go wrong:
      points at nothing.
   4. Does every guide carry `file_search` and some files?  An agent with the
      tool and no knowledge answers from the base model, which is exactly the
-     fabrication the contract exists to stop.  The welcome desk is the one
+     fabrication the contract exists to stop.  The front desk is the one
      deliberate exception — it routes rather than answers, so it gets no
      corpus and no `file_search`, and `corpus/<slug>/` is what says which
      case a guide is in.

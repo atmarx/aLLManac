@@ -82,8 +82,8 @@ GUIDES = [
     # is a message whether we mean it or not.  Opening an instructor in the
     # Student Guide reads as the platform having sorted them, wrongly, before
     # they typed a word — so the default has to be the one entry that
-    # classifies nobody.  See docs/agent-contract.md, "The welcome desk".
-    ("welcome", "Welcome",
+    # classifies nobody.  See docs/agent-contract.md, "The front desk".
+    ("welcome", "Front Desk",
      "New here?  Start with this and it will point you at the right guide."),
     ("student-guide", "Student Guide",
      "Using the Almanac in your courses — agents, knowledge files, API keys, and what the budget numbers mean."),
@@ -243,7 +243,7 @@ async function syncFiles(agent) {
       provider: PROVIDER, model,
       // Without this the files upload, embed, attach — and the model still
       // cannot see them, because nothing gave it the tool to look.  The
-      // welcome desk has no corpus, and handing it a file_search over an
+      // front desk has no corpus, and handing it a file_search over an
       // empty store is how you get an agent that searches, finds nothing,
       // and answers anyway.
       tools: (a.want && a.want.length) ? ['file_search'] : [],

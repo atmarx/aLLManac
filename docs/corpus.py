@@ -48,7 +48,7 @@ SCOPE = {
 }
 
 # The directory of guides, rendered into BOTH the shared preamble (as the
-# first escape hatch) and the welcome desk's own fence.  One authority on
+# first escape hatch) and the front desk's own fence.  One authority on
 # purpose: a guide that names a sibling guide wrongly is a redirect that
 # points nowhere, which is the failure the hatch list exists to prevent.
 # Routing lines, not SCOPE's agent-voice lines — the reader is choosing.
@@ -96,7 +96,7 @@ SECURITY_MIN = 3   # below this it's a passing mention, not a security page
 
 
 def welcome(body: str) -> str:
-    """The welcome desk's prompt — its own fence, not the shared preamble.
+    """The front desk's prompt — its own fence, not the shared preamble.
 
     It carries no knowledge files, so the preamble's anchor ("your files are
     the only thing you know") has nothing to point at.  See the "The welcome
@@ -104,10 +104,10 @@ def welcome(body: str) -> str:
     most exposed to fabrication rather than least.
     """
     try:
-        section = body.split("## The welcome desk", 1)[1]
+        section = body.split("## The front desk", 1)[1]
         return section.split("```text", 1)[1].split("```", 1)[0].strip()
     except IndexError:
-        raise SystemExit(f"{CONTRACT}: no ```text fence under '## The welcome desk'")
+        raise SystemExit(f"{CONTRACT}: no ```text fence under '## The front desk'")
 
 
 def contract() -> tuple[str, str]:
@@ -272,7 +272,7 @@ def main() -> int:
                 "<!-- rendered from docs/agent-contract.md — edit the source -->\n\n"
                 f"{evals}\n")
 
-    # The welcome desk: a prompt and nothing else.  No pages, so no manifest —
+    # The front desk: a prompt and nothing else.  No pages, so no manifest —
     # `corpus/welcome/` having no knowledge in it is the design, not a bug, and
     # scripts/agents_check.py knows to expect that.
     d = OUT / "welcome"
