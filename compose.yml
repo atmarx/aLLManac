@@ -35,7 +35,7 @@ services:
 
   # ---- Gateway: virtual keys, routing, metering — the ledger lives here -----
   litellm-db:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     container_name: alm-litellm-db
     environment:
       POSTGRES_USER: litellm
@@ -94,7 +94,7 @@ services:
 
   # ---- LibreChat + its data plane -------------------------------------------
   mongodb:
-    image: mongo:7
+    image: ${MONGO_IMAGE:-mongo:7}
     container_name: alm-mongo
     volumes:
       - mongo-data:/data/db
@@ -106,7 +106,7 @@ services:
     restart: unless-stopped
 
   meilisearch:
-    image: getmeili/meilisearch:v1.12
+    image: ${MEILI_IMAGE:-getmeili/meilisearch:v1.12}
     container_name: alm-meili
     environment:
       MEILI_MASTER_KEY: "${MEILI_MASTER_KEY}"
@@ -116,7 +116,7 @@ services:
     restart: unless-stopped
 
   vectordb:
-    image: pgvector/pgvector:pg16
+    image: ${PGVECTOR_IMAGE:-pgvector/pgvector:pg16}
     container_name: alm-vectordb
     environment:
       POSTGRES_DB: vectordb
@@ -179,6 +179,10 @@ services:
       # because docs/registrar-spec.md says default on and
       # apex/your-data/what-we-store.md already tells students the index exists.
       SEARCH: "${SEARCH:-true}"
+      # One replica by design.  0.8.8 refuses to arm its scheduler unless
+      # told so (or given Redis streams) and logs an error every boot until
+      # it is; 0.8.7 ignores the variable.
+      SCHEDULES_SINGLE_PROCESS: "true"
       RAG_API_URL: "http://rag_api:8000"
       CONFIG_PATH: "/app/conf/librechat.yaml"
     volumes:
@@ -366,7 +370,7 @@ services:
 
   # ---- Identity: Keycloak OIDC — mocked campus groups now, Globus later -----
   keycloak-db:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     container_name: alm-keycloak-db
     environment:
       POSTGRES_DB: keycloak

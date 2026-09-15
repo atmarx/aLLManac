@@ -290,6 +290,7 @@ def render_fleet(courses: dict) -> None:
       HOST: 0.0.0.0
       MONGO_URI: "mongodb://mongodb:27017/LibreChat_{slug}"
       MEILI_HOST: "http://meili-{slug}:7700"
+      SCHEDULES_SINGLE_PROCESS: "true"   # see compose.yml
       # See compose.yml: unset SEARCH means the per-course Meili indexes
       # nothing and search never appears.  Not a knob yet — making it one is a
       # course-record field, which is registrar design and @marco's call.
@@ -321,7 +322,7 @@ def render_fleet(courses: dict) -> None:
     restart: unless-stopped
 
   meili-{slug}:
-    image: getmeili/meilisearch:v1.12
+    image: ${{MEILI_IMAGE:-getmeili/meilisearch:v1.12}}
     container_name: alm-meili-{slug}
     env_file:
       - {slug}.env

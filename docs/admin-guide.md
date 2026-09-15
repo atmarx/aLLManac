@@ -427,6 +427,8 @@ Two traps, both loud on purpose:
 
 **What `latest` finds goes upstream.**  We are a downstream of LibreChat, and it is largely one person's project; a release candidate on a box nobody teaches on is the cheapest place anyone will ever reproduce a bug in it.  When `latest` breaks, the deliverable is not only our workaround: it is a minimal reproduction — the pinned tag, the `librechat.yaml` keys involved, the exact request, the log line — filed as an issue (or a pull request, when the fix is small) on [danny-avila/LibreChat](https://github.com/danny-avila/LibreChat), and linked from the `latest.env` comment for that pin so the next person knows it is known.  Suggestions count too: if a feature we rely on has an obviously better shape, say so there, not only here.  Treat the upstream as a colleague, not weather.
 
+The datastores are in the channel too — Mongo, Meilisearch, Postgres, pgvector — because they were the gap: `mongo:7` is a floating tag and a `just pull` could move it a patch release with no commit saying so.  Moving one of those on `stable` is a data migration, not an image bump: Mongo wants its featureCompatibilityVersion stepped, Meilisearch wants a dump and restore.  `latest` already runs Mongo 8 and Meilisearch 1.35 because 0.8.8 needs them; when stable follows, it follows with a plan.
+
 Everything else is the same box.  Same `.env` shape, same `site/`, same `just deploy` — the dev playground is a full stack, not a lighter one, because the point is to find what the upgrade breaks in the plumbing, and half a stack has half the plumbing.  Inference is a URL either way: almanac only consumes an endpoint, so a dev box points at whatever the stable box points at, or at something cheaper.
 
 ## Backups
