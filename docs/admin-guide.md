@@ -83,7 +83,9 @@ Keycloak groups organize identity (`/engr301-faculty`, `/engr301-team-gust`) and
 The realm ships a **disabled** Globus identity provider so going live is a paste, not a build:
 
 1. Register an app at [developers.globus.org](https://developers.globus.org) (Advanced registration).  Redirect URL: `https://<your-auth-host>/realms/classroom/broker/globus/endpoint` Scopes: `openid profile email`.
-2. Keycloak → Identity providers → **globus** → paste the Client ID and Secret → **Enabled: on**.
+2. Keycloak → Identity providers → **globus** → paste the Client ID and Secret → **Enabled: on**.  Its first-login flow is already `almanac first broker login` — the registrar sets it on every provision — so a rostered student's first Globus sign-in lands on the account the roster created for them, by email, with no "account already exists" prompt.
+
+   **Until an identity provider is on**, a pre-created user has no password: on a username/password lab realm, set one by hand (Users → the user → Credentials) or nobody rostered after the realm import can sign in.
 3. Test in a private window: the login page now offers **Globus**.  Students authenticate through it (their campus IdP behind Globus does the real work), land in Keycloak as federated users, and LibreChat never knows the difference.
 
 After the flip, day-to-day admin work is: new semester → students arrive by logging in → you assign `faculty` to instructors → done.  Optional polish: to skip Keycloak's login page entirely (straight to Globus), set the realm's browser flow's Identity Provider Redirector to default to `globus` — do this only after local demo accounts are retired.

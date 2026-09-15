@@ -97,13 +97,102 @@ async def kc_ensure_client_roles(cx: httpx.AsyncClient, uuid: str) -> dict:
 
 
 async def kc_user_id(cx: httpx.AsyncClient, email: str) -> str | None:
-    """None = no realm user yet.  With brokered login (Globus later) users
-    materialize on FIRST sign-in — grants for them succeed on the next
-    reconcile, and the anti-join in course_usage names the stragglers."""
+    """None = no realm user yet.  Read-only lookup; the roster path uses
+    kc_ensure_user so the door can be granted before first sign-in."""
     r = await _kc(cx, "GET", f"/users?email={email}&exact=true")
     r.raise_for_status()
     users = r.json()
     return users[0]["id"] if users else None
+
+
+async def kc_ensure_user(cx: httpx.AsyncClient, email: str) -> tuple[str, bool]:
+    """The realm user for an email — found, or PRE-CREATED (username = email,
+    no credentials).  -> (id, created)
+
+    Why pre-create: the door to a course is a client role, and a role can
+    only be granted to a user that exists.  Before this, a user only came
+    into being on first brokered sign-in, so a rostered student's first
+    visit was bounced at the door until someone re-ran the roster (found by
+    @xram walking the Instructor Guide, 2026-09-15).  Email is the join key
+    everywhere else in the spec; here it becomes the join key at the
+    identity layer too.  kc_ensure_autolink is the other half: it makes the
+    IdP's first login land on THIS account instead of asking the student to
+    confirm a link or minting a second user.
+
+    A pre-created user has no password.  On a box without an IdP (the lab
+    box's username/password realm) an operator sets one by hand — the demo
+    users in the realm import are exactly that.
+    """
+    uid = await kc_user_id(cx, email)
+    if uid:
+        return uid, False
+    body = {"username": email, "email": email, "enabled": True,
+            # emailVerified: the IdP asserts the email; without this the
+            # auto-link authenticator may still stop to verify it.
+            "emailVerified": True}
+    r = await _kc(cx, "POST", "/users", json=body)
+    if r.status_code == 201:
+        return r.headers["Location"].rstrip("/").rsplit("/", 1)[-1], True
+    if r.status_code != 409:          # 409 = raced another reconcile; re-read
+        r.raise_for_status()
+    uid = await kc_user_id(cx, email)
+    if not uid:
+        raise RuntimeError(f"keycloak: could not create or find user {email}")
+    return uid, False
+
+
+AUTOLINK_FLOW = "almanac first broker login"
+_AUTOLINK_STEPS = ("idp-detect-existing-broker-user", "idp-auto-link")
+
+
+async def kc_ensure_autolink(cx: httpx.AsyncClient) -> str:
+    """A first-broker-login flow that links an IdP login to the existing
+    realm user with the same email — no "account already exists" prompt,
+    no second account — and every identity provider pointed at it.
+    Idempotent; run on every ensure_course.  -> flow alias
+
+    Keycloak's stock flow ends in "Confirm link existing account" +
+    "Verify existing account by email", which is right for a public realm
+    and wrong for a roster: we made that account on purpose, from the
+    roster, and the IdP already vouched for the email.  The two steps used
+    instead are Keycloak's own: detect the existing user by email, then
+    set it — both REQUIRED, in that order.
+    """
+    r = await _kc(cx, "GET", "/authentication/flows")
+    r.raise_for_status()
+    if not any(f["alias"] == AUTOLINK_FLOW for f in r.json()):
+        rr = await _kc(cx, "POST", "/authentication/flows",
+                       json={"alias": AUTOLINK_FLOW, "providerId": "basic-flow",
+                             "topLevel": True, "builtIn": False,
+                             "description": "aLLManac: link IdP logins to the "
+                                            "roster-created realm user by email"})
+        if rr.status_code not in (201, 409):
+            rr.raise_for_status()
+    path = f"/authentication/flows/{AUTOLINK_FLOW.replace(' ', '%20')}/executions"
+    r = await _kc(cx, "GET", path)
+    r.raise_for_status()
+    have = {e.get("providerId"): e for e in r.json()}
+    for provider in _AUTOLINK_STEPS:
+        if provider not in have:
+            rr = await _kc(cx, "POST", path + "/execution", json={"provider": provider})
+            if rr.status_code not in (201, 204, 409):
+                rr.raise_for_status()
+    r = await _kc(cx, "GET", path)
+    r.raise_for_status()
+    for e in r.json():
+        if e.get("providerId") in _AUTOLINK_STEPS and e.get("requirement") != "REQUIRED":
+            rr = await _kc(cx, "PUT", path, json={"id": e["id"], "requirement": "REQUIRED"})
+            if rr.status_code not in (202, 204):
+                rr.raise_for_status()
+    r = await _kc(cx, "GET", "/identity-provider/instances")
+    r.raise_for_status()
+    for idp in r.json():
+        if idp.get("firstBrokerLoginFlowAlias") != AUTOLINK_FLOW:
+            idp["firstBrokerLoginFlowAlias"] = AUTOLINK_FLOW
+            rr = await _kc(cx, "PUT", f"/identity-provider/instances/{idp['alias']}", json=idp)
+            if rr.status_code != 204:
+                rr.raise_for_status()
+    return AUTOLINK_FLOW
 
 
 async def kc_set_client_role(cx: httpx.AsyncClient, user_id: str, client_uuid: str,

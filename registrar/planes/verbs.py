@@ -25,8 +25,10 @@ from .gateway import (
     ll_team_remaining,
 )
 from .keycloak import (
+    kc_ensure_autolink,
     kc_ensure_client,
     kc_ensure_client_roles,
+    kc_ensure_user,
     kc_set_client_role,
     kc_user_id,
 )
@@ -100,10 +102,9 @@ async def _enroll_one(cx: httpx.AsyncClient, slug: str, course: dict,
                       client_uuid: str) -> dict:
     """Grant the door role, mint the key, escrow it.  Idempotent."""
     try:
-        uid = await kc_user_id(cx, email)
-        if uid:
-            await kc_set_client_role(cx, uid, client_uuid, roles["member"], True)
-        note = "" if uid else "(no realm user yet — door opens on next sync after first login)"
+        uid, created = await kc_ensure_user(cx, email)
+        await kc_set_client_role(cx, uid, client_uuid, roles["member"], True)
+        note = "(realm user pre-created — first sign-in links to it)" if created else ""
         if await escrow_read(slug, email) is None:
             fuse = await _fuse_for(cx, slug, course["budgets"]["key_fuse"])
             await _mint_escrowed(cx, slug, email,
@@ -262,16 +263,16 @@ async def ensure_course(slug: str) -> dict:
         client_uuid, client_secret = await kc_ensure_client(cx, slug)
         roles = await kc_ensure_client_roles(cx, client_uuid)
         summary["oidc_client"] = slug
-        granted, waiting = [], []
+        summary["first_login"] = await kc_ensure_autolink(cx)
+        granted, precreated = [], []
         for email in course["instructors"] + course["tas"]:
-            uid = await kc_user_id(cx, email)
-            if uid:
-                await kc_set_client_role(cx, uid, client_uuid, roles["admin"], True)
-                await kc_set_client_role(cx, uid, client_uuid, roles["member"], True)
-                granted.append(email)
-            else:
-                waiting.append(email)
-        summary["staff"] = {"granted": granted, "no_realm_user_yet": waiting}
+            uid, created = await kc_ensure_user(cx, email)
+            await kc_set_client_role(cx, uid, client_uuid, roles["admin"], True)
+            await kc_set_client_role(cx, uid, client_uuid, roles["member"], True)
+            granted.append(email)
+            if created:
+                precreated.append(email)
+        summary["staff"] = {"granted": granted, "precreated": precreated}
     render.render_course(courses, slug,
                          oidc_secret=client_secret, service_key=svc["key"])
     render.render_fleet(courses)
