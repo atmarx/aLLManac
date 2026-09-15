@@ -170,7 +170,7 @@ Three things that each look like a different bug than they are, paid for while s
 
 ### The classroom posture is opt-in
 
-The default USER role ships `agents.share=false` and `peoplePicker.*=false`.  Out of the box, students cannot share agents with each other — which is the opposite of what a course wants.  The `interface` block in [`librechat/librechat.yaml`](../librechat/librechat.yaml) is what turns the classroom posture **on**.
+The default USER role ships `agents.share=false` and `peoplePicker.*=false`.  Out of the box, students cannot share agents with each other — which is the opposite of what a course wants.  The `interface` block in the course template in [`registrar/render.py`](../registrar/render.py) is what turns the classroom posture **on**, per course instance.  **The flagship is not a classroom** *(ruled 2026-09-15)*: [`librechat/librechat.yaml`](../librechat/librechat.yaml) — the vestibule — is locked down the other way (no builder, no sharing, no prompts/memories/presets/bookmarks, `memory.disabled`, `endpoints.agents.disableBuilder`), and none of that reaches a course.  The `interface` keys are validated against the pinned schema, unlike agent capability names — a typo there fails loudly at boot.
 
 Faculty become LibreChat ADMIN via `OPENID_ADMIN_ROLE=faculty`, read from `realm_access.roles`, on a token of kind `access`.  All three have to line up.
 

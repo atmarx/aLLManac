@@ -232,6 +232,8 @@ The first custom GPT students meet is a live demo of exactly what they're about 
 
 The flagship at `chat.<ALMANAC_DOMAIN>` is the room everyone can reach — the one place a student or an instructor can ask *how does this platform work* without spending course tokens to find out.  What it offers is **the five guide agents**, not a model picker: a raw model list here is a general-purpose chatbot on a central budget, which is a different product with a different bill.
 
+**The vestibule is locked down on purpose.**  `librechat/librechat.yaml` turns off the agent builder, sharing, the people picker, the marketplace, prompts, bookmarks, presets, memories (and the memory subsystem itself), multi-convo, model parameters, code execution, web search, composer file search, shared links, skills and user-added MCP servers.  What is left is the picker of guide agents and a place to ask them questions.  Course instances are unaffected — they render their own, classroom-shaped config from `registrar/render.py`.  If your `site/librechat/librechat.yaml` predates 2026-09-15, copy the `interface:` and `memory:` blocks and `endpoints.agents.disableBuilder` across; the modelSpecs block is the only thing that should differ.
+
 ### The guide agents (once per box, and again whenever the docs change)
 
 ```

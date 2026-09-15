@@ -20,36 +20,60 @@ cache: true
 registration:
   socialLogins: ["openid"]
 
-# Classroom permission posture.  This block seeds BOTH roles at startup — not
-# just students.  Anything explicit here beats LibreChat's per-role defaults
-# and the seeding loop applies it to USER and ADMIN alike, so faculty (who
-# arrive as ADMIN via OPENID_ADMIN_ROLE in .env) end up with an identical
-# agent permission set, verified against the running instance.  `public: false`
-# below is therefore an INSTANCE-wide off switch, not a student restriction:
-# nobody publishes instance-wide from the chat UI.  The admin panel (:3082) is
-# the only thing that changes it — it edits these seeded roles at runtime.
-#   - students can create agents and share them to people/groups — not
-#     instance-public; publishing to the whole class is the faculty's call
-#   - the people picker searches users + groups.  The groups here are
-#     LibreChat-LOCAL, managed in the admin panel — Keycloak's groups claim
-#     never reaches the ACL system in v0.8.7 (upstream librechat#10006)
-#   - the Agent Marketplace is ON: it's how the class discovers shared agents
+# The vestibule posture — LOCKED DOWN.  This file is the FLAGSHIP's config,
+# and the flagship is the vestibule: the one room everyone can walk into, to
+# ask the guide agents how the platform works.  It is not a classroom.  Course
+# instances render their own config from registrar/render.py and carry the
+# classroom posture (agent builder, sharing, prompts, memories); none of the
+# switches below reach them.
+#
+# This block seeds BOTH roles at startup — anything explicit here beats
+# LibreChat's per-role defaults and applies to USER and ADMIN alike, so faculty
+# (ADMIN via OPENID_ADMIN_ROLE) see the same locked room.  The admin panel is
+# the only thing that changes it at runtime.
+#   - agents: use them, don't build them.  `public: true` is what lets the
+#     seeded guides be reachable by everyone; `create`/`share` off means the
+#     builder and the share dialog never appear.  endpoints.agents.disableBuilder
+#     below is the server-side half of the same switch.
+#   - no people picker, no marketplace: nothing here is shared person-to-person,
+#     and the model picker (modelSpecs, enforced) is the whole directory.
+#   - no prompts, bookmarks, presets, memories, multi-convo, parameters, code
+#     execution, web search, composer file search, shared links, skills or
+#     user-added MCP servers.  A place to ask, not the full experience.
+#   - temporaryChat stays at its default (on): it is a privacy affordance, not
+#     a feature, and the keys below were read from the pinned image's schema —
+#     interface keys ARE validated, so a typo here fails loudly at boot.
 interface:
   agents:
     use: true
-    create: true
-    share: true
-    # TRUE on the flagship only.  The flagship is the vestibule — the one room
-    # everyone can walk into — and the guide agents are platform artifacts that
-    # everybody is meant to reach.  Course instances render their own config and
-    # keep the classroom posture (sharing off by default, docs/design-walls.md).
+    create: false
+    share: false
     public: true
   peoplePicker:
-    users: true
-    groups: true
+    users: false
+    groups: false
     roles: false
   marketplace:
-    use: true
+    use: false
+  prompts: false
+  bookmarks: false
+  presets: false
+  memories: false
+  multiConvo: false
+  parameters: false
+  modelSelect: false
+  runCode: false
+  webSearch: false
+  fileSearch: false
+  sharedLinks: false
+  skills: false
+  remoteAgents: false
+  mcpServers: false
+
+# The memory subsystem itself, not just its menu entry — nothing is remembered
+# about anyone in the vestibule.
+memory:
+  disabled: true
 
 # Course materials are PDFs and slide decks, not disk images — cap uploads:
 fileConfig:
@@ -127,3 +151,5 @@ endpoints:
   # `actions.allowedDomains:` in the same edit and re-run `just egress-check`.
   agents:
     capabilities: ["file_search", "tools", "artifacts"]
+    # Server-side half of interface.agents.create=false (the vestibule posture).
+    disableBuilder: true
