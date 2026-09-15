@@ -386,13 +386,13 @@ def adopt(owner: str, agent_ids: list[str]) -> None:
          # agent whose author changed but whose owner ACL entry did not is
          # invisible to the new owner, and the seeder (listing as that owner)
          # will mint a duplicate.  Move the owner-type entries too.
-         f'var oids = ag.map(function(a){{ return a._id; }}); '
+         f'var oids = db.agents.find({{id:{{$in:ids}}}}, {{_id:1}}).toArray().map(function(a){{ return a._id; }}); '
          f'var rl = db.aclentries.updateMany({{resourceType:"agent", resourceId:{{$in:oids}}, principalType:"user"}}, {{$set:{{principalId:o, grantedBy:o}}}}); '
          f'var ra = db.agents.updateMany({{id:{{$in:ids}}}}, {{$set:{{author:o}}}}); '
          f'var rf = fids.length ? db.files.updateMany({{file_id:{{$in:fids}}}}, {{$set:{{user:o}}}}) : {{modifiedCount:0}}; '
          f'print(ra.modifiedCount + " " + rf.modifiedCount + " " + rl.modifiedCount)')
     moved_agents, moved_files, moved_acl = _mongo(q).split()
-    if int(moved_agents) or int(moved_files):
+    if int(moved_agents) or int(moved_files) or int(moved_acl):
         print(f"adopted into the service owner: {moved_agents} agent(s), "
               f"{moved_files} file(s), {moved_acl} ACL entr(ies)")
 
