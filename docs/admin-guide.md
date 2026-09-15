@@ -425,6 +425,8 @@ Two traps, both loud on purpose:
 - **An `.env` that predates channels still carries its own image lines, and a pin set in `.env` wins over the channel.**  That is the right precedence for a hotfix and the wrong one for a box that never leaves the pins it was born with.  `just channel` warns on every such line; delete them.
 - **`ALMANAC_CHANNEL` naming a file that does not exist fails at parse time**, before any recipe runs.  Nothing falls back to compose's defaults silently.
 
+**What `latest` finds goes upstream.**  We are a downstream of LibreChat, and it is largely one person's project; a release candidate on a box nobody teaches on is the cheapest place anyone will ever reproduce a bug in it.  When `latest` breaks, the deliverable is not only our workaround: it is a minimal reproduction — the pinned tag, the `librechat.yaml` keys involved, the exact request, the log line — filed as an issue (or a pull request, when the fix is small) on [danny-avila/LibreChat](https://github.com/danny-avila/LibreChat), and linked from the `latest.env` comment for that pin so the next person knows it is known.  Suggestions count too: if a feature we rely on has an obviously better shape, say so there, not only here.  Treat the upstream as a colleague, not weather.
+
 Everything else is the same box.  Same `.env` shape, same `site/`, same `just deploy` — the dev playground is a full stack, not a lighter one, because the point is to find what the upgrade breaks in the plumbing, and half a stack has half the plumbing.  Inference is a URL either way: almanac only consumes an endpoint, so a dev box points at whatever the stable box points at, or at something cheaper.
 
 ## Backups
