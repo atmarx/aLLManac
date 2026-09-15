@@ -1,0 +1,46 @@
+---
+title: How do I teach a course on the aLLManac?
+description: The faculty walkthrough — the day-zero checklist, the course patterns that work, and how to watch your course's spend, all from the browser.
+audience: faculty
+status: draft
+owner: piper
+tags: [sso, access-control, rbac, attribution, metering, assessment-design, ai-literacy, accountability, faculty-duty, student-right, librechat]
+tethered_to:
+  - docs/user-guide.md
+  - usage-mcp/server.py
+---
+
+# Teaching a course on the aLLManac
+
+*Everything here happens in the browser.*  You sign in with the same SSO button your students use, and the platform recognizes faculty — it hands you the sharing controls, the people picker, the marketplace curation tools, and the admin panel (`:3082`).  Anything that needs a shell on the server is the admin's job, not yours; where that is the case below, it says so and tells you what to ask for.
+
+Your students' own walkthrough is the [course guide](user-guide.md) — worth reading, because it is what they will be working from.
+
+## Day-zero checklist
+
+1. **Everyone logs in once.**  Accounts exist only after first login, and nothing below works without accounts.  Make it the first five minutes of the first lab.
+2. **Groups** (admin panel → Groups): one course-wide group (`engr301-all`), one per team (`engr301-team-gust`, ...).  These are groups in the chat platform's admin panel — the same SSO button, not the campus directory.  Membership edits propagate immediately, so late adds are painless; a student who cannot be found in the people picker has almost always not logged in yet.
+3. **Keys**: hand the admin your roster; keys are minted with `owner=<your course>` and a per-student budget (the default is modest and adjustable).  Distribute via individual LMS messages.
+4. **Verify one student end to end** — login, open a shared agent, paste a key into opencode — before the assignment goes out.
+
+## Adding a student to your class after it starts
+
+Someone joins your section in week three, or switches in from another class.  Nothing about that is unusual and none of it is enrolment — the university admitted them long ago.  What they need is **access to your course**, and that is a roster change.
+
+1. **Have them sign in once.**  Accounts only exist after a first login, so until they do, they cannot be added to anything and will not appear in the people picker.  This is the single most common reason an add "doesn't work."
+2. **Add them to your course group** in the admin panel (admin panel → Groups → `engr301-all`, plus their team group if they have one).  Membership changes take effect immediately — there is no overnight sync to wait for.
+3. **Ask your admin for a key** if your course uses API keys for coding work.  Send them the student's sign-in email and your course name; the key comes back minted against your course with the same per-student budget everyone else has.
+
+Removing someone who drops works the same way in reverse — take them out of the group, and ask your admin to retire the key.
+
+What you never do is send them to the Registrar's Office, and there is no LMS involved.  This is not the university's enrolment system; it is your course's access list, and it is yours to change.
+
+## Course patterns that work
+
+- **The course TA agent.**  You build it, attach the syllabus and lab manual, share **Viewer** to `engr301-all`.  Twenty questions about the late policy answer themselves.
+- **Team-built agents as coursework.**  Each team gets Editor on their own agent (or creates it themselves — students can).  The assignment is the agent: instructions are graded prose, knowledge-file curation is graded research, and the iteration log is the lab notebook.
+- **Peer review via the marketplace.**  Teams share final agents to `engr301-all` as Viewer; classmates stress-test each other's work.  You promote the best.
+- **Watching the ledger.**  Ask the **Almanac Usage** agent: "how's engr301 tracking this month?" — or the week-before-deadline favorite, "who hasn't started yet?"  Totals, per-student activity, and the model mix, scoped to exactly your course, in the same chat window.  (Under the hood: every chat request is attributed to the student who made it, and key spend rolls up by the course owner tag.)  Want raw dashboards instead?  Ask your admin for a read-only analytics login — it is one invitation link away.
+- **Term end.**  Ask the admin to sweep the course's keys.  Agents keep; keys retire.
+
+The almanac's rule is the farm's rule: everything gets written down, and the book stays on the shelf where the whole class can reach it.

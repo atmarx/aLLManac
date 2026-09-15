@@ -62,12 +62,9 @@ Uploads are capped at course-materials scale (10 files per go, 25 MB each) — i
 
 Emailing prompt revisions around is how group projects die.  Here, the team shares **one agent**, and everyone with **Editor** access maintains it — same instructions, same files, one body.
 
-### What faculty set up (once per team)
+### What your instructor sets up
 
-Group sharing uses groups that live **in the chat platform's admin panel** (`:3082` — same SSO button), not in the campus directory.  Two things matter:
-
-1. **People must log in once before they can be added to a group** — accounts are created at first login.  Make "everyone signs in" a day-one task.
-2. In the **admin panel → Groups**: create one group per team (`engr301-team-gust`), add the members.  Takes a minute per team.
+Your team's group is made for you — you do not need the admin panel, and there is nothing to install.  One thing is on you, though: **log in at least once before your instructor adds you to a group.**  Accounts only exist after a first login, so if your name cannot be found in the people picker, that is almost always why.
 
 ### Sharing the agent to the team
 
@@ -167,27 +164,8 @@ Then `cd` into a project and run `opencode` for the full TUI.
 
 **Honest expectations.**  A 7B-class campus model runs the coding loop and teaches you the workflow, but it is not a frontier model: expect occasional stumbles — a mis-named tool, a premature "done."  That's part of the lesson — you're learning to supervise an agent, not to trust one.  When the campus gateway grows bigger models, your same config gets better for free.
 
-*(Faculty/admins: `just workbench <key>` runs this exact setup in a container on the box — handy for demos and for verifying a student's key end to end.)*
+---
 
 ---
 
-## Part 5 — Teaching a course on this (faculty)
-
-You sign in with the same SSO button — the platform recognizes faculty and hands you the sharing controls, the people picker, the marketplace curation tools, and the admin panel (`:3082`).
-
-**Day-zero checklist:**
-
-1. **Everyone logs in once.**  Accounts exist only after first login, and nothing below works without accounts.  Make it the first five minutes of the first lab.
-2. **Groups** (admin panel → Groups): one course-wide group (`engr301-all`), one per team (`engr301-team-gust`, ...).  Membership edits propagate immediately — late adds are painless.
-3. **Keys**: hand the admin your roster; keys are minted with `owner=<your course>` and a per-student budget (the default is modest and adjustable).  Distribute via individual LMS messages.
-4. **Verify one student end to end** — login, open a shared agent, paste a key into opencode — before the assignment goes out.
-
-**Course patterns that work:**
-
-- **The course TA agent.**  You build it, attach the syllabus and lab manual, share **Viewer** to `engr301-all`.  Twenty questions about the late policy answer themselves.
-- **Team-built agents as coursework.**  Each team gets Editor on their own agent (or creates it themselves — students can).  The assignment is the agent: instructions are graded prose, knowledge-file curation is graded research, and the iteration log is the lab notebook.
-- **Peer review via the marketplace.**  Teams share final agents to `engr301-all` as Viewer; classmates stress-test each other's work.  You promote the best.
-- **Watching the ledger.**  Ask the **Almanac Usage** agent: "how's engr301 tracking this month?" — or the week-before-deadline favorite, "who hasn't started yet?"  Totals, per-student activity, and the model mix, scoped to exactly your course, in the same chat window.  (Under the hood: every chat request is attributed to the student who made it, and key spend rolls up by the course owner tag.)  Want raw dashboards instead?  A read-only LiteLLM login is one invitation link away — the [admin guide](admin-guide.md#faculty-analytics--what-you-can-see) lays out both paths.
-- **Term end.**  Ask the admin to sweep the course's keys.  Agents keep; keys retire.
-
-The almanac's rule is the farm's rule: everything gets written down, and the book stays on the shelf where the whole class can reach it.
+*Teaching a course on this?  See [Teaching a course on the aLLManac](teaching-a-course.md).*

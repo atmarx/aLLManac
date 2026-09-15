@@ -2,7 +2,6 @@
 title: How do I run the aLLManac?
 description: The operator's path through the two consoles that run this stack — Keycloak for who, LiteLLM for how much — plus the chat usage tools, the course fleet, backups, and the free-tier walls you will hit.
 audience: operator
-also_reaches: [faculty]
 status: draft
 owner: geordi
 tags: [keycloak, litellm, librechat, sso, oidc, identity-broker, rbac, key-rotation, escrow, metering, attribution, backup]
