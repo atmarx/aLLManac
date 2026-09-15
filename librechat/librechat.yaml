@@ -38,11 +38,14 @@ registration:
 #   - no people picker, no marketplace: nothing here is shared person-to-person,
 #     and the model picker (modelSpecs, enforced) is the whole directory.
 #   - no prompts, bookmarks, presets, memories, multi-convo, parameters, code
-#     execution, web search, composer file search, shared links, skills or
-#     user-added MCP servers.  A place to ask, not the full experience.
+#     execution, web search, composer file search, shared links or skills.
+#     A place to ask, not the full experience.
 #   - temporaryChat stays at its default (on): it is a privacy affordance, not
-#     a feature, and the keys below were read from the pinned image's schema —
-#     interface keys ARE validated, so a typo here fails loudly at boot.
+#     a feature.  `mcpServers` and `remoteAgents` are OBJECTS in the schema,
+#     not booleans — `mcpServers: false` took the flagship down at boot
+#     (2026-09-15, ZodError, container exited) — so they are left at their
+#     defaults.  Interface keys ARE validated: a wrong type fails loudly, and
+#     "loudly" here means the vestibule is offline until it is fixed.
 interface:
   agents:
     use: true
@@ -67,8 +70,6 @@ interface:
   fileSearch: false
   sharedLinks: false
   skills: false
-  remoteAgents: false
-  mcpServers: false
 
 # The memory subsystem itself, not just its menu entry — nothing is remembered
 # about anyone in the vestibule.
