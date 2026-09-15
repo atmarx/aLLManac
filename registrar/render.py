@@ -285,6 +285,10 @@ def render_fleet(courses: dict) -> None:
       HOST: 0.0.0.0
       MONGO_URI: "mongodb://mongodb:27017/LibreChat_{slug}"
       MEILI_HOST: "http://meili-{slug}:7700"
+      # See compose.yml: unset SEARCH means the per-course Meili indexes
+      # nothing and search never appears.  Not a knob yet — making it one is a
+      # course-record field, which is registrar design and @marco's call.
+      SEARCH: "true"
       RAG_API_URL: "http://rag_api:8000"
       CONFIG_PATH: "/app/conf/librechat.yaml"
     volumes:

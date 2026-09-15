@@ -172,6 +172,13 @@ services:
       HOST: 0.0.0.0
       MONGO_URI: "mongodb://mongodb:27017/LibreChat"
       MEILI_HOST: "http://meilisearch:7700"
+      # Without this the Meili container runs EMPTY: mongoMeili.ts gates every
+      # indexing hook on `SEARCH != null && SEARCH.toLowerCase() === 'true'`,
+      # so an unset SEARCH skips indexing entirely while the service, the
+      # volume and the ~80MB of RAM all still get paid for.  Default on,
+      # because docs/registrar-spec.md says default on and
+      # apex/your-data/what-we-store.md already tells students the index exists.
+      SEARCH: "${SEARCH:-true}"
       RAG_API_URL: "http://rag_api:8000"
       CONFIG_PATH: "/app/conf/librechat.yaml"
     volumes:
