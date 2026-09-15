@@ -57,6 +57,28 @@ This is exactly why `VLLM_TOOL_PARSER` is a **per-box `.env` value** and not a r
 
 ## LibreChat (v0.8.7)
 
+### `SEARCH` is the whole switch, and Meili backfills itself *(2026-09-15)*
+
+Conversation search is gated on one env var and nothing else.  `mongoMeili.ts`:
+
+```js
+const searchEnabled = process.env.SEARCH != null &&
+  process.env.SEARCH.toLowerCase() === 'true';
+const meiliEnabled  = process.env.MEILI_HOST != null &&
+  process.env.MEILI_MASTER_KEY != null && searchEnabled;
+```
+
+Unset is false, and every indexing hook returns early.  The failure is silent and it costs money: the Meili container, its volume and ~80MB of RAM are all still provisioned, the search field simply never appears and not one document is ever written.  Measured before the fix — `alm-meili` up six weeks, `almanac_meili-data` holding **508 kB**, which is Meili's own metadata and zero documents.  One per course, fleet-wide.
+
+**It does backfill.**  This corrects the deploy note in 6a9bc3b, which said existing conversations would stay unsearchable and that `config/reset-meili-sync.js` had to be run per instance.  It does not: LibreChat runs `syncWithMeili` at boot, drops each index and rebuilds it from Mongo.  Observed on first start with `SEARCH=true`:
+
+```
+[syncWithMeili] Completed sync for messages.       Processed 10 documents in 16ms
+[syncWithMeili] Completed sync for conversations.  Processed  3 documents in 22ms
+```
+
+Two indexes, `convos` (primary key `conversationId`) and `messages` (`messageId`).  So turning search on mid-term is safe — history arrives with it, and nothing has to be run by hand.  The cost moves to boot time instead, and it scales with the course's whole message history rather than with what changed, which is the thing to watch on a busy instance rather than the flag itself.
+
 ### Shareable groups never come from Keycloak
 
 Agent-share groups resolve from `local` or `entra` sources **only**.  The Keycloak/OIDC `groups` claim never reaches LibreChat's ACL system — upstream [#10006](https://github.com/danny-avila/LibreChat/issues/10006) is open, and the sync PR (#10015) died unmerged.  Do not spend another afternoon wiring the claim through; it has nowhere to land.
