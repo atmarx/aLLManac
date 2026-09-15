@@ -53,7 +53,7 @@ channel: _fleet
     #!/usr/bin/env bash
     set -euo pipefail
     echo "channel: {{channel}}  ({{channel_env}})"
-    {{compose}} config --images 2>/dev/null | grep -E "librechat|litellm|rag-api|admin-panel|opencode" | sort -u | sed 's/^/  /'
+    {{compose}} config --images 2>/dev/null | grep -E "librechat|litellm|rag-api|admin-panel|opencode|mongo|meili|postgres|pgvector" | sort -u | sed 's/^/  /'
     for v in $(grep -oE '^[A-Z_]+_IMAGE=' {{channel_env}} | tr -d =); do
         if grep -qE "^$v=" .env; then
             echo "  WARN: .env sets $v itself — that overrides the channel.  Delete the line unless it is a deliberate hotfix."
