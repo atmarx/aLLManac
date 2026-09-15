@@ -112,6 +112,11 @@ def render_course_env(slug: str, course: dict, models: list[str],
         "ALLOW_EMAIL_LOGIN": "false",
         "ALLOW_REGISTRATION": "false",
         "ALLOW_SOCIAL_LOGIN": "true",
+        # -- what the tab and the login page call this place.  Found on the
+        # first real end-to-end provision (2026-09-15): without it every
+        # course is "LibreChat", and a student with three courses open has
+        # three identical tabs. --
+        "APP_TITLE": course["name"],
         # -- where this instance lives --
         "DOMAIN_CLIENT": f"https://{host}",
         "DOMAIN_SERVER": f"https://{host}",
