@@ -13,7 +13,20 @@ set dotenv-load := true
 # appears mid-run isn't picked up until the next `just` (which is why _site
 # runs before anything that would care).
 site_compose := "site/compose.yml"
-compose := "docker compose -f compose.yml" + (
+# The channel is the set of image pins this box runs — channels/<name>.env,
+# tracked, chosen by ALMANAC_CHANNEL in .env (stable when unset).  It goes to
+# compose as an env file AHEAD of .env, so a pin set in .env still wins; and
+# it goes on every compose call, because a `just` that forgot it would
+# resolve the compose.yml defaults instead and quietly deploy the wrong
+# LibreChat.  A missing channel file fails at parse time, loudly.
+channel := env_var_or_default("ALMANAC_CHANNEL", "stable")
+channel_env := "channels/" + channel + ".env"
+env_files := if path_exists(channel_env) == "true" {
+    "--env-file " + channel_env + " --env-file .env"
+} else {
+    error("ALMANAC_CHANNEL=" + channel + " but " + channel_env + " does not exist")
+}
+compose := "docker compose " + env_files + " -f compose.yml" + (
     if path_exists("site/compose.yml") == "true" { " -f site/compose.yml" } else { "" }
 )
 # The vLLM stack is separate on purpose (model stays loaded across app
@@ -21,7 +34,7 @@ compose := "docker compose -f compose.yml" + (
 # a box with no GPU shouldn't carry a GPU stack).  --project-directory .
 # makes it share the root .env.
 vllm_compose := "site/inference/vllm.compose.yml"
-vllm := "docker compose --project-directory . -f site/inference/vllm.compose.yml"
+vllm := "docker compose " + env_files + " --project-directory . -f site/inference/vllm.compose.yml"
 # SBOM generator — pinned like everything else:
 syft := "anchore/syft:v1.46.0@sha256:473a60e3a58e29aca3aedb3e99e787bb4ef273917e44d10fcbea4330a07320bb"
 # Static docs builder. The edge serves the generated files; MkDocs' preview
@@ -31,6 +44,21 @@ mkdocs := "squidfunk/mkdocs-material:9.7.1@sha256:3bba0a99bc6e635bb8e53f379d32ab
 # List recipes
 default:
     @{{just_executable()}} --list --unsorted
+
+# Which channel this box runs, and the images that resolves to.  Also names
+# any pin .env sets itself: that pin wins over the channel, which is right
+# for a hotfix and wrong for an .env that predates channels and still carries
+# the old image lines — a box like that never leaves the pins it was born with.
+channel:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "channel: {{channel}}  ({{channel_env}})"
+    {{compose}} config --images 2>/dev/null | grep -E "librechat|litellm|rag-api|admin-panel|opencode" | sort -u | sed 's/^/  /'
+    for v in $(grep -oE '^[A-Z_]+_IMAGE=' {{channel_env}} | tr -d =); do
+        if grep -qE "^$v=" .env; then
+            echo "  WARN: .env sets $v itself — that overrides the channel.  Delete the line unless it is a deliberate hotfix."
+        fi
+    done
 
 # First-time setup: create .env from the example + generate every secret
 setup: _env _site secrets
@@ -207,7 +235,7 @@ build: _fleet
 # leaves the escrow sealed until a human notices the registrar can't mint.
 #
 # What CI runs on the box: images, build, .env, restart, re-read config, verify
-deploy: pull build secrets up config-refresh bao-unseal smoke egress-check
+deploy: channel pull build secrets up config-refresh bao-unseal smoke egress-check
 
 # The gap this closes: `docker compose up` recreates on a changed DEFINITION,
 # never on changed bind-mount CONTENTS.  Directory mounts got the new file into
@@ -272,7 +300,12 @@ config-refresh:
         verdict=""
         if [ -n "$svc" ] && [ -n "$pdir" ] && [ -n "$files" ]; then
           fargs=""; IFS=','; for f in $files; do fargs="$fargs -f $f"; done; unset IFS
-          plan=$(docker compose --project-directory "$pdir" $fargs up -d --dry-run --no-deps "$svc" 2>&1 || true)
+          # The env files too, or the dry-run resolves image pins from .env
+          # alone, sees a different image than the channel gave the running
+          # container, and reports drift that is not there.
+          efiles=$(docker inspect "$c" --format '{{{{index .Config.Labels "com.docker.compose.project.environment_file"}}' 2>/dev/null)
+          eargs=""; IFS=','; for f in $efiles; do [ -n "$f" ] && eargs="$eargs --env-file $f"; done; unset IFS
+          plan=$(docker compose --project-directory "$pdir" $eargs $fargs up -d --dry-run --no-deps "$svc" 2>&1 || true)
           case "$plan" in
             *"$c Recreate"*) verdict="drifted" ;;
             *"$c Running"*|*"$c Started"*|*"$c Healthy"*) verdict="same" ;;

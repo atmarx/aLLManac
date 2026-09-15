@@ -82,6 +82,10 @@ Set the three under repo → Settings → Secrets.  Note the heredoc is quoted (
 
 Secrets don't reach pull requests from forks, which doesn't matter for a `branch: main, event: push` pipeline — but it will bite you if you widen the trigger.
 
+## A second target: the `latest` box
+
+The pipeline above deploys one box, and that box should be the `stable` one.  The dev playground — `ALMANAC_CHANNEL=latest` in its `.env`, see the admin guide's *Channels* — is hand-deployed for now: `just sync && just deploy` over ssh, the same two commands the pipeline runs.  When it earns its own pipeline, it is a second workflow file with its own `deploy_*` secrets, not a second branch: both boxes deploy `main`, and the channel file is the only thing that differs.
+
 ## GitLab CI
 
 ```yaml

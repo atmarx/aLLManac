@@ -414,6 +414,19 @@ All gitignored, all regenerable (`just` `course`/`reconcile`/`render`) — excep
 
 ---
 
+## Channels: stable and latest
+
+There are two kinds of aLLManac box: the one courses run on, and the one where the next version gets broken first.  A **channel** is what tells them apart, and it is one file of image pins — `channels/stable.env` or `channels/latest.env`, both tracked.  `.env` picks one with `ALMANAC_CHANNEL` (stable when unset), and `just` hands that file to compose ahead of `.env` on every call, so `just channel` on any box says which channel it runs and the exact images that resolves to.
+
+The rule that makes this worth having: **a pin moves to `latest` first, gets deployed to a box nobody teaches on, gets walked as a student and a professor, and only then moves to `stable`.**  What differs between the two files is exactly the upgrade under test, and the comment on each `latest` line says what is being watched and since when.  Release candidates go to `latest`.  A course never sees one.
+
+Two traps, both loud on purpose:
+
+- **An `.env` that predates channels still carries its own image lines, and a pin set in `.env` wins over the channel.**  That is the right precedence for a hotfix and the wrong one for a box that never leaves the pins it was born with.  `just channel` warns on every such line; delete them.
+- **`ALMANAC_CHANNEL` naming a file that does not exist fails at parse time**, before any recipe runs.  Nothing falls back to compose's defaults silently.
+
+Everything else is the same box.  Same `.env` shape, same `site/`, same `just deploy` — the dev playground is a full stack, not a lighter one, because the point is to find what the upgrade breaks in the plumbing, and half a stack has half the plumbing.  Inference is a URL either way: almanac only consumes an endpoint, so a dev box points at whatever the stable box points at, or at something cheaper.
+
 ## Backups
 
 The named volumes are the state.  What each holds, and how much it would hurt:
