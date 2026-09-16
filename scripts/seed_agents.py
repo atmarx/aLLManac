@@ -222,7 +222,9 @@ async function agentsCreateWindow(open) {
 }
 
 (async () => {
-  const restoreCreate = await agentsCreateWindow(true);
+  // The window is for a HUMAN owner on the ADMIN role.  The service account
+  // carries its own role with CREATE already on — and cannot manage roles.
+  const restoreCreate = __HUMAN_OWNER__ ? await agentsCreateWindow(true) : null;
   try { await seedAll(); } finally {
     if (restoreCreate !== null) await agentsCreateWindow(false);
   }
@@ -340,6 +342,18 @@ def _mongo(q: str) -> str:
 # from under the Security Guide.  LibreChat let it, because they were theirs.
 SERVICE_OWNER = {"email": "guides@almanac.invalid", "username": "almanac-guides",
                  "name": "Almanac Guides"}
+# ...and it has its own ROLE.  The vestibule lockdown seeds `interface`
+# switches into ADMIN and USER at every boot — and 0.8.8 gates an agent's
+# knowledge uploads on FILE_SEARCH.USE, which the lockdown turns off, with
+# no roles-API route to open a window on it (found 2026-09-15: 47 uploads,
+# 47 "Forbidden: Insufficient permissions").  A role the lockdown never
+# visits needs no window at all.  LibreChat resolves permissions by role
+# NAME from db.roles, so a third role works on 0.8.7 and 0.8.8 alike.
+SERVICE_ROLE = "ALMANAC_GUIDES"
+# What the seeder needs, and nothing a person could use — the account has
+# no way to sign in anyway.
+_SERVICE_GRANTS = {"AGENTS": {"USE": True, "CREATE": True, "SHARE": True, "SHARE_PUBLIC": True},
+                   "FILE_SEARCH": {"USE": True}, "FILE_CITATIONS": {"USE": True}}
 
 
 def service_owner_id() -> str:
@@ -355,6 +369,22 @@ def service_owner_id() -> str:
         out = out[len("CREATED "):]
     if not out:
         sys.exit("could not find or create the service owner in LibreChat's users")
+    # The role: ADMIN's shape (so every permission type LibreChat knows on
+    # this version is present) with the seeder's grants forced on.  Upserted
+    # and re-asserted every run — the grants self-heal, the rest is left as
+    # whatever ADMIN carries, which the lockdown already decided.
+    grants = json.dumps(_SERVICE_GRANTS)
+    q = (f'var g = {grants}; var base = (db.roles.findOne({{name:"ADMIN"}})||{{}}).permissions || {{}}; '
+         f'var cur = db.roles.findOne({{name:"{SERVICE_ROLE}"}}); var p = cur ? cur.permissions : base; '
+         f'Object.keys(base).forEach(function(k){{ if (!p[k]) p[k] = base[k]; }}); '
+         f'Object.keys(g).forEach(function(k){{ p[k] = Object.assign({{}}, p[k]||{{}}, g[k]); }}); '
+         f'db.roles.updateOne({{name:"{SERVICE_ROLE}"}}, {{$set:{{permissions:p, updatedAt:new Date()}}, '
+         f'$setOnInsert:{{name:"{SERVICE_ROLE}", createdAt:new Date()}}}}, {{upsert:true}}); '
+         f'var u = db.users.updateOne({{_id:new ObjectId("{out}"), role:{{$ne:"{SERVICE_ROLE}"}}}}, {{$set:{{role:"{SERVICE_ROLE}"}}}}); '
+         f'print(cur ? "role ok" : "role created"); print(u.modifiedCount ? "user moved to role" : "")')
+    for line in _mongo(q).splitlines():
+        if line.strip() and line.strip() != "role ok":
+            print(f"service role {SERVICE_ROLE}: {line.strip()}")
     return out
 
 
@@ -464,12 +494,13 @@ def main() -> int:
 
     js = (JS.replace("__AGENTS__", json.dumps(agents, indent=2))
             .replace("__OWNER__", owner)
+            .replace("__HUMAN_OWNER__", "true" if email else "false")
             .replace("__MODEL__", model)
             .replace("__PROVIDER__", provider)
             .replace("__SKIP_FILES__", "true" if skip_files else "false")
             .replace("__MODEL_EXPLICIT__", "true" if model_explicit else "false"))
 
-    print(f"seeding {len(agents)} guide agents as {email} "
+    print(f"seeding {len(agents)} guide agents as {email or SERVICE_OWNER['email'] + ' (service account)'} "
           f"(provider {provider}, model {model}"
           f"{' — EXPLICIT, existing agents will be re-pointed' if model_explicit else ' for new agents; existing keep theirs'})"
           f"{'' if skip_files else ', with knowledge'}")
