@@ -10,6 +10,8 @@ directories now.  Nothing about the trust model changed in the split:
     keycloak  course OIDC clients and the admin/member door roles.
     gateway   LiteLLM teams (the course pool) and keys (the fuses).
     escrow    OpenBao — custody of every minted key.
+    chatdb    the chat databases, read as a census — envelope only, never
+              a message, a title, or (outside a nomination) an instruction.
     verbs     the reconcile verbs, which are the ONLY things that compose
               the planes above.  If a plane imports a sibling plane, that
               is the bug: composition happens here or not at all.

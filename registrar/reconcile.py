@@ -19,7 +19,9 @@ worth auditing, and one import surface means one list to read.
     planes/keycloak  the admin password
     planes/gateway   the LiteLLM master key
     planes/escrow    the OpenBao AppRole
-    planes/verbs     composition — the only place the four meet
+    planes/chatdb    the chat databases, envelope only (no credential)
+    planes/nominations  registrar/nominations.yaml — no network, no secrets
+    planes/verbs     composition — the only place the planes meet
 
 Everything in the verbs is IDEMPOTENT on purpose — a failed half-apply is
 repaired by applying again, and `just course` can be re-run until it's
@@ -71,8 +73,15 @@ from planes.keycloak import (
 from planes.verbs import (
     PoolExhausted,
     apply_roster,
+    decline_nomination,
     ensure_course,
+    export_nomination,
+    fleet_access,
+    fleet_exposure,
+    fleet_inventory,
     mint_key,
+    nominate_agent,
+    nominations,
     reconcile_students_cmd,
     rotate_student_key,
 )

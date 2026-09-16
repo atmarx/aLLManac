@@ -91,3 +91,24 @@ async def ll_key_spend(cx: httpx.AsyncClient, key: str) -> float:
     if r.status_code != 200:
         return 0.0
     return float((r.json().get("info") or {}).get("spend") or 0.0)
+
+
+async def ll_team_census(cx: httpx.AsyncClient, slug: str) -> dict | None:
+    """The pool as the ledger sees it: spend, ceiling, and how many keys
+    drain it.  None if the team was never created.  Key values are never
+    in this response — `/team/info` returns key metadata, and only the
+    metadata is kept."""
+    r = await cx.get(f"{LITELLM_URL}/team/info", params={"team_id": slug},
+                     headers=_ll_headers())
+    if r.status_code != 200:
+        return None
+    body = r.json() or {}
+    info = body.get("team_info") or {}
+    keys = body.get("keys") or []
+    return {
+        "spend": round(float(info.get("spend") or 0.0), 2),
+        "max_budget": info.get("max_budget"),
+        "models": info.get("models") or [],
+        "keys": len(keys),
+        "keys_spent": round(sum(float(k.get("spend") or 0.0) for k in keys), 2),
+    }

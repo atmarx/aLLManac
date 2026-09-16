@@ -14,6 +14,9 @@ from datetime import datetime, timezone
 
 import httpx
 
+import os
+
+from .chatdb import agent_template, census, db_name, list_databases
 from .config import ALMANAC_DOMAIN, MIN_FUSE
 from .courses import course_models, load_courses, save_courses
 from .escrow import escrow_delete, escrow_read, escrow_write
@@ -22,16 +25,21 @@ from .gateway import (
     ll_ensure_team,
     ll_key_spend,
     ll_mint_key,
+    ll_team_census,
     ll_team_remaining,
 )
 from .keycloak import (
+    kc_active_sessions,
+    kc_client_uuid,
     kc_ensure_autolink,
     kc_ensure_client,
     kc_ensure_client_roles,
     kc_ensure_user,
+    kc_role_holders,
     kc_set_client_role,
     kc_user_id,
 )
+from .nominations import add_nomination, load_nominations, mark_nomination
 
 
 def _now() -> str:
@@ -287,3 +295,166 @@ def reconcile_students_cmd(slug: str) -> list[dict]:
     courses = load_courses()
     course = courses["courses"][slug]
     return asyncio.run(apply_roster(slug, list(course["students"]), []))
+
+
+# ---- the census: the fleet from above ----------------------------------------
+# Read-only composition of every plane.  These verbs create nothing, grant
+# nothing, mint nothing — they are the registrar reporting what it already
+# reconciles, and the one place all five columns (record, door, pool,
+# database, container) land in the same row.  Envelope only: see chatdb.
+
+FLEET_OUT = os.environ.get("OUT_FLEET", "/out/fleet")
+
+
+async def _reachable(cx: httpx.AsyncClient, host: str) -> bool:
+    """Does the instance answer on the compose network?  A health probe
+    from inside is the honest signal the registrar can give without a
+    docker socket: "answering" rather than "running"."""
+    try:
+        r = await cx.get(f"http://{host}:3080/health", timeout=4)
+        return r.status_code < 500
+    except httpx.HTTPError:
+        return False
+
+
+async def _course_row(cx: httpx.AsyncClient, courses: dict, slug: str) -> dict:
+    c = courses["courses"][slug]
+    row: dict = {
+        "slug": slug, "name": c["name"], "host": f"{slug}.{ALMANAC_DOMAIN}",
+        "rendered": os.path.exists(f"{FLEET_OUT}/{slug}.env"),
+        "roster": {"instructors": len(c["instructors"]), "tas": len(c["tas"]),
+                   "students": len(c["students"])},
+        "budgets": dict(c["budgets"]),
+        "capabilities": list(c["capabilities"]),
+        "allowed_domains": list(c["allowed_domains"]),
+        "models": course_models(c, courses),
+    }
+    # Each column degrades alone.  A census that dies because one plane is
+    # down tells the operator nothing about the other four — and "the
+    # gateway is unreachable" is itself a row worth reading.
+    row["errors"] = {}
+    row["reachable"] = await _reachable(cx, f"chat-{slug}")
+    try:
+        row["pool"] = await ll_team_census(cx, slug)
+    except httpx.HTTPError as e:
+        row["pool"], row["errors"]["pool"] = None, f"gateway: {e.__class__.__name__}"
+    row["door"] = None
+    try:
+        uuid = await kc_client_uuid(cx, slug)
+        if uuid:
+            row["door"] = {"member": await kc_role_holders(cx, uuid, "member"),
+                           "admin": await kc_role_holders(cx, uuid, "admin"),
+                           "sessions": await kc_active_sessions(cx, uuid)}
+    except httpx.HTTPError as e:
+        row["errors"]["door"] = f"keycloak: {e.__class__.__name__}"
+    try:
+        row["census"] = await census(slug)
+    except Exception as e:  # pymongo's own hierarchy; the row still renders
+        row["census"] = {"db": db_name(slug), "exists": False}
+        row["errors"]["census"] = f"mongo: {e.__class__.__name__}"
+    return row
+
+
+async def fleet_inventory() -> dict:
+    """Every instance in one report — and the render of it on disk."""
+    import render
+    courses = load_courses()
+    report: dict = {"generated": _now(), "domain": ALMANAC_DOMAIN, "courses": []}
+    async with httpx.AsyncClient(timeout=30) as cx:
+        try:
+            flag = await census(None)
+        except Exception as e:
+            flag = {"db": db_name(None), "exists": False, "error": f"mongo: {e.__class__.__name__}"}
+        report["flagship"] = {"host": f"chat.{ALMANAC_DOMAIN}", "db": db_name(None),
+                              "reachable": await _reachable(cx, "librechat"),
+                              "census": flag}
+        for slug in sorted(courses["courses"]):
+            report["courses"].append(await _course_row(cx, courses, slug))
+    # A database with no course record is a finding — it is what a deleted
+    # course leaves behind.
+    known = {db_name(s) for s in courses["courses"]} | {db_name(None)}
+    try:
+        names = [n for n in await list_databases() if n.startswith("LibreChat") and n not in known]
+    except Exception:
+        names = []
+    report["orphan_databases"] = sorted(names)
+    render.render_inventory(report)
+    return report
+
+
+async def fleet_access(slug: str) -> dict:
+    """Who can get in, who has, and the three diffs a security review asks
+    for: rostered-but-never-seen, seen-but-not-rostered, door-but-not-rostered."""
+    courses = load_courses()
+    c = courses["courses"][slug]
+    async with httpx.AsyncClient(timeout=30) as cx:
+        row = await _course_row(cx, courses, slug)
+    roster = set(c["students"]) | set(c["instructors"]) | set(c["tas"])
+    seen = {u["email"] for u in row["census"].get("users", [])}
+    door = set((row["door"] or {}).get("member", []))
+    return {
+        "slug": slug, "name": c["name"],
+        "roster": sorted(roster), "staff": sorted(set(c["instructors"]) | set(c["tas"])),
+        "door": sorted(door), "admins": sorted((row["door"] or {}).get("admin", [])),
+        "signed_in": row["census"].get("users", []),
+        "sessions": (row["door"] or {}).get("sessions", []),
+        "never_seen": sorted(roster - seen),
+        "seen_not_rostered": sorted(seen - roster),
+        "door_not_rostered": sorted(door - roster),
+        "rostered_no_door": sorted(roster - door) if row["door"] else [],
+    }
+
+
+async def fleet_exposure(slug: str) -> dict:
+    """What a course has that reaches past one person: shared agents, the
+    knowledge attached to them, every file by size, and the walls the
+    course record puts (or doesn't) around Actions and tools."""
+    courses = load_courses()
+    async with httpx.AsyncClient(timeout=30) as cx:
+        row = await _course_row(cx, courses, slug)
+    return {"slug": slug, "name": row["name"], "capabilities": row["capabilities"],
+            "allowed_domains": row["allowed_domains"], "models": row["models"],
+            "pool": row["pool"], "agents": row["census"].get("agents", []),
+            "files": row["census"].get("files", []),
+            "totals": row["census"].get("totals", {})}
+
+
+# ---- nominations: "this one is worth copying" --------------------------------
+
+async def nominate_agent(slug: str, agent_id: str, by: str, note: str,
+                         staff: bool) -> dict:
+    """Record a nomination.  The author may nominate their own agent; staff
+    may nominate any agent in their course.  -> the nomination record, with
+    the template attached so the caller can see what would be copied."""
+    tpl = await agent_template(slug, agent_id)
+    if tpl is None:
+        raise KeyError(f"no agent {agent_id} in {slug}")
+    if tpl["owner"] != by and not staff:
+        raise PermissionError(f"{agent_id} belongs to {tpl['owner'] or 'someone else'}")
+    rec = add_nomination(slug, agent_id, tpl["name"] or agent_id, by, note)
+    return {"nomination": rec, "template": tpl}
+
+
+def nominations(slug: str | None = None) -> list[dict]:
+    rows = load_nominations()
+    return [r for r in rows if slug is None or r["course"] == slug]
+
+
+async def export_nomination(nid: str, by: str) -> dict:
+    """Write the nominated agent as a template file on the fleet volume and
+    mark the nomination.  The template is the deliverable: a file someone
+    can read, fork, and seed — not a live object only the UI can show."""
+    import render
+    rec = next((r for r in load_nominations() if r["id"] == nid), None)
+    if rec is None:
+        raise KeyError(f"no nomination {nid}")
+    tpl = await agent_template(rec["course"], rec["agent_id"])
+    if tpl is None:
+        raise KeyError(f"the nominated agent {rec['agent_id']} no longer exists in {rec['course']}")
+    path = render.render_template(rec, tpl)
+    mark_nomination(nid, "exported", by, where=path)
+    return {"nomination": rec, "path": path, "template": tpl}
+
+
+def decline_nomination(nid: str, by: str) -> dict | None:
+    return mark_nomination(nid, "declined", by)

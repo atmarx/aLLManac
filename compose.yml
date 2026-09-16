@@ -332,6 +332,9 @@ services:
       KC_ADMIN: "${KC_ADMIN}"
       KC_ADMIN_PASSWORD: "${KC_ADMIN_PASSWORD}"
       BAO_ADDR: "http://openbao:8200"
+      # The census reads every instance's database — envelope only (see
+      # registrar/planes/chatdb.py).  Same Mongo the fleet writes to.
+      MONGO_URI: "mongodb://mongodb:27017"
       BAO_REGISTRAR_ROLE_ID: "${BAO_REGISTRAR_ROLE_ID:-}"
       BAO_REGISTRAR_SECRET_ID: "${BAO_REGISTRAR_SECRET_ID:-}"
       ALMANAC_DOMAIN: "${ALMANAC_DOMAIN:-localhost}"

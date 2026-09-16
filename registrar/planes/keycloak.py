@@ -203,3 +203,44 @@ async def kc_set_client_role(cx: httpx.AsyncClient, user_id: str, client_uuid: s
                   json=[{"id": role["id"], "name": role["name"]}])
     if r.status_code not in (204, 409):
         r.raise_for_status()
+
+
+# ---- the census: read-only views for the fleet tools --------------------------
+
+async def kc_client_uuid(cx: httpx.AsyncClient, slug: str) -> str | None:
+    """The course client's internal id, or None if it was never provisioned.
+    Read-only twin of kc_ensure_client — the census must not create."""
+    r = await _kc(cx, "GET", f"/clients?clientId={slug}")
+    r.raise_for_status()
+    found = r.json()
+    return found[0]["id"] if found else None
+
+
+async def kc_role_holders(cx: httpx.AsyncClient, client_uuid: str, role: str) -> list[str]:
+    """Emails holding a client role — the door as Keycloak actually has it,
+    as opposed to the roster as the registrar wishes it."""
+    out: list[str] = []
+    first = 0
+    while True:
+        r = await _kc(cx, "GET", f"/clients/{client_uuid}/roles/{role}/users",
+                      params={"first": first, "max": 200})
+        if r.status_code == 404:          # role never created
+            return out
+        r.raise_for_status()
+        page = r.json()
+        out += [(u.get("email") or u.get("username") or "").lower() for u in page]
+        if len(page) < 200:
+            return sorted(e for e in out if e)
+        first += 200
+
+
+async def kc_active_sessions(cx: httpx.AsyncClient, client_uuid: str) -> list[str]:
+    """Emails with a live session on this client right now.  Session
+    metadata only — Keycloak's session record carries no content."""
+    r = await _kc(cx, "GET", f"/clients/{client_uuid}/user-sessions",
+                  params={"first": 0, "max": 500})
+    if r.status_code == 404:
+        return []
+    r.raise_for_status()
+    emails = {(s.get("username") or "").lower() for s in r.json()}
+    return sorted(e for e in emails if e)

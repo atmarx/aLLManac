@@ -98,6 +98,19 @@ def _staff_or_refuse(email: str, course: dict, slug: str) -> None:
         )
 
 
+def _admin_or_refuse(email: str) -> None:
+    """The platform's `admins:` list — NOT the instance's ADMIN role.  A
+    course instance makes its own staff ADMIN, and that is authority over
+    one house; the fleet view is every house at once, so it answers only
+    to the list the operator keeps in courses.yaml."""
+    if email not in reconcile.load_courses()["admins"]:
+        raise ToolError(
+            "The fleet view is for platform admins (the `admins:` list in "
+            "registrar/courses.yaml).  Course staff: roster_show and "
+            "course_usage cover your own course."
+        )
+
+
 # ---- roster parsing: liberal on purpose ---------------------------------------
 # Instructors paste whatever their SIS exports — CSV with headers, TSV,
 # newlines, Banner's junk columns.  We extract every email-shaped token and
@@ -328,6 +341,242 @@ async def course_keys() -> str:
         out += ["", "Missing: " + ", ".join(missing),
                 "(re-apply the roster to mint stragglers — it's idempotent)"]
     return "\n".join(out)
+
+
+# ---- tools: the fleet from above ----------------------------------------------
+# Platform admins only.  Every one of these is a READ: the registrar reporting
+# what it already reconciles, joined into one row per course.  Envelope only
+# — counts, names, sizes, owners, timestamps — never a message, a title, or
+# an instruction.  That line is a wall (docs/design-walls.md); the tools'
+# wording promises it because the code keeps it.
+
+def _n(x) -> str:
+    return f"{int(x):,}"
+
+
+def _mb(n: int) -> str:
+    return f"{n / 1_048_576:.1f} MB" if n >= 1_048_576 else f"{n / 1024:.0f} KB"
+
+
+@mcp.tool
+async def fleet_inventory() -> str:
+    """Every instance in the fleet on one page: is it answering, how many
+    people, conversations, agents and files, how big its database is, what
+    the course pool has spent against its cap, and how the roster compares
+    to the door.  Also rewrites fleet/inventory.md + .json on the box.
+    Platform admins only.  Metadata only — no conversation content."""
+    email, _role, _slug = _ident()
+    _admin_or_refuse(email)
+    rep = await reconcile.fleet_inventory()
+    fl, ft = rep["flagship"], rep["flagship"]["census"].get("totals", {})
+    out = [f"Fleet census — {rep['domain']} — {rep['generated']}", "",
+           "| instance | answers | users | convos | agents (shared) | files | data | pool | roster |",
+           "|---|---|---:|---:|---:|---:|---:|---|---|",
+           f"| {fl['host']} | {'yes' if fl['reachable'] else 'NO'} | {ft.get('users', 0)} | "
+           f"{_n(ft.get('conversations', 0))} | {ft.get('agents', 0)} ({ft.get('agents_shared', 0)}) | "
+           f"{ft.get('files', 0)} · {_mb(ft.get('file_bytes', 0))} | {_mb(ft.get('storage_bytes', 0))} | — | flagship |"]
+    for c in rep["courses"]:
+        t = c["census"].get("totals", {})
+        pool = c.get("pool")
+        if pool:
+            cap = pool.get("max_budget")
+            ps = f"${pool['spend']:.2f}/" + (f"${cap:.0f}" if cap is not None else "∞") + f" · {pool['keys']} keys"
+        else:
+            ps = "no team"
+        r = c["roster"]
+        state = "yes" if c["reachable"] else ("NO" if c["rendered"] else "not rendered")
+        out.append(f"| {c['host']} | {state} | {t.get('users', 0)} | {_n(t.get('conversations', 0))} | "
+                   f"{t.get('agents', 0)} ({t.get('agents_shared', 0)}) | "
+                   f"{t.get('files', 0)} · {_mb(t.get('file_bytes', 0))} | {_mb(t.get('storage_bytes', 0))} | "
+                   f"{ps} | {r['students']} students / {r['instructors'] + r['tas']} staff |")
+    findings = []
+    for c in rep["courses"]:
+        if c["rendered"] and not c["reachable"]:
+            findings.append(f"{c['slug']}: rendered but not answering")
+        if "actions" in c["capabilities"] and not c["allowed_domains"]:
+            findings.append(f"{c['slug']}: Actions enabled with no allowlist")
+        if c["pool"] and c["pool"].get("max_budget") is not None and \
+                c["pool"]["spend"] >= 0.9 * float(c["pool"]["max_budget"]):
+            findings.append(f"{c['slug']}: pool at {c['pool']['spend'] / float(c['pool']['max_budget']):.0%}")
+        d = c.get("door")
+        if d:
+            roster = set(reconcile.load_courses()["courses"][c["slug"]]["students"])
+            extra = set(d["member"]) - roster - set(d["admin"])
+            if extra:
+                findings.append(f"{c['slug']}: {len(extra)} at the door who aren't rostered (fleet_access)")
+    if rep["orphan_databases"]:
+        findings.append("databases with no course record: " + ", ".join(rep["orphan_databases"]))
+    for c in rep["courses"]:
+        for k, v in (c.get("errors") or {}).items():
+            findings.append(f"{c['slug']}: could not read {k} — {v}")
+    out += ["", "Findings:" if findings else "No findings."]
+    out += [f"  - {f}" for f in findings]
+    out += ["", "Written: fleet/inventory.md and fleet/inventory.json.  Per course: "
+                "fleet_access(slug), fleet_exposure(slug)."]
+    return "\n".join(out)
+
+
+@mcp.tool
+async def fleet_access(course: str) -> str:
+    """Who can get into one course and who has: the roster, the Keycloak
+    door, everyone who has actually signed in (with last activity), who is
+    signed in right now — and the three diffs a review asks for: rostered
+    but never seen, seen but not rostered, at the door but not rostered.
+    Platform admins only."""
+    email, _role, _slug = _ident()
+    _admin_or_refuse(email)
+    slug = course.strip().lower()
+    _course_or_refuse(slug)
+    a = await reconcile.fleet_access(slug)
+    out = [f"Access — {a['name']} ({slug})", "",
+           f"Rostered: {len(a['roster'])} ({len(a['staff'])} staff) · door: {len(a['door'])} may sign in, "
+           f"{len(a['admins'])} admins · signed in ever: {len(a['signed_in'])} · right now: {len(a['sessions'])}"]
+    if a["signed_in"]:
+        out += ["", "| user | role | convos | msgs | tokens | first seen | last active |",
+                "|---|---|---:|---:|---:|---|---|"]
+        out += [f"| {u['email']} | {u['role']} | {u['conversations']} | {u['messages']} | "
+                f"{_n(u['tokens'])} | {u['first_seen'] or '—'} | {u['last_active'] or '—'} |"
+                for u in a["signed_in"]]
+    for label, key, hint in (
+            ("Rostered, never signed in", "never_seen", "normal early in a term"),
+            ("Signed in, NOT on the roster", "seen_not_rostered", "how did they get in? check the door"),
+            ("At the door, NOT on the roster", "door_not_rostered", "a stale grant — re-apply the roster"),
+            ("Rostered, no door yet", "rostered_no_door", "roster sync pending — re-apply")):
+        if a[key]:
+            out += ["", f"{label} ({len(a[key])}; {hint}): " + ", ".join(a[key])]
+    if a["sessions"]:
+        out += ["", "Signed in now: " + ", ".join(a["sessions"])]
+    return "\n".join(out)
+
+
+@mcp.tool
+async def fleet_exposure(course: str) -> str:
+    """What one course has that reaches past a single person: every agent
+    with its share scope (public / role / group / named users / private),
+    its tools and knowledge count; every file by size and owner; the
+    capabilities and Actions allowlist the course record grants; the pool.
+    Platform admins only.  Names and sizes — never contents."""
+    email, _role, _slug = _ident()
+    _admin_or_refuse(email)
+    slug = course.strip().lower()
+    _course_or_refuse(slug)
+    x = await reconcile.fleet_exposure(slug)
+    t = x["totals"]
+    out = [f"Exposure — {x['name']} ({slug})", "",
+           f"Capabilities: {', '.join(x['capabilities']) or 'none'}",
+           "Actions allowlist: " + (", ".join(x["allowed_domains"]) if x["allowed_domains"]
+                                    else ("NONE — any public URL" if "actions" in x["capabilities"]
+                                          else "n/a (actions off)")),
+           f"Models: {', '.join(x['models'])}"]
+    if x["pool"]:
+        out.append(f"Pool: ${x['pool']['spend']:.2f} spent · {x['pool']['keys']} keys")
+    out += ["", f"Agents: {t.get('agents', 0)} ({t.get('agents_shared', 0)} shared)"]
+    if x["agents"]:
+        out += ["", "| agent | owner | scope | tools | actions | files | updated |",
+                "|---|---|---|---|---:|---:|---|"]
+        out += [f"| {a['name']} | {a['owner']} | {a['share']} | {', '.join(a['tools']) or '—'} | "
+                f"{a['actions']} | {a['files']} | {a['updated'] or '—'} |" for a in x["agents"]]
+    out += ["", f"Files: {t.get('files', 0)} · {_mb(t.get('file_bytes', 0))} "
+                f"(database {_mb(t.get('storage_bytes', 0))} on disk)"]
+    if x["files"]:
+        out += ["", "| file | size | owner | embedded | uploaded |", "|---|---:|---|---|---|"]
+        out += [f"| {f['filename']} | {_mb(f['bytes'])} | {f['owner']} | "
+                f"{'yes' if f['embedded'] else 'no'} | {f['created'] or '—'} |" for f in x["files"][:60]]
+        if len(x["files"]) > 60:
+            out.append(f"| … {len(x['files']) - 60} more, smallest last | | | | |")
+    return "\n".join(out)
+
+
+# ---- tools: nominations ---------------------------------------------------------
+# The other direction: instead of the platform looking down, a course sends
+# something up.  "This agent is worth copying" — the author's own, or any in
+# the course if staff say so.  What comes out is a FILE (a template on the
+# fleet volume), because the lesson is that an agent is a reproducible thing
+# and not a button in someone else's UI.
+
+@mcp.tool
+async def nominate_agent(agent_id: str, note: str = "") -> str:
+    """Nominate an agent from THIS course as a shared template for the
+    platform.  Your own agents, or any in the course if you're teaching
+    staff.  `agent_id` is on the agent's edit page (agent_…).  Nothing is
+    copied yet: a platform admin reviews the nomination and exports it as
+    a template file — name, instructions, model, tools, and the list of
+    knowledge files by name.  Say in `note` what it does and why it's
+    worth sharing."""
+    email, _role, slug = _ident()
+    course = _course_or_refuse(slug)
+    staff = email in course.get("instructors", []) or email in course.get("tas", [])
+    try:
+        r = await reconcile.nominate_agent(slug, agent_id.strip(), email, note, staff)
+    except KeyError:
+        raise ToolError(f"No agent {agent_id!r} in {slug} — the id is on the agent's "
+                        "edit page and starts with agent_.") from None
+    except PermissionError as e:
+        raise ToolError(f"{e}.  You can nominate agents you built; staff can nominate "
+                        "any agent in the course.") from None
+    rec, tpl = r["nomination"], r["template"]
+    out = [f"Nominated: {tpl['name']} ({rec['agent_id']}) — nomination {rec['id']}", "",
+           "What a template of it would carry:",
+           f"  model {tpl['provider']}/{tpl['model']} · tools: {', '.join(tpl['tools']) or 'none'} · "
+           f"instructions: {len(tpl['instructions'])} chars · "
+           f"knowledge: {len(tpl['knowledge'])} file(s)"
+           + (" · Actions: " + str(tpl["actions"]) + " (not portable)" if tpl["actions"] else "")]
+    if tpl["knowledge"]:
+        out += ["  files: " + ", ".join(k["filename"] for k in tpl["knowledge"])]
+    out += ["", "A platform admin reviews it next (`nominations`, then export).  The result "
+                "is a file others can read, fork, and seed — your name stays on it as author."]
+    return "\n".join(out)
+
+
+@mcp.tool
+async def nominations() -> str:
+    """Nominations on file: teaching staff see their own course's; platform
+    admins see every course's, with the ids `nomination_export` and
+    `nomination_decline` take."""
+    email, _role, slug = _ident()
+    courses = reconcile.load_courses()
+    if email in courses["admins"]:
+        rows = reconcile.nominations()
+    else:
+        course = _course_or_refuse(slug)
+        _staff_or_refuse(email, course, slug)
+        rows = reconcile.nominations(slug)
+    if not rows:
+        return "No nominations yet."
+    out = ["| id | status | course | agent | by | when | note |", "|---|---|---|---|---|---|---|"]
+    out += [f"| {r['id']} | {r['status']} | {r['course']} | {r['name']} ({r['agent_id']}) | "
+            f"{r['by']} | {r['at']} | {r['note'] or '—'} |" for r in rows]
+    return "\n".join(out)
+
+
+@mcp.tool
+async def nomination_export(nomination_id: str) -> str:
+    """Export a nominated agent as a template file on the fleet volume
+    (fleet/templates/<id>-<name>.yaml) and mark the nomination.  Platform
+    admins only.  The operator seeds it where it belongs; the file is the
+    handoff."""
+    email, _role, _slug = _ident()
+    _admin_or_refuse(email)
+    try:
+        r = await reconcile.export_nomination(nomination_id.strip(), email)
+    except KeyError as e:
+        raise ToolError(str(e.args[0])) from None
+    tpl = r["template"]
+    return (f"Exported {tpl['name']} → {r['path']}\n"
+            f"author {tpl['owner']} · model {tpl['provider']}/{tpl['model']} · "
+            f"tools {', '.join(tpl['tools']) or 'none'} · knowledge {len(tpl['knowledge'])} file(s) by name.\n"
+            "Next on the box: read it, then seed it on the instance you mean it for.")
+
+
+@mcp.tool
+async def nomination_decline(nomination_id: str) -> str:
+    """Decline a nomination (kept on file as declined).  Platform admins only."""
+    email, _role, _slug = _ident()
+    _admin_or_refuse(email)
+    r = reconcile.decline_nomination(nomination_id.strip(), email)
+    if r is None:
+        raise ToolError(f"No nomination {nomination_id!r}.")
+    return f"Declined {r['id']} ({r['name']}, {r['course']})."
 
 
 # ---- liveness ------------------------------------------------------------------

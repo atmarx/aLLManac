@@ -8,6 +8,9 @@
     python course_admin.py mint <slug> <email> [--budget N]   mint + escrow, prints no key
     python course_admin.py show-key <slug> <email>   break-glass escrow read (audited)
     python course_admin.py list
+    python course_admin.py inventory        the census: fleet/inventory.md + .json
+    python course_admin.py nominations      nominated agents, every course
+    python course_admin.py template <id>    export a nomination as a template file
 
 Runs INSIDE the registrar container (the credentials live there and only
 there); the justfile owns docker lifecycle around it — up the new services,
@@ -104,6 +107,11 @@ def main() -> int:
 
     sub.add_parser("list")
 
+    sub.add_parser("inventory", help="the fleet from above — writes fleet/inventory.md + .json")
+    sub.add_parser("nominations", help="nominated agents on file")
+    t = sub.add_parser("template", help="export a nomination as fleet/templates/<id>-<name>.yaml")
+    t.add_argument("nomination_id")
+
     args = p.parse_args()
 
     if args.cmd == "validate":
@@ -189,6 +197,42 @@ def main() -> int:
             print("no escrow record", file=sys.stderr)
             return 1
         print(rec["key"])
+        return 0
+
+    if args.cmd == "inventory":
+        rep = asyncio.run(reconcile.fleet_inventory())
+        fl = rep["flagship"]
+        print(f"{fl['host']:40} {'answers' if fl['reachable'] else 'NO ANSWER':10} "
+              f"users={fl['census'].get('totals', {}).get('users', 0)}")
+        for c in rep["courses"]:
+            t = c["census"].get("totals", {})
+            pool = c.get("pool")
+            ps = f"${pool['spend']:.2f}" if pool else "no team"
+            state = "answers" if c["reachable"] else ("NO ANSWER" if c["rendered"] else "unrendered")
+            print(f"{c['host']:40} {state:10} users={t.get('users', 0)} convos={t.get('conversations', 0)} "
+                  f"agents={t.get('agents', 0)}/{t.get('agents_shared', 0)}shared files={t.get('files', 0)} "
+                  f"pool={ps} roster={c['roster']['students']}")
+        if rep["orphan_databases"]:
+            print("orphan databases: " + ", ".join(rep["orphan_databases"]))
+        print("\nwritten: fleet/inventory.md, fleet/inventory.json")
+        return 0
+
+    if args.cmd == "nominations":
+        rows = reconcile.nominations()
+        for r in rows:
+            print(f"{r['id']}  {r['status']:9} {r['course']:20} {r['name']} ({r['agent_id']})  "
+                  f"by {r['by']} {r['at']}  {r['note']}")
+        if not rows:
+            print("(no nominations)")
+        return 0
+
+    if args.cmd == "template":
+        try:
+            r = asyncio.run(reconcile.export_nomination(args.nomination_id, "operator"))
+        except KeyError as e:
+            print(f"ERROR: {e.args[0]}", file=sys.stderr)
+            return 1
+        print(r["path"])
         return 0
 
     if args.cmd == "list":

@@ -10,6 +10,7 @@ usage-mcp/roster.yaml
 # whole rendered fleet (instance secrets live in fleet/*.env).  Stubs are
 # seeded by `just _fleet`; everything here is regenerable from courses.yaml.
 registrar/courses.yaml
+registrar/nominations.yaml
 fleet/
 
 # This deployment's own compose layer, its optional inference stack, and

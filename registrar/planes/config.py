@@ -10,6 +10,11 @@ import os
 import re
 
 COURSES_PATH = os.environ.get("REGISTRAR_COURSES", "/app/courses.yaml")
+# Nominations live beside the course records: the same state volume, the
+# same "gitignored because it names people" reason.
+NOMINATIONS_PATH = os.environ.get(
+    "REGISTRAR_NOMINATIONS",
+    os.path.join(os.path.dirname(COURSES_PATH), "nominations.yaml"))
 
 KC_URL = os.environ.get("KC_URL", "http://keycloak:8080")
 KC_REALM = os.environ.get("KC_REALM", "classroom")
@@ -18,6 +23,11 @@ KC_ADMIN_PASSWORD = os.environ.get("KC_ADMIN_PASSWORD", "")
 
 LITELLM_URL = os.environ.get("LITELLM_URL", "http://litellm:4000")
 LITELLM_MASTER_KEY = os.environ.get("LITELLM_MASTER_KEY", "")
+
+# The chat databases — one Mongo, one database per instance.  No credential
+# (unauthenticated on the compose network, reachable by nothing else); the
+# census plane reads it and reads only the envelope.  See planes/chatdb.py.
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://mongodb:27017")
 
 BAO_ADDR = os.environ.get("BAO_ADDR", "http://openbao:8200")
 BAO_ROLE_ID = os.environ.get("BAO_REGISTRAR_ROLE_ID", "")

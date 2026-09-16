@@ -665,6 +665,20 @@ course-up:
 courses:
     {{compose}} exec -T registrar python course_admin.py list </dev/null
 
+# The fleet from above: every instance, its people, agents, files, size and
+# pool on one page — fleet/inventory.md (+ .json for whoever wants a feed).
+# Metadata only; the same census the fleet_* chat tools give platform admins.
+fleet:
+    {{compose}} exec -T registrar python course_admin.py inventory </dev/null
+
+# Nominated agents ("this one is worth copying") and the export that turns
+# one into fleet/templates/<id>-<name>.yaml — a file to read, fork, and seed.
+nominations:
+    {{compose}} exec -T registrar python course_admin.py nominations </dev/null
+
+template id:
+    {{compose}} exec -T registrar python course_admin.py template "{{id}}" </dev/null
+
 # Check courses.yaml without touching anything — run it after hand-editing.
 # `just course` runs the same checks itself and refuses on errors; this is
 # the read-only version for when you want to look before you provision.

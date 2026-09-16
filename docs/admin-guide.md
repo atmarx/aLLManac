@@ -409,8 +409,23 @@ Share it to the course.  Enrollment is now a conversation.
 | `fleet/<slug>.librechat.yaml` | instance config (X-Course lives here) | the registrar |
 | `fleet/caddy/<slug>.caddy` | the vhost pair | the registrar |
 | `usage-mcp/roster.yaml` | usage scoping (a render) | the registrar |
+| `fleet/inventory.md`, `.json` | the census — every instance on one page | the registrar (`just fleet`, `fleet_inventory`) |
+| `registrar/nominations.yaml` | agents nominated as templates | the registrar |
+| `fleet/templates/<id>-<name>.yaml` | an exported nomination — an agent as a file | the registrar (`just template`, `nomination_export`) |
 
 All gitignored, all regenerable (`just` `course`/`reconcile`/`render`) — except the secrets in `fleet/<slug>.env`, which persist across renders for the same reason `CREDS_KEY` in `.env` does.
+
+### Seeing the fleet from above
+
+`just fleet` prints one line per instance and writes `fleet/inventory.md` (a page for people) and `fleet/inventory.json` (a feed for whoever wants one): answering or not, users, conversations, agents and how many are shared, files and their bytes, database size, the pool spent against its cap, and the roster counts — plus findings: an instance rendered but not answering, Actions enabled with no allowlist, a pool past 90%, people at a course's door who aren't on its roster, a database left behind by a deleted course.
+
+The same census answers in chat.  Add the **almanac-registrar** tools to an agent in any course instance where you're staff (the "Course Setup" agent above already has them) and, if your email is on the `admins:` list in `registrar/courses.yaml`, three more tools answer: `fleet_inventory`, `fleet_access <course>` (roster vs. door vs. who actually signed in, with the diffs), and `fleet_exposure <course>` (every agent's share scope, every file's size and owner, the allowlist).  Course staff who aren't platform admins get a refusal that points them at their own course's tools.
+
+What you will not see, from either path: a message, a conversation title, or an agent's instructions.  The census stops at the envelope on purpose — the why is a wall in [design-walls.md](design-walls.md), and the short version is that a transcript read is an investigation, not a dashboard.
+
+### Nominations: an agent worth copying
+
+A student or instructor in a course can say `nominate_agent <agent_id> "<why>"` about an agent they built (staff: any agent in the course).  Nothing moves until you look.  `just nominations` (or the `nominations` tool) lists them; `just template <id>` (or `nomination_export`) writes `fleet/templates/<id>-<name>.yaml` — name, instructions, model, tools, and the knowledge files *by name*, with provenance.  Read it.  If it belongs on the flagship or in another course, seed it there the way the guides are seeded; re-attach knowledge deliberately, since the template lists files and never carries them.  The author's name stays on it.
 
 ---
 

@@ -54,7 +54,7 @@ This stands up fully separate from Root Cellar.  The original plan had the cella
 
 | Piece | Job | New? |
 |---|---|---|
-| **registrar** (`alm-registrar`) | Chat-facing MCP tools: roster staging/apply, key retrieval, budgets.  Contains the reconciler — the only code path that ever holds minting credentials — and the fleet renderer (instance env, Keycloak client, Caddy vhost). | yes |
+| **registrar** (`alm-registrar`) | Chat-facing MCP tools: roster staging/apply, key retrieval, budgets — and, for platform admins, the **census** (`fleet_*`) and agent **nominations**.  Contains the reconciler — the only code path that ever holds minting credentials — and the fleet renderer (instance env, Keycloak client, Caddy vhost, the inventory page). | yes |
 | **LibreChat fleet** (`alm-chat-<slug>`) | One instance per course — the course's own chat, panel, Meili, and Mongo *database*, at its own hostname.  Registrar-rendered, one loop rolls them all.  See **Tenancy**. | yes |
 | **OpenBao** (`alm-openbao`) | Key custody.  KV v2 mount `almanac/`, file audit device, AppRole for the registrar.  Custody, not metering. | yes |
 | **Groups backend** | Where the roster truth lives.  Driver interface: `file` (demo), `globus` (production — the managed-group pattern).  | yes |
@@ -227,6 +227,34 @@ The registrar is one service with a hard internal seam:
 v1 keeps both in one process (module seam, credentials loaded only inside the reconciler); splitting into a worker container later is mechanical because the interface is already "a queue of confirmed plans."
 
 **Blast radius, stated plainly:** a fully hostile prompt that reaches the tools can stage a roster (inert until an instructor confirms it), read the caller's own keys, and spend the caller's own budget.  It cannot read anyone else's key (path is derived from headers), mint outside a confirmed stage, exceed the budget clamp, or claim to be someone else.  Roster text is data: email extraction by pattern, everything else discarded and reported — a CSV cell reading "ignore previous instructions" parses to zero emails.  Standing invitation to council-redteam before v1 ships; they've caught real ones in this repo.
+
+---
+
+## The census — the fleet from above *(2026-09-16)*
+
+Every tool above starts with "THIS course": the caller's identity picks the course and the tool refuses to look sideways.  Right for a professor, useless for the person who has to answer "what is deployed, how big is it, and who can get in?"  Those answers were scattered across five systems that each know one column — the course record, Keycloak's door, the ledger's pool, the instance's Mongo database, and the container itself — and nobody joined them.  The registrar is the only thing in the room that already talks to all of them, so the census is a second face on it: **read-only composition of every plane, one row per course.**
+
+| Tool | Answers | Who |
+|---|---|---|
+| `fleet_inventory` | every instance: answering or not, users, conversations, agents (and how many are shared), files and their bytes, database size, pool spent against cap, roster counts; plus findings — rendered-but-silent, Actions with no allowlist, a pool past 90%, unrostered people at the door, databases with no course record | platform admins |
+| `fleet_access <course>` | the roster, the Keycloak door, everyone who has actually signed in with first-seen and last-active, who is signed in now — and the three diffs a review asks for: rostered but never seen, seen but not rostered, at the door but not rostered | platform admins |
+| `fleet_exposure <course>` | every agent with its share scope (public, role, group, named users, private), tools, Actions count, knowledge count; every file by size and owner; the capabilities and allowlist the record grants | platform admins |
+
+"Platform admin" is the `admins:` list in `courses.yaml`, **not** the instance's ADMIN role.  A course instance makes its own staff ADMIN, and that is authority over one house; the fleet view is every house at once, so it answers only to the operator's list — the same test usage-mcp applies.
+
+Two outputs from one function.  The tool answer is for the person asking in chat.  The same call rewrites `fleet/inventory.md` and `fleet/inventory.json` on the box (`just fleet` does it from the CLI), because a security team does not want an MCP — they want a page that lands in the docs index like everything else, and a JSON twin for whatever they already stare at.
+
+**The census stops at the envelope.**  It reports that a conversation exists, whose it is, when, and how many tokens — never a message.  Not a title either: LibreChat generates titles from the first exchange, so a title is the content, shorter.  Not an agent's instructions.  A student burning a fuse at 3 a.m., an agent shared public that shouldn't be, a four-megabyte file in someone's knowledge — all visible from the envelope, and that is everything a fleet view legitimately needs.  Reading a transcript is a conduct investigation: a human with a process going into one course's database on purpose, never a tool in the fleet view.  The plane that reads Mongo (`planes/chatdb.py`) enforces this in its projections, and the wall in [design-walls.md](design-walls.md) says why it stays that way.
+
+What the census deliberately cannot see: container state.  The registrar holds no docker socket (that would be root on the box in a service that already holds three credentials), so "answering" is an HTTP health probe over the compose network, and volume sizes are Mongo's `dbStats` plus the sum of file bytes.  Honest, and one credential short of the alternative.
+
+## Nominations — the other direction
+
+The census looks down.  Nominations send something up.  A student who built an agent worth copying — or an instructor who spotted one — says so from inside the course: `nominate_agent <agent_id> "<why>"`.  Your own agents, or any in the course if you're staff.  Nothing is copied at that moment.  A platform admin sees it in `nominations`, and `nomination_export` turns it into a **file** on the fleet volume: `fleet/templates/<id>-<name>.yaml` — name, description, instructions, model, tools, and the knowledge files *by name*, with a provenance block naming the course, the author, the nominator, and the note.
+
+The file is the point.  The course marketplace already lets a class share agents by clicking; what it teaches is clicking.  A template is an agent as a reproducible artifact: readable, diffable, forkable, seedable with the same script that seeds the guides.  Knowledge is listed rather than carried, and Actions are counted rather than copied, because both are the parts that *should* be re-attached deliberately by whoever seeds it — a file that could silently carry a course's uploads into another course would be the exposure the census exists to catch.  The student's name stays on the template as author; that is the credit, and it is the lesson: you didn't reinvent the wheel, you built one other people can bolt on.
+
+Nominations live in `registrar/nominations.yaml` beside the course records — same volume, gitignored for the same reason (it names people).  States: nominated, exported, declined; nominating the same agent twice returns the open nomination instead of a duplicate.
 
 ---
 
