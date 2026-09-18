@@ -85,6 +85,12 @@ Agent-share groups resolve from `local` or `entra` sources **only**.  The Keyclo
 
 Share-groups are managed in the bundled **admin panel on `:3082`**.  Not 3081 — the panel's default port collides with `CHAT_PORT` overrides on xdocker03, and a red pipeline (#11) is how we found it.
 
+### The panel's `SESSION_COOKIE_SECURE` has no `trust proxy` trap *(2026-09-18)*
+
+**Setting it true behind a TLS-terminating edge is safe, and it is what the image already defaults to.**  The instinct here is express-session, where `cookie.secure = true` without `app.set('trust proxy')` makes the server *refuse* to set the cookie over the proxy's plain-HTTP hop — a login loop.  The panel isn't express: `src/server/session.ts` hands the flag to h3's `useSession`, which serializes the `Secure` attribute and consults nothing about the connection.  Unset, the image reads `NODE_ENV === 'production'`, so our `production` containers were being *downgraded* by an explicit `false` — the flagship's from `compose.yml`, every course's hardcoded in `render_fleet`.  Both now default true off one knob, `ADMIN_PANEL_SESSION_COOKIE_SECURE`.
+
+The failure it guards runs the other way, and it is a silent one.  A browser reaching a panel on its **published port over `http://`** drops a `Secure` cookie without complaint, the PKCE verifier goes with it, and SSO dies at the callback — upstream spells this "SSO session state was lost before the callback," which names the symptom and not the cause.  That shape needs `false`, and it is only reachable with `PUBLISH_BIND=0.0.0.0`; through the edge it is HTTPS in every mode, LAN included.
+
 ### The tenancy machinery is already in our pin — undocumented, env-only, and header-driven *(2026-09-09)*
 
 **`v0.8.7` reads `TENANT_ISOLATION_STRICT`, `DEFAULT_TENANT_ID` and `CODEAPI_JWT_SINGLE_TENANT_ID` from the environment, and handles `x-tenant-id` in `api/server/index.js`.**  `tenantId` appears in 86 files under `/app/api`.  None of the three variables appears in that version's `.env.example`, and the `librechat.yaml` schema exposes no tenancy at all — so this is a **live env-only surface with no documentation in the release we run.**  Measured against the pinned image itself, not the repo tag; the tag's `.env.example` is clean, which is exactly why reading it would have misled you.
