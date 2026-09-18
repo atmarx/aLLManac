@@ -34,6 +34,7 @@ nav:
   - Home: index.md
   - Using it in a course: user-guide.md
   - Teaching a course: teaching-a-course.md
+  - Evaluating it: evaluating-it.md
   - Teaching with AI:
       - teaching-with-ai/index.md
       - Designing assignments: teaching-with-ai/designing-assignments.md

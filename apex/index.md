@@ -1,55 +1,70 @@
 ---
 title: The aLLManac
-description: An institutional AI sandbox — use large language models, build with them, and see how the platform underneath was put together.
+description: An institutional AI sandbox — use large language models in your courses, build with them, and read how the platform underneath was put together.
 audience: student
 also_reaches: [faculty]
-status: scaffold
+status: draft
 owner: piper
-tags: [librechat, tenancy]
+tags: [librechat, tenancy, ai-literacy, student-right, faculty-duty]
 ---
 
 # The aLLManac
 
-<!-- SCAFFOLD.  Landing page for the apex site.  Thick with CTAs to sign in
-     and try it (spec: "The public face").  Sections below are placeholders. -->
+Sign in with the account you already use for everything else on campus, and in about five minutes you can have an assistant that has read your syllabus and will answer questions about it.
 
-## What this is
+That is the short version of what this is.  The longer version is that your course has its own AI service — not a seat rented on somebody's cloud, but an instance with your course's name on it, running on hardware your institution owns, where a whole project team can build **one shared assistant together** and every token spent is on a ledger your course can actually see.
 
-<!-- One paragraph: a chat platform your course already has an account on,
-     running on hardware the university owns.  Concrete, no thesis
-     statement.  Name the thing a student can do in the next five minutes. -->
+The sign-in button is on the front page of your course's instance.  If you do not know that address yet, your instructor does.
 
 ## Start here
 
-<!-- Three cards / links, by intent:
-     - "I'm in a course" → user guide, first custom GPT
-     - "I want an environment" → the front door, request a course/project
-     - "What happens to my data?" → your-data/
-     CTA to sign in belongs above this block. -->
+**I'm taking a course that uses this.**
+Start with [Using it in a course](user-guide.md).  It walks through building your first agent, working on one as a team, and pointing your own code at the campus gateway with an API key.
+
+**I teach, and I'm deciding what to do about all this.**
+Start with [Teaching with AI](teaching-with-ai/index.md), which is about course design rather than software.  When you are ready for the mechanics, [Teaching a course](teaching-a-course.md) is the walkthrough — rosters, shared agents, watching your course's spend, all of it from the browser.  If you are trying the platform out before committing a class to it, [read this first](evaluating-it.md).
+
+**I want to know what happens to my work.**
+[Your data](your-data/index.md) is the plain account: what gets stored, who can reach it, how long it stays, and which parts we have not built yet.
 
 ## Learning to use it
 
-<!-- Link out: first custom GPT, group projects, model selection,
-     my_usage / budget awareness, the coding harness. -->
+The thing most people underestimate is how much of the skill is *curation* rather than prompting.  An agent is a block of instructions plus the files you hand it, and the difference between one that helps and one that wastes your afternoon is almost always which files you chose.
+
+[Using it in a course](user-guide.md) covers the mechanics — your first agent, a team-built one with co-editors, your API key, and the coding harness.  [Verifying sources](teaching-with-ai/verifying-sources.md) covers the habit that makes any of it trustworthy.
+
+You can also ask the platform about itself.  The guides in the model picker are agents with this documentation attached to them, and they will tell you when a question is outside what they hold — which is worth watching for, because it is the behavior most assistants do not have.
 
 ## Teaching with it
 
-<!-- Link to teaching-with-ai/.  Faculty-facing section: where AI belongs in
-     a course, writing a syllabus policy, what the evidence says about
-     detection, and AI literacy as a learning objective.  Also carries a
-     student-facing page on using these tools well.
+Your students already have access.  That changes some of your assignments and leaves others completely alone, and working out which is which is a teaching question, not a technology question.
 
-     Give this block real weight on the landing page — it is the section
-     most faculty arrive looking for, whether or not they know it. -->
+[Teaching with AI](teaching-with-ai/index.md) is written for that work, and it starts from one principle: **a student is fully responsible for what they submit, because a model cannot accept blame.**  Most of the hard questions get easier once that is settled, because it moves the subject from *did you use AI* — unanswerable, and increasingly beside the point — to *do you stand behind this*, which is the question scholarship has always asked.
+
+From there:
+
+- [Designing assignments](teaching-with-ai/designing-assignments.md) — what to change, and what to leave alone
+- [Your syllabus policy](teaching-with-ai/syllabus-policy.md) — language you can actually use
+- [Integrity and detection](teaching-with-ai/integrity-and-detection.md) — what the evidence says, including about detectors
+- [AI literacy](teaching-with-ai/ai-literacy.md) — treating it as a learning objective rather than a threat
+- [If you teach a course](your-data/for-instructors.md) — the duties that come with the roster
 
 ## Learning to build it
 
-<!-- Link to how-we-built-it/.  One line on why the build is course
-     material: the decisions have their reasons written down, and the
-     reasons are the transferable part.  (Section currently parked pending
-     the build settling — see its index.) -->
+The platform is also course material, which is the part we are least shy about.  Every significant decision here was made for a reason, the reasons are written down, and the reasons are the transferable part — you will meet the same trade-offs on a stack that looks nothing like this one.
+
+[How we built it](how-we-built-it/index.md) is that track.  It is being written as the build settles; the first piece finished is [How do you keep the courses apart?](how-we-built-it/keeping-courses-apart.md), which is about tenancy, and which ends by pointing at a gap we have not closed yet.
+
+That is deliberate.  A gap you can read about is worth more than one you cannot.
 
 ## Your data
 
-<!-- Short paragraph + link to your-data/.  This block exists on the landing
-     page on purpose — a student should not have to go looking for it. -->
+Coursework generates records about you, and records about students carry obligations.
+
+The short version: your conversations live in your own course's database and nobody in another course can reach them; your usage is recorded against your email address — which model, how many tokens, when, but not what you said; nothing expires on its own; and nothing you build is shared until you share it.
+
+The long version, including the parts that are not built yet, is in [Your data](your-data/index.md).  It is on this page rather than buried in a footer because you should not have to go looking for it.
+
+---
+
+*Looking for something specific?  [Browse by topic](tags.md) pulls a thread — retention, access control, academic integrity — across every page here.*
