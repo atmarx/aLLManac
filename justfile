@@ -873,6 +873,20 @@ agents-seed *flags="":
 agents-check:
     @python3 scripts/agents_check.py
 
+# Ask every guide every case in docs/agent-contract.md and write down what it
+# said.  Scores nothing -- a human reads the transcript against each case's
+# passing condition, because "answers from the roster documentation" is not a
+# string match.  Results land in site/evals/ (per-box, gitignored).
+#
+# Run it after a prompt change, after a model change, and before anyone
+# outside touches the guides.  Results are per MODEL, not per prompt: a
+# smaller local model fails these more often than a frontier one.
+#
+#   just evals
+#   just evals --guide student-guide --case F1,M1
+evals *flags="":
+    @python3 scripts/run_evals.py {{flags}}
+
 # OpenBao audits the read, and this must never run from CI, a health check, or
 # anything a model can reach.
 #
