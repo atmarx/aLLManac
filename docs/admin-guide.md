@@ -27,7 +27,7 @@ tethered_to:
 |---|---|---|---|
 | Keycloak admin | `:8080` | `KC_ADMIN` / `KC_ADMIN_PASSWORD` | Identity: users, realm roles, the Globus broker, OIDC clients |
 | LiteLLM admin | `:4000/ui` | `LITELLM_MASTER_KEY` | The ledger: models, keys, budgets, spend |
-| LibreChat admin panel | `:3082` | faculty SSO (same button) | **Local groups** for agent sharing, role permissions, config overrides |
+| LibreChat admin panel | `:3082` (flagship) / `{slug}-admin.` (a course) | faculty SSO (same button) | **Local groups** for agent sharing, role permissions, config overrides — per instance |
 | LibreChat | `:3080` | SSO | The chat itself — mostly runs itself |
 
 **Those four ports bind loopback** (`PUBLISH_BIND`, default `127.0.0.1`) — they are admin surfaces and a bypass of every rule the edge enforces, so from anywhere but the box itself they need a tunnel:
@@ -37,6 +37,10 @@ ssh -L 3082:127.0.0.1:3082 -L 4000:127.0.0.1:4000 -L 8080:127.0.0.1:8080 <box>
 ```
 
 Then reach them at `http://localhost:<port>`.  Chat is the exception that needs no tunnel: it has a front door at `CHAT_HOST`, which is the whole point of the edge.
+
+**`:3082` is the flagship's panel, and it is the operator's.  A course's panel has a front door of its own** — `render_course_vhost` gives every course `{slug}-admin.$ALMANAC_DOMAIN` beside its `{slug}.` chat, so if students chat at `engr301-2026fall.aiclassroom.dev.xram.net`, that course's panel is `engr301-2026fall-admin.aiclassroom.dev.xram.net`, same SSO button, no tunnel.  That difference is deliberate rather than drift: faculty administer their own course and have no shell on the box, while the flagship's panel governs the vestibule everyone shares.  Send faculty to their course's vhost — [teaching-a-course.md](teaching-a-course.md) does — and keep `:3082` in operator hands.
+
+Both panels carry a `Secure` session cookie (`ADMIN_PANEL_SESSION_COOKIE_SECURE`, default true).  The tunnel above is unaffected, `http://localhost` being a trustworthy origin; what the flag rules out is a browser reaching a panel over plain HTTP at the box's *IP*, which needs `PUBLISH_BIND=0.0.0.0` anyway.
 
 Three things in this stack are called "groups," and confusing them costs an afternoon:
 
@@ -71,7 +75,7 @@ OPENID_ADMIN_ROLE_TOKEN_KIND=access
 
 ### Groups
 
-Keycloak groups organize identity (`/engr301-faculty`, `/engr301-team-gust`) and flow into tokens as a `groups` claim — useful for your own audits and future integrations.  **They are not the share-dialog groups** — those are clicks in the admin panel (`:3082` → Groups).  Keep the same names in both places and nobody gets confused.
+Keycloak groups organize identity (`/engr301-faculty`, `/engr301-team-gust`) and flow into tokens as a `groups` claim — useful for your own audits and future integrations.  **They are not the share-dialog groups** — those are clicks in the admin panel (→ Groups): `:3082` for the flagship, `{slug}-admin.$ALMANAC_DOMAIN` for a course.  Keep the same names in both places and nobody gets confused.
 
 ### The librechat client
 
@@ -480,7 +484,7 @@ And the facts that outrank everything: **`.env` is not in git** (it holds every 
 |---|---|
 | Login bounces with a redirect-URI error | Callback URL missing from the `librechat` client → add it (Keycloak → Clients) |
 | `[openidStrategy] only requests to HTTPS are allowed` | Plain-http `OPENID_ISSUER` — LibreChat ≥0.8 refuses it → README "LAN HTTPS" |
-| Share dialog can't find a group | It's looking at **LibreChat-local** groups — create it in the admin panel (`:3082`); and the person must have logged in once |
+| Share dialog can't find a group | It's looking at **LibreChat-local** groups — create it in that instance's own admin panel (`:3082` for the flagship, `{slug}-admin.` for a course); and the person must have logged in once |
 | Faculty missing admin controls | `faculty` realm role not assigned, or assigned after login → assign, re-login |
 | `just spend` / tags look empty | Aggregation lag (~10 s batch + async rollup) → wait a beat |
 | Invitation link dead | 7-day expiry → `just invite` again |
