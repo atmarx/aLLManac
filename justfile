@@ -514,8 +514,10 @@ sbom:
     images=$( (COMPOSE_PROFILES=edge,workbench {{compose}} config --images; \
                [ -f {{vllm_compose}} ] && {{vllm}} config --images || true) | sort -u )
     # syft runs as THIS user (plus the socket's group) so the output is ours
-    # to replace next build, not root's.
+    # to replace next build, not root's — which means the image's /tmp is
+    # not writable, so it gets a scratch dir of ours mounted there.
     sockgid=$(stat -c %g /var/run/docker.sock)
+    mkdir -p "$work/.tmp"
     entries=""; skipped=""
     for img in $images; do
         safe=$(echo "$img" | tr '/:@' '___')
@@ -528,11 +530,12 @@ sbom:
         digest=$(docker image inspect --format '{{{{if .RepoDigests}}{{{{index .RepoDigests 0}}{{{{end}}' "$img")
         echo "scanning  $img"
         docker run --rm --user "$(id -u):${sockgid}" -e HOME=/tmp \
+            -v "$PWD/$work/.tmp":/tmp \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "$PWD/$work":/out \
             {{syft}} scan "$img" \
               -o spdx-json=/out/"$safe".spdx.json \
-              -o cyclonedx-json=/out/"$safe".cdx.json -q
+              -o cyclonedx-json=/out/"$safe".cdx.json
         spdx_sha=$(sha256sum "$work/$safe.spdx.json" | cut -d' ' -f1)
         cdx_sha=$(sha256sum "$work/$safe.cdx.json" | cut -d' ' -f1)
         entries="${entries}${entries:+,}
@@ -554,6 +557,7 @@ sbom:
       "skipped": [$skipped]
     }
     JSON
+    rm -rf "$work/.tmp"
     chmod -R a+rX "$work"
     # Replace by rename — a scanner mid-fetch sees the old set or the new
     # set, never a half-written one.  The edge mounts sbom/ (the parent).
