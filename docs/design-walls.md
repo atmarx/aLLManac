@@ -388,6 +388,18 @@ Two traps inside the trap:
 
 **If you are here because the pipeline is red:** confirm the stack is actually healthy (`just smoke` by hand, and probe the realm from inside the network — see [Verifying on the box](#verifying-on-the-box-without-moving-a-token)), then treat the SKIP as a known false positive rather than recreating anything.  The fix is to the guard, not the box: either exclude `env_file` services from the hash comparison and gate them on something else, or stop using `config --hash` as the oracle.
 
+## A render-template change is INERT until something reconciles *(2026-09-18)*
+
+**`just deploy` never re-renders the fleet.**  It builds the registrar image, so `render.py`'s new code is sitting in the container — and `fleet/fleet.yml`, `fleet/<slug>.env`, `fleet/<slug>.librechat.yaml` and `fleet/caddy/<slug>.caddy` are all still whatever the last reconcile wrote.  Compose then reads the *old* render and recreates nothing, because from its side nothing changed.  The deploy is green and the fix is not deployed.
+
+Found shipping the `SESSION_COOKIE_SECURE` flip: the flagship's panel took it from `compose.yml` on the same deploy that left every course panel on the old value, `fleet.yml` untouched for three days.  A security fix that lands on the flagship and silently skips the fleet is the worst shape this failure has.
+
+It is the `config-refresh` family one level higher.  That guard exists because a changed *mount* doesn't restart a process; this is a changed *template* not reaching the render that the mount serves.  Same sentence, different noun: the source is current and the artifact is not.
+
+**The verb is `course_admin.py render`** — re-renders every course from the templates, reusing the escrowed service key and the live OIDC client secret rather than minting anything, and `render_course_env` is fill-preserving so the pinned per-instance secrets (`CREDS_KEY` above all) survive.  Then `just course-up` to recreate and reload the edge.  A course with no escrowed key is skipped with a message, not half-rendered.
+
+So: **after any change to `registrar/render.py`, a deploy is not enough.**  Until the pipeline learns this, the two commands are the deploy.
+
 ## Verifying on the box without moving a token
 
 The prod-probe pattern: run the check **inside** the container so the credential never leaves the host.
