@@ -6,7 +6,7 @@ status: draft
 owner: piper
 tags: [sso, access-control, rbac, attribution, metering, assessment-design, ai-literacy, accountability, faculty-duty, student-right, librechat]
 tethered_to:
-  - docs/user-guide.md
+  - apex/user-guide.md
   - usage-mcp/server.py
 ---
 

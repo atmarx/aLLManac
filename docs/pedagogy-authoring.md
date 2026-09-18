@@ -17,7 +17,7 @@ tethered_to:
 
 *Owner: @piper (pedagogy lane).  Author-facing: it is addressed to whoever is writing the pages, which is why it carries `audience: operator` and stays off the reader-facing site — see "The corpus boundary" below for what that does and does not keep it out of.*
 
-The reader-facing site is `apex/`, and two of the longest-serving guides — [user-guide.md](user-guide.md) and [teaching-a-course.md](teaching-a-course.md) — still sit in `docs/` and reach their readers through front matter instead.  This file is how any of them get written: the page shapes, the controlled vocabulary, and the two rules that keep the words from drifting away from the system.
+Everything a student or professor reads lives in `apex/`, which is both the website's `docs_dir` and the tree the corpus queries.  This file is how those pages get written: the page shapes, the controlled vocabulary, and the two rules that keep the words from drifting away from the system.
 
 ---
 

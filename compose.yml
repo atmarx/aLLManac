@@ -446,7 +446,7 @@ services:
   # Not a daemon — a run-on-demand container for proving a student's vAPI key
   # works end to end, and for demos/workshops on the box.  Students put the
   # SAME provider block (workbench/opencode.json) on their laptops, with the
-  # gateway's public URL — see docs/user-guide.md.
+  # gateway's public URL — see apex/user-guide.md.
   #
   #   just workbench sk-...          the opencode TUI, wired to the gateway
   #   just workbench-smoke sk-...    one-shot proof: prints the model's reply

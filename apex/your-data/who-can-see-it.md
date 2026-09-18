@@ -71,11 +71,7 @@ The course boundary still holds either way.  Sharing reaches people in *your* co
 
 Worth knowing rather than worrying about: the sharing is deliberate on both ends.  Someone chose to make it possible, and you choose each time you use it.
 
-<!-- LINK PENDING: the course guide is reader-facing and still sits in
-     docs/user-guide.md.  It belongs in the "public + taught" pile and moves
-     into apex/ with the boundary work; link it properly then.  A relative
-     link out of the apex tree resolves on disk and dies in the built
-     site. -->
+Sharing an agent, step by step, is in [the course guide](../user-guide.md).
 
 ## Paths that can leave the building
 

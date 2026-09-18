@@ -25,7 +25,7 @@ Your class has its own AI service.  Not a rented seat on somebody's cloud — a 
 2. **Build one as a group** — and share it with the class (the whole point)
 3. **Use the models from code** with your API key (opencode)
 
-Faculty: [Part 5](#part-5--teaching-a-course-on-this-faculty) is your playbook, and the [admin guide](admin-guide.md) covers the machinery behind it.
+Faculty: [Teaching a course](teaching-a-course.md) is your playbook, and whoever operates your deployment holds the admin guide that covers the machinery behind it.
 
 ---
 

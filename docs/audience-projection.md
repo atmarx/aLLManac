@@ -36,7 +36,7 @@ Those are the four values [pedagogy-authoring.md](pedagogy-authoring.md) has dec
 
 Because a second copy is the drift.  The registrar spec already makes this argument about the docs serving twice — *"one source, two renderers... there is no second copy to drift"* — and it is the same rule that governs `fleet/` and `usage-mcp/roster.yaml`: **renders are never edited, sources are.**  Four audience directories would be four places for the same sentence to rot at different rates.
 
-It also dissolves the filing problem rather than solving it.  `docs/user-guide.md` is student-facing prose living in the operator directory; with `audience: student` in its front matter, its directory stops mattering and nothing has to move.
+It also dissolves the filing problem rather than solving it.  `docs/user-guide.md` was student-facing prose living in the operator directory; with `audience: student` in its front matter, its directory stopped mattering and nothing had to move.  (It moved to `apex/` later anyway — not for the corpus, which never cared, but because `mkdocs.yml` sets `docs_dir: apex` and a page outside that tree reaches no website.)
 
 ## Three things that will bite the filter
 

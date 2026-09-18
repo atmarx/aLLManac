@@ -97,7 +97,7 @@ If step 4 works, the core promise is real.
   silently drift apart. `just docs-build` renders it to the ignored
   `site-dist/` directory for Caddy (or any static web server) to publish.
 
-- **[Course guide](docs/user-guide.md)** — for faculty and students: building a custom GPT, group projects (one GPT, whole team), API keys, and the opencode coding harness.  Start here if you teach.
+- **[Course guide](apex/user-guide.md)** — for faculty and students: building a custom GPT, group projects (one GPT, whole team), API keys, and the opencode coding harness.  Start here if you teach.
 - **[Admin guide](docs/admin-guide.md)** — Keycloak and LiteLLM operations: identity and the Globus flip, the key contract, per-student attribution, faculty analytics (with its honest Enterprise boundary), backups, troubleshooting.
 - **[CI notes](docs/ci.md)** — the thin pipeline on other CI systems, keeping your box's details out of a public repo, plus SBOM generation for infosec.
 - **[TLS decision guide](docs/tls.md)** — for the implementer: what to ask your certificate authority before you write any config, what each answer costs you, and how Caddy behaves once you have the answers.
