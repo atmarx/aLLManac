@@ -704,6 +704,14 @@ course-up:
       && {{compose}} exec -T edge caddy reload --config /etc/caddy/Caddyfile </dev/null \
       && echo "edge reloaded" || echo "(edge not running — vhosts load when it starts)"
 
+# Re-render every course from courses.yaml with the registrar image you just
+# deployed, then recreate what changed and reload the edge.  This is the
+# verb the "a render-template change is INERT until something reconciles"
+# wall asks for: `just deploy` ships render.py; `just render` makes it true.
+render:
+    {{compose}} exec -T registrar python course_admin.py render </dev/null
+    @{{just_executable()}} course-up
+
 # List the registrar's course records
 courses:
     {{compose}} exec -T registrar python course_admin.py list </dev/null

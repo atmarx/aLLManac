@@ -305,7 +305,7 @@ The question that decides whether the semester cap is real: how does a *LibreCha
 | Control (never fragments) | Keycloak (+ Globus broker), LiteLLM + ledger, OpenBao, usage-mcp, registrar, Caddy edge | **one each** |
 | Data (per course) | LibreChat + its Mongo *database* + its Meili + admin panel | **one per course** |
 
-Mongo runs one container, N databases.  pgvector/RAG likely shared (verify file-id isolation).  **Meilisearch is the awkward child** — LibreChat's index names don't namespace, so it's one small Meili per course (~100MB) or search off per instance: a knob in the course record, default on.
+Mongo runs one container, N databases.  pgvector/RAG is per course — a `rag-<slug>` + `vectordb-<slug>` pair in the fleet render, because LibreChat signs RAG calls with its session secret and a shared RAG would mean shared sessions (ruled 2026-09-18; design-walls.md has the measurement).  **Meilisearch is the awkward child** — LibreChat's index names don't namespace, so it's one small Meili per course (~100MB) or search off per instance: a knob in the course record, default on.
 
 What the container boundary buys, versus the fences it replaces:
 
@@ -539,7 +539,7 @@ Out of scope, permanently unless vetoed: a separate admin website (the entire po
 - **Client-role admin mapping** on our LibreChat pin: `OPENID_ADMIN_ROLE_PARAMETER_PATH=resource_access.<client>.roles` per instance (the realm-role variant is deployed and working; the client-role variant is the same machinery, one path deeper).
 - ~~`OPENID_REQUIRED_ROLE` (login gate)~~ **VERIFIED 2026-07-22** against LibreChat's docs: `OPENID_REQUIRED_ROLE` + `_PARAMETER_PATH` + `_TOKEN_KIND` exist, Keycloak client-role shape documented (roles "can be managed within the client or realm settings").  Browser click-test still owed at our pin.
 - **Raft snapshot save/restore** round-trip on our OpenBao pin (single node) — the backup story leans on it.
-- **Meili per-course footprint** and the search-off knob; **admin panel** against a per-course Mongo database; **RAG API / pgvector** shared-tenancy file-id isolation (else pgvector schemas per course).
+- **Meili per-course footprint** and the search-off knob; **admin panel** against a per-course Mongo database; **RAG API / pgvector** — settled per course (2026-09-18), so the footprint question now includes a pgvector per course.
 - **Compose mechanics for rendered instances**: `include:` directive at our compose version, vs `-f` stacking in the justfile loop.
 - **Wildcard DNS-01** against the campus DNS provider (the Azure block exists; other providers = other caddy-dns plugins in the edge build; delegation pattern per root-cellar's guide).
 - Globus Groups API invite semantics for emails with no Globus identity yet.

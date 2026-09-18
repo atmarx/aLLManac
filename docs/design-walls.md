@@ -412,7 +412,9 @@ Measured with the prod-probe pattern, one hand-minted HS256 token per container,
 - **One `rag_api` + `vectordb` per course** — isolation by construction, which is what the posture claims, at N extra container pairs.
 - **Drop `file_search` from the defaults** — the feature fails loudly (absent) instead of silently (broken).
 
-Registrar design, so it is **@marco's call**; this wall records the measurement, not the verdict.
+**Verdict (@marco, 2026-09-18): one `rag-<slug>` + `vectordb-<slug>` per course, rendered into `fleet/fleet.yml` beside `meili-<slug>`, for the same reason Meili went per-course.**  Sharing the root secret was never on the table — it makes every course's session token valid at every other course's store, and the posture says isolation by instance.  Dropping `file_search` would have bought a week and left the first thing a professor does (attach a syllabus) as an absent feature on a platform whose whole pitch is agents with knowledge.  The pair costs about a pgvector and a small Python process per course, reads the course's own env (its `JWT_SECRET`, and a pinned-once `POSTGRES_PASSWORD` of its own), and shares only the `hf-cache` volume of model files.  The flagship keeps the root `rag_api`, which is now *its* store rather than the fleet's.  The tenancy note below stands as written: inside one course the store is still a permission check.  Between courses it is now a container wall.
+
+The render is inert until reconciled (next wall) — `just render` on each box is what actually moved the fleet.
 
 And a thing to know whichever way it goes: **the shared store's boundary is a permission check, not a partition.**  `document_routes.py` scopes by `user_id` taken from the token payload, treats a document whose `user_id` is null as readable, and honors a caller-supplied `entity_id` in place of the token's identity.  So "isolation by instance rather than by permission check" is true of the chat plane and has never been true of RAG.
 
