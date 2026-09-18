@@ -84,11 +84,17 @@ Two things about it are worth more than the fix.
 
 **The design document knew.**  The tenancy decision, written in July, contains the line *"pgvector/RAG likely shared (verify file-id isolation)"* — inside a parenthesis, as an aside, in a document that was otherwise right about everything.  It was true when it was written and it stayed true, and nobody verified it, because parentheses do not get done.  If you take one operational habit from this page, take that one: the caveats you write inside brackets are the ones that outlive you.
 
-**And it is not closed yet.**  As of **2026-09-18** there is an open question underneath the fix.  The shared service holds the platform's root secret, while every rendered course instance mints a fresh one of its own — so a course instance may be signing its requests with a key the shared service does not have.  Either knowledge files quietly fail for course instances, or the check is not running on that path at all.  We do not know which yet.  It is with the people who operate the platform, and this paragraph changes when they answer.
+**And then there is what it is instead.**  Later the same day this page was drafted, somebody went and measured the rest of it rather than reasoning about it, which produced a better answer than the one we were bracing for.
 
-We are leaving the question here rather than waiting to publish a cleaner page, because a gap you can read about is worth more than one you cannot.
+The store is not readable by the wrong course.  Each rendered course instance signs its requests with a secret the shared service does not hold, so those requests are rejected outright — the boundary holds.  What that actually broke is the feature: **knowledge files do not work on any course instance at all**, and they fail in the worst available way, because the service's health check does not go through the same door as real requests.  Every course starts up announcing that the document service is running and reachable, and then refuses every real call.  Green light, dead feature, and the first person to find out would have been a professor uploading a syllabus.
 
-The general form is the part that travels: **structural isolation is a posture you have to hold across every component, and the place it breaks is never the component you were thinking about.**  We got it right for conversations and agents, because those were the subject.  We inherited the shared thing for free, without a decision, because it arrived that way in the box.
+That is being worked, and the fix is a real design choice rather than a typo, so it is not ours to make on this page.
+
+But the sentence worth keeping is the one the measurement produced on the way past: **the shared store's boundary is a permission check, not a partition.**  It decides what you may see by reading an identity out of the request and comparing it, which is precisely the design beat 2 argued against — and it has been sitting inside a platform whose whole posture is that isolation should come from structure instead.  Nobody chose that.  It came in the box.
+
+Which is the general form, and the part that travels: **structural isolation is a posture you have to hold across every component, and the place it breaks is never the component you were thinking about.**  We got it right for conversations and agents, because those were the subject.  We got a permission check for files, for free, without a decision.
+
+We are leaving all of this on the page rather than waiting to publish a cleaner one, because a gap you can read about is worth more than one you cannot.
 
 ## Try it yourself
 

@@ -55,7 +55,8 @@ So you do not spend your time on things that are on our list:
 - **Backups are thin.**  Copies are made by hand, there is no off-box schedule yet, and no restore has been tested end to end.  [How long we keep it](your-data/how-long-we-keep-it.md) is honest about this.
 - **Nothing expires on its own**, and there is no per-student deletion path.
 - **Some pages on this site are unfinished**, and say so where you land on them.
-- **One storage question is open.**  Uploaded knowledge files live in a store shared across courses rather than inside your course's own instance.  It is [written up](how-we-built-it/keeping-courses-apart.md) rather than hidden, and it is being worked.
+- **Knowledge files are broken on course instances right now**, as of 18 September.  Attaching documents to an agent is switched on by default and does not work outside the main instance — and it fails silently, so the upload appears to succeed and the agent simply never uses what you gave it.  This is the one most likely to waste your afternoon, and it is being fixed.  If you want to try agent knowledge this week, ask whoever set up your course where to do it.
+- **The store those files go to is shared across courses**, and its boundary is a permission check rather than a wall.  Nothing is readable by the wrong course — that was measured, not assumed — but it is not the isolation the rest of the platform uses, and it is [written up](how-we-built-it/keeping-courses-apart.md) rather than hidden.
 
 If something on that list is a blocker for the course you have in mind, that is worth telling us too — it changes what gets built first.
 
