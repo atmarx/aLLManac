@@ -15,9 +15,13 @@ tethered_to:
 
 # How long we keep it
 
-The honest answer, first: **indefinitely, unless someone removes it by hand.**  There is no automatic expiry on this platform.  Your conversations from a course that ended two terms ago are still in that course's database.
+The honest answer, first: **indefinitely, unless someone removes it by hand.**  Your conversations from a course that ended two terms ago are still in that course's database.
 
-The rest of this page is what that means and what is being done about it.
+**With one exception, and it is the one thing on this page you can act on today.**  The chat window has a *temporary chat* mode, and a conversation you start in it is not kept — the database is told to delete it after a set period and does so on its own, without anyone deciding.  It is switched on by default here, deliberately, because it is a privacy affordance rather than a feature.  If you want a conversation not to persist, that is the way to get it, and it is the only automatic deletion anywhere in this platform.
+
+Two honest caveats attached to that.  We have confirmed the expiry is real on a running instance — the database carries the rule that does the deleting — but **we have not pinned down the exact window**, and we have not set it ourselves, so it is whatever the chat software ships with.  Until this page can name that number from our own running version rather than from somebody's documentation, treat temporary chat as *"this goes away, on a timer we have not published"* rather than a number you can plan around.
+
+The rest of this page is about everything that is *not* a temporary chat, which is almost all of it.
 
 ## Why there is no clock
 
@@ -26,7 +30,7 @@ Retention is a policy question before it is an engineering one.  Deciding that c
 That policy does not exist here yet, so neither does the timer that would enforce it.  Building the timer first would mean guessing at the answer, and a deletion job is a bad place to guess.
 
 !!! warning "Not built yet"
-    No automated retention or expiry.  Removal is currently a manual act by an operator.
+    No retention policy and no expiry for ordinary conversations.  Removal is a manual act by an operator.  The temporary-chat expiry above is the single exception, and it is the chat software's own behaviour rather than a policy we set.
 
 ## Backups
 

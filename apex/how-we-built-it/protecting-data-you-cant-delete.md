@@ -146,13 +146,14 @@ tethered_to:
            ships, but an empty allowlist is no allowlist, so leaving actions
            off is the only complete egress answer
          - whether chat logs are formally education records is with counsel
-         - uploaded knowledge files live in a RAG store shared by the whole
-           fleet, not in the per-course instance.  Its cross-course boundary
-           is an auth token rather than a container, and registrar-spec.md
-           still carries file-id isolation as an open question.  This is the
-           gap most worth naming on a page about protecting data, and it is
-           the one the rest of the page's isolation story has to be honest
-           about.
+         - CLOSED 2026-09-18 (e5abb56): uploaded knowledge files were in a
+           RAG store shared by the whole fleet.  Each course now runs its
+           own, so between courses it is a container wall.  What remains
+           true, and belongs on this page: INSIDE one course the store is
+           still a permission check -- it reads an identity out of the
+           request, treats a null one as readable, and honours a
+           caller-supplied override.  Keep the history; it is the best
+           example on the page of a gap that survived a design review.
 
      Say why the list is published rather than fixed first: a reader learns
      more from a real gap list than from a finished story, and the gaps are
