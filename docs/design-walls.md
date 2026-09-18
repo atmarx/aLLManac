@@ -236,7 +236,9 @@ A typo in `endpoints.agents.capabilities` (`file_serach`) is accepted by the sch
 
 ---
 
-## `rag_api` fails OPEN without `JWT_SECRET`, and it is shared by the whole fleet *(2026-09-12)*
+## `rag_api` fails OPEN without `JWT_SECRET` *(2026-09-12)*
+
+> **Superseded in part, 2026-09-18.**  The "one shared store" half of this wall is no longer true: `e5abb56` renders a `rag-<slug>` + `vectordb-<slug>` pair per course, so the cross-tenancy paragraph below describes the world *before* that commit and is kept because the fails-open lesson is the durable part.  What still holds everywhere: a missing `JWT_SECRET` disables authentication instead of refusing to start.
 
 `app/middleware.py:18-21` in the pinned RAG image:
 
@@ -257,7 +259,7 @@ GET http://rag_api:8000/documents?ids=<uuid>   ->  200, 37,963 bytes of document
 
 No `Authorization` header.  The earlier probe without `ids` returned **422 (validation)**, not 401 — a validation error on an unauthenticated request is the tell: the request had already passed auth and failed only on a missing parameter.
 
-**This crosses the tenancy boundary.**  `rag_api` and `vectordb` are single shared services (`compose.yml`), not per-course like Meilisearch — so every course's uploaded knowledge files live in one store that anything on the compose network can read, and every per-course LibreChat instance is on that network.  Needing a file id first is obscurity, not a boundary.
+**This crossed the tenancy boundary** *(true until 2026-09-18)*.  `rag_api` and `vectordb` were single shared services, not per-course like Meilisearch — so every course's uploaded knowledge files lived in one store that anything on the compose network could read, and every per-course LibreChat instance is on that network.  Needing a file id first is obscurity, not a boundary.  That is the half `e5abb56` closed: each course now has its own pair, so the same mistake reaches one course instead of all of them.  Inside a course the store is still a permission check — see the per-course ruling further down this file, which is the current word.
 
 Fixed by passing `JWT_SECRET` explicitly.  **Not via `env_file:`** — that would hand the RAG container every secret in `.env` and add a third service to the [drift-guard bug](#config-refreshs-drift-guard-can-never-pass-for-a-service-with-env_file).
 
