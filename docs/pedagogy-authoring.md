@@ -1,12 +1,13 @@
 ---
 title: How do I write a page students will read?
-description: The page shapes, the controlled tag vocabulary, and the front matter every file in apex/ carries — plus the two rules that keep the words from drifting away from the running system.
+description: The page shapes, the controlled tag vocabulary, and the front matter every reader-facing page carries — plus the two rules that keep the words from drifting away from the running system.
 audience: operator
 also_reaches: [builder]
 status: published
 owner: piper
 tags: [doc-drift, ai-literacy, accountability, faculty-duty, student-right, data-classification]
 tethered_to:
+  - docs/corpus.py
   - apex/tags.md
   - mkdocs.yml
   - docs/design-walls.md
@@ -14,29 +15,33 @@ tethered_to:
 
 # Authoring the reader-facing pages
 
-*Owner: @piper (pedagogy lane).  Operator/author-facing — this file stays in `docs/` and out of `apex/` on purpose; see "The corpus boundary" below.*
+*Owner: @piper (pedagogy lane).  Author-facing: it is addressed to whoever is writing the pages, which is why it carries `audience: operator` and stays off the reader-facing site — see "The corpus boundary" below for what that does and does not keep it out of.*
 
-Everything a student or professor reads lives in `apex/`.  This file is how it gets written: the page shapes, the controlled vocabulary, and the two rules that keep the words from drifting away from the system.
+The reader-facing site is `apex/`, and two of the longest-serving guides — [user-guide.md](user-guide.md) and [teaching-a-course.md](teaching-a-course.md) — still sit in `docs/` and reach their readers through front matter instead.  This file is how any of them get written: the page shapes, the controlled vocabulary, and the two rules that keep the words from drifting away from the system.
 
 ---
 
 ## The corpus boundary
 
-The apex site and Ask the Almanac's knowledge files are the **same directory** — one source, two renderers (mkdocs for the web, embeddings for the chat).  That is the design and it is worth keeping: there is no second copy to drift.
+The apex site and Ask the Almanac's knowledge files are the **same source** — one tree, two renderers (mkdocs for the web, embeddings for the chat).  That is the design and it is worth keeping: there is no second copy to drift.
 
-The consequence is the rule:
+The boundary is **front matter, not directory.**  `docs/corpus.py` walks `apex/` *and* `docs/`, and what decides whether a page lands in an agent's shelf is the metadata it carries:
 
-> **Anything inside `apex/` is in the help agent's mouth.**  Not "unless we leave it out of `nav:`" — nav curates the website, the corpus eats the tree.  A page dropped from nav is still a file in the directory, still embedded, still quotable by the agent to any student who asks.
+| field | what it decides |
+|---|---|
+| `status:` | `scaffold` and `proposed` are withheld from every corpus.  Everything else ships. |
+| `audience:` + `also_reaches:` | which of the four guides the page lands in — `student`, `faculty`, `builder`, `operator`. |
+| `tags:` | the Security Guide is a cross-cut, not an audience; three or more Controls tags pull a page in regardless of who it addresses. |
 
-So the boundary is a **directory** boundary:
+So the rule an author has to hold is the wider one:
 
-| pile | lives in | in the corpus |
-|---|---|---|
-| Public + taught — guides, how-tos, `your-data/`, `how-we-built-it/` | `apex/` | yes |
-| Operator — admin guide, CI, design walls, **this file** | `docs/` | no |
-| Internal record — the registrar spec | `docs/` | no — quoted by `how-we-built-it/`, never published wholesale |
+> **A page with front matter and a shippable status is in some agent's mouth, wherever it sits on disk.**  Not "unless we leave it out of `nav:`" — nav curates the website, the corpus queries the tree.  `docs/admin-guide.md` is in the Dev Guide's shelf and the Security Guide's today, and it never moved directories to get there.
 
-The third pile matters most for the show-the-work track.  Those pages are *written from* the spec.  They are not the spec relocated.  Curation is the work, and it is the reason the boundary can stay strict without hiding anything we meant to teach.
+There is exactly one file the render excludes by name: [agent-contract.md](agent-contract.md), because an agent is *told* its instructions and does not look them up.
+
+**The status field is the gate, so use it as one.**  A page that should not be quoted yet is `scaffold` if it is unfinished and `proposed` if it is finished but unruled — filing it in `docs/` hides it from nobody.  That cuts the other way too: marking a page `published` to tidy up the front matter puts it in front of students, and `docs/registrar-spec.md` reaching three corpora through `also_reaches: [builder]` was a front-matter decision, not a filing accident.  If we want the spec quoted only through `how-we-built-it/`, the fix is its metadata.
+
+Curation is still the work.  The show-the-work pages are *written from* the spec rather than being the spec relocated, and that is what lets the boundary stay strict without hiding anything we meant to teach.
 
 ---
 
@@ -58,7 +63,7 @@ Front matter carries both: `audience:` is who the page speaks to, `also_reaches:
 
 ## Front matter schema
 
-Every page in `apex/` opens with:
+Every reader-facing page opens with:
 
 ```yaml
 ---
@@ -120,7 +125,7 @@ So: **no institution's name, no institution's tier numbers, no institution's pol
 
 *The mechanism is portable; the entry is not.*  Risk classification is a **register** — a tier is an entry someone makes about a *system*, not a property the data has, and the entry is what carries the obligations.  That much is worth teaching everywhere.  What varies is scope and outcome: the same data type registers differently depending on what the system is for, so FERPA-protected data inside a research project and the same records inside an operational teaching platform are separate entries with separate arguments, and a given institution may land them a tier apart.  Teach the mechanism, name no outcome.
 
-*Background, and the reason this rule exists* (internal — do not put this in `apex/`): an earlier draft imported one institution's specifics, including a live and unfinished registration conversation.  Publishing a predicted tier gives faculty something to plan against that the register may contradict, and it front-runs a determination that belongs to a compliance officer rather than a docs page.
+*Background, and the reason this rule exists* (operator-facing — it reaches the Dev Guide and no further, and it names no institution and no tier on purpose): an earlier draft imported one institution's specifics, including a live and unfinished registration conversation.  Publishing a predicted tier gives faculty something to plan against that the register may contradict, and it front-runs a determination that belongs to a compliance officer rather than a docs page.
 
 A consequence for the plumbing side: **whatever tier a given deployment registers at hands its operator a requirements list.**  Backup cadence, encryption posture, and access review stop being good practice and become the entry's terms.  Several items on the gap lists in `your-data/` are likely to arrive as obligations rather than improvements.
 
