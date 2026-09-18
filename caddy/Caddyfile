@@ -44,7 +44,8 @@
     # "Bearer " satisfies.  The mount is sbom/ (the parent) because latest/
     # is replaced by rename on every build — the same inode rule as every
     # other bind here.
-    route /sbom /sbom/* {
+    @sbom path /sbom /sbom/*
+    route @sbom {
         @scanner expression `{header.Authorization} == "Bearer {$SBOM_TOKEN}" && "{$SBOM_TOKEN}" != ""`
         handle @scanner {
             uri strip_prefix /sbom
