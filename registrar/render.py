@@ -340,7 +340,7 @@ def render_fleet(courses: dict) -> None:
     environment:
       PORT: "3000"
       API_SERVER_URL: "http://chat-{slug}:3080"
-      SESSION_COOKIE_SECURE: "false"
+      SESSION_COOKIE_SECURE: "${{ADMIN_PANEL_SESSION_COOKIE_SECURE:-true}}"
     depends_on:
       chat-{slug}:
         condition: service_started

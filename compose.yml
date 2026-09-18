@@ -233,9 +233,18 @@ services:
       # Server-side path to LibreChat (in-network) vs the URL the BROWSER uses:
       API_SERVER_URL: "http://librechat:3080"
       VITE_API_BASE_URL: "${DOMAIN_CLIENT:-http://localhost:3080}"
-      # Plain-HTTP deployment shapes need a non-Secure session cookie or the
-      # SSO PKCE callback dies; harmless when TLS terminates in front:
-      SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}"
+      # Secure by default, matching the image's own default (it reads this as
+      # `NODE_ENV === 'production'` when unset).  It sets the cookie attribute
+      # and nothing else — the panel uses h3's useSession, not express-session,
+      # so there is no `trust proxy` gate and no login loop behind the edge.
+      # One shape must set it false: http:// to a NON-LOCALHOST host, which
+      # only PUBLISH_BIND=0.0.0.0 makes reachable.  There the browser silently
+      # drops a Secure cookie, the PKCE verifier goes with it, and SSO fails at
+      # the callback ("SSO session state was lost").  The ssh -L tunnel is NOT
+      # that shape — http://localhost is a potentially-trustworthy origin, so
+      # Secure cookies are accepted there.  Through the edge it is HTTPS in
+      # every mode, LAN included.
+      SESSION_COOKIE_SECURE: "${ADMIN_PANEL_SESSION_COOKIE_SECURE:-true}"
     ports:
       - "${PUBLISH_BIND:-127.0.0.1}:${ADMIN_PANEL_PORT:-3082}:3000"
     depends_on:

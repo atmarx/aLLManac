@@ -12,7 +12,7 @@ That file is a list of **walls** — questions already answered the expensive wa
 
 - **vLLM tool parsers** — they are per model family; there is no universal one
 - **LibreChat agent-share groups** — they can never come from the Keycloak OIDC `groups` claim
-- **The LibreChat admin panel port** — and why it isn't 3081
+- **The LibreChat admin panel** — why its port isn't 3081, and why its session cookie is `Secure` by default with no `trust proxy` trap
 - **The classroom posture** — sharing is off by default; what turns it on
 - **MCP wiring** — the trailing-slash 307, the SSRF allowlist, and why "0 tools" at boot is correct
 - **`actions.allowedDomains`** — it is top-level, not under `endpoints`; an empty list is *no allowlist*, not deny-all; capability names are never validated by LibreChat and typos fail closed and silent
@@ -23,6 +23,7 @@ That file is a list of **walls** — questions already answered the expensive wa
 - **`just`** — `dotenv-load` snapshots `.env` at invocation start, and it dedents recipe bodies (heredocs must stay indented)
 - **Keycloak realm import** — it runs every boot and skips only realms that already exist, so renaming a realm file mints a second realm on a live box
 - **Mounts** — never bind-mount a single file that gets rewritten; OpenBao rafts into `/openbao/file` or crash-loops
+- **Changing `registrar/render.py`** — `just deploy` does not re-render the fleet, so the change is inert until `course_admin.py render` + `just course-up`
 - **Verifying on the box** — the prod-probe pattern, so no credential moves
 - **Orchestration** — compose now, k3s short-term, inference fleet first
 

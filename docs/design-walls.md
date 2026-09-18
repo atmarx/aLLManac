@@ -85,6 +85,14 @@ Agent-share groups resolve from `local` or `entra` sources **only**.  The Keyclo
 
 Share-groups are managed in the bundled **admin panel on `:3082`**.  Not 3081 — the panel's default port collides with `CHAT_PORT` overrides on xdocker03, and a red pipeline (#11) is how we found it.
 
+### The panel's `SESSION_COOKIE_SECURE` has no `trust proxy` trap *(2026-09-18)*
+
+**Setting it true behind a TLS-terminating edge is safe, and it is what the image already defaults to.**  The instinct here is express-session, where `cookie.secure = true` without `app.set('trust proxy')` makes the server *refuse* to set the cookie over the proxy's plain-HTTP hop — a login loop.  The panel isn't express: `src/server/session.ts` hands the flag to h3's `useSession`, which serializes the `Secure` attribute and consults nothing about the connection.  Unset, the image reads `NODE_ENV === 'production'`, so our `production` containers were being *downgraded* by an explicit `false` — the flagship's from `compose.yml`, every course's hardcoded in `render_fleet`.  Both now default true off one knob, `ADMIN_PANEL_SESSION_COOKIE_SECURE`.
+
+The failure it guards runs the other way, and it is a silent one.  A browser reaching a panel over `http://` at a **non-localhost address** drops a `Secure` cookie without complaint, the PKCE verifier goes with it, and SSO dies at the callback — upstream spells this "SSO session state was lost before the callback," which names the symptom and not the cause.  Only `PUBLISH_BIND=0.0.0.0` plus a browser pointed at the box's IP reaches that shape.
+
+**The `ssh -L` tunnel in the admin guide is not that shape**, which is the part worth not re-deriving: `http://localhost` is a *potentially trustworthy origin* (W3C Secure Contexts; RFC 6265bis §5.5), so Chrome, Firefox and Safari all store `Secure` cookies set over it.  The operator path keeps working with the flag on.  This one is read from the specs and the browsers' documented behavior rather than measured in a browser here — if a panel login ever dies through the tunnel, this paragraph is the first suspect.
+
 ### The tenancy machinery is already in our pin — undocumented, env-only, and header-driven *(2026-09-09)*
 
 **`v0.8.7` reads `TENANT_ISOLATION_STRICT`, `DEFAULT_TENANT_ID` and `CODEAPI_JWT_SINGLE_TENANT_ID` from the environment, and handles `x-tenant-id` in `api/server/index.js`.**  `tenantId` appears in 86 files under `/app/api`.  None of the three variables appears in that version's `.env.example`, and the `librechat.yaml` schema exposes no tenancy at all — so this is a **live env-only surface with no documentation in the release we run.**  Measured against the pinned image itself, not the repo tag; the tag's `.env.example` is clean, which is exactly why reading it would have misled you.
@@ -379,6 +387,18 @@ Two traps inside the trap:
 - **It looks like realm drift and isn't.**  This surfaced in the same deploy that renamed `realm-northwinds.json` → `realm-classroom.json`, so the obvious reading is that the realm change broke something.  It didn't.  The rename bumped the `./keycloak` directory's mtime, which is merely what *triggers* the check; the mismatch was always there and would have fired on any config touch.  Keycloak served `northwinds` correctly throughout.
 
 **If you are here because the pipeline is red:** confirm the stack is actually healthy (`just smoke` by hand, and probe the realm from inside the network — see [Verifying on the box](#verifying-on-the-box-without-moving-a-token)), then treat the SKIP as a known false positive rather than recreating anything.  The fix is to the guard, not the box: either exclude `env_file` services from the hash comparison and gate them on something else, or stop using `config --hash` as the oracle.
+
+## A render-template change is INERT until something reconciles *(2026-09-18)*
+
+**`just deploy` never re-renders the fleet.**  It builds the registrar image, so `render.py`'s new code is sitting in the container — and `fleet/fleet.yml`, `fleet/<slug>.env`, `fleet/<slug>.librechat.yaml` and `fleet/caddy/<slug>.caddy` are all still whatever the last reconcile wrote.  Compose then reads the *old* render and recreates nothing, because from its side nothing changed.  The deploy is green and the fix is not deployed.
+
+Found shipping the `SESSION_COOKIE_SECURE` flip: the flagship's panel took it from `compose.yml` on the same deploy that left every course panel on the old value, `fleet.yml` untouched for three days.  A security fix that lands on the flagship and silently skips the fleet is the worst shape this failure has.
+
+It is the `config-refresh` family one level higher.  That guard exists because a changed *mount* doesn't restart a process; this is a changed *template* not reaching the render that the mount serves.  Same sentence, different noun: the source is current and the artifact is not.
+
+**The verb is `course_admin.py render`** — re-renders every course from the templates, reusing the escrowed service key and the live OIDC client secret rather than minting anything, and `render_course_env` is fill-preserving so the pinned per-instance secrets (`CREDS_KEY` above all) survive.  Then `just course-up` to recreate and reload the edge.  A course with no escrowed key is skipped with a message, not half-rendered.
+
+So: **after any change to `registrar/render.py`, a deploy is not enough.**  Until the pipeline learns this, the two commands are the deploy.
 
 ## Verifying on the box without moving a token
 
