@@ -59,9 +59,11 @@ tags: [rendered-config, tenancy, secrets-management, kubernetes, azure, aws]
      - compose-now-k3s-later.md — held until the migration actually happens,
        so the page can carry a real before and after
      - the-guardrail-that-does-nothing.md — CANDIDATE, and a strong one.
-       The egress allowlist has to be declared at the config's top level;
-       nested one level deeper it parses cleanly, validates, and silently
-       does nothing.  Found by reading the pinned image's own schema rather
+       The egress allowlist has to be declared at the config's top level,
+       as a sibling of `endpoints:`.  Nested under `endpoints.agents` —
+       which is where everyone puts it, because that is where the agents
+       block lives — it parses cleanly, validates, and silently does
+       nothing.  Found by reading the pinned image's own schema rather
        than the vendor docs.  The lesson generalizes past this stack:
        configuration that parses is not configuration that runs, and a
        security control nobody verified is a control nobody has.  Better

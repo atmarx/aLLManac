@@ -50,8 +50,10 @@ tethered_to:
 
 <!-- Identity arrives out-of-band: the platform injects the caller's identity
      into the tool call from the session the request already authenticated,
-     never from the model's output.  Tools are zero-argument where the answer
-     depends on who is asking.
+     never from the model's output.  Tools carry no *identity* argument: a
+     prompt can pick the date range or the course slug, but never whose data
+     comes back.  (Check the wording against usage-mcp/server.py:6-7, which
+     already says this correctly — the tools do take arguments.)
 
      Attribution keys on the email address, deliberately, so a usage record
      lands on a real person and survives a roster change.

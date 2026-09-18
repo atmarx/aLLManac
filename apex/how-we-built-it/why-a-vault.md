@@ -1,6 +1,6 @@
 ---
 title: Why is there a vault?
-description: Every service needs credentials. We started with environment variables, hit the limits, and ended up running OpenBao — including what that cost.
+description: Service credentials still ride in env files. The vault exists for the credentials we mint — thousands of per-student keys that need custody, versioning, and an answer to who held which key and when.
 audience: builder
 also_reaches: [student]
 status: scaffold
@@ -19,7 +19,17 @@ tethered_to:
 ## 1. The question
 
 <!-- Frame it as a reader would: there is a whole extra service here whose
-     only job is holding passwords.  The .env file worked.  Why the ceremony? -->
+     only job is holding secrets.  The .env file worked.  Why the ceremony?
+
+     ACCURACY, and the framing has to respect it: the .env file still works
+     and is still what every service uses.  Platform credentials come from
+     .env (compose.yml) and each course instance's from a rendered
+     fleet/<slug>.env (render.py:85-130); the registrar is OpenBao's only
+     consumer.  So the vault did NOT replace environment variables, and a
+     page that says it did will be corrected by anyone who opens compose.yml.
+     The real question is narrower and more interesting: what changes when
+     the secrets are ones you MINT, thousands of them, per student, with a
+     custody question attached.  Beats 3 and 4 already say this correctly. -->
 
 ## 2. The obvious answer, taken seriously
 

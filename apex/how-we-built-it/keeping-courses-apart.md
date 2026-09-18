@@ -55,13 +55,24 @@ tethered_to:
 ## 4. What we did, and the bill
 
 <!-- One LibreChat instance per course.  Separate container, separate
-     database, separate hostname.  Isolation by construction — there is no
-     shared room to partition, so there is no query that can cross the line.
+     database (one Mongo *server*, N databases — the spec italicizes that
+     word for a reason), separate hostname.  Isolation by construction for
+     the chat plane: conversations, agents and ACLs have no shared room to
+     partition, so no query reaches across.
+
+     CARVE-OUT, and the page must carry it: the RAG store is the exception.
+     rag_api + vectordb are shared fleet-wide (compose.yml:147-151), so
+     uploaded knowledge files all land in one store and the boundary there
+     is an auth token rather than a container.  registrar-spec.md:514 still
+     lists file-id isolation as an OPEN question, and there is a live secret
+     mismatch under it (handed to plumbing 2026-09-18).  Do not write beat 4
+     as a clean win until that lands.
 
      The registrar renders each instance's config from one course record.
 
      The bill:
-     - N containers instead of one, with the memory floor that implies
+     - 3N containers instead of one — chat, search and admin panel per
+       course — at roughly 500-600MB each, so twenty courses is 12-15GB
      - upgrades are a fleet operation
      - anything genuinely cross-course has to be built deliberately
      - a rendering layer now exists and is itself a thing that can break -->
@@ -90,6 +101,14 @@ tethered_to:
 
 ## 7. Try it yourself
 
-<!-- Sign in to two courses if you are in two.  Observe there is no view that
-     shows both.  Then look at a rendered per-course config and find the one
-     line that makes the instance believe it is alone. -->
+<!-- Sign in to two courses if you are in two.  Observe that no view shows
+     both sets of *conversations* — and then notice the contrast that makes
+     the point better than a clean claim would: your usage tools cross
+     courses on purpose (my_usage queries the ledger by email across all of
+     them, list_courses names every one you are in).  Separation is a choice
+     made per surface, not a property of the building.
+
+     Then open fleet/fleet.yml and find the one line that gives the instance
+     its own database — the Mongo URI, LibreChat_<slug>.  Not the rendered
+     librechat.yaml: the line that distinguishes courses there is
+     X-Course, which is tool scoping, not isolation. -->
