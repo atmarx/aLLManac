@@ -14,6 +14,9 @@ tethered_to:
 
 # Why is there a vault?
 
+!!! note "Being written"
+    This page is not finished.  The argument and the sources are drafted, and the prose is queued behind the pages instructors need first.  What it will cover is below; in the meantime the short version is that every service here still takes its credentials from an environment file — the vault exists for the credentials the platform *mints*, thousands of per-student keys that need custody, versioning, and an answer to who held which key and when.
+
 <!-- SCAFFOLD.  Beats per docs/pedagogy-authoring.md. -->
 
 ## 1. The question
