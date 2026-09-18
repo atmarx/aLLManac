@@ -65,7 +65,7 @@ A few things fix themselves on the way.  An instance only contains its own cours
 
 The bill, stated plainly:
 
-- **Three containers per course**, not one — chat, search, panel — at roughly 500–600MB all in.  Twenty courses is 12–15GB on the app box.
+- **Five containers per course**, not one — chat, search, admin panel, and a document service with its own database.  Only the embedding model's files are shared, because those are identical for everybody and large.
 - **Upgrades are a fleet operation.**  A LibreChat CVE means rolling N containers.  The same pinned image and rendered config make that one loop rather than N snowflakes, but it is still N.
 - **Anything genuinely cross-course has to be built on purpose.**  That is the cost of the thing that makes it safe.
 - **A rendering layer now exists**, and it is itself a thing that can break.
@@ -74,27 +74,27 @@ That last one is the honest one.  We did not remove complexity; we moved it some
 
 ## What is still wrong with it
 
-Here is where the epigraph stops being a joke.
+Here is where the epigraph stops being a joke, and the honest version of this section is a story rather than a list.
 
-**One room is still shared, and it is the one holding the files.**  Agent knowledge files do not live in the per-course instance — they go to a single `rag_api` and a single vector database that the entire fleet uses.  Every course's uploaded documents are in one store, and the boundary there is an auth token rather than a container wall.
+**For most of this platform's life, one room was still shared, and it was the one holding the files.**  Agent knowledge files did not live in the per-course instance.  They went to a single document service and a single vector database that the entire fleet used — so every course's uploaded documents sat in one store whose boundary was an identity read out of a token, compared against a row.  A permission check.  Exactly the design this page spends beat 2 arguing against, sitting inside the platform that argues it.
 
-We know it is a real boundary and not a theoretical one because it has already failed once.  On **2026-09-12**, a probe run from the registrar's container — a service with no business reading the vector store and holding no credential for it — asked for a document by id and got back thirty-eight kilobytes of content, with no authorization header, and a `200`.  The RAG service treats a missing secret as *no authentication configured* rather than as a reason to refuse to start, so it had been running wide open behind a single warning line at boot that reads like a note about an optional feature.  It is written up with the measurement in the operators' own notes, and it was closed the same day by passing the secret explicitly.
+Nobody decided that.  It arrived as one service in the box and nobody made it per-course, because the question we were answering was about conversations.
 
-Two things about it are worth more than the fix.
+**The design document knew.**  The tenancy decision, written in July, contains the line *"pgvector/RAG likely shared (verify file-id isolation)"* — inside a parenthesis, as an aside, in a document that was otherwise right about everything.  It was true when it was written and it stayed true, and nobody verified it, because parentheses do not get done.  If you take one operational habit from this page, take that one: **the caveats you write in brackets are the ones that outlive you.**
 
-**The design document knew.**  The tenancy decision, written in July, contains the line *"pgvector/RAG likely shared (verify file-id isolation)"* — inside a parenthesis, as an aside, in a document that was otherwise right about everything.  It was true when it was written and it stayed true, and nobody verified it, because parentheses do not get done.  If you take one operational habit from this page, take that one: the caveats you write inside brackets are the ones that outlive you.
+It came due twice in one week, and neither time was on purpose.
 
-**And then there is what it is instead.**  Later the same day this page was drafted, somebody went and measured the rest of it rather than reasoning about it, which produced a better answer than the one we were bracing for.
+First the store turned out to be readable by anything on the internal network, because the document service treats a missing secret as *no authentication configured* rather than as a reason to refuse to start.  One warning line at boot, which reads like a note about an optional feature.  Found by measurement, closed the same day.
 
-The store is not readable by the wrong course.  Each rendered course instance signs its requests with a secret the shared service does not hold, so those requests are rejected outright — the boundary holds.  What that actually broke is the feature: **knowledge files do not work on any course instance at all**, and they fail in the worst available way, because the service's health check does not go through the same door as real requests.  Every course starts up announcing that the document service is running and reachable, and then refuses every real call.  Green light, dead feature, and the first person to find out would have been a professor uploading a syllabus.
+Then — while someone was checking a claim on *this page* — it turned out each course signs its requests with a secret of its own that the shared service did not have.  Nothing was leaking; every call was simply being rejected.  **Knowledge files had never worked on any course instance**, and the health check does not go through the same door as real requests, so every course booted announcing the document service was reachable and then refused every real call.  Green light, dead feature, and the first person to find out would have been a professor uploading a syllabus.
 
-That is being worked, and the fix is a real design choice rather than a typo, so it is not ours to make on this page.
+**The fix was to stop having the shared room.**  Each course now gets its own document service and its own vector database, with its own secret and its own volume, beside its own chat and search — only the embedding model's files are shared, and those are the same bytes for everyone.  The claim at the top of beat 4 is now true of files as well as conversations, and the bill went from three containers per course to five.
 
-But the sentence worth keeping is the one the measurement produced on the way past: **the shared store's boundary is a permission check, not a partition.**  It decides what you may see by reading an identity out of the request and comparing it, which is precisely the design beat 2 argued against — and it has been sitting inside a platform whose whole posture is that isolation should come from structure instead.  Nobody chose that.  It came in the box.
+That is the shape worth taking away, and it is not *"instance-per-course wins."*
 
-Which is the general form, and the part that travels: **structural isolation is a posture you have to hold across every component, and the place it breaks is never the component you were thinking about.**  We got it right for conversations and agents, because those were the subject.  We got a permission check for files, for free, without a decision.
+**Structural isolation is a posture you have to hold across every component, and the place it breaks is never the component you were thinking about.**  We got it right for conversations and agents, because those were the subject of the question.  We got a permission check for files — for free, without a decision, from a dependency that came that way.  It survived a design review, a full end-to-end provision, and months of running, and what finally turned it up was somebody verifying a sentence in a documentation page.
 
-We are leaving all of this on the page rather than waiting to publish a cleaner one, because a gap you can read about is worth more than one you cannot.
+The gap in this section now is the cost rather than the hole: five containers per course is a real ceiling on one box, and we will meet it before we meet any of the others.
 
 ## Try it yourself
 
