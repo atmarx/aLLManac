@@ -390,6 +390,32 @@ Two traps inside the trap:
 
 **If you are here because the pipeline is red:** confirm the stack is actually healthy (`just smoke` by hand, and probe the realm from inside the network — see [Verifying on the box](#verifying-on-the-box-without-moving-a-token)), then treat the SKIP as a known false positive rather than recreating anything.  The fix is to the guard, not the box: either exclude `env_file` services from the hash comparison and gate them on something else, or stop using `config --hash` as the oracle.
 
+## Course instances cannot talk to `rag_api` at all — and the health check hides it *(2026-09-18)*
+
+**Every course signs its RAG calls with a secret `rag_api` does not hold, so `file_search` is dead on the whole fleet.**  `compose.yml` gives `rag_api` the root `.env`'s `JWT_SECRET`; `render_course_env` mints a *fresh* per-course `JWT_SECRET` (pinned-once, same list as `CREDS_KEY`).  The flagship works by construction — it reads the same root `.env` — so the failure only exists on rendered instances, which is why it survived a full end-to-end provision.
+
+Measured with the prod-probe pattern, one hand-minted HS256 token per container, against a UUID that cannot exist:
+
+| From | Token | Result |
+|---|---|---|
+| `alm-chat-engr301-2026fall` | its own `JWT_SECRET` | **401** `Invalid token: Signature verification failed` |
+| `alm-librechat` (flagship) | its own `JWT_SECRET` | 404 `One or more IDs not found` — auth passed, lookup ran |
+| either | none, or garbage | 401 |
+
+**It is not an exposure.**  `app/middleware.py` enforces: with `JWT_SECRET` set it requires a valid HS256 signature, and the earlier worry — that the shared store might be reachable unauthenticated — is measurably wrong.  The `FAILS OPEN` comment above that line is about `JWT_SECRET` being *unset*, which is a different box.
+
+**What hides it is the reachability check.**  The middleware exempts `/health`, so a course boots logging `RAG API is running and reachable at http://rag_api:8000` while every real call 401s.  Green light, dead feature.  `file_search` is in `DEFAULT_CAPABILITIES`, so every course ships with agent knowledge switched on and broken, and the first person to find out is a professor uploading a syllabus.
+
+**The fix is a genuine design tension, not a typo** — LibreChat signs RAG calls with the same `JWT_SECRET` it signs user sessions with, so you cannot share one without sharing the other:
+
+- **Share the root secret with every instance** — RAG works; a session token minted by course A is then signature-valid at course B's API.
+- **One `rag_api` + `vectordb` per course** — isolation by construction, which is what the posture claims, at N extra container pairs.
+- **Drop `file_search` from the defaults** — the feature fails loudly (absent) instead of silently (broken).
+
+Registrar design, so it is **@marco's call**; this wall records the measurement, not the verdict.
+
+And a thing to know whichever way it goes: **the shared store's boundary is a permission check, not a partition.**  `document_routes.py` scopes by `user_id` taken from the token payload, treats a document whose `user_id` is null as readable, and honors a caller-supplied `entity_id` in place of the token's identity.  So "isolation by instance rather than by permission check" is true of the chat plane and has never been true of RAG.
+
 ## A render-template change is INERT until something reconciles *(2026-09-18)*
 
 **`just deploy` never re-renders the fleet.**  It builds the registrar image, so `render.py`'s new code is sitting in the container — and `fleet/fleet.yml`, `fleet/<slug>.env`, `fleet/<slug>.librechat.yaml` and `fleet/caddy/<slug>.caddy` are all still whatever the last reconcile wrote.  Compose then reads the *old* render and recreates nothing, because from its side nothing changed.  The deploy is green and the fix is not deployed.
