@@ -488,9 +488,9 @@ services:
       CHAT_HOST: "${CHAT_HOST:-chat.localhost}"
       AUTH_HOST: "${AUTH_HOST:-auth.localhost}"
       GATEWAY_HOST: "${GATEWAY_HOST:-gateway.localhost}"
-      # :? on purpose — an empty token must not become an empty bearer check.
-      # `just secrets` (and every `just deploy`) fills it.
-      SBOM_TOKEN: "${SBOM_TOKEN:?SBOM_TOKEN is unset — run: just secrets}"
+      # `just secrets` fills it; the Caddyfile refuses an EMPTY one outright
+      # rather than let "" become a bearer check anyone passes.
+      SBOM_TOKEN: "${SBOM_TOKEN:-}"
       EDGE_TLS: "${EDGE_TLS:-internal}"
       EDGE_DEFAULT_SNI: "${EDGE_DEFAULT_SNI:-localhost}"
       ACME_EMAIL: "${ACME_EMAIL:-ops@example.edu}"
