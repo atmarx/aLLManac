@@ -55,6 +55,7 @@ So you do not spend your time on things that are on our list:
 - **Backups are thin.**  Copies are made by hand, there is no off-box schedule yet, and no restore has been tested end to end.  [How long we keep it](your-data/how-long-we-keep-it.md) is honest about this.
 - **Nothing expires on its own**, and there is no per-student deletion path.
 - **Some pages on this site are unfinished**, and say so where you land on them.
+- **Knowledge files belong to the course they were uploaded in.**  They do not follow an agent between courses — if you build an agent in one course and want it in another, the documents get attached again on the other side.  This is a consequence of how courses are kept apart and it is not going to change.
 - **Agent knowledge files were broken until 18 September**, silently — the upload appeared to succeed and the agent never used the document.  It is fixed, and every course now runs its own document service rather than sharing one.  If your course was set up before that and attaching a file still does nothing, say so immediately; it means your course has not been re-rendered, and that is worth knowing fast.  The whole episode is [written up](how-we-built-it/keeping-courses-apart.md) rather than hidden.
 
 If something on that list is a blocker for the course you have in mind, that is worth telling us too — it changes what gets built first.

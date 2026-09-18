@@ -88,7 +88,9 @@ First the store turned out to be readable by anything on the internal network, b
 
 Then — while someone was checking a claim on *this page* — it turned out each course signs its requests with a secret of its own that the shared service did not have.  Nothing was leaking; every call was simply being rejected.  **Knowledge files had never worked on any course instance**, and the health check does not go through the same door as real requests, so every course booted announcing the document service was reachable and then refused every real call.  Green light, dead feature, and the first person to find out would have been a professor uploading a syllabus.
 
-**The fix was to stop having the shared room.**  Each course now gets its own document service and its own vector database, with its own secret and its own volume, beside its own chat and search — only the embedding model's files are shared, and those are the same bytes for everyone.  The claim at the top of beat 4 is now true of files as well as conversations, and the bill went from three containers per course to five.
+**The fix was to stop having the shared room.**  Each course now gets its own document service and its own vector database, with its own secret and its own volume, beside its own chat and search — only the embedding model's files are shared, and those are the same bytes for everyone.  The bill went from three containers per course to five.
+
+The precise version is worth keeping, because it is the distinction this whole page is about: **inside one course the store is still a permission check.  Between courses it is now a container wall.**  Nothing about how the document service decides who may read a file has changed — it still reads an identity out of a request and compares it.  What changed is that a mistake in that logic can now only reach the one course whose documents are in that container.  That is what buying structure actually buys: not the elimination of checks, but a cap on what a wrong one can cost.
 
 That is the shape worth taking away, and it is not *"instance-per-course wins."*
 
