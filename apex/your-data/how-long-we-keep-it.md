@@ -37,6 +37,8 @@ Copies of the databases exist, made by an operator running a documented procedur
 
 Both halves of that matter to you and they point in opposite directions.  A backup is protection against losing your work, and it is also a second place your work lives, which is a longer tail than most people picture when they delete something.  Any honest retention policy has to account for both.
 
+It is worth being clear about what a backup is *not*, because the word promises more than it delivers.  **A restore is all-or-nothing at the database.**  It returns a whole course to the moment the copy was taken, which means it undoes everyone's work back to that moment, not just the thing someone wishes they still had.  That is why a copy of your material is a real protection against the machine failing and a poor protection against a mistaken click — and why keeping your own copy of anything you would hate to lose is the advice that does not depend on any of this being built.
+
 This is the platform's most visible gap, and it is the one where a high-risk posture is most explicit about what it expects: scheduled backups, kept off the machine they protect, with restores that have actually been exercised.
 
 ## Leaving a course

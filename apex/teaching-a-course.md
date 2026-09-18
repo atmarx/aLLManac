@@ -4,10 +4,12 @@ description: The faculty walkthrough — the day-zero checklist, the course patt
 audience: faculty
 status: draft
 owner: piper
-tags: [sso, access-control, rbac, attribution, metering, assessment-design, ai-literacy, accountability, faculty-duty, student-right, librechat]
+tags: [sso, access-control, rbac, attribution, metering, assessment-design, ai-literacy, accountability, faculty-duty, student-right, librechat, backup, restore, retention]
 tethered_to:
   - apex/user-guide.md
+  - apex/your-data/how-long-we-keep-it.md
   - usage-mcp/server.py
+  - docs/admin-guide.md#backups
 ---
 
 # Teaching a course on the aLLManac
@@ -39,9 +41,25 @@ What you never do is send them to the Registrar's Office, and there is no LMS in
 
 - **The course TA agent.**  You build it, attach the syllabus and lab manual, share **Viewer** to `engr301-all`.  Twenty questions about the late policy answer themselves.
 - **Team-built agents as coursework.**  Each team gets Editor on their own agent (or creates it themselves — students can).  The assignment is the agent: instructions are graded prose, knowledge-file curation is graded research, and the iteration log is the lab notebook.
-- **Peer review via the marketplace.**  Teams share final agents to `engr301-all` as Viewer; classmates stress-test each other's work.  Nobody can publish an agent beyond the course from the chat window, you included, so the course-wide group is the widest stage there is.  To feature the best, share it to that group yourself and point the class at it.
+- **Peer review, course-wide.**  Teams share final agents to `engr301-all` as Viewer; classmates stress-test each other's work.  Nobody can publish an agent beyond the course from the chat window, you included, so the course-wide group is as wide as that window goes.  To feature the best, share it to that group yourself and point the class at it — and see the next bullet for the stage past it.
 - **Nominating the best.**  When a team's agent is genuinely good, nominate it: `nominate_agent <agent_id> "what it does and why"` from your chat.  A platform admin turns it into a template file — instructions, model, tools, knowledge by name, the students' names on it as authors — that any course can seed.  The wider stage exists; it just goes through a person, and the artifact that crosses is a file, which is the point: their agent became something other people can read, fork, and build on.
 - **Watching the ledger.**  Ask the **Almanac Usage** agent: "how's engr301 tracking this month?" — or the week-before-deadline favorite, "who hasn't started yet?"  Totals, per-student activity, and the model mix, scoped to exactly your course, in the same chat window.  (Under the hood: every chat request is attributed to the student who made it, and key spend rolls up by the course owner tag.)  Want raw dashboards instead?  Ask your admin for a read-only analytics login — it is one invitation link away.
 - **Term end.**  Ask the admin to sweep the course's keys.  Agents keep; keys retire.
+
+## Something got deleted
+
+The first thing to know is the part most people have backwards: **a backup is not an undo.**
+
+A restore puts a whole database back to the moment a copy was made.  Getting your deleted agent back that way means putting the entire course back to that moment, and every conversation your students have had since goes with it.  Nobody trades a week of a class's work for one agent, so "can you restore just this thing" is almost always answered no — and it will still be answered no once the scheduled backups exist.  Backups are for the day the machine dies, not the day you click the wrong button.
+
+What actually gets your work back is having kept it somewhere else.
+
+- **Knowledge files.**  You uploaded them from somewhere, so upload them again.  That is the entire recovery, and it is the reason to keep the originals in a folder you control rather than only inside an agent.
+- **An agent's instructions.**  An agent is a block of prose plus its files.  With the prose in hand, rebuilding is a few minutes of clicking — so keep a copy the way you keep a syllabus.  It is the same kind of document, and it is the part you actually wrote.
+- **Conversations.**  These are the ones with no second copy anywhere.  If a thread is worth keeping, copy it out while it is still there.
+
+If something is gone and it matters, **tell your admin the same day**, and name the thing and roughly when it went.  Whatever recovery is possible is bounded by how long any copy lives, and that clock started without you.
+
+An honest note on where this platform actually stands: [How long we keep it](your-data/how-long-we-keep-it.md) is the current account, and today it is thin — copies are made by hand, there is no off-box schedule yet, and no restore has been exercised end to end.  Until that changes, plan as though recovery is your job, because mostly it is.
 
 The almanac's rule is the farm's rule: everything gets written down, and the book stays on the shelf where the whole class can reach it.
