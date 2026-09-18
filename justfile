@@ -108,6 +108,7 @@ secrets:
     fill USAGE_MCP_TOKEN      "$(openssl rand -hex 32)"
     fill USAGE_DB_PASSWORD    "$(openssl rand -hex 16)"
     fill REGISTRAR_MCP_TOKEN  "$(openssl rand -hex 32)"
+    fill SBOM_TOKEN           "$(openssl rand -hex 24)"
     fill KC_ADMIN_PASSWORD    "$(openssl rand -hex 12)"
     fill KC_DB_PASSWORD       "$(openssl rand -hex 16)"
     # Fixed-value vars introduced after older .envs were created — appended if
@@ -124,8 +125,13 @@ secrets:
 # one run where the folder had nothing to say.  Every run after it layers.
 #
 # Bring the stack up (profiles come from COMPOSE_PROFILES in .env)
-up: _roster _fleet _site docs-build && usage-role bao-unseal
+up: _roster _fleet _site _sbom-dir docs-build && usage-role bao-unseal
     {{compose}} up -d --remove-orphans
+
+# The edge bind-mounts sbom/ — make sure it exists as OURS before compose
+# creates it as root's and the next `just sbom` can't replace latest/.
+_sbom-dir:
+    @mkdir -p sbom/latest sbom/archive
 
 # Build the human-readable site from apex/, which remains the RAG corpus too.
 # The output is a read-only bind in the edge container; there is no docs daemon.
@@ -207,8 +213,10 @@ nuke:
 pull: _fleet
     {{compose}} pull
 
-# Build local images (the edge Caddy, when that profile is on)
-build: _fleet
+# Build local images (registrar, usage-mcp, the edge Caddy when that profile
+# is on) — and then the SBOM, because what we just built is exactly the part
+# of the dependency tree no upstream pin describes.
+build: _fleet && sbom
     {{compose}} build
 
 # `secrets` here is the .env migration path: vars introduced by an upgrade get
@@ -480,52 +488,83 @@ ps:
     {{compose}} ps
     @test -f {{vllm_compose}} && {{vllm}} ps 2>/dev/null || true
 
-# Images already on this box scan from the daemon (fast, no pull); absent
-# ones stream from the registry WITHOUT touching the daemon (the vLLM image
-# is many GB — generate its SBOM on the GPU box, or budget the stream).
-# Rerun at pin-bump time; artifacts land in sbom/ (gitignored) + a tarball.
-# SBOMs (SPDX JSON) for every image, both stacks — to file with infosec
+# Every build owes infosec a fresh dependency tree.  Versions move under a
+# pin (the images we build here move on every build), so this is not a
+# tarball someone remembers to email — it is rewritten by `just build`, and
+# the edge serves sbom/latest/ at https://<CHAT_HOST>/sbom/ behind
+# SBOM_TOKEN, so the scanner's list holds one live URL per box.
+#
+# Only images ON THIS BOX are scanned (build runs after pull, so that is the
+# whole app stack; the multi-GB vLLM image counts on the GPU box, where it
+# already lives).  Absent ones are listed as skipped in index.json — a
+# missing entry is visible, never silently streamed from a registry mid-deploy.
+# sbom/latest/ is REPLACED by rename (the edge mounts sbom/, the parent, for
+# exactly the inode reason in design-walls.md), and each run also leaves a
+# dated tarball in sbom/archive/ (last 30 kept).
+#
+# SBOMs (SPDX + CycloneDX JSON) for every image on this box → sbom/latest/
 sbom:
     #!/usr/bin/env bash
     set -euo pipefail
     rev=$(git describe --always --dirty)
-    stamp=$(date -u +%Y-%m-%d)
-    outdir="sbom/${stamp}-${rev}"
-    mkdir -p "$outdir"
-    # The vLLM stack is site-local and optional — a box without it still
-    # owes infosec an SBOM for everything it DOES run:
+    now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    stamp=$(date -u +%Y%m%dT%H%M%SZ)
+    work="sbom/.build-$$"
+    rm -rf "$work"; mkdir -p "$work" sbom/archive
     images=$( (COMPOSE_PROFILES=edge,workbench {{compose}} config --images; \
                [ -f {{vllm_compose}} ] && {{vllm}} config --images || true) | sort -u )
-    {
-        echo "aLLManac SBOM manifest"
-        echo "generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)   git: ${rev}"
-        echo
-    } > "$outdir/MANIFEST.txt"
+    # syft runs as THIS user (plus the socket's group) so the output is ours
+    # to replace next build, not root's.
+    sockgid=$(stat -c %g /var/run/docker.sock)
+    entries=""; skipped=""
     for img in $images; do
         safe=$(echo "$img" | tr '/:@' '___')
-        if docker image inspect "$img" >/dev/null 2>&1; then
-            src="$img"; how="daemon"
-            digest=$(docker image inspect --format '{{{{if .RepoDigests}}{{{{index .RepoDigests 0}}{{{{end}}' "$img")
-        else
-            src="registry:$img"; how="registry"
-            digest="(digest recorded inside the SBOM)"
+        if ! docker image inspect "$img" >/dev/null 2>&1; then
+            echo "  skip (not on this box)  $img"
+            skipped="${skipped}${skipped:+,}\"$img\""
+            continue
         fi
-        echo "scanning [$how]  $img"
-        if docker run --rm \
-              -v /var/run/docker.sock:/var/run/docker.sock \
-              -v "$PWD/$outdir":/out \
-              {{syft}} scan "$src" -o spdx-json=/out/"$safe".spdx.json -q; then
-            echo "  $img  [$how]  $digest" >> "$outdir/MANIFEST.txt"
-        else
-            # e.g. the locally-built edge image on a box that never built it
-            echo "  $img  [SKIPPED — not local, not fetchable]" >> "$outdir/MANIFEST.txt"
-            echo "  ...skipped (not local, not fetchable)"
-        fi
+        id=$(docker image inspect --format '{{{{.Id}}' "$img")
+        digest=$(docker image inspect --format '{{{{if .RepoDigests}}{{{{index .RepoDigests 0}}{{{{end}}' "$img")
+        echo "scanning  $img"
+        docker run --rm --user "$(id -u):${sockgid}" -e HOME=/tmp \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD/$work":/out \
+            {{syft}} scan "$img" \
+              -o spdx-json=/out/"$safe".spdx.json \
+              -o cyclonedx-json=/out/"$safe".cdx.json -q
+        spdx_sha=$(sha256sum "$work/$safe.spdx.json" | cut -d' ' -f1)
+        cdx_sha=$(sha256sum "$work/$safe.cdx.json" | cut -d' ' -f1)
+        entries="${entries}${entries:+,}
+    {\"image\": \"$img\", \"image_id\": \"$id\", \"repo_digest\": \"${digest:-}\",
+     \"spdx\": \"$safe.spdx.json\", \"spdx_sha256\": \"$spdx_sha\",
+     \"cyclonedx\": \"$safe.cdx.json\", \"cyclonedx_sha256\": \"$cdx_sha\"}"
     done
-    tar czf "sbom/almanac-sbom-${stamp}-${rev}.tar.gz" -C sbom "${stamp}-${rev}"
+    channel="{{channel}}"
+    cat > "$work/index.json" <<JSON
+    {
+      "generator": "aLLManac just sbom",
+      "generated": "$now",
+      "git": "$rev",
+      "channel": "$channel",
+      "syft": "{{syft}}",
+      "formats": ["spdx-json", "cyclonedx-json"],
+      "images": [$entries
+      ],
+      "skipped": [$skipped]
+    }
+    JSON
+    chmod -R a+rX "$work"
+    # Replace by rename — a scanner mid-fetch sees the old set or the new
+    # set, never a half-written one.  The edge mounts sbom/ (the parent).
+    if [ -d sbom/latest ]; then mv sbom/latest "sbom/.old-$$"; fi
+    mv "$work" sbom/latest
+    rm -rf "sbom/.old-$$"
+    tar czf "sbom/archive/almanac-sbom-${stamp}-${rev}.tar.gz" -C sbom latest
+    ls -t sbom/archive/*.tar.gz 2>/dev/null | tail -n +31 | xargs -r rm -f
     echo
-    cat "$outdir/MANIFEST.txt"
-    echo "hand infosec: sbom/almanac-sbom-${stamp}-${rev}.tar.gz"
+    echo "sbom/latest: $(ls sbom/latest | grep -c spdx) images  (git ${rev}, ${now})"
+    echo "live at: https://${CHAT_HOST:-chat.localhost}/sbom/   (Authorization: Bearer \$SBOM_TOKEN)"
 
 # ---- Local inference (site-local: site/inference/vllm.compose.yml) -----------
 # Separate stack so the model stays loaded while the app stack

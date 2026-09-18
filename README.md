@@ -176,7 +176,7 @@ Then in `.env`: `OPENID_ISSUER=https://auth-aiclassroom.example.edu/realms/class
 | Keys work in a real coding harness | **Real** — opencode: `just workbench <key>` on the box, same config on laptops |
 | Faculty see their course's usage | **Real** — ask in chat: rollup, per-student activity, who-hasn't-started, roster-scoped to their course.  Raw dashboards stay one invite link away; the only wall left is per-team self-serve views *inside the LiteLLM UI* (Enterprise — admin guide has the table) |
 | SSO via campus identity | **Real** — Keycloak; Globus broker one toggle away |
-| SBOMs on file with infosec | **Real** — `just sbom`, SPDX per pinned image |
+| SBOMs on file with infosec | **Real** — every `just build` rewrites SPDX + CycloneDX per image, served live at `/sbom/` for the scanner |
 | Group *sync* from rosters | **Not here** — share-groups are clicks in the admin panel; roster sync stays the platform's job |
 | FOCUS/OpenChargeback billing export | **Not yet** — the owner tags are the hook it lands on |
 

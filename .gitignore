@@ -23,8 +23,9 @@ site/
 # is tracked; the generated HTML is rebuilt on each deployment.
 site-dist/
 
-# SBOM artifacts (just sbom) — generated per pin-set, handed to infosec,
-# too big and too derivative for git
+# SBOM artifacts — rewritten by every `just build` (sbom/latest/, served by
+# the edge at /sbom/) plus dated tarballs in sbom/archive/.  A render of the
+# images on the box; too big and too derivative for git
 sbom/
 
 # Agent worktrees (fleet sessions branch here; the branches are the record)
