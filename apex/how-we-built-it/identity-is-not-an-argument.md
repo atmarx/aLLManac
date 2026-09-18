@@ -14,6 +14,9 @@ tethered_to:
 
 # Why the chatbot never asks who you are
 
+!!! note "Being written"
+    This page is not finished.  The argument and the sources are drafted, and the prose is queued behind the pages instructors need first.  What it will cover is below; the short version is that the tools in this platform are never told who is asking by the model.  Identity is injected from the session the request already authenticated, so a prompt can choose a date range or a course, and can never choose whose data comes back.  [What we store](../your-data/what-we-store.md) covers the reader-facing half.
+
 <!-- SCAFFOLD.  Highest practical value of the first three — students are
      building agents with tools this term and this is the mistake they will
      make in week three.  Write it so it reaches them before they make it. -->

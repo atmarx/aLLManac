@@ -15,6 +15,9 @@ tethered_to:
 
 # How do you protect data you can't delete?
 
+!!! note "Being written"
+    This page is not finished.  The argument and the sources are drafted, and the prose is queued behind the pages instructors need first, and it also needs a citation pass over its external sources.  What it will cover is below; [How long we keep it](../your-data/how-long-we-keep-it.md) and [Asking about your data](../your-data/asking-about-your-data.md) already carry the reader-facing half of this subject, including the honest gap list.
+
 <!-- SCAFFOLD.  The literacy piece.  Carries the corrections that make the
      whole data-protection thread worth teaching.
 
