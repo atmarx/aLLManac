@@ -177,16 +177,22 @@ def reply(convo: str, after: int, timeout: int) -> tuple[str, str | None]:
 
 
 def reachable(model: str) -> str | None:
-    """Ask the gateway for one token on the model the guides use.
+    """Ask the gateway for a short completion on the model the guides use.
 
     Without this the whole run scores as "returned nothing," which is a real
     failure condition for a model and a lie about a stack whose inference
     backend is simply down.  Distinguishing the two is the entire point.
+
+    The cap is 64 rather than 1 because a reasoning model spends tokens
+    thinking before it emits any: `max_tokens: 1` comes back 400 *"Could not
+    finish the message because max_tokens or model output limit was
+    reached"*, and a probe that fails on a perfectly healthy model is worse
+    than no probe -- it refuses the run and blames the stack.
     """
     probe = (
         "import json,urllib.request,os\n"
         "req=urllib.request.Request('http://127.0.0.1:4000/v1/chat/completions',\n"
-        "  data=json.dumps({'model':%r,'max_tokens':1,\n"
+        "  data=json.dumps({'model':%r,'max_tokens':64,\n"
         "    'messages':[{'role':'user','content':'hi'}]}).encode(),\n"
         "  headers={'Content-Type':'application/json',\n"
         "           'Authorization':'Bearer '+os.environ['LITELLM_MASTER_KEY']})\n"
