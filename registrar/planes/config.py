@@ -74,7 +74,17 @@ DEFAULT_COURSE_BUDGET = float(os.environ.get("REGISTRAR_DEFAULT_COURSE_BUDGET", 
 #
 # NOTE THE DIRECTION, because this default is deliberately NOT the cautious
 # one.  Too small truncates a conversation sooner — degraded, still working.
-# Too large is a request-time error against a backend that cannot take it.
+#
+# Too large is worse than it first looks, and NOT reliably an error.  Some
+# backends reject an over-long prompt, which is loud and fine.  **Ollama —
+# what INFERENCE_BASE_URL points at by default — silently truncates the
+# FRONT of the prompt and answers anyway**, and the front of the prompt is
+# the system prompt.  A course agent quietly loses its instructions and its
+# boundary mid-conversation and keeps talking, with nothing in any log an
+# operator reads.  That is not a degraded answer, it is the guardrails
+# leaving and the fabrication the agent contract exists to prevent.  Measured
+# on xdocker03 2026-09-21: the endpoint serves 32768 while the model itself
+# allows 262144, so the ceiling is the SERVER's, not the model's.
 # At 128k this default is larger than many self-hosted models serve, so **a
 # course whose models resolve to a small local endpoint must set
 # `context_tokens:` in its own record** — the err-low rule now lives per

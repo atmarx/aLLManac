@@ -640,6 +640,20 @@ Three things to know before you touch it:
 - **A fallback naming a model that is not in `model_list` is accepted without complaint.**  The tracked `litellm/config.yaml` ships `almanac-office` commented out and the fallback still names it; LiteLLM boots clean and says nothing.  That is convenient here and is also a trap — a typo in the model name fails exactly as quietly.
 - **The canned-sentence warning does not reach this one.**  The frontier-model wall says a scripted reply makes small models worse, because they pattern-match on the most distinctive string *in the prompt*.  This string is at the gateway, fires only after a model already refused, and is never in any prompt, so there is nothing to reach for.
 
+## A context window larger than the endpoint serves deletes the system prompt *(2026-09-21)*
+
+`maxContextTokens` is how much conversation LibreChat will assemble before it trims.  Set it above what the endpoint actually serves and the backend has to shed the excess — and **Ollama, which `INFERENCE_BASE_URL` points at by default, sheds it from the FRONT and answers anyway.**  The front of the prompt is the system prompt.
+
+So the failure is not a truncated conversation.  It is an agent that **loses its instructions, its vocabulary and its boundary mid-session and keeps talking**, with nothing in any log an operator reads and no error anywhere.  A course agent shedding the classroom posture, or a guide shedding the rules that stop it inventing things, looks from the outside exactly like a model that suddenly got worse.  **It is a fabrication vector with a config number behind it**, and it manufactures precisely the failure [the agent contract](agent-contract.md) is written to prevent.
+
+**Set the number from what the endpoint SERVES, never from what the model supports.**  On Ollama those differ silently and by a lot: measured on xdocker03, the endpoint serves **32768** while the loaded model allows **262144** — the ceiling is the *server's*, not the model's.  `/api/ps` on a loaded model is the honest read.  `/api/show` reports what the architecture allows, which is the number that misleads, and it is the one you reach for first.  Leave headroom for the answer too: `num_ctx` covers prompt *and* completion, so the input bound sits below the served window (24000 against 32768 there).
+
+*(The 32768 and the 262144 are measured.  Ollama's front-truncation is its documented behaviour and was not reproduced here — driving a >32k request through the shared endpoint would have evicted another project's resident model.)*
+
+**Why this one belongs with the inert-change family rather than beside it:** every other door in that table is a change that failed to arrive.  This is the opposite — a change that arrives, works, and removes something *else* that was already there, quietly, at a layer nobody is watching.  The shared property is the one that matters: **the symptom is an absence, and an absence is indistinguishable from things being fine.**
+
+---
+
 ## An unreadable value has a direction, and it is not always "use the default" *(2026-09-21)*
 
 Three places in the registrar now decide what to do with a value that is present and cannot be parsed, and they do **three different things**.  They look inconsistent and are not:

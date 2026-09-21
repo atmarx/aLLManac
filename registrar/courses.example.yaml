@@ -47,8 +47,11 @@ courses:
     # SET THIS if your models resolve to a self-hosted endpoint serving less
     # than that, which many do.  The default is a cost cap chosen for the
     # large hosted models; it is NOT a safe ceiling for a small local one.
-    # Too small trims a conversation sooner (fine); too large asks the backend
-    # for a window it may refuse, which fails the request outright (not fine).
+    # Too small trims a conversation sooner (fine).  Too large is QUIET and
+    # worse: Ollama drops the FRONT of an over-long prompt and answers anyway,
+    # and the front is the agent's own instructions.  Set this from what your
+    # endpoint SERVES, not from what the model supports — on Ollama those
+    # differ silently (`/api/ps` on a loaded model is the honest read).
     # The registrar can't choose for you — `almanac-chat` is an alias, and
     # what it resolves to is whatever INFERENCE_MODEL names on this box.
     # context_tokens: 8000

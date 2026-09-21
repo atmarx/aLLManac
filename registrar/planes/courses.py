@@ -318,12 +318,15 @@ def validate_courses() -> tuple[list[str], list[str]]:
                     warnings.append(f"{where}.context_tokens is {ctx} — very small; "
                                     f"conversations will be trimmed almost at once")
                 elif ctx > 200000:
-                    # Too HIGH is the dangerous direction: LibreChat will send
-                    # a window the backend may refuse, which is a request-time
-                    # error rather than a quietly shorter conversation.
+                    # Too HIGH is the dangerous direction, and the danger is
+                    # that it is QUIET.  Ollama truncates the front of an
+                    # over-long prompt and answers anyway — and the front is
+                    # the system prompt.
                     warnings.append(f"{where}.context_tokens is {ctx} — larger than "
-                                    f"anything we serve; if the backend won't take "
-                                    f"it, requests fail rather than truncate")
+                                    f"anything we serve.  If the endpoint serves "
+                                    f"less, the front of the prompt (the agent's "
+                                    f"instructions) is silently dropped, not "
+                                    f"refused")
 
         budgets = c.get("budgets") or {}
         if not isinstance(budgets, dict):
