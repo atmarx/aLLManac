@@ -52,6 +52,8 @@ That last part is the whole reason it beats an email.  A report is only actionab
 
 It will not offer until it has genuinely looked — an offer to escalate is not allowed to stand in for an answer it could have given.  So if a guide answers you properly and *then* asks whether to pass something on, that ordering is deliberate.
 
+**Nothing will chase you, and that is deliberate.**  There is no email, no ticket number in your inbox, no second notification system to ignore — ask the guide for **your reports** any time and it tells you where each one got to: still open, being looked at, or closed with what was done about it.  Asking is the channel.
+
 If you would rather not use the chat, send it to whoever pointed you at this platform.
 
 ## What we already know
