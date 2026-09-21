@@ -59,6 +59,39 @@ model_list:
   #     api_base: os.environ/OFFICE_BASE_URL
   #     api_key: os.environ/OFFICE_API_KEY
 
+  # ---- almanac-declined: what a filtered prompt gets instead of a stack trace
+  # Not a model.  `mock_response` short-circuits inside LiteLLM before any
+  # dispatch, so this deployment never calls anything and cannot spend.
+  #
+  # WHY IT EXISTS.  A hosted model with a content filter in front of it
+  # refuses the classic injection upstream, and LiteLLM passes the provider's
+  # exception through verbatim.  What landed in a student's chat was
+  # `litellm.ContentPolicyViolationError ... Azure OpenAI's content management
+  # policy` with a Microsoft support link — a raw backend disclosure, handed
+  # to the one cohort whose assignment is taking this apart, in week one
+  # (measured 2026-09-21, eval case X1 on all five guides).
+  #
+  # WHY NOT FALL BACK TO THE LOCAL MODEL.  Because that is the same prompt,
+  # re-sent to the weakest thing we run.  `gemma3:12b` JAILBROKE on this exact
+  # case and `gpt-oss-20b` confabulated an entire storage architecture
+  # (docs/design-walls.md, "The guide agents need a small *frontier* model").
+  # A model fallback would turn "the filter caught it" into "trip the filter
+  # and you get routed to the model that folds" — a bypass, on demand,
+  # reachable by typing the one line the filter is watching for.  The decline
+  # has to come from somewhere that cannot be talked to.
+  #
+  # The wording is the pedagogy lane's (docs/agent-contract.md): light
+  # decline, no backend named, hand off to the Security Guide.  Note this is
+  # a canned sentence and the design wall warns that canned sentences misfire
+  # — but that wall is about a script INSIDE the prompt, which a model
+  # pattern-matches on.  This one is at the gateway, after the model already
+  # refused, so it is never in any prompt and cannot be reached for.
+  - model_name: almanac-declined
+    litellm_params:
+      model: openai/almanac-declined
+      api_key: "unused — mock_response never dispatches"
+      mock_response: "I can't help with that one.  If you're curious how the guardrails here work, the Security Guide is the right place to ask."
+
   # More models = more blocks, HERE, in git.  Do not add them in the admin UI:
   # STORE_MODEL_IN_DB now defaults to False, so anything added there is not
   # persisted at all — and while it was True, what it persisted was ENCRYPTED
@@ -90,3 +123,12 @@ litellm_settings:
   drop_params: true
   num_retries: 2
   request_timeout: 600
+  # A content-policy refusal is the ONE error class a person should never
+  # see raw: it is the provider's exception, it names the provider, and it
+  # fires on exactly the prompt someone typed to see what happens.  Route it
+  # to the mock decline above — never to another model (see almanac-declined
+  # for why that is a bypass, not a fix).  Verified against the live Azure
+  # deployment 2026-09-21: X1 in, decline out, no upstream call.
+  #
+  # One entry per filtered model.  A model with no entry still leaks.
+  content_policy_fallbacks: [{"almanac-office": ["almanac-declined"]}]
