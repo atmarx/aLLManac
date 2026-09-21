@@ -25,9 +25,11 @@ Your students' own walkthrough is the [course guide](user-guide.md) — worth re
 3. **Keys**: hand the admin your roster; keys are minted with `owner=<your course>` and a per-student budget (the default is modest and adjustable).  Distribute via individual LMS messages.
 4. **Verify one student end to end** — login, open a shared agent, paste a key into opencode — before the assignment goes out.
 
-**If you want a key of your own, enrol yourself as a student.**  Keys are minted per student per course, so asking the chat for one as the instructor gets you a polite refusal and a pointer at the operator — which is a shell command on the box, not something you can do from the room.  Putting your own address in `students:` alongside `instructors:` is the whole fix, it costs one line, and your demo spend then lands in your course under your own name instead of nowhere.  The same goes for a TA who needs to test the thing they are supporting.
+**If you want a key of your own, just ask for one in the chat.**  Ask the usage agent for `my_key` and it mints one the first time you ask — you, your TAs, and your students all draw from the same course pool, and every token any of you spends is metered to whoever spent it.  Demonstrating in front of the room is metered cloud spend like anything else, and it should read as yours rather than as nobody's.
 
-This matters more than it sounds for a course where **everyone** is learning — a staff cohort, a workshop, a reading group.  There the honest roster is one instructor and everybody else a student, including the people who would normally be senior enough to be a TA.  A title in the roster is not seniority.  It decides who can change the roster and who can get a key.
+**Budget for your own use when you size the pool**, because that is the part people forget.  Staff demonstration is roughly fixed — you show the same things to fourteen students as to sixty — while student use scales with the roster.  A pool sized only for the students starves the teaching.
+
+One thing the roster does *not* decide is seniority.  It answers two separate questions: **who may change the roster** (instructors and TAs) and **who may hold a key** (everyone it names).  Those are unrelated, so put people where their job is rather than where their rank is — and for a course where *everybody* is learning, a staff cohort or a workshop or a reading group, the honest answer is usually one instructor and everyone else a student.
 
 ## Adding a student to your class after it starts
 
