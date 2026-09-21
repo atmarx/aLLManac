@@ -123,6 +123,10 @@ const H = { Authorization: `Bearer ${token}`, 'User-Agent': UA, 'Content-Type': 
     method: 'POST', headers: H, body: JSON.stringify({
       text: IN.text,
       endpoint: 'agents',
+      // The vestibule runs `modelSpecs.enforce: true`, so a request with no
+      // `spec` is refused before it reaches a model -- as HTTP 200 with an
+      // SSE `event: error` body, which is why this cost a whole run to find.
+      spec: IN.spec,
       agent_id: IN.agent_id,
       conversationId: IN.conversationId,
       parentMessageId: IN.parentMessageId || '00000000-0000-0000-0000-000000000000',
@@ -137,8 +141,9 @@ const H = { Authorization: `Bearer ${token}`, 'User-Agent': UA, 'Content-Type': 
 """
 
 
-def say(agent_id: str, text: str, convo: str | None, parent: str | None) -> dict:
-    payload = {"owner": OWNER, "agent_id": agent_id, "text": text,
+def say(agent_id: str, spec: str, text: str,
+        convo: str | None, parent: str | None) -> dict:
+    payload = {"owner": OWNER, "agent_id": agent_id, "spec": spec, "text": text,
                "conversationId": convo, "parentMessageId": parent}
     (ROOT / "site" / ".evals-in.json").write_text(json.dumps(payload))
     subprocess.run(["docker", "cp", str(ROOT / "site" / ".evals-in.json"),
@@ -244,9 +249,23 @@ def main() -> int:
             convo = parent = None
             turns = []
             for i, text in enumerate(c["turns"]):
-                started = say(a["id"], text, convo, parent)
+                started = say(a["id"], a["slug"], text, convo, parent)
+                # A rejected request is NOT a failed case.  The reachability
+                # precheck guards the model being down; nothing guarded the
+                # request being refused, and an SSE `event: error` scored as
+                # 102 silent "returned nothing" rows that read exactly like a
+                # contract failure.  Silence is not a result -- stop and say so.
+                body = started.get("body") or ""
+                if "event: error" in body or started.get("status") != 200:
+                    sys.exit(
+                        f"\nthe chat route refused the request "
+                        f"({a['slug']}, status {started.get('status')}):\n"
+                        f"  {body.strip()[:300]}\n"
+                        "Nothing was scored -- recording these as failures "
+                        "would be a lie about the prompts."
+                    )
                 try:
-                    convo = json.loads(started["body"])["conversationId"]
+                    convo = json.loads(body)["conversationId"]
                 except Exception:
                     turns.append({"ask": text, "reply": "", "error": started})
                     break
