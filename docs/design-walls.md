@@ -587,6 +587,20 @@ Problem reports are filed from the **vestibule**, and the registrar is wired int
 
 ---
 
+## A content-filter fallback must not be another model *(2026-09-21)*
+
+A hosted model with a content filter in front of it refuses the classic injection upstream, and LiteLLM passes the provider's exception through to the caller verbatim.  What landed in the chat was `litellm.ContentPolicyViolationError ... Azure OpenAI's content management policy` with a Microsoft support link — measured on **all five guides** as eval case X1, which is the first line this cohort will type.  Two things are wrong with it: it is a stack trace where a decline belongs, and it names the backend to the one audience whose assignment is taking this apart.
+
+**The error text names its own fix, and the obvious wiring of that fix is a bypass.**  `content_policy_fallbacks` re-sends *the same prompt* to the fallback model.  Falling back to the local model means X1 — the exact case `gemma3:12b` jailbroke on and `gpt-oss-20b` answered by inventing a storage architecture ([the frontier-model wall](#the-guide-agents-need-a-small-frontier-model-not-a-small-local-one-measured-2026-09-12)) — gets routed *to the model measured to fold*, on demand, by typing the one line the filter is watching for.  That converts a cosmetic leak into a reachable jailbreak route.  **The decline has to come from something that cannot be talked to.**
+
+So the fallback target is `almanac-declined`, a `mock_response` deployment: LiteLLM short-circuits on `mock_response` before any dispatch, so it never calls a model, never sees a prompt, cannot spend, and cannot be jailbroken.  Verified against the live Azure deployment — X1 in, decline out, no upstream call, and normal traffic still reaches the hosted model.
+
+Three things to know before you touch it:
+
+- **One entry per filtered model.**  `content_policy_fallbacks` is a list of single-key maps.  A model with no entry still leaks, silently, and the symptom only appears when someone trips the filter.
+- **A fallback naming a model that is not in `model_list` is accepted without complaint.**  The tracked `litellm/config.yaml` ships `almanac-office` commented out and the fallback still names it; LiteLLM boots clean and says nothing.  That is convenient here and is also a trap — a typo in the model name fails exactly as quietly.
+- **The canned-sentence warning does not reach this one.**  The frontier-model wall says a scripted reply makes small models worse, because they pattern-match on the most distinctive string *in the prompt*.  This string is at the gateway, fires only after a model already refused, and is never in any prompt, so there is nothing to reach for.
+
 ## Structure decisions (settled — reopen only with cause)
 
 - **The Almanac consumes inference; it does not manage it** *(ruled 2026-09-12)*.  It is given a model and it uses that model — nothing more, nothing less.  Which weights exist, who approved them, when they load, and what hardware they sit on are decisions on the other side of `INFERENCE_BASE_URL`, and at a real institution they belong to a different team with a different change process.  The structure already enforces this and should keep doing so: `site/inference/` is gitignored, only an *example* vLLM stack is tracked, and every `just vllm-*` recipe is guarded by `_vllm-here`, which tells a box with no GPU that having no local inference is *a supported state, not a broken one*.  The house rig may co-locate a runtime for convenience; the platform must never require one, and must never grow a verb that pulls, evicts, or selects a served model.  The two carve-outs are narrow and stay narrow: `just embed-stage` materialises a model the platform *pins for its own machinery* (`EMBEDDINGS_MODEL` in `compose.yml` — it picks nothing, it only fetches what was already chosen), and `litellm/config.yaml` names models to *route to*, which is the handing-over, not the choosing.
