@@ -41,6 +41,15 @@ courses:
       key_fuse: 5
       advisory_weekly: 2
     models: [almanac-chat]
+    # How large one conversation may grow before LibreChat trims it.  Optional
+    # — omit it and every course gets REGISTRAR_DEFAULT_CONTEXT_TOKENS (28000),
+    # which is what these instances already ran, so adding this field changed
+    # nothing.  Set it per course when you KNOW what `models:` resolves to
+    # here: the registrar can't work that out, because almanac-chat is an
+    # alias pointing at whatever INFERENCE_MODEL names on this deployment.
+    # Err low.  Too small trims a conversation sooner; too large asks the
+    # backend for a window it may refuse, which fails the request outright.
+    # context_tokens: 8000
     group: ""            # globus backend (Phase 2): the managed group's UUID
     students:
       - amaya@example.edu

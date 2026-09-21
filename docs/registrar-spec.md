@@ -259,6 +259,20 @@ Nominations live in `registrar/nominations.yaml` beside the course records — s
 
 ---
 
+## The context window is rendered, not inherited *(2026-09-21)*
+
+Every course instance renders `maxContextTokens` into its `endpoints.custom` block.  It did not, until now, and the absence was invisible: LibreChat falls back to its own default for a model it does not recognise — around 28k on our pin — so courses got a number nobody chose, out of a dependency, that moves on a version bump.  That is a floating value wearing the costume of a default, and this repo pins those.
+
+**It is per course because the right answer is per model, and the registrar is the only part of the system that knows which models a course gets** — `models:` is in the course record.  The flagship's window can't work that way and is correctly `site/`: that config is generic, a fresh box serves whatever `INFERENCE_MODEL` points at, and a blanket number there would hand a backend a window it may not serve.
+
+**It is deliberately NOT a model → window table.**  `almanac-chat` is an *alias*: `litellm/config.yaml` maps it to `os.environ/INFERENCE_MODEL`, so the same name means a different model on every deployment.  A table keyed on it would be the registrar claiming knowledge about a model chosen on the far side of `INFERENCE_BASE_URL` — the seam the platform is not allowed to cross ([design-walls.md](design-walls.md), "The Almanac consumes inference; it does not manage it").  The operator knows what their endpoint serves; the course record is where they say so.
+
+**Err low, and the asymmetry is the reason.**  Too small trims a conversation sooner — degraded, still working.  Too large asks the backend for a window it may refuse, which is a request-time error rather than a quietly shorter chat, and it lands hardest on the smallest boxes, which are somebody's first install.  `validate` warns below 4k and above 200k, and refuses zero.
+
+The default (`REGISTRAR_DEFAULT_CONTEXT_TOKENS`, 28000) matches what courses already ran, so shipping this changed no behaviour — **the deliverable is the knob, not a better number.**  What the number *should* be once a course lists a cloud model is a budget question, not a render one: an uncapped window is the fastest way to drain a pool that was sized when the model was free.  That call is the operator's.
+
+---
+
 ## Reports — the complaint that carries its own evidence *(2026-09-21)*
 
 `report_problem` files "this didn't work" from the chat: what broke, and — when the report is about an answer a guide gave — the question that went wrong, the answer that came back, and the knowledge files it cited.  That second half is the entire justification for it being a tool rather than an email address.  A complaint on its own is a mood.  The same complaint with the exchange attached is a **retrieval trace**, which is a thing someone can take to the corpus and act on.

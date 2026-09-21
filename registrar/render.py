@@ -22,7 +22,7 @@ import tempfile
 # The one thing render shares with the reconcile planes.  planes.config
 # holds no credential and calls nothing — importing it here is a constant
 # lookup, not a plane reaching across the seam.
-from planes.config import DEFAULT_CAPABILITIES
+from planes.config import DEFAULT_CAPABILITIES, DEFAULT_CONTEXT_TOKENS
 
 OUT_FLEET = os.environ.get("OUT_FLEET", "/out/fleet")
 OUT_USAGE = os.environ.get("OUT_USAGE", "/out/usage-mcp")
@@ -195,6 +195,8 @@ def render_course_env(slug: str, course: dict, models: list[str],
 def render_course_librechat(slug: str, course: dict, models: list[str]) -> None:
     name = course["name"]
     model_list = ", ".join(f'"{m}"' for m in models)
+    # .get, so a record loaded by an older registrar still renders.
+    context_tokens = int(course.get("context_tokens") or DEFAULT_CONTEXT_TOKENS)
     # .get with a default (not `or`) — a course record's explicit empty list
     # means "none," and must survive to the render.  The default comes from
     # planes.config, which is the source of truth; this used to be a
@@ -284,6 +286,11 @@ endpoints:
       titleConvo: true
       titleModel: "{models[0]}"
       modelDisplayLabel: "{name}"
+      # EXPLICIT on purpose.  Omitted, LibreChat falls back to its own
+      # default for a model it doesn't recognise — an undocumented number
+      # that moves on a version bump.  Per course because the right answer
+      # is per model, and `models:` is in the course record.
+      maxContextTokens: {context_tokens}
 
   # `actions` is absent unless the course record opts in (capabilities:) —
   # arbitrary-URL tool calls are the one path around the gateway; see the

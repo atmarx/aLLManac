@@ -52,6 +52,28 @@ MAX_FUSE = float(os.environ.get("REGISTRAR_MAX_FUSE", "25"))
 # and set this from the ledger rather than from taste.
 MIN_FUSE = float(os.environ.get("REGISTRAR_MIN_FUSE", "1"))
 DEFAULT_COURSE_BUDGET = float(os.environ.get("REGISTRAR_DEFAULT_COURSE_BUDGET", "1000"))
+
+# The context window rendered into every course instance.  It exists to be
+# EXPLICIT, not to be clever: without it LibreChat falls back to its own
+# default for a model it does not recognise (~28k measured on our pin), which
+# is an undocumented number that can move on a version bump — the same shape
+# as a floating image tag.  28000 matches what courses already get, so
+# rendering it changes no behaviour today and makes the knob visible.
+#
+# Deliberately NOT a model -> window table.  `almanac-chat` is an ALIAS
+# resolved per deployment (`litellm/config.yaml` maps it to
+# os.environ/INFERENCE_MODEL), so the registrar cannot know the real window
+# from the name, and a table keyed on it would be this service claiming
+# knowledge about a model chosen on the far side of INFERENCE_BASE_URL.
+# That is the seam the platform is not allowed to cross (design-walls.md,
+# "The Almanac consumes inference; it does not manage it").  The operator
+# knows what their endpoint serves; a course record can say so.
+#
+# Err LOW when unsure: too small truncates a conversation sooner (degraded,
+# still working), too large is a request-time error against a backend that
+# cannot take it (an outage, and worst on the smallest boxes).
+DEFAULT_CONTEXT_TOKENS = int(
+    os.environ.get("REGISTRAR_DEFAULT_CONTEXT_TOKENS", "28000"))
 BASE_MODELS = [
     model.strip()
     for model in os.environ.get("REGISTRAR_BASE_MODELS", "almanac-chat").split(",")

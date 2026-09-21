@@ -11,6 +11,7 @@ import tempfile
 import yaml
 
 from .config import (
+    DEFAULT_CONTEXT_TOKENS,
     BASE_MODELS,
     COURSES_PATH,
     DEFAULT_CAPABILITIES,
@@ -81,6 +82,21 @@ def load_raw_courses() -> dict:
     return raw
 
 
+def _int_or(v, default: int) -> int:
+    """Loading is best-effort on a field's TYPE; `validate_courses` is what
+    reports a bad one.  A garbage value must not turn `just course-check`
+    into a traceback — the operator needs the sentence that names the course
+    and the key, which validate already prints, and a crash on the way to
+    printing it is how they lose it.
+    """
+    if v is None:
+        return default
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return default
+
+
 def load_courses() -> dict:
     raw = load_raw_courses()
     out = {
@@ -107,6 +123,11 @@ def load_courses() -> dict:
             "college": (str(c.get("college")).strip().lower()
                         if c.get("college") else None),
             "models": list(c.get("models") or BASE_MODELS),
+            # What one conversation may grow to before LibreChat trims it.
+            # Per course because the answer is per MODEL, and only the
+            # operator knows what `models:` actually resolves to here.
+            "context_tokens": _int_or(c.get("context_tokens"),
+                                      DEFAULT_CONTEXT_TOKENS),
             # Agent capabilities: `actions` (arbitrary-URL tool calls) is
             # deliberately NOT in the default — it's the one path around the
             # gateway (spec: "The floor").  Enable per course, eyes open.
@@ -254,6 +275,27 @@ def validate_courses() -> tuple[list[str], list[str]]:
             warnings.append(
                 f"{where}: also listed as students — {', '.join(both)}.  Staff are "
                 "skipped by the roster tools, so these get no student key")
+
+        if c.get("context_tokens") is not None:
+            try:
+                ctx = int(c["context_tokens"])
+            except (TypeError, ValueError):
+                errors.append(f"{where}.context_tokens: {c['context_tokens']!r} "
+                              f"isn't a whole number of tokens")
+            else:
+                if ctx <= 0:
+                    errors.append(f"{where}.context_tokens: {ctx} — a course with "
+                                  f"no context window cannot hold a conversation")
+                elif ctx < 4000:
+                    warnings.append(f"{where}.context_tokens is {ctx} — very small; "
+                                    f"conversations will be trimmed almost at once")
+                elif ctx > 200000:
+                    # Too HIGH is the dangerous direction: LibreChat will send
+                    # a window the backend may refuse, which is a request-time
+                    # error rather than a quietly shorter conversation.
+                    warnings.append(f"{where}.context_tokens is {ctx} — larger than "
+                                    f"anything we serve; if the backend won't take "
+                                    f"it, requests fail rather than truncate")
 
         budgets = c.get("budgets") or {}
         if not isinstance(budgets, dict):
