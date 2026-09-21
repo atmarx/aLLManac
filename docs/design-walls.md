@@ -430,7 +430,9 @@ It is the `config-refresh` family one level higher.  That guard exists because a
 
 **The verb is `course_admin.py render`** — re-renders every course from the templates, reusing the escrowed service key and the live OIDC client secret rather than minting anything, and `render_course_env` is fill-preserving so the pinned per-instance secrets (`CREDS_KEY` above all) survive.  Then `just course-up` to recreate and reload the edge.  A course with no escrowed key is skipped with a message, not half-rendered.
 
-So: **after any change to `registrar/render.py`, a deploy is not enough.**  Until the pipeline learns this, the two commands are the deploy.
+So: **after any change to `registrar/render.py`, a deploy is not enough.**  The two commands are the rest of the deploy — `just render` is both of them.
+
+**The deploy now catches it (`just render-check`, 2026-09-20).**  It runs dead last in `deploy`, renders every course into memory, diffs against the fleet volume and goes red naming the stale files.  It reads no escrow and calls no Keycloak — the OIDC client secret and service key come out of the `fleet/<slug>.env` it is checking — so it changes nothing and is safe mid-deploy.  **It reports and never repairs**, ruled deliberately: recreating a course instance during a routine deploy is a bigger surprise than a red pipeline, and this is a class of bug you want told to you rather than silently fixed.  A course record with no render yet is listed, not red.  It sits after the second `bao-unseal` on purpose — a guard that aborts the deploy ahead of that one leaves the escrow sealed, which is worse than the drift it was reporting.
 
 ## Verifying on the box without moving a token
 

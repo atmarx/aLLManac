@@ -4,6 +4,7 @@
                                   [--college X] [--ta EMAIL]...
     python course_admin.py reconcile <slug>     re-run everything, idempotent
     python course_admin.py render               re-render all files (template bumps)
+    python course_admin.py render --check       report render drift, change nothing
     python course_admin.py validate             check courses.yaml, touch nothing
     python course_admin.py mint <slug> <email> [--budget N]   mint + escrow, prints no key
     python course_admin.py show-key <slug> <email>   break-glass escrow read (audited)
@@ -75,6 +76,58 @@ def _preflight() -> int:
     return 1 if errors else 0
 
 
+def _render_check(courses: dict) -> int:
+    """Read-only: render every course into memory and diff against the volume.
+
+    The gap this closes: `just deploy` builds the registrar image, so a
+    changed render.py is sitting IN the container and inert — fleet/ still
+    holds the old render and compose recreates nothing, because from its side
+    nothing changed.  A Secure-cookie fix landed on the flagship and silently
+    skipped every course panel exactly that way (2026-09-18).  It is
+    config-refresh one level up: the source is current and the ARTIFACT is not.
+
+    It reports and never repairs.  Recreating a course instance in the middle
+    of a routine deploy is a bigger surprise than a red pipeline, and this
+    class of bug is one you want told to you.
+
+    The two pass-through credentials come from the render being checked
+    (fleet/<slug>.env), never from Keycloak or escrow — so the guard is safe
+    to run mid-deploy and can never be the thing that changed the box.
+    """
+    unrendered = []
+    render.begin_dry_run()
+    try:
+        for slug in sorted(courses["courses"]):
+            secret, key = render.rendered_credentials(slug)
+            if not secret or not key:
+                # No render yet — that's a course awaiting `just course`, not
+                # drift.  Reported, not red: chem101 sitting in courses.yaml
+                # unprovisioned must not fail every deploy.
+                unrendered.append(slug)
+                continue
+            render.render_course(courses, slug, oidc_secret=secret,
+                                 service_key=key)
+        render.render_fleet(courses)
+        render.render_roster(courses)
+    finally:
+        drift = render.end_dry_run()
+
+    for slug in unrendered:
+        print(f"  unrendered  {slug} — no fleet/{slug}.env (run: just course ...)")
+    for path, how in drift:
+        print(f"  {how:<10}  {path}")
+
+    checked = len(courses["courses"]) - len(unrendered)
+    if drift:
+        print(f"\nrender-check — {len(drift)} file(s) STALE on the fleet volume.")
+        print("The registrar image is current and the render is not.  On the box:")
+        print("  just render")
+        return 1
+    tail = f" ({len(unrendered)} unrendered)" if unrendered else ""
+    print(f"render-check — {checked} course(s), every rendered file current{tail}")
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(prog="course_admin")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -91,7 +144,10 @@ def main() -> int:
     r = sub.add_parser("reconcile", help="re-run provisioning + enroll listed students")
     r.add_argument("slug")
 
-    sub.add_parser("render", help="re-render fleet + roster files for all courses")
+    rr = sub.add_parser("render",
+                        help="re-render fleet + roster files for all courses")
+    rr.add_argument("--check", action="store_true",
+                    help="report render drift and change NOTHING (exit 1 if stale)")
 
     sub.add_parser("validate", help="check courses.yaml and change nothing")
 
@@ -122,7 +178,8 @@ def main() -> int:
               f"{len(warnings)} warning(s).")
         return 1 if errors else 0
 
-    if args.cmd in ("create", "reconcile", "render") and _preflight():
+    if (args.cmd in ("create", "reconcile", "render")
+            and not getattr(args, "check", False) and _preflight()):
         return 1
 
     if args.cmd == "create":
@@ -149,6 +206,8 @@ def main() -> int:
 
     if args.cmd == "render":
         courses = reconcile.load_courses()
+        if args.check:
+            return _render_check(courses)
         # env/librechat/vhost renders need the two live credentials — reuse
         # what's escrowed/issued rather than re-minting:
         async def _rerender():

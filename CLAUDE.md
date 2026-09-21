@@ -23,7 +23,7 @@ That file is a list of **walls** — questions already answered the expensive wa
 - **`just`** — `dotenv-load` snapshots `.env` at invocation start, and it dedents recipe bodies (heredocs must stay indented)
 - **Keycloak realm import** — it runs every boot and skips only realms that already exist, so renaming a realm file mints a second realm on a live box
 - **Mounts** — never bind-mount a single file that gets rewritten; OpenBao rafts into `/openbao/file` or crash-loops
-- **Changing `registrar/render.py`** — `just deploy` does not re-render the fleet, so the change is inert until `course_admin.py render` + `just course-up`
+- **Changing `registrar/render.py`** — `just deploy` does not re-render the fleet, so the change is inert until `just render`; `just render-check` is the guard that goes red when you owe it a run
 - **Verifying on the box** — the prod-probe pattern, so no credential moves
 - **Orchestration** — compose now, k3s short-term, inference fleet first
 

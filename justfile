@@ -242,8 +242,22 @@ build: _fleet && sbom
 # outage.  Without the re-unseal, an openbao config change deploys green and
 # leaves the escrow sealed until a human notices the registrar can't mint.
 #
+# render-check runs DEAD LAST, after egress-check, and it can fail the deploy.
+# It is config-refresh one level up: config-refresh catches a changed FILE that
+# a running process never re-read; render-check catches a changed TEMPLATE that
+# never reached the file.  `deploy` builds the registrar image, so a new
+# render.py is IN the container and inert — fleet/ still holds the old render
+# and compose recreates nothing.  A Secure-cookie fix landed on the flagship
+# and silently skipped every course panel exactly this way (2026-09-18).
+#
+# Last on purpose, for two reasons.  A stale render doesn't make the box
+# unhealthy — it makes it not-what-you-shipped — so it must not rob you of
+# smoke and egress-check output on its way to red.  And it must sit after the
+# second bao-unseal: a guard that aborts the deploy before that one leaves the
+# escrow sealed, which is a worse outcome than the drift it was reporting.
+#
 # What CI runs on the box: images, build, .env, restart, re-read config, verify
-deploy: channel pull build secrets up config-refresh bao-unseal smoke egress-check
+deploy: channel pull build secrets up config-refresh bao-unseal smoke egress-check render-check
 
 # The gap this closes: `docker compose up` recreates on a changed DEFINITION,
 # never on changed bind-mount CONTENTS.  Directory mounts got the new file into
@@ -704,10 +718,29 @@ course-up:
       && {{compose}} exec -T edge caddy reload --config /etc/caddy/Caddyfile </dev/null \
       && echo "edge reloaded" || echo "(edge not running — vhosts load when it starts)"
 
+# Is the fleet running the templates we shipped?  Renders every course into
+# MEMORY and diffs against the fleet volume — changes nothing, reads no
+# escrow, calls no Keycloak (the two pass-through credentials come out of the
+# render being checked), so it is safe in the middle of a deploy.
+#
+# It reports and never repairs, deliberately: recreating a course instance
+# during a routine deploy is a bigger surprise than a red pipeline, and this
+# is a class of bug you want told to you.  Red means run `just render`.
+#
+# A course in courses.yaml with no render yet is listed, not red — an
+# unprovisioned record must not fail every deploy on the box.
+#
+# Report (never repair) course renders the deployed templates would change
+render-check:
+    {{compose}} exec -T registrar python course_admin.py render --check </dev/null
+
 # Re-render every course from courses.yaml with the registrar image you just
 # deployed, then recreate what changed and reload the edge.  This is the
 # verb the "a render-template change is INERT until something reconciles"
 # wall asks for: `just deploy` ships render.py; `just render` makes it true.
+# `just render-check` is the guard that tells you when you owe it a run.
+#
+# Re-render every course from the deployed templates, then recreate + reload
 render:
     {{compose}} exec -T registrar python course_admin.py render </dev/null
     @{{just_executable()}} course-up

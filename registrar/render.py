@@ -37,7 +37,51 @@ MODEL_PROVIDER_NAME = os.environ.get("MODEL_PROVIDER_NAME", "Almanac")
 MCP_SERVER_PREFIX = os.environ.get("MCP_SERVER_PREFIX", "almanac")
 
 
+# ---- dry run -------------------------------------------------------------------
+# Every write in this plane goes through _atomic_write, so one flag at the
+# choke point makes the whole module read-only.  That is what lets
+# `course_admin.py render --check` run in the middle of a deploy: a guard that
+# can never be the thing that changed the box.
+_DRY_RUN = False
+_DRIFT: list[tuple[str, str]] = []
+
+
+def begin_dry_run() -> None:
+    """Render into memory and record what would have changed."""
+    global _DRY_RUN
+    _DRY_RUN = True
+    _DRIFT.clear()
+
+
+def end_dry_run() -> list[tuple[str, str]]:
+    """Stop rendering into memory.  Returns [(path, "missing"|"differs")]."""
+    global _DRY_RUN
+    _DRY_RUN = False
+    return list(_DRIFT)
+
+
+def rendered_credentials(slug: str) -> tuple[str, str]:
+    """The OIDC client secret and service key as the LAST render left them.
+
+    A drift check must not call Keycloak or read escrow — both mutate or
+    audit — so it sources the two pass-through credentials from the render
+    it is checking.  ("", "") means the course has no render yet.
+    """
+    env = _read_env(f"{OUT_FLEET}/{slug}.env")
+    return env.get("OPENID_CLIENT_SECRET", ""), env.get("COURSE_SERVICE_KEY", "")
+
+
 def _atomic_write(path: str, content: str) -> None:
+    if _DRY_RUN:
+        try:
+            with open(path) as f:
+                current = f.read()
+        except OSError:
+            _DRIFT.append((path, "missing"))
+        else:
+            if current != content:
+                _DRIFT.append((path, "differs"))
+        return
     d = os.path.dirname(path) or "."
     os.makedirs(d, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=d, prefix=".render.")
