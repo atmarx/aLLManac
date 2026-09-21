@@ -8,7 +8,14 @@
 # certificate behaviour can change on a rebuild nobody thought was a change.
 # docs/tls.md records what was measured, and this is the version it measured.
 FROM caddy:2.11.4-builder AS build
-RUN xcaddy build --with github.com/caddy-dns/azure
+# PINNED for the same reason the base is, and it was the one thing here that
+# wasn't.  Bare `--with github.com/caddy-dns/azure` floats to whatever is
+# latest at build time, so the component doing ACME DNS-01 could change on a
+# rebuild nobody thought was a change — under a base pinned precisely to stop
+# that.  v0.6.0 is what xdocker03's edge is running and has been issuing real
+# certs with (`caddy list-modules --versions` -> dns.providers.azure v0.6.0);
+# pinning forward would ship an untested module under the guise of a pin.
+RUN xcaddy build --with github.com/caddy-dns/azure@v0.6.0
 
 FROM caddy:2.11.4
 COPY --from=build /usr/bin/caddy /usr/bin/caddy
