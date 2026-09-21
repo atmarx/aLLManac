@@ -741,8 +741,45 @@ course-up:
 # A course in courses.yaml with no render yet is listed, not red — an
 # unprovisioned record must not fail every deploy on the box.
 #
+# Refuse to answer a render question with a registrar that isn't this tree.
+#
+# `render-check` renders INSIDE the container and diffs against the fleet
+# volume.  If the container predates a change to render.py, it renders the
+# OLD template and compares it to files the OLD template wrote — both sides
+# stale, and the check reports green.  It is structurally blind to exactly
+# the drift it exists to catch, and it was: on 2026-09-21 the running
+# registrar had zero occurrences of `context_tokens` against nine in the
+# tree, and `render-check` said "every rendered file current."
+#
+# Inside `just deploy` this cannot happen — `build` and `up` run first, so
+# the container is current by the time render-check runs.  It is the HAND
+# run that lies, which is the one the "verify on the box" wall tells you to
+# make.  So: prove the deployed registrar is this tree before believing
+# anything it says about renders.  The Dockerfile COPYs these verbatim, so
+# the bytes are comparable.
+_registrar-current:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Per-file digests, SORTED — not a concatenation.  `planes/*.py` expands
+    # in a different order inside the container (C locale puts __init__.py
+    # first; the host's does not), so concatenating compares the sort order
+    # as well as the bytes and reports a difference that isn't one.  Cost me
+    # a false FAIL on a container that was already correct.
+    files="server.py reconcile.py render.py course_admin.py"
+    host=$(cd registrar && sha256sum $files planes/*.py \
+      | LC_ALL=C sort | sha256sum | cut -d" " -f1)
+    cont=$({{compose}} exec -T registrar sh -c \
+      "cd /app && sha256sum $files planes/*.py" </dev/null \
+      | LC_ALL=C sort | sha256sum | cut -d" " -f1)
+    if [ "$host" != "$cont" ]; then
+      echo "  FAIL the deployed registrar is NOT this working tree."
+      echo "       Anything it says about renders describes the OLD templates,"
+      echo "       including a green render-check.  Run \`just deploy\` first."
+      exit 1
+    fi
+
 # Report (never repair) course renders the deployed templates would change
-render-check:
+render-check: _registrar-current
     {{compose}} exec -T registrar python course_admin.py render --check </dev/null
 
 # Re-render every course from courses.yaml with the registrar image you just
