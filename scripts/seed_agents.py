@@ -77,14 +77,39 @@ STATE = ROOT / "site" / "agents-state.json"
 # name + one-line description per corpus folder.  The INSTRUCTIONS come from
 # corpus/<slug>/SYSTEM-PROMPT.md, rendered from docs/agent-contract.md — this
 # file never holds prompt prose.
+# MCP tools the guides carry, by LibreChat's own naming: `<tool>_mcp_<server>`.
+# The delimiter is `Constants.mcp_delimiter` — verified against the pinned
+# image rather than assumed, because a wrong tool name here does not error.
+# It fails closed and SILENT, exactly like a mistyped capability name
+# (docs/design-walls.md).  `REGISTRAR_MCP` must match the server key in
+# librechat/librechat.yaml under `mcpServers:`.
+REGISTRAR_MCP = "almanac-registrar"
+_M = lambda t: f"{t}_mcp_{REGISTRAR_MCP}"          # noqa: E731
+# Everyone can file one and check on their own.  Nothing here is privileged:
+# both tools scope themselves to the caller from the trusted headers.
+REPORT_TOOLS = [_M("report_problem"), _M("my_reports")]
+# The queue itself — gated server-side on `devs:`/`admins:` in courses.yaml,
+# so attaching it to a public agent grants nothing; a student who calls it
+# gets a clean refusal.  On the Dev Guide because that is who reads it.
+TRIAGE_TOOLS = [_M("reports"), _M("report_triage")]
+
 GUIDES = [
     # FIRST on purpose: model_specs() marks entry 0 `default`, and the default
     # is a message whether we mean it or not.  Opening an instructor in the
     # Student Guide reads as the platform having sorted them, wrongly, before
     # they typed a word — so the default has to be the one entry that
     # classifies nobody.  See docs/agent-contract.md, "The front desk".
+    # NO report tools, and it is the one agent that should not have them.
+    # The front desk routes; it cannot answer, so it cannot satisfy the rule
+    # the prompt puts on the report hatch — answer first, offer second.  A
+    # desk that files is a desk that converts every "it's broken" into a
+    # ticket instead of handing the person to a guide who can try.  It also
+    # runs on its own fence (docs/corpus.py, `welcome`), which never gets the
+    # shared preamble's hatch list, so giving it the tool would hand it
+    # something nothing told it how to use.
     ("welcome", "Front Desk",
-     "New here?  Start with this and it will point you at the right guide."),
+     "New here?  Start with this and it will point you at the right guide.",
+     []),
     ("student-guide", "Student Guide",
      "Using the Almanac in your courses — agents, knowledge files, API keys, and what the budget numbers mean."),
     ("instructor-guide", "Instructor Guide",
@@ -92,7 +117,8 @@ GUIDES = [
     ("platform-guide", "Platform Guide",
      "How the Almanac is built and why — the architecture, the decisions, and what they cost."),
     ("dev-guide", "Dev Guide",
-     "Operating the Almanac — deployment, runbooks, verification, and what breaks."),
+     "Operating the Almanac — deployment, runbooks, verification, and what breaks.",
+     REPORT_TOOLS + TRIAGE_TOOLS),
     ("security-guide", "Security Guide",
      "The Almanac's security posture — controls, boundaries, and the blue/purple team exercises that test them."),
 ]
@@ -280,7 +306,13 @@ async function seedAll() {
       // front desk has no corpus, and handing it a file_search over an
       // empty store is how you get an agent that searches, finds nothing,
       // and answers anyway.
-      tools: (a.want && a.want.length) ? ['file_search'] : [],
+      // MCP tool names ride along with file_search.  They are PATCHed on
+      // every run, which is the point: a tool attached by hand in the UI is
+      // erased by the next refresh, so the seeder has to be the one that
+      // knows.  An MCP server that is down simply yields no tools at call
+      // time — it does not fail the seed.
+      tools: [...((a.want && a.want.length) ? ['file_search'] : []),
+              ...(a.mcp || [])],
     });
     const id = prev?.id;
     const r = id
@@ -472,7 +504,8 @@ def main() -> int:
             print(f"{STATE} is unreadable — re-uploading everything")
 
     agents = []
-    for slug, name, desc in GUIDES:
+    for slug, name, desc, *rest in GUIDES:
+        mcp_tools = rest[0] if rest else REPORT_TOOLS
         p = CORPUS / slug / "SYSTEM-PROMPT.md"
         if not p.exists():
             sys.exit(f"{p} missing — run `just docs-corpus` first.")
@@ -483,6 +516,7 @@ def main() -> int:
         # `want` is computed even with --skip-files: it is what decides
         # whether the agent gets file_search at all.
         a["want"] = [{"name": f.name, "sha": sha(f)} for f in knowledge(slug)]
+        a["mcp"] = mcp_tools
         a["known"] = (state.get(slug) or {}).get("files") or {}
         # The id this box minted for the slug last time — the identity the
         # seeder updates in place, whatever the display name is now.

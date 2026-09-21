@@ -13,6 +13,11 @@ in the order they go wrong:
   3. Does every spec's `agent_id` exist?  This is the orphan failure — an
      agent recreated instead of updated mints a new id, and the spec silently
      points at nothing.
+  5. Can anyone actually tell us something is broken?  `report_problem` is
+     an MCP tool, and MCP tool names fail closed and SILENT when they are
+     wrong — the feature does not error, it just isn't there.  So this asks
+     the agents whether they carry it rather than trusting the seeder ran.
+
   4. Does every guide carry `file_search` and some files?  An agent with the
      tool and no knowledge answers from the base model, which is exactly the
      fabrication the contract exists to stop.  The front desk is the one
@@ -34,6 +39,11 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# Imported, never retyped: the whole failure this check exists to catch is
+# two copies of this string drifting apart.
+sys.path.insert(0, str(ROOT / "scripts"))
+from seed_agents import REGISTRAR_MCP  # noqa: E402
 
 OK, BAD, MEH = "  ok   ", "  FAIL ", "  warn "
 
@@ -109,6 +119,10 @@ def main() -> int:
 
     print("\nthe guides")
     claimed = set()
+    # Guides that ANSWER (they have a corpus).  The front desk routes instead,
+    # so it carries no report tool by design — counting it would make a
+    # correct box read 5/6.  See scripts/seed_agents.py, GUIDES.
+    answering = set()
     for spec in specs:
         aid = (spec.get("preset") or {}).get("agent_id")
         label = spec.get("label") or spec.get("name") or "?"
@@ -130,6 +144,8 @@ def main() -> int:
         slug = spec.get("name") or ""
         pages = sorted((ROOT / "corpus" / slug).glob("*.md")) if slug else []
         wants_knowledge = any(f.name not in NOT_KNOWLEDGE for f in pages)
+        if wants_knowledge:
+            answering.add(aid)
         if not wants_knowledge:
             extra = "" if not n else f" — but it has {n}, which is wrong"
             print(f"{OK if not n else BAD}{label:20} {aid}  "
@@ -147,6 +163,30 @@ def main() -> int:
             bad += 1
         else:
             print(f"{OK}{label:20} {aid}  {n} files")
+
+    # The report tool is wired in three places that must agree: the server
+    # key in librechat.yaml, REGISTRAR_MCP in seed_agents.py, and the tool
+    # name on the agent.  Nothing errors when they don't — you just have a
+    # front door that quietly can't take a complaint.
+    print("\ncan anyone report a problem?")
+    want = f"report_problem_mcp_{REGISTRAR_MCP}"
+    carries = [a for i, a in live.items() if i in answering and want in a["tools"]]
+    if not answering:
+        print(f"{MEH}no guides to check")
+    elif not carries:
+        print(f"{BAD}no guide carries {want} — the front door cannot take a "
+              f"complaint.  Re-run `just agents-seed`; if that doesn't fix it, "
+              f"the server key under `mcpServers:` in librechat.yaml and "
+              f"REGISTRAR_MCP in scripts/seed_agents.py disagree.")
+        bad += 1
+    else:
+        triage = [a for a in carries
+                  if f"report_triage_mcp_{REGISTRAR_MCP}" in a["tools"]]
+        print(f"{OK}{len(carries)}/{len(answering)} answering guides carry report_problem"
+              + (f" · {triage[0]['name']} can work the queue" if triage else ""))
+        if not triage:
+            print(f"{MEH}no guide carries report_triage — the queue is still "
+                  f"readable on the box with `just reports`")
 
     loose = [a for i, a in live.items() if i not in claimed]
     if loose:
