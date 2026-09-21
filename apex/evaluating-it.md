@@ -64,4 +64,6 @@ If something on that list is a blocker for the course you have in mind, that is 
 
 Try to break it.
 
-You are welcome to, and you will not hurt anything.  But deliberately probing the boundaries is a later phase with student teams whose actual assignment is to find the holes, and it is their job rather than yours.  If you happen to trip over something alarming, by all means say so.  Otherwise, the most useful thing you can do is be an ordinary demanding user with a real course to run.
+You are welcome to, and you will not hurt anything.  But deliberately probing the boundaries is somebody's actual assignment rather than yours, and the most useful thing you can do is be an ordinary demanding user with a real course to run.  If you happen to trip over something alarming, by all means say so.
+
+**Unless breaking it is why you are here** — in which case this section is the one that does not apply to you.  The first group through this platform is a staff cohort whose course *is* taking it apart, and their findings are the point rather than a side effect.  Everything above still holds for them: the quiet refusal is still the report we most need, and it is still worth sending even when the more dramatic finding is sitting right next to it.

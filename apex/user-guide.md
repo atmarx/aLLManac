@@ -55,6 +55,8 @@ A "custom GPT" here is a LibreChat **Agent**: a system prompt + knowledge files 
 
 Uploads are capped at course-materials scale (10 files per go, 25 MB each) — if you're bumping the caps, you're probably attaching the wrong thing.
 
+**Things it draws, it draws in a panel.**  Ask an agent for a chart, a diagram, a table you can sort, a small web page, and it does not hand you a wall of code — a panel opens beside the chat with the finished thing in it, and you can flip between the result and the code that made it.  This is on for every agent here and you do not have to switch it on.  One thing worth knowing the first time it happens: the panel is a preview, not a saved file.  Anything you want to keep, copy out — a chart you liked is gone with the conversation it was drawn in.
+
 **Iterate.**  Talk to it.  When it answers wrong, that's not failure — that's your next instruction line.  The gap between "an assistant" and "a good assistant" is fifteen rounds of this.
 
 ---
