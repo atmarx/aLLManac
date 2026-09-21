@@ -442,6 +442,7 @@ Seven doors found so far, all the same sentence with a different noun: **the sou
 | `scripts/seed_agents.py` | anything at all, until a human runs it | `agents-check` q7 + the GUIDES self-check |
 | an agent that exists | anyone's ability to *see* it | `agents-check` q7 |
 | `caddy:2.11.4` pinned on both stages | `xcaddy --with github.com/caddy-dns/azure`, which had no version | the pin, and the artifact repo |
+| `registrar/render.py` | **`render-check` itself**, run by hand against a container older than the change — it rendered the old template and diffed it against files the old template wrote, both sides stale, green | the `justfile` guard that proves the deployed registrar is this tree before believing it |
 
 **The ninth door was the guard for the third one.**  q5 shipped comparing knowledge file *counts*, under a comment asserting "drift this class always moves the count."  That held for nine hours.  A full seed then reported `9 unchanged, 1 embedded, 1 retired` — a page replaced with a changed version, count identical on both sides — and the check read `10 files` before and after, green, on stale knowledge.  It compares content now, from the same per-file `sha` the seeder already recorded.
 
@@ -457,7 +458,11 @@ The belief underneath was not "counts are enough."  It was **"files get added an
 
 So the rule this family earns is not "look for inert changes."  It is: **a pattern that has been right six times is exactly what makes the seventh guess feel like knowledge.**  Check the artifact, not the story — and when the story is a shape you have personally been burned by, check it harder, because that is the one you will skip.
 
+**The sharpest instance is the guard for this family eating itself.**  `render-check` exists to catch a template change that never reached the render.  Run by hand against a registrar container that predates the change, it renders from the *old* template inside that container and diffs the result against files the *old* template wrote — two stale things agreeing, reported as "every rendered file current."  It was found because `context_tokens` landed in `render.py` and the running registrar had zero occurrences of it against nine in the tree, while the check said green.  Inside `just deploy` it cannot happen, because `build` and `up` run first; **it is the hand run that lies — the run the "verify on the box" wall tells you to make, and the one an operator trusts most precisely because they watched it happen.**
+
 **And the checks themselves join the family.**  Three guards in this table were written on an assumption stated in a comment rather than tested: that counts move, that two hashes were over the same bytes, that two copies of a constant would stay equal.  Each was wrong, each was found by a two-line test its author could have run at the time, and each is now held by **one shared function instead of a more careful comment** — `knowledge()`, `sha()`, `prompt_sha()`, `NOT_KNOWLEDGE`, all imported, never retyped.  That is the actual mechanism: not vigilance, which does not survive a busy afternoon, but removing the second copy that could disagree.  **A guard is an artifact too, and it goes stale in exactly the ways it was built to catch.**
+
+The corollary, learned the same day and worth stating separately because it is the one people skip: **test the GREEN case.**  Three of these guards were written, reasoned about, and shipped without anyone confirming they still pass on a correct box — and one of them (`render-check`'s own freshness guard) failed that way on its first draft, over shell glob ordering differing between host and container locale.  A check that can only fail is worse than the blindness it replaces, and it is invisible until the day nothing is wrong.
 
 ---
 
