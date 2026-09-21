@@ -34,9 +34,12 @@ import subprocess
 import sys
 import time
 
-import yaml
-
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# Container names, not compose service names: this shells `docker exec`
+# directly so it works from anywhere on the box.
+LIBRECHAT = "alm-librechat"
+MONGO = "alm-mongo"
 CONTRACT = ROOT / "docs" / "agent-contract.md"
 OUT = ROOT / "site" / "evals"
 
@@ -68,6 +71,27 @@ def dc(container: str, *args: str) -> str:
     return r.stdout
 
 
+def parse_yaml(text: str):
+    """js-yaml inside the flagship, not PyYAML on the host.
+
+    A deploy box has no business growing a Python dependency so a check can
+    run on it: xdocker03's host python is PEP668-managed with no pip, so
+    `import yaml` made this whole runner unrunnable exactly where it matters
+    and nobody found out for weeks (2026-09-21).  scripts/agents_check.py
+    already reads the flagship's config this way and for this reason; the
+    parser we want is in a container we already talk to.
+    """
+    r = subprocess.run(
+        ["docker", "exec", "-i", LIBRECHAT, "node", "-e",
+         "const y=require('js-yaml');let s='';process.stdin.on('data',d=>s+=d)"
+         ".on('end',()=>process.stdout.write(JSON.stringify(y.load(s)||[])))"],
+        input=text, capture_output=True, text=True)
+    if r.returncode:
+        sys.exit(f"could not parse the contract's YAML fence in {LIBRECHAT}:\n"
+                 f"{r.stderr.strip()}")
+    return json.loads(r.stdout)
+
+
 def cases() -> list[dict]:
     """Single-turn cases from the contract's table, multi-turn from its fence."""
     body = CONTRACT.read_text()
@@ -83,7 +107,7 @@ def cases() -> list[dict]:
     section = body.split("## The multi-turn cases", 1)
     if len(section) == 2:
         fence = section[1].split("```yaml", 1)[1].split("```", 1)[0]
-        for c in yaml.safe_load(fence):
+        for c in parse_yaml(fence):
             c["passes_when"] = c["passes_when"].strip()
             out.append(c)
 
@@ -95,7 +119,7 @@ def cases() -> list[dict]:
 def agents() -> list[dict]:
     q = "db.agents.find({},{id:1,name:1,model:1,_id:0}).toArray()"
     # mongosh prints JS-ish object literals, not JSON — ask it to stringify.
-    raw = dc("alm-mongo", "mongosh", "--quiet", "LibreChat",
+    raw = dc(MONGO, "mongosh", "--quiet", "LibreChat",
              "--eval", f"JSON.stringify({q})")
     found = []
     for a in json.loads(raw):
@@ -147,9 +171,9 @@ def say(agent_id: str, spec: str, text: str,
                "conversationId": convo, "parentMessageId": parent}
     (ROOT / "site" / ".evals-in.json").write_text(json.dumps(payload))
     subprocess.run(["docker", "cp", str(ROOT / "site" / ".evals-in.json"),
-                    "alm-librechat:/app/api/.evals-in.json"],
+                    f"{LIBRECHAT}:/app/api/.evals-in.json"],
                    check=True, capture_output=True)
-    raw = dc("alm-librechat", "node", "/app/api/.evals-driver.js")
+    raw = dc(LIBRECHAT, "node", "/app/api/.evals-driver.js")
     return json.loads(raw.strip().splitlines()[-1])
 
 
@@ -168,7 +192,7 @@ def reply(convo: str, after: int, timeout: int) -> tuple[str, str | None]:
          ".join('\\n').trim() || m.text || ''};}))" % convo)
     deadline = time.time() + timeout
     while time.time() < deadline:
-        msgs = json.loads(dc("alm-mongo", "mongosh", "--quiet", "LibreChat", "--eval", q))
+        msgs = json.loads(dc(MONGO, "mongosh", "--quiet", "LibreChat", "--eval", q))
         if len(msgs) > after:
             m = msgs[after]
             return (m.get("text") or ""), m.get("messageId")
@@ -217,7 +241,7 @@ def main() -> int:
     args = ap.parse_args()
 
     global OWNER
-    raw = dc("alm-mongo", "mongosh", "--quiet", "LibreChat", "--eval",
+    raw = dc(MONGO, "mongosh", "--quiet", "LibreChat", "--eval",
              "JSON.stringify(db.agents.findOne({},{author:1,_id:0}))")
     OWNER = json.loads(raw)["author"]["$oid"] if "$oid" in raw else json.loads(raw)["author"]
 
@@ -247,7 +271,7 @@ def main() -> int:
     (ROOT / "site").mkdir(exist_ok=True)
     (ROOT / "site" / ".evals-driver.js").write_text(DRIVER)
     subprocess.run(["docker", "cp", str(ROOT / "site" / ".evals-driver.js"),
-                    "alm-librechat:/app/api/.evals-driver.js"],
+                    f"{LIBRECHAT}:/app/api/.evals-driver.js"],
                    check=True, capture_output=True)
 
     stamp = time.strftime("%Y-%m-%dT%H%M")
