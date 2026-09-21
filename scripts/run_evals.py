@@ -155,8 +155,17 @@ def say(agent_id: str, spec: str, text: str,
 
 def reply(convo: str, after: int, timeout: int) -> tuple[str, str | None]:
     """Poll the conversation for the next assistant message.  Returns (text, id)."""
+    # An agent's visible reply is NOT `text` -- that field stays empty and the
+    # message carries a `content[]` array of blocks: `think`, `tool_call`, and
+    # `text`.  Only the `text` blocks are what the person sees, which is also
+    # exactly what the contract says to score and the thinking it says to
+    # ignore.  Reading `text` scored every answering guide as silent.
     q = ("JSON.stringify(db.messages.find({conversationId:%r,isCreatedByUser:false},"
-         "{text:1,messageId:1,_id:0}).sort({createdAt:1}).toArray())" % convo)
+         "{text:1,content:1,messageId:1,_id:0}).sort({createdAt:1}).toArray()"
+         ".map(function(m){return {messageId:m.messageId, text:"
+         "(m.content||[]).filter(function(c){return c.type==='text'})"
+         ".map(function(c){return (c.text && c.text.value) || c.text || ''})"
+         ".join('\\n').trim() || m.text || ''};}))" % convo)
     deadline = time.time() + timeout
     while time.time() < deadline:
         msgs = json.loads(dc("alm-mongo", "mongosh", "--quiet", "LibreChat", "--eval", q))
