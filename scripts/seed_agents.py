@@ -365,6 +365,32 @@ async function seedAll() {
                 + `${String(out).padEnd(26)} ${model}`);
     id ? updated++ : made++;
     a.id = out;
+
+    // SHARE IT, every run, create or update.  Without this the agent exists,
+    // the spec points at it, every check is green — and the picker is empty
+    // for everyone, because visibility in 0.8.x is the ACL and a fresh agent
+    // carries only its owner's entry.  The owner here is a service account
+    // nobody can sign in as, so owner-only means nobody, by construction.
+    // Found on xdocker03 by signing in and watching the label flash and
+    // vanish (2026-09-21); six green checks had said nothing.
+    //
+    // On every run, not just create: update-in-place preserves whatever
+    // grant state the agent already had, so a guide can be correct in every
+    // other respect and unreachable anyway.  PUT is idempotent here.
+    //
+    // agent_viewer, not editor: everyone may USE the guides, nobody may edit
+    // them — the version that matters is in docs/agent-contract.md.  The
+    // route is gated on SHARE_PUBLIC, which is why _SERVICE_GRANTS has it.
+    const sh = await fetch(`${BASE}/api/permissions/agent/${out}`, {
+      method: 'PUT', headers: H,
+      body: JSON.stringify({ public: true, publicAccessRoleId: 'agent_viewer' }),
+    });
+    if (!sh.ok) {
+      console.log(`  ${String(sh.status).padEnd(6)} ${a.name.padEnd(18)} `
+                  + `NOT SHARED: ${(await sh.text()).slice(0, 160)}`);
+      failed++;
+    }
+
     seeded.push({ slug: a.slug, name: a.name, id: out, model });
     if (!SKIP_FILES && a.want && a.want.length) {
       const out = await syncFiles(a);
