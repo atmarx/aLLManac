@@ -33,7 +33,13 @@ import reconcile
 
 TOKEN = os.environ.get("REGISTRAR_MCP_TOKEN", "")
 
-mcp = FastMCP("almanac-registrar")
+# mask_error_details: fastmcp defaults it to False, which puts the text of
+# any UNHANDLED exception into the tool response — and a tool response is
+# read by a student.  Every message in this file that is meant for a human
+# is a ToolError, and ToolError is exempt from masking.  So this flag
+# costs us nothing and stops `asyncpg.InvalidPasswordError: ... usage_ro`
+# and friends from being answers.
+mcp = FastMCP("almanac-registrar", mask_error_details=True)
 
 
 # ---- identity: from the headers LibreChat injects, never from arguments ------
@@ -64,9 +70,16 @@ def _ident() -> tuple[str, str, str]:
     return email, role, course
 
 
-def _course_or_refuse(slug: str) -> dict:
+def _courses_or_refuse() -> dict:
+    """EVERY read of courses.yaml from the tool plane goes through here.
+
+    Three tools used to call load_courses() naked, and `nominations` was one
+    of them — reachable by any student in any course.  A CoursesError carries
+    the container path and PyYAML's snippet of the offending line, out of a
+    file whose entire content is student emails.
+    """
     try:
-        courses = reconcile.load_courses()
+        return reconcile.load_courses()
     except reconcile.CoursesError as e:
         # Distinct from "no such course" on purpose: one is a course that was
         # never created, the other is every course being invisible at once.
@@ -77,6 +90,10 @@ def _course_or_refuse(slug: str) -> dict:
             "can't safely change anything.  This is a platform fault, not "
             "something you did — tell the operator."
         ) from e
+
+
+def _course_or_refuse(slug: str) -> dict:
+    courses = _courses_or_refuse()
     c = courses["courses"].get(slug)
     if c is None:
         raise ToolError(
@@ -103,7 +120,7 @@ def _admin_or_refuse(email: str) -> None:
     course instance makes its own staff ADMIN, and that is authority over
     one house; the fleet view is every house at once, so it answers only
     to the list the operator keeps in courses.yaml."""
-    if email not in reconcile.load_courses()["admins"]:
+    if email not in _courses_or_refuse()["admins"]:
         raise ToolError(
             "The fleet view is for platform admins (the `admins:` list in "
             "registrar/courses.yaml).  Course staff: roster_show and "
@@ -197,6 +214,15 @@ async def rotate_my_key() -> str:
         raise ToolError(f"No key to rotate — you're not on the {slug} roster.")
     try:
         new = await reconcile.rotate_student_key(slug, email)
+    except reconcile.MeterUnreadable:
+        # Refusing leaves the caller exactly as they were, still holding a
+        # working key — the same principle as the gate below.
+        raise ToolError(
+            "I can't read your key's meter right now, so I won't rotate: "
+            "rotation carries your remaining budget forward, and guessing "
+            "would hand you a full fuse you haven't got.  Your current key "
+            "still works.  Try again in a minute."
+        ) from None
     except reconcile.PoolExhausted:
         # Rotation carries the remainder forward; it has never been a refill.
         # Say which budget is empty, because "your key stopped working" reads
@@ -400,7 +426,7 @@ async def fleet_inventory() -> str:
             findings.append(f"{c['slug']}: pool at {c['pool']['spend'] / float(c['pool']['max_budget']):.0%}")
         d = c.get("door")
         if d:
-            roster = set(reconcile.load_courses()["courses"][c["slug"]]["students"])
+            roster = set(_courses_or_refuse()["courses"][c["slug"]]["students"])
             extra = set(d["member"]) - roster - set(d["admin"])
             if extra:
                 findings.append(f"{c['slug']}: {len(extra)} at the door who aren't rostered (fleet_access)")
@@ -534,7 +560,7 @@ async def nominations() -> str:
     admins see every course's, with the ids `nomination_export` and
     `nomination_decline` take."""
     email, _role, slug = _ident()
-    courses = reconcile.load_courses()
+    courses = _courses_or_refuse()
     if email in courses["admins"]:
         rows = reconcile.nominations()
     else:

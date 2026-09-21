@@ -46,6 +46,15 @@ def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
+class MeterUnreadable(Exception):
+    """The gateway wouldn't say what a key has spent.
+
+    Its own error type because the only safe response is to REFUSE: the
+    caller wanted the number in order to subtract it from a fuse, and
+    guessing zero hands back a full one.
+    """
+
+
 class PoolExhausted(Exception):
     """Not enough budget left to mint a key that could actually do anything."""
 
@@ -171,6 +180,16 @@ async def apply_roster(slug: str, adds: list[str], removes: list[str]) -> list[d
     return results
 
 
+def _pending(rec: dict) -> list[str]:
+    """Keys that still owe a death.  Scalar in records written before
+    2026-09-21, a list after — read both, so an old escrow record doesn't
+    have its debt silently dropped by the code that came to collect it."""
+    v = rec.get("revoke_pending")
+    if not v:
+        return []
+    return [v] if isinstance(v, str) else [k for k in v if k]
+
+
 async def rotate_student_key(slug: str, email: str) -> dict:
     """Mint the replacement FIRST, then revoke — with the fuse's REMAINDER,
     because rotation is not a budget reset (spend read from the ledger via
@@ -195,29 +214,48 @@ async def rotate_student_key(slug: str, email: str) -> dict:
         old = await escrow_read(slug, email) or {}
 
         # An earlier rotation that died before its revoke landed left this
-        # behind — settle the old debt before taking on a new one.
-        if old.get("revoke_pending"):
-            await ll_delete_key(cx, old["revoke_pending"])
+        # behind — settle the old debt before taking on a new one.  We only
+        # FORGET a debt the gateway confirms it killed: dropping the pointer
+        # to a key that is still live is the "gateway but no escrow" orphan
+        # the mint-and-escrow wall calls the worse of the two failures, and
+        # it was happening here because this call ignored its own return
+        # value four lines above one that checks it.
+        unsettled: list[str] = []
+        for stale in _pending(old):
+            if not await ll_delete_key(cx, stale):
+                unsettled.append(stale)
 
         fuse = course["budgets"]["key_fuse"]
         remaining = fuse
         old_key = old.get("key")
-        extra = {"rotated_from": old.get("minted_at")}
+        extra: dict = {"rotated_from": old.get("minted_at")}
         if old_key:
             spent = await ll_key_spend(cx, old_key)
+            if spent is None:
+                # Refuse rather than assume.  `fuse - 0` is a full fuse, so
+                # guessing here makes rotation a refill on demand — the exact
+                # thing this docstring says the floor was removed to stop.
+                raise MeterUnreadable(old_key)
             remaining = round(max(0.0, fuse - spent), 2)
 
         # Clamp and gate BEFORE revoking anything: a refusal has to leave the
         # caller exactly as they were, still holding a working key.
         remaining = await _fuse_for(cx, slug, remaining)
         if old_key:
-            extra["revoke_pending"] = old_key
+            extra["revoke_pending"] = [old_key, *unsettled]
+        elif unsettled:
+            extra["revoke_pending"] = unsettled
 
         rec = await _mint_escrowed(cx, slug, email,
                                    course_models(course, courses), remaining,
                                    email, alias=f"{slug}:{email}", extra=extra)
         if old_key and await ll_delete_key(cx, old_key):
-            del rec["revoke_pending"]
+            # This key's debt is settled; anything still unsettled stays on
+            # the record for the next rotation to collect.
+            if unsettled:
+                rec["revoke_pending"] = unsettled
+            else:
+                rec.pop("revoke_pending", None)
             await escrow_write(slug, email, rec)  # kv-v2 v2: debt cleared
         return rec
 

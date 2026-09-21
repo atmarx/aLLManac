@@ -85,11 +85,19 @@ async def ll_team_remaining(cx: httpx.AsyncClient, slug: str) -> float | None:
     return max(0.0, round(float(cap) - float(info.get("spend") or 0.0), 2))
 
 
-async def ll_key_spend(cx: httpx.AsyncClient, key: str) -> float:
+async def ll_key_spend(cx: httpx.AsyncClient, key: str) -> float | None:
+    """What this key has spent, or None if the gateway wouldn't say.
+
+    None rather than 0.0, and the difference is the whole point: a caller
+    computing `fuse - spent` turns an unreadable meter into a FULL FUSE.
+    Rotation did exactly that, which is the refill the `max(0.5, ...)` floor
+    was removed to stop -- an error path quietly reintroducing the bug a
+    comment three functions away says was fixed.  Unknown is not zero.
+    """
     r = await cx.get(f"{LITELLM_URL}/key/info", params={"key": key},
                      headers=_ll_headers())
     if r.status_code != 200:
-        return 0.0
+        return None
     return float((r.json().get("info") or {}).get("spend") or 0.0)
 
 

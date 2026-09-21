@@ -16,6 +16,7 @@ import hmac
 import json
 import os
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
 import asyncpg
 import yaml
@@ -26,13 +27,22 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 TOKEN = os.environ.get("USAGE_MCP_TOKEN", "")
+# quote(): `just secrets` generates hex, but .env.example ships
+# USAGE_DB_PASSWORD as an operator-editable value, and an @ / : or # in it
+# silently builds a DSN pointing somewhere else.
 DB_URL = os.environ.get("USAGE_DB_URL") or (
     "postgresql://usage_ro:%s@litellm-db:5432/litellm"
-    % os.environ.get("USAGE_DB_PASSWORD", "")
+    % quote(os.environ.get("USAGE_DB_PASSWORD", ""), safe="")
 )
 ROSTER_PATH = os.environ.get("USAGE_ROSTER", "/app/roster.yaml")
 
-mcp = FastMCP("almanac-usage")
+# mask_error_details: fastmcp defaults it to False, which puts the text of
+# any UNHANDLED exception into the tool response — and a tool response is
+# read by a student.  Every message in this file that is meant for a human
+# is a ToolError, and ToolError is exempt from masking.  So this flag
+# costs us nothing and stops `asyncpg.InvalidPasswordError: ... usage_ro`
+# and friends from being answers.
+mcp = FastMCP("almanac-usage", mask_error_details=True)
 
 
 # ---- roster: courses, faculty, students --------------------------------------

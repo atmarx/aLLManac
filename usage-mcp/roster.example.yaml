@@ -5,7 +5,7 @@
 # belong in git.  Edits to roster.yaml are picked up live; no restart.
 #
 # courses.<slug>:  the slug is the SAME owner slug you mint keys with
-#   (`just key <user> <slug>`), so vAPI-key spend rolls up to the course.
+#   (`just key <slug> <user>`), so vAPI-key spend rolls up to the course.
 #
 #   faculty:   who may pull this course's rollup.  They also need the
 #              `faculty` realm role (that's what makes them ADMIN in chat) —
@@ -15,7 +15,7 @@
 #              started yet" answer — no roster, no anti-join.
 #   aliases:   only needed when a vAPI key was minted under a user_id that
 #              is NOT the email (email -> [user_ids]).  Mint keys with the
-#              email as the user — `just key amaya@example.edu engr301` —
+#              email as the user — `just key engr301 amaya@example.edu` —
 #              and you never touch this.
 courses:
   engr301:

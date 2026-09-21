@@ -71,6 +71,7 @@ from planes.keycloak import (
     kc_user_id,
 )
 from planes.verbs import (
+    MeterUnreadable,
     PoolExhausted,
     apply_roster,
     decline_nomination,

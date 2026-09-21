@@ -14,6 +14,7 @@ secret, course service key) arrive as arguments from the reconcile plane
 and land only in gitignored files on the fleet volume.
 """
 
+import json
 import os
 import secrets as pysecrets
 import tempfile
@@ -457,7 +458,13 @@ def render_roster(courses: dict) -> None:
     for slug in sorted(courses["courses"]):
         c = courses["courses"][slug]
         lines.append(f"  {slug}:")
-        lines.append(f"    name: {c['name']!r}")
+        # json.dumps, NOT repr(): Python and YAML disagree about escaping a
+        # single quote.  A name holding both quote kinds reprs to
+        # 'Prof\'s "lab"', which PyYAML REFUSES to parse -- and usage-mcp
+        # degrades its whole roster to empty on a parse error, so one course
+        # name silently takes course-level usage down for every course.  A
+        # JSON string is always valid YAML.
+        lines.append(f"    name: {json.dumps(c['name'], ensure_ascii=False)}")
         staff = c["instructors"] + c["tas"]
         lines.append("    faculty:" if staff else "    faculty: []")
         lines += [f"      - {e}" for e in staff]
