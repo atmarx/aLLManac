@@ -384,6 +384,16 @@ Set it on the endpoint in your instance's `librechat.yaml`:
 
 **Do not copy a number from another box.**  The window has to match the model actually being served: set it above what your backend accepts and you convert today's silent truncation into a request-time error, which is worse — a conversation that quietly forgets is still a working room, and the smallest boxes are the ones most likely to be somebody's first install.  This is why the value lives in *your* config and not in the tracked one.
 
+**Set it from what your endpoint SERVES, not from what the model supports** — on Ollama those differ silently and by a lot.  `/api/show` reports the architecture's ceiling, which is the number that misleads; `/api/ps` reports what a loaded model was actually given.  Measured on this fleet's inference host (Ollama 0.31.2): a llama3.1-8B that natively supports 128k, served at `context_length: 32768`, with no `num_ctx` set on any model — a server-wide cap, invisible from the model side.
+
+```bash
+curl -s http://<inference-host>:11434/api/ps | python3 -m json.tool   # what is actually served
+```
+
+And Ollama's `num_ctx` covers the prompt **and** the completion, so the input bound has to sit under it with room for the answer — 24000 against a served 32768, not 32768.
+
+**Overshooting here does not fail loudly.**  Ollama truncates the front of the prompt and answers anyway, and the front of the prompt is the system prompt: an agent quietly loses its instructions mid-conversation and keeps talking, with nothing in any log an operator reads.  That is why this knob errs low.  On the course fleet the per-box lever is `REGISTRAR_DEFAULT_CONTEXT_TOKENS` in `.env`, and any single course can override it with `context_tokens:` in its record.
+
 While you are on that endpoint, check `models.default` lists every model you actually serve.  The guides reach their model by direct reference, so a missing entry works anyway — which is exactly why nobody notices the endpoint has no idea what it is talking to.
 
 ### Once per box: open the escrow
