@@ -360,7 +360,16 @@ async function seedAll() {
       continue;
     }
     let out = id;
-    try { out = JSON.parse(t).id || id; } catch {}
+    // TWO ids, and they are not interchangeable.  `id` is the agent_xxx
+    // string — the published interface: modelSpecs point at it, the state
+    // file records it, the logs print it.  `_id` is Mongo's ObjectId, and it
+    // is the ONLY thing the permissions route accepts (see below).
+    let oid = null;
+    try {
+      const j = JSON.parse(t);
+      out = j.id || id;
+      oid = j._id || null;
+    } catch {}
     console.log(`  ${(id ? 'update' : 'create').padEnd(6)} ${a.name.padEnd(18)} `
                 + `${String(out).padEnd(26)} ${model}`);
     id ? updated++ : made++;
@@ -381,14 +390,38 @@ async function seedAll() {
     // agent_viewer, not editor: everyone may USE the guides, nobody may edit
     // them — the version that matters is in docs/agent-contract.md.  The
     // route is gated on SHARE_PUBLIC, which is why _SERVICE_GRANTS has it.
-    const sh = await fetch(`${BASE}/api/permissions/agent/${out}`, {
-      method: 'PUT', headers: H,
-      body: JSON.stringify({ public: true, publicAccessRoleId: 'agent_viewer' }),
-    });
-    if (!sh.ok) {
-      console.log(`  ${String(sh.status).padEnd(6)} ${a.name.padEnd(18)} `
-                  + `NOT SHARED: ${(await sh.text()).slice(0, 160)}`);
+    //
+    // It takes the Mongo _id, NOT the agent_xxx string.  In 0.8.7's
+    // accessPermissions.js the AGENT branch calls canAccessResource with no
+    // `idResolver` — MCPSERVER gets findMCPServerByObjectId and SKILL gets
+    // getSkillById, agents get nothing — so the string id matches no
+    // resourceId, the ACL lookup finds no entry, and the route answers
+    // **403 "Insufficient permissions"** when it means "no such resource".
+    // Measured both shapes against the same token and body on 2026-09-21:
+    // string id -> 403, ObjectId -> 200.  The misleading status is why this
+    // reads like a grants problem; the grants were never wrong.
+    if (!oid) {
+      const g = await fetch(`${BASE}/api/agents/${out}`, { headers: H });
+      if (g.ok) { try { oid = JSON.parse(await g.text())._id || null; } catch {} }
+    }
+    if (!oid) {
+      // Do NOT fall back to the string id: it would 403 and the message
+      // would send the next person at the role grants, which is exactly
+      // the hour this cost.
+      console.log(`  ${'-'.padEnd(6)} ${a.name.padEnd(18)} NOT SHARED: no _id `
+                  + `in the agent response, so the permissions route cannot `
+                  + `be addressed`);
       failed++;
+    } else {
+      const sh = await fetch(`${BASE}/api/permissions/agent/${oid}`, {
+        method: 'PUT', headers: H,
+        body: JSON.stringify({ public: true, publicAccessRoleId: 'agent_viewer' }),
+      });
+      if (!sh.ok) {
+        console.log(`  ${String(sh.status).padEnd(6)} ${a.name.padEnd(18)} `
+                    + `NOT SHARED: ${(await sh.text()).slice(0, 160)}`);
+        failed++;
+      }
     }
 
     seeded.push({ slug: a.slug, name: a.name, id: out, model });
