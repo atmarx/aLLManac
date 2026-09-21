@@ -46,7 +46,13 @@ Three things make a report much more useful:
 2. **What you asked just before.**  Some failures only appear in the second or third turn; a conversation that was fine at the start and drifted somewhere strange is a more interesting report than a single bad answer.
 3. **What you expected instead.**  Even roughly.  You know your course; we are guessing at it.
 
-Send it to whoever pointed you at this platform.
+**Or just say so in the chat, which is easier and works better.**  Tell the guide what went wrong — *"that answer was wrong,"* *"this should really work differently"* — and it will offer to file it for you.  Say yes and it writes the report itself, with the question you asked and the answer it gave already attached, and shows you the wording before anything is sent.
+
+That last part is the whole reason it beats an email.  A report is only actionable if it carries what was asked and what came back, and nobody wants to assemble that by hand at the exact moment they are annoyed.  The guide is already holding both.
+
+It will not offer until it has genuinely looked — an offer to escalate is not allowed to stand in for an answer it could have given.  So if a guide answers you properly and *then* asks whether to pass something on, that ordering is deliberate.
+
+If you would rather not use the chat, send it to whoever pointed you at this platform.
 
 ## What we already know
 
