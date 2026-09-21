@@ -763,6 +763,16 @@ nominations:
 template id:
     {{compose}} exec -T registrar python course_admin.py template "{{id}}" </dev/null
 
+# What broke, and — for reports about an answer — the question and the answer
+# that came back.  That second half is the point: it turns "the guide didn't
+# know about X" into a retrieval trace you can take to the corpus.
+# Problem reports filed from the chat: open (default), triaged, closed or all
+reports status="open":
+    {{compose}} exec -T registrar python course_admin.py reports --status "{{status}}" </dev/null
+
+report-close id note="":
+    {{compose}} exec -T registrar python course_admin.py report-close "{{id}}" --note "{{note}}" </dev/null
+
 # Check courses.yaml without touching anything — run it after hand-editing.
 # `just course` runs the same checks itself and refuses on errors; this is
 # the read-only version for when you want to look before you provision.

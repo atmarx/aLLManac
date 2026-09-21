@@ -70,6 +70,39 @@ def _ident() -> tuple[str, str, str]:
     return email, role, course
 
 
+def _ident_open() -> tuple[str, str, str]:
+    """(email, role, course-or-empty) — for the ONE tool that also serves the
+    vestibule.
+
+    Every other tool in this file calls `_ident()`, which refuses without an
+    X-Course header.  That refusal is why wiring this service into the
+    flagship costs nothing: the vestibule renders no X-Course, so thirteen
+    course tools go on refusing there without a line of policy — the shape
+    already says it.  A tool that opts out of that has to say so in its own
+    name, which is what this function is for.
+
+    The token check and the who-is-asking check are unchanged; only the
+    course becomes optional, and the caller must then work out routing from
+    the roster instead (reconcile.file_report).
+    """
+    h = get_http_headers(include={"authorization"})
+    auth = h.get("authorization", "")
+    supplied = auth[7:] if auth[:7].lower() == "bearer " else ""
+    if not TOKEN or not hmac.compare_digest(supplied, TOKEN):
+        raise ToolError(
+            "This service only answers the aLLManac chat itself "
+            "(missing or wrong service token)."
+        )
+    email = h.get("x-user-email", "").strip().lower()
+    if not email or email.startswith("{{"):
+        raise ToolError(
+            "I couldn't tell who's asking — this only works from inside the "
+            "aLLManac chat, where signing in identifies you."
+        )
+    return email, h.get("x-user-role", "").strip().upper(), \
+        h.get("x-course", "").strip().lower()
+
+
 def _courses_or_refuse() -> dict:
     """EVERY read of courses.yaml from the tool plane goes through here.
 
@@ -634,6 +667,89 @@ async def nomination_decline(nomination_id: str) -> str:
     if r is None:
         raise ToolError(f"No nomination {nomination_id!r}.")
     return f"Declined {r['id']} ({r['name']}, {r['course']})."
+
+
+@mcp.tool
+async def report_problem(what: str, course: str = "", asked: str = "",
+                         answered: str = "", sources: list[str] | None = None) -> str:
+    """File a problem report about the aLLManac — something that didn't work,
+    a wrong answer, a step that failed.  Works from any room, including the
+    front door.
+
+    Fill `asked` and `answered` with the question that went wrong and the
+    answer that came back, and `sources` with the knowledge files you cited,
+    whenever the report is about something YOU told them.  A complaint on its
+    own is a mood; the same complaint with the exchange attached is
+    debuggable.  Set `course` only if they name a course and this instance
+    isn't one already."""
+    email, role, slug = _ident_open()
+    what = (what or "").strip()
+    if not what:
+        raise ToolError("Say what went wrong — a report with no description "
+                        "is a ticket nobody can action.")
+    try:
+        rec = reconcile.file_report(
+            by=email, role=role, from_room=slug or "vestibule",
+            course=slug or None, about=course or None, what=what,
+            asked=asked, answered=answered, sources=sources or [])
+    except reconcile.CoursesError:
+        raise ToolError(
+            "The registrar can't read its course records right now, so I "
+            "can't file that against the right course.  This is a platform "
+            "fault, not something you did — tell the platform admin."
+        ) from None
+
+    out = [f"Filed — report {rec['id']}."]
+    if rec["about"]:
+        how = {"header": "this course",
+               "stated": "the course you named",
+               "roster": "the course you're on"}[rec["route"]]
+        out.append(f"It's on the pile for **{rec['about']}** ({how}).")
+    elif rec["enrolled"]:
+        # Recorded unrouted on purpose — see planes/verbs.file_report.
+        out.append("You're on more than one course, so I didn't guess which "
+                   "one this is about: " + ", ".join(rec["enrolled"]) + ".  "
+                   "Say the name and I'll file a follow-up that names it.")
+    else:
+        out.append("No course on your roster, so this is filed as a platform "
+                   "report — that's the right pile for it.")
+    if "trace" not in rec:
+        out.append("Filed without the exchange attached.  If this was about an "
+                   "answer I gave, what I said is the useful half.")
+    return "\n".join(out)
+
+
+@mcp.tool
+async def reports(status: str = "open") -> str:
+    """Problem reports on file: teaching staff see their own course's,
+    platform admins see every one.  `status` is open, triaged, closed, or
+    'all'."""
+    email, _role, slug = _ident_open()
+    courses = _courses_or_refuse()
+    want = None if status.strip().lower() == "all" else status.strip().lower()
+    if email in courses["admins"]:
+        rows = reconcile.reports(status=want)
+    else:
+        if not slug:
+            raise ToolError(
+                "Reading the report pile is a faculty view of one course, so "
+                "it only works from inside that course's chat.  Filing a "
+                "report works anywhere — that's report_problem."
+            )
+        course = _course_or_refuse(slug)
+        _staff_or_refuse(email, course, slug)
+        rows = reconcile.reports(slug, status=want)
+    if not rows:
+        return f"No {want or ''} reports.".replace("  ", " ")
+    out = ["| id | when | who | about | what | trace |", "|---|---|---|---|---|---|"]
+    for r in rows:
+        t = r.get("trace") or {}
+        tr = "asked+answer" if t.get("answered") else ("asked" if t.get("asked") else "—")
+        out.append(f"| {r['id']} | {r['at']} | {r['by']} | "
+                   f"{r['about'] or 'unrouted'} | {r['what'][:120]} | {tr} |")
+    out.append("")
+    out.append("Full text and the exchange: `just reports` on the box.")
+    return "\n".join(out)
 
 
 # ---- liveness ------------------------------------------------------------------

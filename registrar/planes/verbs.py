@@ -40,6 +40,7 @@ from .keycloak import (
     kc_user_id,
 )
 from .nominations import add_nomination, load_nominations, mark_nomination
+from .reports import add_report, load_reports, mark_report
 
 
 def _now() -> str:
@@ -496,3 +497,84 @@ async def export_nomination(nid: str, by: str) -> dict:
 
 def decline_nomination(nid: str, by: str) -> dict | None:
     return mark_nomination(nid, "declined", by)
+
+
+# ---- reports: "this didn't work" ---------------------------------------------
+# The routing question, and it is the whole reason this is a verb rather than
+# a straight write: a report filed from a COURSE knows its course (the
+# instance rendered X-Course into its own config, and a student can't touch
+# it).  A report filed from the VESTIBULE knows nothing — the vestibule is
+# the one room with no roster, which is exactly why it is the room that still
+# answers when the room you're complaining about doesn't.
+#
+# So the vestibule asks the roster instead.  Same question, different
+# instrument: courses.yaml already knows every course this email is on.  One
+# course is an answer; several or none is a question for a human, and the
+# record says which of those happened rather than quietly picking.
+
+
+def courses_for(email: str) -> list[str]:
+    """Every course slug this person is on, as student or staff.
+
+    The roster is the routing table.  It is also the ONLY routing table the
+    vestibule has, and it is already there — usage-mcp answers the same
+    question from the rendered copy (usage-mcp/server.py, list_courses).
+    """
+    email = (email or "").strip().lower()
+    out = []
+    for slug, c in load_courses()["courses"].items():
+        people = (c.get("students") or []) + (c.get("instructors") or []) \
+            + (c.get("tas") or [])
+        if email in [str(e).strip().lower() for e in people]:
+            out.append(slug)
+    return sorted(out)
+
+
+def file_report(*, by: str, role: str, from_room: str, course: str | None,
+                about: str | None, what: str, asked: str = "",
+                answered: str = "", sources: list[str] | None = None) -> dict:
+    """Record one problem report, working out who it belongs to.
+
+    `course` is the X-Course literal (None in the vestibule); `about` is what
+    the person named, if they named anything.  Precedence is certainty:
+    the header beats what was typed, because the header is rendered config
+    and what was typed is a person remembering a slug.
+    """
+    enrolled = courses_for(by)
+
+    if course:
+        target, route = course, "header"
+    elif about and (a := about.strip().lower()) in enrolled:
+        # Their own courses only, and deliberately NOT "any course that
+        # exists": a stated slug is the one routing input a person types, so
+        # taking it at face value lets anyone in the realm drop text on any
+        # instructor's pile.  Naming a course they're not on isn't refused,
+        # it just doesn't route — the report still lands, on the operator's.
+        target, route = a, "stated"
+    elif len(enrolled) == 1:
+        target, route = enrolled[0], "roster"
+    else:
+        # Several courses or none.  Nobody is guessed at: a report filed
+        # against the wrong course wastes the one instructor who reads it,
+        # and an unrouted report at least lands somewhere a human looks.
+        target, route = None, "unknown"
+
+    stated = (about or "").strip().lower()
+    return add_report(by=by, role=role, from_room=from_room, about=target,
+                      route=route, enrolled=enrolled, what=what,
+                      said=stated if stated and stated != target else "",
+                      asked=asked, answered=answered, sources=sources)
+
+
+def reports(slug: str | None = None, status: str | None = None) -> list[dict]:
+    rows = load_reports()
+    if slug is not None:
+        rows = [r for r in rows if r.get("about") == slug]
+    if status is not None:
+        rows = [r for r in rows if r.get("status") == status]
+    return rows
+
+
+def close_report(rid: str, by: str, note: str = "",
+                 status: str = "closed") -> dict | None:
+    return mark_report(rid, status, by, note)

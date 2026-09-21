@@ -15,6 +15,11 @@ COURSES_PATH = os.environ.get("REGISTRAR_COURSES", "/app/courses.yaml")
 NOMINATIONS_PATH = os.environ.get(
     "REGISTRAR_NOMINATIONS",
     os.path.join(os.path.dirname(COURSES_PATH), "nominations.yaml"))
+# Problem reports, same volume and the same reason — the record quotes a
+# person and names their course.
+REPORTS_PATH = os.environ.get(
+    "REGISTRAR_REPORTS",
+    os.path.join(os.path.dirname(COURSES_PATH), "reports.yaml"))
 
 KC_URL = os.environ.get("KC_URL", "http://keycloak:8080")
 KC_REALM = os.environ.get("KC_REALM", "classroom")

@@ -90,6 +90,7 @@ fileConfig:
 mcpSettings:
   allowedAddresses:
     - "usage-mcp:8080"
+    - "registrar:8080"
 
 # Usage stats as chat tools (the usage-mcp service in compose.yml).  The two
 # {{placeholders}} are LibreChat's dynamic user fields: every tool call
@@ -105,6 +106,29 @@ mcpServers:
     url: http://usage-mcp:8080/mcp
     headers:
       Authorization: "Bearer ${USAGE_MCP_TOKEN}"
+      X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
+      X-User-Role: "{{LIBRECHAT_USER_ROLE}}"
+
+  # The registrar, WITHOUT an X-Course header — and that omission is the
+  # whole access-control story, so don't "fix" it by adding one.
+  #
+  # Every course tool in registrar/server.py opens with `_ident()`, which
+  # refuses when X-Course is absent.  A course instance gets the header
+  # rendered into its own config by the registrar itself; the vestibule
+  # renders nothing, so my_key, roster_apply, course_keys and the rest go on
+  # refusing here with no policy written anywhere.  The one tool that serves
+  # this room calls `_ident_open()` instead and says so in its own body.
+  #
+  # Why the front door gets a tool at all: it is the one room with no roster,
+  # which means it is the room that still answers when the room someone is
+  # complaining about doesn't.  A report tool inside a broken course is
+  # broken too.  `report_problem` works out which course a person means from
+  # the roster rather than from a header — see docs/design-walls.md.
+  almanac-registrar:
+    type: streamable-http
+    url: http://registrar:8080/mcp
+    headers:
+      Authorization: "Bearer ${REGISTRAR_MCP_TOKEN}"
       X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
       X-User-Role: "{{LIBRECHAT_USER_ROLE}}"
 

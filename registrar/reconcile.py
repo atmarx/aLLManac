@@ -21,6 +21,7 @@ worth auditing, and one import surface means one list to read.
     planes/escrow    the OpenBao AppRole
     planes/chatdb    the chat databases, envelope only (no credential)
     planes/nominations  registrar/nominations.yaml — no network, no secrets
+    planes/reports   registrar/reports.yaml — no network, no secrets
     planes/verbs     composition — the only place the planes meet
 
 Everything in the verbs is IDEMPOTENT on purpose — a failed half-apply is
@@ -74,9 +75,12 @@ from planes.verbs import (
     MeterUnreadable,
     PoolExhausted,
     apply_roster,
+    close_report,
+    courses_for,
     decline_nomination,
     ensure_course,
     export_nomination,
+    file_report,
     fleet_access,
     fleet_exposure,
     fleet_inventory,
@@ -84,5 +88,6 @@ from planes.verbs import (
     nominate_agent,
     nominations,
     reconcile_students_cmd,
+    reports,
     rotate_student_key,
 )

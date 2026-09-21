@@ -12,6 +12,8 @@
     python course_admin.py inventory        the census: fleet/inventory.md + .json
     python course_admin.py nominations      nominated agents, every course
     python course_admin.py template <id>    export a nomination as a template file
+    python course_admin.py reports [--status X] [--course S]   problem reports
+    python course_admin.py report-close <id> [--note ...]     mark one closed
 
 Runs INSIDE the registrar container (the credentials live there and only
 there); the justfile owns docker lifecycle around it — up the new services,
@@ -168,6 +170,15 @@ def main() -> int:
     t = sub.add_parser("template", help="export a nomination as fleet/templates/<id>-<name>.yaml")
     t.add_argument("nomination_id")
 
+    rp = sub.add_parser("reports", help="problem reports filed from the chat")
+    rp.add_argument("--status", default="open",
+                    help="open|triaged|closed|all (default open)")
+    rp.add_argument("--course", default=None, help="only this slug")
+    rc = sub.add_parser("report-close", help="mark a report triaged or closed")
+    rc.add_argument("report_id")
+    rc.add_argument("--note", default="", help="what was done about it")
+    rc.add_argument("--status", default="closed", help="triaged|closed")
+
     args = p.parse_args()
 
     if args.cmd == "validate":
@@ -292,6 +303,46 @@ def main() -> int:
             print(f"ERROR: {e.args[0]}", file=sys.stderr)
             return 1
         print(r["path"])
+        return 0
+
+    if args.cmd == "reports":
+        want = None if args.status.strip().lower() == "all" else args.status.strip().lower()
+        rows = reconcile.reports(args.course, status=want)
+        for r in rows:
+            print(f"{r['id']}  {r['status']:8} {r['at']}  {r['by']}")
+            print(f"    about: {r['about'] or 'UNROUTED'} (via {r['route']})"
+                  f"  from: {r['from_room']}"
+                  + (f"  enrolled: {', '.join(r['enrolled'])}" if r['enrolled'] else "")
+                  + (f"  they said: {r['said_course']}" if r.get("said_course") else ""))
+            print(f"    what:  {r['what']}")
+            t = r.get("trace") or {}
+            # The half that makes a report debuggable — printed in full,
+            # because the operator reading this is looking for the corpus gap.
+            if t.get("asked"):
+                print(f"    asked: {t['asked']}")
+            if t.get("answered"):
+                print(f"    got:   {t['answered']}")
+            if t.get("sources"):
+                print(f"    cited: {', '.join(t['sources'])}")
+            if r.get("resolution"):
+                print(f"    done:  {r['resolution']} ({r.get('decided_by')})")
+            print()
+        if not rows:
+            print(f"(no {want or ''} reports)".replace("  ", " "))
+        else:
+            unrouted = sum(1 for r in rows if not r["about"])
+            no_trace = sum(1 for r in rows if "trace" not in r)
+            print(f"{len(rows)} report(s) — {unrouted} unrouted, "
+                  f"{no_trace} with no exchange attached.")
+        return 0
+
+    if args.cmd == "report-close":
+        r = reconcile.close_report(args.report_id.strip(), "operator", args.note,
+                                   status=args.status.strip().lower())
+        if r is None:
+            print(f"no report {args.report_id}", file=sys.stderr)
+            return 1
+        print(f"{r['id']} -> {r['status']}")
         return 0
 
     if args.cmd == "list":

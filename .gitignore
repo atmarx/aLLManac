@@ -42,3 +42,6 @@ __pycache__/
 # The per-audience RAG corpora.  A RENDER of the docs tree via front matter
 # (`just docs-corpus`) — one source, N projections, no second copy to drift.
 corpus/
+
+# Problem reports (quotes people, names their course).
+registrar/reports.yaml
