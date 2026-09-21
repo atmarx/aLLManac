@@ -123,6 +123,41 @@ GUIDES = [
      "The Almanac's security posture — controls, boundaries, and the blue/purple team exercises that test them."),
 ]
 
+# The table above is positional, and it grew an optional fourth element on
+# 2026-09-21.  Two places unpack it; one was updated and one was not, so
+# `just agents-seed` raised ValueError before creating a single agent — and
+# the pipeline stayed green, because CI never runs the seeder.  The feature
+# it was carrying shipped and sat inert on the box for hours.
+#
+# So the table checks itself at import.  `agents_check.py` imports this
+# module for REGISTRAR_MCP and `just agents-check` runs inside `deploy`, so
+# a malformed table now fails a deploy instead of waiting for someone to run
+# the seeder by hand.  It is a cheap stand-in for the test CI doesn't have.
+def _check_guides() -> None:
+    seen = set()
+    for i, row in enumerate(GUIDES):
+        if not 3 <= len(row) <= 4:
+            raise SystemExit(
+                f"GUIDES[{i}] has {len(row)} fields, expected 3 or 4 "
+                f"(slug, name, description[, mcp tools]): {row[:2]}")
+        slug, name, desc, *rest = row
+        if slug in seen:
+            raise SystemExit(f"GUIDES: duplicate slug {slug!r}")
+        seen.add(slug)
+        for t in (rest[0] if rest else []):
+            # A wrong MCP tool name does not error at runtime — LibreChat
+            # simply hands the agent nothing.  Catch the shape here, since
+            # nothing downstream ever will.
+            if not t.endswith(f"_mcp_{REGISTRAR_MCP}"):
+                raise SystemExit(
+                    f"GUIDES[{i}] ({slug}): tool {t!r} does not end in "
+                    f"'_mcp_{REGISTRAR_MCP}' — it would attach nothing, "
+                    f"silently.  Build names with _M().")
+
+
+_check_guides()
+
+
 JS = r"""
 const fs = require('fs');
 const path = require('path');
@@ -479,7 +514,14 @@ def model_specs(seeded: list[dict], model: str) -> str:
                   "      preset:",
                   "        endpoint: agents",
                   f"        agent_id: {a['id']}",
-                  f"        model: {model}"]
+                  # The ROW's model, not the fallback.  The comment above has
+                  # claimed this since the AGENT_MODEL fix and the code did
+                  # not do it: every spec printed `model:` as whatever this
+                  # run's default was, so on a box whose guides run
+                  # almanac-office the paste-me block said almanac-chat and
+                  # pasting it re-pointed all six specs at a model they are
+                  # not on.  Found on xdocker03, 2026-09-21.
+                  f"        model: {a.get('model') or model}"]
     return "\n".join(lines)
 
 
