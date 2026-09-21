@@ -370,6 +370,22 @@ A model newer than our LiteLLM pin and *not* behind Foundry is in neither price 
 
 ---
 
+### Set the context window, because nothing does it for you
+
+`maxContextTokens` is **not set anywhere in the tracked config**, and LibreChat does not read a window off the gateway.  A custom deployment name is not a model LiteLLM can look up, so an unrecognised model falls back to LibreChat's own default — measured at about **28k on a model that serves 922k** (2026-09-21).  Nothing warns you.  A long conversation simply starts losing its early turns.
+
+Set it on the endpoint in your instance's `librechat.yaml`:
+
+```yaml
+      maxContextTokens: 64000
+```
+
+**The number is a budget, not a capability, and it belongs to your deployment.**  At $0.20/Mtok a fully packed 922k request is roughly $0.18 before a token comes back, and the guides will fill whatever they are given — a two-turn "how do I" already runs ~16k on retrieval alone.  64k is about eight turns of real depth against a bounded worst case.  Take more if your pools are sized for it; take less on a tight budget.
+
+**Do not copy a number from another box.**  The window has to match the model actually being served: set it above what your backend accepts and you convert today's silent truncation into a request-time error, which is worse — a conversation that quietly forgets is still a working room, and the smallest boxes are the ones most likely to be somebody's first install.  This is why the value lives in *your* config and not in the tracked one.
+
+While you are on that endpoint, check `models.default` lists every model you actually serve.  The guides reach their model by direct reference, so a missing entry works anyway — which is exactly why nobody notices the endpoint has no idea what it is talking to.
+
 ### Once per box: open the escrow
 
 ```
