@@ -426,6 +426,28 @@ The render is inert until reconciled (next wall) — `just render` on each box i
 
 And a thing to know whichever way it goes: **the shared store's boundary is a permission check, not a partition.**  `document_routes.py` scopes by `user_id` taken from the token payload, treats a document whose `user_id` is null as readable, and honors a caller-supplied `entity_id` in place of the token's identity.  So "isolation by instance rather than by permission check" is true of the chat plane and has never been true of RAG.
 
+## The inert-change family — and the trap of knowing about it *(2026-09-21)*
+
+Seven doors found so far, all the same sentence with a different noun: **the source is current and the artifact is not.**
+
+| What changed | What never got it | The guard |
+|---|---|---|
+| a mounted config file | the running process | `config-refresh` |
+| `registrar/render.py` | the `fleet/` render | `render-check` |
+| `docs/agent-contract.md`, `corpus/` | the seeded guides' knowledge | `agents-check` q5 |
+| a tracked config | a box with a `site/` override of it | *(none, and deliberately — see `site/` vs. the platform)* |
+| `scripts/seed_agents.py` | anything at all, until a human runs it | `agents-check` q7 + the GUIDES self-check |
+| an agent that exists | anyone's ability to *see* it | `agents-check` q7 |
+| `caddy:2.11.4` pinned on both stages | `xcaddy --with github.com/caddy-dns/azure`, which had no version | the pin, and the artifact repo |
+
+**The ones with no guard are the interesting entries**, and two of them are unguarded on purpose: `site/` exists so a box *can* differ, and a diff that reddens on intentional divergence is a check people learn to ignore.
+
+**Now the second-order hazard, which cost real time on 2026-09-21.**  Once this family is in your head it becomes a pattern you match *onto* things, and it fits almost anything.  Twice in one day a correct-looking instance of it was asserted and was wrong: an empty agent picker diagnosed as a deploy-restart window (it was the ACL — nobody could see the guides at all), and the Caddyfile declared baked into the edge image and needing a republish (it is mounted at runtime, and `compose.yml` says so on the mount line).  Both times the reasoning was *this shape is real elsewhere in this system, so it is real here*.  Both times the file in front of the reasoner said otherwise and took under a minute to read.
+
+So the rule this family earns is not "look for inert changes."  It is: **a pattern that has been right six times is exactly what makes the seventh guess feel like knowledge.**  Check the artifact, not the story — and when the story is a shape you have personally been burned by, check it harder, because that is the one you will skip.
+
+---
+
 ## A render-template change is INERT until something reconciles *(2026-09-18)*
 
 **`just deploy` never re-renders the fleet.**  It builds the registrar image, so `render.py`'s new code is sitting in the container — and `fleet/fleet.yml`, `fleet/<slug>.env`, `fleet/<slug>.librechat.yaml` and `fleet/caddy/<slug>.caddy` are all still whatever the last reconcile wrote.  Compose then reads the *old* render and recreates nothing, because from its side nothing changed.  The deploy is green and the fix is not deployed.
