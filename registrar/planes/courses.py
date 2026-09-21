@@ -97,6 +97,29 @@ def _int_or(v, default: int) -> int:
         return default
 
 
+
+def _money_or_zero(v, default: float) -> float:
+    """Same best-effort loading as `_int_or`, but a bad value fails CLOSED.
+
+    `_int_or` falls back to its default because a wrong context window only
+    shortens a conversation.  Money is the other way round: silently
+    substituting DEFAULT_COURSE_BUDGET for a typo would hand a course a
+    spending limit nobody wrote, and the symptom would be an absence — the
+    same failure as a model that meters at $0.  So a value we cannot read
+    becomes 0, which is loud, harmless, and already has a sentence in
+    `validate_courses`: "that course spends nothing until it's raised."
+
+    A missing key is not a bad value and still takes the default; this only
+    fires on something present and unreadable.
+    """
+    if v is None:
+        return default
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def load_courses() -> dict:
     raw = load_raw_courses()
     out = {
@@ -115,10 +138,15 @@ def load_courses() -> dict:
             "name": str(c.get("name") or slug),
             "instructors": [str(e).strip().lower() for e in (c.get("instructors") or [])],
             "tas": [str(e).strip().lower() for e in (c.get("tas") or [])],
+            # Bare float() here turned a typo in ANY course's budget into a
+            # traceback out of load_courses — including on the way to printing
+            # the validate errors that name it, so the operator lost the one
+            # sentence that said which course and which key.
             "budgets": {
-                "course": float(budgets.get("course", DEFAULT_COURSE_BUDGET)),
-                "key_fuse": min(float(budgets.get("key_fuse", DEFAULT_FUSE)), MAX_FUSE),
-                "advisory_weekly": float(budgets.get("advisory_weekly", 2)),
+                "course": _money_or_zero(budgets.get("course"), DEFAULT_COURSE_BUDGET),
+                "key_fuse": min(_money_or_zero(budgets.get("key_fuse"), DEFAULT_FUSE),
+                                MAX_FUSE),
+                "advisory_weekly": _money_or_zero(budgets.get("advisory_weekly"), 2),
             },
             "college": (str(c.get("college")).strip().lower()
                         if c.get("college") else None),
