@@ -546,7 +546,7 @@ def main() -> int:
         compose("exec", "-T", "librechat", "rm", "-rf", "/app/api/.seed-corpus",
                 capture_output=True)
         staged = 0
-        for slug, _, _ in GUIDES:
+        for slug, *_ in GUIDES:
             compose("exec", "-T", "librechat", "mkdir", "-p",
                     f"/app/api/.seed-corpus/{slug}", check=True, capture_output=True)
             for f in knowledge(slug):
