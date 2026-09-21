@@ -198,6 +198,16 @@ def validate_courses() -> tuple[list[str], list[str]]:
                 f"{where}: slug must be lowercase letters, digits and hyphens "
                 f"(it becomes the hostname {slug}.{ALMANAC_DOMAIN}, the "
                 f"container names, and the Keycloak clientId)")
+        if slug.endswith("-admin"):
+            # Every course renders TWO vhosts: <slug> and <slug>-admin (the
+            # panel).  So a course actually named "<x>-admin" claims the
+            # hostname x's panel already answers on — two site blocks, one
+            # name, in two different generated files.  Cheap to refuse, and
+            # expensive to find once it is baked into a SAN certificate.
+            errors.append(
+                f"{where}: a slug ending in '-admin' collides with the panel "
+                f"hostname of course {slug[:-6]!r} — both render "
+                f"{slug}.{ALMANAC_DOMAIN}")
         if c is None:
             errors.append(f"{where}: empty record — needs at least name + instructors")
             continue

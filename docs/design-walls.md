@@ -85,7 +85,7 @@ Agent-share groups resolve from `local` or `entra` sources **only**.  The Keyclo
 
 Share-groups are managed in the bundled **admin panel**, which listens on 3000 in its container every time.  `3082` is only where the *flagship's* copy is published on the box (`ADMIN_PANEL_PORT`, loopback-bound, so it wants a tunnel).  Not 3081 — that default collides with `CHAT_PORT` overrides on xdocker03, and a red pipeline (#11) is how we found it.
 
-**A provisioned course's panel is not on a port at all.**  `render_course_vhost()` gives every course `{slug}-admin.{$ALMANAC_DOMAIN}` → `panel-{slug}:3000`, through the edge, same SSO button.  Quoting `:3082` at faculty sends them to the operator's tunnel, which is a door they cannot open — it happened in the guides, fixed in `8688dbc`.
+**A provisioned course's panel is not on a port at all.**  `render_course_vhost()` gives every course `{slug}-admin.{$ALMANAC_DOMAIN}` → `panel-{slug}:3000`, through the edge, same SSO button.  Quoting `:3082` at faculty sends them to the operator's tunnel, which is a door they cannot open — it happened in the guides, fixed in `8688dbc`.  **`-admin` is therefore a reserved slug suffix**: a course named `<x>-admin` would claim the hostname `<x>`'s panel already answers on, from a second generated file.  `validate_courses` refuses it — cheap to catch, expensive to find once the name is baked into a SAN certificate.
 
 ### The panel's `SESSION_COOKIE_SECURE` has no `trust proxy` trap *(2026-09-18)*
 
