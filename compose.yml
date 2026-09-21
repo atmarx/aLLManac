@@ -356,6 +356,10 @@ services:
       REGISTRAR_MAX_FUSE: "${REGISTRAR_MAX_FUSE:-25}"
       REGISTRAR_MIN_FUSE: "${REGISTRAR_MIN_FUSE:-1}"
       REGISTRAR_DEFAULT_COURSE_BUDGET: "${REGISTRAR_DEFAULT_COURSE_BUDGET:-1000}"
+      # The per-course context window.  A cost cap, not a capability claim —
+      # LOWER it on a box whose models serve less than this, or requests fail
+      # rather than truncate (registrar/planes/config.py).
+      REGISTRAR_DEFAULT_CONTEXT_TOKENS: "${REGISTRAR_DEFAULT_CONTEXT_TOKENS:-128000}"
       REGISTRAR_BASE_MODELS: "${REGISTRAR_BASE_MODELS:-almanac-chat}"
       MODEL_PROVIDER_NAME: "${MODEL_PROVIDER_NAME:-Almanac}"
       MCP_SERVER_PREFIX: "${MCP_SERVER_PREFIX:-almanac}"

@@ -53,12 +53,15 @@ MAX_FUSE = float(os.environ.get("REGISTRAR_MAX_FUSE", "25"))
 MIN_FUSE = float(os.environ.get("REGISTRAR_MIN_FUSE", "1"))
 DEFAULT_COURSE_BUDGET = float(os.environ.get("REGISTRAR_DEFAULT_COURSE_BUDGET", "1000"))
 
-# The context window rendered into every course instance.  It exists to be
-# EXPLICIT, not to be clever: without it LibreChat falls back to its own
-# default for a model it does not recognise (~28k measured on our pin), which
-# is an undocumented number that can move on a version bump — the same shape
-# as a floating image tag.  28000 matches what courses already get, so
-# rendering it changes no behaviour today and makes the knob visible.
+# The context window rendered into every course instance.  Without it
+# LibreChat falls back to its own default for a model it does not recognise
+# — measured at ~28k against a model that actually serves 922k
+# (docs/admin-guide.md) — an undocumented number, nobody's choice, free to
+# move on a version bump.  Same shape as a floating image tag.
+#
+# 128k is the operator's number (@xram, 2026-09-21), and it is a CAP rather
+# than a capability claim: it bounds what a single conversation can spend on
+# a metered model, well under what the large hosted models serve.
 #
 # Deliberately NOT a model -> window table.  `almanac-chat` is an ALIAS
 # resolved per deployment (`litellm/config.yaml` maps it to
@@ -69,11 +72,21 @@ DEFAULT_COURSE_BUDGET = float(os.environ.get("REGISTRAR_DEFAULT_COURSE_BUDGET", 
 # "The Almanac consumes inference; it does not manage it").  The operator
 # knows what their endpoint serves; a course record can say so.
 #
-# Err LOW when unsure: too small truncates a conversation sooner (degraded,
-# still working), too large is a request-time error against a backend that
-# cannot take it (an outage, and worst on the smallest boxes).
+# NOTE THE DIRECTION, because this default is deliberately NOT the cautious
+# one.  Too small truncates a conversation sooner — degraded, still working.
+# Too large is a request-time error against a backend that cannot take it.
+# At 128k this default is larger than many self-hosted models serve, so **a
+# course whose models resolve to a small local endpoint must set
+# `context_tokens:` in its own record** — the err-low rule now lives per
+# course rather than in this constant, which is the trade the operator made
+# knowingly.  The registrar cannot make it for them: `almanac-chat` is an
+# alias and what it resolves to is on the far side of INFERENCE_BASE_URL.
+#
+# This was 28000 until 2026-09-21, chosen to match LibreChat's own fallback
+# so the change was a no-op.  It is no longer a no-op: raising it makes every
+# rendered course stale until `just render`, and render-check says so.
 DEFAULT_CONTEXT_TOKENS = int(
-    os.environ.get("REGISTRAR_DEFAULT_CONTEXT_TOKENS", "28000"))
+    os.environ.get("REGISTRAR_DEFAULT_CONTEXT_TOKENS", "128000"))
 BASE_MODELS = [
     model.strip()
     for model in os.environ.get("REGISTRAR_BASE_MODELS", "almanac-chat").split(",")

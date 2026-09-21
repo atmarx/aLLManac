@@ -269,7 +269,11 @@ Every course instance renders `maxContextTokens` into its `endpoints.custom` blo
 
 **Err low, and the asymmetry is the reason.**  Too small trims a conversation sooner — degraded, still working.  Too large asks the backend for a window it may refuse, which is a request-time error rather than a quietly shorter chat, and it lands hardest on the smallest boxes, which are somebody's first install.  `validate` warns below 4k and above 200k, and refuses zero.
 
-The default (`REGISTRAR_DEFAULT_CONTEXT_TOKENS`, 28000) matches what courses already ran, so shipping this changed no behaviour — **the deliverable is the knob, not a better number.**  What the number *should* be once a course lists a cloud model is a budget question, not a render one: an uncapped window is the fastest way to drain a pool that was sized when the model was free.  That call is the operator's.
+**The default is `REGISTRAR_DEFAULT_CONTEXT_TOKENS`, and it is 128000** — the operator's number, set 2026-09-21 after the knob shipped at 28000 to match LibreChat's own fallback.  It is a **cost cap, not a capability claim**: a bound on what one conversation can spend on a metered model, comfortably under what the large hosted models serve, and far above the ~28k that a model serving 922k was silently getting.
+
+That makes the default **deliberately not the cautious one**, and the consequence has to be stated rather than discovered: 128k is larger than many self-hosted endpoints serve, so **a course whose models resolve to a small local model must set `context_tokens:` itself**.  The err-low rule moved from the constant into the course record — which is a trade, knowingly made, and the only place it *can* live, because the registrar cannot resolve an alias it does not own.  Note that this failure is not new at any default: a backend serving under 28k was already exposed to it.  Raising the number widens the window in which it bites; it does not create it.
+
+Raising it is **not** a no-op, unlike the commit that introduced the field.  Every rendered course is stale until `just render`, and `render-check` goes red saying so.
 
 ---
 
