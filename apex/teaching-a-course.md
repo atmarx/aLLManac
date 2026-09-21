@@ -31,6 +31,18 @@ Your students' own walkthrough is the [course guide](user-guide.md) — worth re
 
 One thing the roster does *not* decide is seniority.  It answers two separate questions: **who may change the roster** (instructors and TAs) and **who may hold a key** (everyone it names).  Those are unrelated, so put people where their job is rather than where their rank is — and for a course where *everybody* is learning, a staff cohort or a workshop or a reading group, the honest answer is usually one instructor and everyone else a student.
 
+## Giving the platform your class list
+
+**Paste it into your course chat.  Any format.**
+
+You do not need to reformat anything, and there is no file to upload.  Export the roster from wherever you keep it — a CSV with eight columns, a list of addresses, an email you sent the section — paste the whole thing, and ask to stage a roster.  What matters is that the **sign-in email addresses** are somewhere in the text; headers, names, student numbers and junk columns are ignored, and you are told how many lines were skipped so you can tell "ignored the header" from "pasted the wrong column."
+
+**Nothing changes when you paste.**  You get back exactly what would happen — who would be added, who would be removed, who is already enrolled — and the removals say plainly that those students' keys get revoked.  It changes only when you confirm, and the confirmation expires after fifteen minutes, so a paste you walk away from is not a change you come back to.
+
+The two steps are `roster_stage` (show me what this would do) and `roster_apply` (do it).  Staff addresses in the paste are skipped rather than enrolled as students — you will not accidentally make yourself your own student by pasting a list you are on.
+
+**Paste a big section in chunks of about forty.**  Each student is several operations behind the scenes, and a very large single paste can run long enough to look like nothing is happening.  It is safe either way — every step can be repeated without doing anything twice — but a paste that appears to hang is not a good first experience.  Re-pasting the same list is always safe: what is already enrolled stays enrolled.
+
 ## Adding a student to your class after it starts
 
 Someone joins your section in week three, or switches in from another class.  Nothing about that is unusual and none of it is enrolment — the university admitted them long ago.  What they need is **access to your course**, and that is a roster change.
