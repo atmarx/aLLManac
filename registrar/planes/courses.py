@@ -38,7 +38,7 @@ class CoursesError(Exception):
 # Writes are atomic (tmp + rename) — courses.yaml is bind-mounted as a
 # directory-relative path precisely so renames are visible.
 
-_EMPTY = {"courses": {}, "colleges": {}, "admins": []}
+_EMPTY = {"courses": {}, "colleges": {}, "admins": [], "devs": []}
 
 
 def load_raw_courses() -> dict:
@@ -70,7 +70,8 @@ def load_raw_courses() -> dict:
             f"{COURSES_PATH} must be a mapping with `courses:` at the top "
             f"level — got {type(raw).__name__}."
         )
-    for key, want in (("courses", dict), ("colleges", dict), ("admins", list)):
+    for key, want in (("courses", dict), ("colleges", dict), ("admins", list),
+                      ("devs", list)):
         val = raw.get(key)
         if val is not None and not isinstance(val, want):
             raise CoursesError(
@@ -85,6 +86,11 @@ def load_courses() -> dict:
     out = {
         "courses": {}, "colleges": raw.get("colleges") or {},
         "admins": [str(e).strip().lower() for e in (raw.get("admins") or [])],
+        # Platform devs — the report queue, and nothing else.  Deliberately
+        # NOT admins: a report is something a person CHOSE to send you; the
+        # fleet view is everyone who chose nothing.  See registrar-spec.md,
+        # "Reports".  Admins are devs implicitly (they already see more).
+        "devs": [str(e).strip().lower() for e in (raw.get("devs") or [])],
     }
     for slug, c in (raw.get("courses") or {}).items():
         c = c or {}
@@ -189,6 +195,18 @@ def validate_courses() -> tuple[list[str], list[str]]:
     for e in (raw.get("admins") or []):
         if not EMAILISH_RE.match(str(e).strip()):
             warnings.append(f"admins: {e!r} doesn't look like an email address")
+
+    for e in (raw.get("devs") or []):
+        if not EMAILISH_RE.match(str(e).strip()):
+            warnings.append(f"devs: {e!r} doesn't look like an email address")
+    both = (set(str(e).strip().lower() for e in (raw.get("devs") or []))
+            & set(str(e).strip().lower() for e in (raw.get("admins") or [])))
+    for e in sorted(both):
+        # Harmless, but it reads as though the dev list is doing something
+        # for them, and the day someone is removed from admins: expecting
+        # that to take their fleet access away, it won't say so anywhere.
+        warnings.append(f"devs: {e!r} is already an admin — admins triage "
+                        f"reports implicitly, so this line grants nothing")
 
     for slug, c in courses.items():
         slug = str(slug)

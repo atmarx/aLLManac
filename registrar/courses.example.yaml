@@ -68,3 +68,9 @@ courses:
 #     models: [cci-llama]        # their endpoint, registered once at the gateway
 
 admins: []                       # platform folks who may pull EVERY course's usage
+
+# The platform team's bug queue, and nothing else.  Separate from admins: on
+# purpose — a report is something a person CHOSE to send you, while the fleet
+# view is every student who chose nothing, so handing someone the report queue
+# must not hand them every roster on the box.  Admins triage implicitly.
+devs: []                         # may read and work `reports` / `report_triage`

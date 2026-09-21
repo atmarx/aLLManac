@@ -773,6 +773,12 @@ reports status="open":
 report-close id note="":
     {{compose}} exec -T registrar python course_admin.py report-close "{{id}}" --note "{{note}}" </dev/null
 
+# The list is operator-edited like the rest of courses.yaml, so this is the
+# read-only look at it — add or remove names by editing the file.
+# Who may work the report queue from chat (`devs:` in courses.yaml)
+devs:
+    {{compose}} exec -T registrar python -c "import reconcile as R; d=R.load_courses(); print('devs:  ' + (', '.join(d['devs']) or '(none)')); print('admins:' + (', '.join(d['admins']) or '(none)') + '  (triage implicitly)')" </dev/null
+
 # Check courses.yaml without touching anything — run it after hand-editing.
 # `just course` runs the same checks itself and refuses on errors; this is
 # the read-only version for when you want to look before you provision.

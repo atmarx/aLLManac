@@ -579,6 +579,8 @@ Problem reports are filed from the **vestibule**, and the registrar is wired int
 
 **Routing comes from the roster, not from a header.**  In a course, `X-Course` says which course a report is about.  In the vestibule nothing does, so `file_report` asks `courses.yaml` — the same question usage-mcp already answers in `list_courses`.  One course is an answer; several or none is recorded as `unknown` and a human picks, because a report filed against the wrong course wastes the one instructor who reads it.  A course the person *names* only routes if they are on it; otherwise it lands unrouted with what they typed kept as `said_course`, since a slug that routed nowhere is either a typo or someone who thinks they're enrolled and isn't, and both are findings.
 
+**Who may work the queue is `devs:`, not `admins:`.**  The split is consent, not rank: a report is something a person chose to send, while `fleet_access` is every student who chose nothing.  One "platform-wide" gate would make the first imply the second, and the queue has to be safe to hand to a student worker.  `devs:` grants `reports` and `report_triage` and nothing else — verified by exercising the fleet tools as a dev, which refuse.  Admins triage implicitly, and `validate` warns when someone is on both lists.
+
 **The trace is the point, and it is self-reported.**  `asked` / `answered` / `sources` turn "the guide didn't know about X" into a retrieval trace someone can take to the corpus.  There is no retrieval log to read, so those fields are the agent's account of its own turn — the record carries `reported_by_agent: true` so nobody later mistakes it for an audit.  Imperfect and present beats rigorous and hypothetical; the flag is what keeps it honest.
 
 ---

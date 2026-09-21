@@ -176,6 +176,30 @@ def _admin_or_refuse(email: str) -> None:
         )
 
 
+def _is_dev(email: str, courses: dict) -> bool:
+    """May this person work the report queue?
+
+    A separate list from `admins:` on purpose, and the line is not
+    seniority — it is **who chose to be seen**.  A report is something a
+    person sat down and sent you; `fleet_access` is every student who
+    chose nothing.  Those two should not share a gate merely because both
+    are platform-wide, or handing someone the bug queue hands them every
+    roster on the box.  Admins pass implicitly: they already see more.
+    """
+    return email in courses["devs"] or email in courses["admins"]
+
+
+def _dev_or_refuse(email: str) -> dict:
+    courses = _courses_or_refuse()
+    if not _is_dev(email, courses):
+        raise ToolError(
+            "Working the report queue is for the platform team (the `devs:` "
+            "or `admins:` list in registrar/courses.yaml).  Teaching staff "
+            "see their own course's reports from inside that course."
+        )
+    return courses
+
+
 # ---- roster parsing: liberal on purpose ---------------------------------------
 # Instructors paste whatever their SIS exports — CSV with headers, TSV,
 # newlines, Banner's junk columns.  We extract every email-shaped token and
@@ -727,14 +751,15 @@ async def reports(status: str = "open") -> str:
     email, _role, slug = _ident_open()
     courses = _courses_or_refuse()
     want = None if status.strip().lower() == "all" else status.strip().lower()
-    if email in courses["admins"]:
+    if _is_dev(email, courses):
         rows = reconcile.reports(status=want)
     else:
         if not slug:
             raise ToolError(
                 "Reading the report pile is a faculty view of one course, so "
-                "it only works from inside that course's chat.  Filing a "
-                "report works anywhere — that's report_problem."
+                "it only works from inside that course's chat — unless you're "
+                "on the platform team, and you're not.  Filing a report works "
+                "anywhere, and `my_reports` shows you your own."
             )
         course = _course_or_refuse(slug)
         _staff_or_refuse(email, course, slug)
@@ -750,6 +775,62 @@ async def reports(status: str = "open") -> str:
     out.append("")
     out.append("Full text and the exchange: `just reports` on the box.")
     return "\n".join(out)
+
+
+@mcp.tool
+async def report_triage(report_id: str, status: str = "triaged",
+                        note: str = "") -> str:
+    """Work a problem report: mark it triaged or closed and say what was done
+    about it.  Platform team only (`devs:` or `admins:` in courses.yaml).
+
+    `note` is written where the reporter can read it — `my_reports` shows
+    them the resolution — so write it for them, not for the commit log."""
+    email, _role, _slug = _ident_open()
+    _dev_or_refuse(email)
+    want = status.strip().lower()
+    if want not in ("triaged", "closed"):
+        raise ToolError(f"Status is triaged or closed, not {status!r}.  "
+                        "Reports start open by themselves.")
+    if want == "closed" and not note.strip():
+        # Not pedantry: the note is the ONLY thing the person who filed it
+        # ever gets back.  Closing without one is the silence that teaches
+        # people the tool does nothing.
+        raise ToolError(
+            "Closing a report needs a note — it's the only thing the person "
+            "who filed it ever sees.  One sentence about what happened."
+        )
+    r = reconcile.close_report(report_id.strip(), email, note, status=want)
+    if r is None:
+        raise ToolError(f"No report {report_id!r}.  `reports all` lists them.")
+    return (f"{r['id']} → {r['status']}"
+            + (f" — {r['resolution']}" if r.get("resolution") else "")
+            + f"\n{r['by']} sees this the next time they ask `my_reports`.")
+
+
+@mcp.tool
+async def my_reports() -> str:
+    """What happened to the problems you reported.  Works from any room.
+
+    Pull, not push: there is no notification channel we own, and inventing
+    one would be a second inbox nobody reads.  Asking is the channel."""
+    email, _role, _slug = _ident_open()
+    rows = [r for r in reconcile.reports() if r["by"] == email]
+    if not rows:
+        return ("You haven't filed any reports.  If something isn't working, "
+                "`report_problem` is how you tell us — and if it was about an "
+                "answer I gave, say so and I'll send what I said along with it.")
+    out = []
+    for r in sorted(rows, key=lambda x: x["at"], reverse=True):
+        head = f"**{r['at']}** — {r['status']}"
+        if r["about"]:
+            head += f" · {r['about']}"
+        out += [head, f"> {r['what']}"]
+        if r.get("resolution"):
+            out.append(f"Resolution: {r['resolution']}")
+        elif r["status"] == "open":
+            out.append("_Still open — nobody has picked it up yet._")
+        out.append("")
+    return "\n".join(out).rstrip()
 
 
 # ---- liveness ------------------------------------------------------------------
