@@ -448,6 +448,29 @@ def sha(path: pathlib.Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
+def prompt_text(path: pathlib.Path) -> str:
+    """The SYSTEM-PROMPT as the agent actually receives it.
+
+    Not the file's bytes: the rendered page carries `<!-- -->` provenance
+    lines that are stripped before the instructions are pushed.  This is a
+    function, and exported, for one reason — `agents_check.py` has to hash
+    exactly what was sent, and the first version of that check hashed the
+    raw file instead.  Every guide read as permanently stale, which is a
+    check that is always red, which is worse than no check at all.  One
+    definition, both callers.
+    """
+    return "\n".join(l for l in path.read_text().splitlines()
+                     if not l.startswith("<!--")).strip()
+
+
+def prompt_sha(path: pathlib.Path) -> str:
+    return hashlib.sha256(prompt_text(path).encode()).hexdigest()[:16]
+
+
+def _sha_text(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()[:16]
+
+
 def compose(*args: str, **kw) -> subprocess.CompletedProcess:
     return subprocess.run(["docker", "compose", *args], cwd=ROOT,
                           stdin=subprocess.DEVNULL, text=True, **kw)
@@ -610,8 +633,7 @@ def main() -> int:
         p = CORPUS / slug / "SYSTEM-PROMPT.md"
         if not p.exists():
             sys.exit(f"{p} missing — run `just docs-corpus` first.")
-        text = "\n".join(l for l in p.read_text().splitlines()
-                         if not l.startswith("<!--")).strip()
+        text = prompt_text(p)
         a = {"slug": slug, "name": name, "description": desc,
              "instructions": text}
         # `want` is computed even with --skip-files: it is what decides
@@ -673,8 +695,19 @@ def main() -> int:
     except (json.JSONDecodeError, TypeError):
         rows = []
     if rows and not skip_files:
+        # `prompt` is the sha of the SYSTEM-PROMPT this run actually pushed.
+        # Without it a prompt-only change is invisible to every guard we
+        # have: agents-check q5 compares knowledge file COUNTS, and editing
+        # docs/agent-contract.md moves no count at all.  So a contract fix
+        # can sit inert on a box behind a fully green check — which is the
+        # inert-change family's eighth door (docs/design-walls.md).
+        prompts = {a["slug"]: a["instructions"] for a in agents}
         for row in rows:
-            state[row["slug"]] = {"id": row["id"], "files": row.get("files") or {}}
+            state[row["slug"]] = {
+                "id": row["id"],
+                "files": row.get("files") or {},
+                "prompt": _sha_text(prompts.get(row["slug"], "")),
+            }
         try:
             STATE.parent.mkdir(parents=True, exist_ok=True)
             STATE.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")

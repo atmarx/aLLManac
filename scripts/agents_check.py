@@ -48,6 +48,7 @@ the config loaded — ask the file the container is actually reading.
 
 Read-only.  Nothing here writes, mints, or restarts.
 """
+import hashlib
 import json
 import pathlib
 import subprocess
@@ -58,7 +59,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # Imported, never retyped: the whole failure this check exists to catch is
 # two copies of this string drifting apart.
 sys.path.insert(0, str(ROOT / "scripts"))
-from seed_agents import REGISTRAR_MCP  # noqa: E402
+from seed_agents import REGISTRAR_MCP, prompt_sha  # noqa: E402
 
 OK, BAD, MEH = "  ok   ", "  FAIL ", "  warn "
 
@@ -144,6 +145,27 @@ def visibility() -> dict:
         if e.get("agent"):
             out.setdefault(e["agent"], set()).add(e.get("p"))
     return out
+
+
+def seeded_prompts() -> tuple[dict, bool]:
+    """slug -> sha of the SYSTEM-PROMPT the seeder last pushed, and whether
+    the state file predates this field.
+
+    The state lives in `site/`, so it is this box's record of what it sent —
+    which is the only place the answer exists.  The agents API does not
+    return instructions in the list, and comparing the rendered prompt to
+    what a box last seeded is otherwise unanswerable.
+    """
+    f = ROOT / "site" / "agents-state.json"
+    try:
+        raw = json.loads(f.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}, True
+    out = {k: v.get("prompt") for k, v in raw.items() if isinstance(v, dict)}
+    # A state file written before `prompt` existed has ids and files but no
+    # hashes.  That is "cannot tell", not "drifted" — going red there would
+    # redden every box that has not re-seeded since this shipped.
+    return out, not any(out.values())
 
 
 def main() -> int:
@@ -256,6 +278,40 @@ def main() -> int:
         if not triage:
             print(f"{MEH}no guide carries report_triage — the queue is still "
                   f"readable on the box with `just reports`")
+
+    # Question 8: the instructions, which no other check can see.  q5 compares
+    # knowledge file COUNTS, and a prompt edit moves no count — so a contract
+    # change can be inert on the box behind six green sections.
+    print("\nare the guides running the current prompt?")
+    seeded, unknown = seeded_prompts()
+    if unknown:
+        print(f"{MEH}this box has not seeded since prompt tracking shipped — "
+              f"run `just agents-seed` once and this question starts working")
+    else:
+        stale = []
+        for spec in specs:
+            slug = spec.get("name") or ""
+            src = ROOT / "corpus" / slug / "SYSTEM-PROMPT.md"
+            if not slug or not src.exists():
+                continue
+            # prompt_sha, NOT a hash of the file: the rendered page carries
+            # <!-- --> provenance lines the seeder strips before pushing.
+            # Hashing the raw bytes here made every guide read as stale,
+            # permanently.  Imported so the two sides cannot drift.
+            want = prompt_sha(src)
+            got = seeded.get(slug)
+            if got and got != want:
+                stale.append((spec.get("label") or slug, slug))
+        if stale:
+            for label, slug in stale:
+                print(f"{BAD}{label:20} prompt differs from corpus/{slug}/"
+                      f"SYSTEM-PROMPT.md — the box is running an older one")
+            print(f"{BAD}{len(stale)} guide(s) on a stale prompt.  A contract "
+                  f"change reaches a box only through `just agents-seed`; "
+                  f"nothing else moves it, and no other check can see it.")
+            bad += len(stale)
+        else:
+            print(f"{OK}every seeded guide matches the rendered prompt")
 
     # The question a green check has never asked: can a real person SEE these?
     print("\ncan a signed-in person see them?")

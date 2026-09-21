@@ -436,10 +436,15 @@ Seven doors found so far, all the same sentence with a different noun: **the sou
 | a mounted config file | the running process | `config-refresh` |
 | `registrar/render.py` | the `fleet/` render | `render-check` |
 | `docs/agent-contract.md`, `corpus/` | the seeded guides' knowledge | `agents-check` q5 |
+| the guides' **instructions** (a prompt-only edit) | the seeded agents — and q5 cannot see it, because it compares file *counts* and a prompt edit moves none | `agents-check` q8 |
 | a tracked config | a box with a `site/` override of it | *(none, and deliberately — see `site/` vs. the platform)* |
 | `scripts/seed_agents.py` | anything at all, until a human runs it | `agents-check` q7 + the GUIDES self-check |
 | an agent that exists | anyone's ability to *see* it | `agents-check` q7 |
 | `caddy:2.11.4` pinned on both stages | `xcaddy --with github.com/caddy-dns/azure`, which had no version | the pin, and the artifact repo |
+
+**The eighth door was found by writing the wall.**  Piper fixed a receipt behaviour in `docs/agent-contract.md`; nothing on any box would have moved until someone ran `agents-seed`, and no check could say so — q5 counts knowledge files and a prompt edit moves no count.  q8 now compares the rendered `SYSTEM-PROMPT.md` against a hash the seeder records of what it actually pushed, in `site/agents-state.json`, because the agents API will not return instructions in a list and this box's own record is the only place the answer exists.
+
+**And the first version of q8 was wrong in the way this file keeps warning about.**  It hashed the raw file while the seeder strips `<!-- -->` provenance lines before pushing, so every guide read as permanently stale — a check that is always red, which is worse than no check because people learn to ignore it.  The comment above the bug asserted *"they are the same bytes"* and they were not.  Both sides now call one exported `prompt_sha()`, so the transform cannot drift; the guard against writing that bug again is a shared function, not a more careful comment.
 
 **The ones with no guard are the interesting entries**, and two of them are unguarded on purpose: `site/` exists so a box *can* differ, and a diff that reddens on intentional divergence is a check people learn to ignore.
 
