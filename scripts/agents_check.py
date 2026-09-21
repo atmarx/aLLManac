@@ -2,8 +2,8 @@
 """Prove the vestibule is what we think it is.
 
 `just agents-seed` makes the guides; this asks the running instance whether
-they actually landed, and whether the config points at them.  Six questions,
-in the order they go wrong:
+they actually landed, and whether the config points at them.  Seven
+questions, in the order they go wrong:
 
   1. Does the flagship serve a `modelSpecs` list at all?  A box that never
      got the hand-written block (docs/admin-guide.md, "The vestibule") serves
@@ -13,24 +13,32 @@ in the order they go wrong:
   3. Does every spec's `agent_id` exist?  This is the orphan failure — an
      agent recreated instead of updated mints a new id, and the spec silently
      points at nothing.
-  5. Can anyone actually tell us something is broken?  `report_problem` is
-     an MCP tool, and MCP tool names fail closed and SILENT when they are
-     wrong — the feature does not error, it just isn't there.  So this asks
-     the agents whether they carry it rather than trusting the seeder ran.
-
   4. Does every guide carry `file_search` and some files?  An agent with the
      tool and no knowledge answers from the base model, which is exactly the
      fabrication the contract exists to stop.  The front desk is the one
      deliberate exception — it routes rather than answers, so it gets no
      corpus and no `file_search`, and `corpus/<slug>/` is what says which
      case a guide is in.
-  6. Does the attached knowledge MATCH the rendered corpus?  This is the
+  5. Does the attached knowledge MATCH the rendered corpus?  This is the
      third door in the render-check family and it cost a real find
      (2026-09-21): a green deploy does not re-seed the guides, so a prompt
      or corpus change is inert on the box and NOTHING says so.  Five guides
      were serving knowledge weeks older than the tree while every other
      check was green.  Counts, not contents — cheap, and drift this class
      always moves the count.  Red means run `just agents-seed`.
+  6. Can anyone actually tell us something is broken?  `report_problem` is
+     an MCP tool, and MCP tool names fail closed and SILENT when they are
+     wrong — the feature does not error, it just isn't there.  So this asks
+     the agents whether they carry it rather than trusting the seeder ran.
+  7. Can a signed-in person SEE any of this?  Every question above reads the
+     agents collection with no ACL filter, which answers "does it exist" and
+     is silent on "can anyone reach it."  Visibility in 0.8.x is the ACL, and
+     an agent granted only to its owner sits in the picker's config while
+     being invisible to the entire realm — the specs load, the client then
+     resolves the agents behind them, and the ones it cannot read drop out.
+     What a person sees is a label that flashes and is replaced by an empty
+     selector, with no error anywhere.  Found from the outside, by signing
+     in (2026-09-21), while all six checks above were green.
 
 It reads the config **from inside the container**, with LibreChat's own YAML
 parser, because `/api/config` will lie to you: unauthenticated requests get a
@@ -103,6 +111,39 @@ def agents() -> dict:
         a = json.loads(line)
         found[a["id"]] = a
     return found
+
+
+def visibility() -> dict:
+    """agent id -> the principal types that grant access to it.
+
+    `agents()` above reads the collection with no ACL filter, which is the
+    honest read for "does this agent exist" and says NOTHING about whether a
+    signed-in person can see it.  Those are different questions and the
+    second one is the one a user experiences: specs render from the config,
+    the client then resolves the agents behind them, and a guide the viewer
+    cannot read drops out of the picker.  The symptom is a label that flashes
+    and is replaced by an empty selector — not an error, anywhere.
+
+    Visibility in 0.8.x is the ACL, not the author field.  `principalType`
+    is one of user / group / role / public (PrincipalType in the pinned
+    image); only the last two can reach a whole realm.
+    """
+    q = ('var m = {}; db.agents.find({}, {_id:1, id:1}).toArray()'
+         '.forEach(a => m[a._id.toString()] = a.id); '
+         'db.aclentries.find({resourceType:"agent"}, '
+         '{resourceId:1, principalType:1, _id:0}).toArray()'
+         '.forEach(e => print(JSON.stringify({'
+         'agent: m[e.resourceId.toString()] || null, p: e.principalType})))')
+    out = {}
+    for line in dc("mongodb", "mongosh", "--quiet", "LibreChat",
+                   "--eval", q).splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        e = json.loads(line)
+        if e.get("agent"):
+            out.setdefault(e["agent"], set()).add(e.get("p"))
+    return out
 
 
 def main() -> int:
@@ -215,6 +256,32 @@ def main() -> int:
         if not triage:
             print(f"{MEH}no guide carries report_triage — the queue is still "
                   f"readable on the box with `just reports`")
+
+    # The question a green check has never asked: can a real person SEE these?
+    print("\ncan a signed-in person see them?")
+    acl = visibility()
+    REACHES_EVERYONE = {"public", "role"}
+    blind = []
+    for aid in sorted(claimed):
+        grants = acl.get(aid) or set()
+        if not (grants & REACHES_EVERYONE):
+            blind.append((aid, grants))
+    if not claimed:
+        print(f"{MEH}no specs to check")
+    elif blind:
+        for aid, grants in blind:
+            name = (live.get(aid) or {}).get("name") or aid
+            who = (f"granted to {', '.join(sorted(grants))} only"
+                   if grants else "no ACL entry at all")
+            print(f"{BAD}{name:20} {aid}  {who} — it is in the picker's config "
+                  f"and invisible to everyone who isn't its owner")
+        print(f"{BAD}{len(blind)} guide(s) no one can reach.  This is the empty "
+              f"picker whose label flashes first: the specs load, then the "
+              f"client resolves the agents and drops the ones it can't read.")
+        bad += len(blind)
+    else:
+        print(f"{OK}all {len(claimed)} reachable realm-wide "
+              f"({', '.join(sorted(set().union(*(acl.get(a, set()) for a in claimed)) & REACHES_EVERYONE))})")
 
     loose = [a for i, a in live.items() if i not in claimed]
     if loose:
