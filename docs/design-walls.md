@@ -435,12 +435,17 @@ Seven doors found so far, all the same sentence with a different noun: **the sou
 |---|---|---|
 | a mounted config file | the running process | `config-refresh` |
 | `registrar/render.py` | the `fleet/` render | `render-check` |
-| `docs/agent-contract.md`, `corpus/` | the seeded guides' knowledge | `agents-check` q5 |
+| `corpus/` pages, **added or removed** | the seeded guides' knowledge | `agents-check` q5 (counts) |
+| a `corpus/` page **edited in place** | the same, and the count-only version of q5 walked straight past it | `agents-check` q5 (per-file sha) |
 | the guides' **instructions** (a prompt-only edit) | the seeded agents — and q5 cannot see it, because it compares file *counts* and a prompt edit moves none | `agents-check` q8 |
 | a tracked config | a box with a `site/` override of it | *(none, and deliberately — see `site/` vs. the platform)* |
 | `scripts/seed_agents.py` | anything at all, until a human runs it | `agents-check` q7 + the GUIDES self-check |
 | an agent that exists | anyone's ability to *see* it | `agents-check` q7 |
 | `caddy:2.11.4` pinned on both stages | `xcaddy --with github.com/caddy-dns/azure`, which had no version | the pin, and the artifact repo |
+
+**The ninth door was the guard for the third one.**  q5 shipped comparing knowledge file *counts*, under a comment asserting "drift this class always moves the count."  That held for nine hours.  A full seed then reported `9 unchanged, 1 embedded, 1 retired` — a page replaced with a changed version, count identical on both sides — and the check read `10 files` before and after, green, on stale knowledge.  It compares content now, from the same per-file `sha` the seeder already recorded.
+
+The belief underneath was not "counts are enough."  It was **"files get added and removed far more often than they get edited in place"** — which is true, and was still the wrong thing to build a guard on.  **The guard has to cover the rare case; the common case is what people notice anyway.**  Worse here than a random blind spot, because `--skip-files` is the fast path: the command most likely to be run on a busy box was the one that left the drift in place.
 
 **The eighth door was found by writing the wall.**  Piper fixed a receipt behaviour in `docs/agent-contract.md`; nothing on any box would have moved until someone ran `agents-seed`, and no check could say so — q5 counts knowledge files and a prompt edit moves no count.  q8 now compares the rendered `SYSTEM-PROMPT.md` against a hash the seeder records of what it actually pushed, in `site/agents-state.json`, because the agents API will not return instructions in a list and this box's own record is the only place the answer exists.
 
@@ -451,6 +456,8 @@ Seven doors found so far, all the same sentence with a different noun: **the sou
 **Now the second-order hazard, which cost real time on 2026-09-21.**  Once this family is in your head it becomes a pattern you match *onto* things, and it fits almost anything.  Twice in one day a correct-looking instance of it was asserted and was wrong: an empty agent picker diagnosed as a deploy-restart window (it was the ACL — nobody could see the guides at all), and the Caddyfile declared baked into the edge image and needing a republish (it is mounted at runtime, and `compose.yml` says so on the mount line).  Both times the reasoning was *this shape is real elsewhere in this system, so it is real here*.  Both times the file in front of the reasoner said otherwise and took under a minute to read.
 
 So the rule this family earns is not "look for inert changes."  It is: **a pattern that has been right six times is exactly what makes the seventh guess feel like knowledge.**  Check the artifact, not the story — and when the story is a shape you have personally been burned by, check it harder, because that is the one you will skip.
+
+**And the checks themselves join the family.**  Three guards in this table were written on an assumption stated in a comment rather than tested: that counts move, that two hashes were over the same bytes, that two copies of a constant would stay equal.  Each was wrong, each was found by a two-line test its author could have run at the time, and each is now held by **one shared function instead of a more careful comment** — `knowledge()`, `sha()`, `prompt_sha()`, `NOT_KNOWLEDGE`, all imported, never retyped.  That is the actual mechanism: not vigilance, which does not survive a busy afternoon, but removing the second copy that could disagree.  **A guard is an artifact too, and it goes stale in exactly the ways it was built to catch.**
 
 ---
 

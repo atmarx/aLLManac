@@ -2,7 +2,7 @@
 """Prove the vestibule is what we think it is.
 
 `just agents-seed` makes the guides; this asks the running instance whether
-they actually landed, and whether the config points at them.  Seven
+they actually landed, and whether the config points at them.  Eight
 questions, in the order they go wrong:
 
   1. Does the flagship serve a `modelSpecs` list at all?  A box that never
@@ -30,6 +30,16 @@ questions, in the order they go wrong:
      an MCP tool, and MCP tool names fail closed and SILENT when they are
      wrong — the feature does not error, it just isn't there.  So this asks
      the agents whether they carry it rather than trusting the seeder ran.
+  8. Are the guides running the CURRENT prompt?  q5 above compares knowledge
+     files; a change to `docs/agent-contract.md` alters the agents'
+     *instructions* and touches no knowledge file at all, so a contract fix
+     can sit inert on a box behind every other section green.  The seeder
+     records a hash of the prompt it actually pushed (`site/agents-state.json`);
+     this compares it to the rendered `SYSTEM-PROMPT.md` through the shared
+     `prompt_sha()`, because the first version hashed the raw file while the
+     seeder strips `<!-- -->` lines, and every guide read as permanently
+     stale.  A box with no hash yet warns and does not redden.
+
   7. Can a signed-in person SEE any of this?  Every question above reads the
      agents collection with no ACL filter, which answers "does it exist" and
      is silent on "can anyone reach it."  Visibility in 0.8.x is the ACL, and
