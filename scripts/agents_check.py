@@ -2,7 +2,7 @@
 """Prove the vestibule is what we think it is.
 
 `just agents-seed` makes the guides; this asks the running instance whether
-they actually landed, and whether the config points at them.  Four questions,
+they actually landed, and whether the config points at them.  Six questions,
 in the order they go wrong:
 
   1. Does the flagship serve a `modelSpecs` list at all?  A box that never
@@ -24,6 +24,13 @@ in the order they go wrong:
      deliberate exception — it routes rather than answers, so it gets no
      corpus and no `file_search`, and `corpus/<slug>/` is what says which
      case a guide is in.
+  6. Does the attached knowledge MATCH the rendered corpus?  This is the
+     third door in the render-check family and it cost a real find
+     (2026-09-21): a green deploy does not re-seed the guides, so a prompt
+     or corpus change is inert on the box and NOTHING says so.  Five guides
+     were serving knowledge weeks older than the tree while every other
+     check was green.  Counts, not contents — cheap, and drift this class
+     always moves the count.  Red means run `just agents-seed`.
 
 It reads the config **from inside the container**, with LibreChat's own YAML
 parser, because `/api/config` will lie to you: unauthenticated requests get a
@@ -99,6 +106,14 @@ def agents() -> dict:
 
 
 def main() -> int:
+    # Without a render there is nothing to compare against, and every guide
+    # would read as "no corpus by design" — a green check on a box whose
+    # guides are unverifiable.  `just deploy` renders first for this reason;
+    # a hand run gets told rather than misled.
+    if not (ROOT / "corpus").is_dir():
+        sys.exit(f"{BAD}corpus/ has not been rendered on this box, so the "
+                 f"knowledge checks below would all pass vacuously.  "
+                 f"Run `just docs-corpus` first.")
     cfg = chat_config()
     live = agents()
     specs = (cfg.get("modelSpecs") or {}).get("list") or []
@@ -162,7 +177,20 @@ def main() -> int:
                   f"base model, which is the failure the contract exists to stop")
             bad += 1
         else:
-            print(f"{OK}{label:20} {aid}  {n} files")
+            # The drift door: `just deploy` re-renders nothing the guides
+            # eat, so `n` is whatever the last `agents-seed` attached and
+            # `rendered` is what the tree says today.  Report, never repair —
+            # re-seeding six agents mid-deploy is a bigger surprise than a
+            # red line, and this is a class of bug you want told to you.
+            rendered = sum(1 for f in pages if f.name not in NOT_KNOWLEDGE)
+            if n != rendered:
+                print(f"{BAD}{label:20} {aid}  {n} files attached but the "
+                      f"corpus renders {rendered} — STALE: this guide is "
+                      f"answering from knowledge older than the tree.  "
+                      f"Run `just agents-seed`.")
+                bad += 1
+            else:
+                print(f"{OK}{label:20} {aid}  {n} files")
 
     # The report tool is wired in three places that must agree: the server
     # key in librechat.yaml, REGISTRAR_MCP in seed_agents.py, and the tool

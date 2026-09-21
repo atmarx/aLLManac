@@ -256,8 +256,19 @@ build: _fleet && sbom
 # second bao-unseal: a guard that aborts the deploy before that one leaves the
 # escrow sealed, which is a worse outcome than the drift it was reporting.
 #
+# The THIRD render door, and it cost the same find twice.  `render-check`
+# guards the fleet render; nothing guarded the one the GUIDES eat.  A deploy
+# ships a prompt or a corpus change and the agents go on serving whatever the
+# last `agents-seed` attached — inert, and silent about it.  Five guides on
+# xdocker03 were weeks stale while `agents-check` itself was green
+# (2026-09-21).  `docs-corpus` renders first so the comparison is against the
+# tree you just shipped, not against whatever corpus/ happened to hold; it
+# writes only the gitignored render, never the box.  Red means
+# `just agents-seed` — this reports and never repairs, for render-check's
+# reasons: re-seeding six agents mid-deploy is the bigger surprise.
+#
 # What CI runs on the box: images, build, .env, restart, re-read config, verify
-deploy: channel pull build secrets up config-refresh bao-unseal smoke egress-check render-check
+deploy: channel pull build secrets up config-refresh bao-unseal smoke egress-check render-check docs-corpus agents-check
 
 # The gap this closes: `docker compose up` recreates on a changed DEFINITION,
 # never on changed bind-mount CONTENTS.  Directory mounts got the new file into
