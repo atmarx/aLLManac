@@ -115,6 +115,21 @@ def _staff_or_refuse(email: str, course: dict, slug: str) -> None:
         )
 
 
+def _is_staff(email: str, course: dict) -> bool:
+    return (email in course.get("instructors", [])
+            or email in course.get("tas", []))
+
+
+def _on_roster(email: str, course: dict) -> bool:
+    """Anyone the roster names — student, instructor or TA.
+
+    The roster is not a hierarchy.  It decides who may CHANGE the roster
+    (_staff_or_refuse) and who may hold a key; those are different
+    questions, and conflating them is what made staff unable to get one.
+    """
+    return email in course.get("students", []) or _is_staff(email, course)
+
+
 def _admin_or_refuse(email: str) -> None:
     """The platform's `admins:` list — NOT the instance's ADMIN role.  A
     course instance makes its own staff ADMIN, and that is authority over
@@ -170,23 +185,39 @@ def _purge_stages() -> None:
 @mcp.tool
 async def my_key() -> str:
     """The caller's own API key for THIS course — for opencode, scripts, and
-    laptops (chat never needs it).  The key is per-student-per-course, has
-    its own budget fuse, and every token it spends is metered to the caller.
-    Treat it like a password; ask rotate_my_key if it ever leaks."""
+    laptops (chat never needs it).  Works for anyone the roster names,
+    students and teaching staff alike.  The key is per-person-per-course,
+    has its own budget fuse, and every token it spends is metered to the
+    caller.  Treat it like a password; ask rotate_my_key if it ever leaks."""
     email, _role, slug = _ident()
     course = _course_or_refuse(slug)
-    if email not in course.get("students", []):
-        if email in course.get("instructors", []) or email in course.get("tas", []):
-            raise ToolError(
-                "Keys are minted per student.  Staff test keys: the operator "
-                "can mint one with `just key <course> <your-email>` (or "
-                "enroll yourself)."
-            )
+    if not _on_roster(email, course):
         raise ToolError(
             f"You're not on the roster for {slug} yet — your instructor "
             "uploads it here in chat, so ask them first."
         )
     rec = await reconcile.escrow_read(slug, email)
+    if rec is None and _is_staff(email, course):
+        # Staff mint on first ask.  This used to refuse and point at `just
+        # key` — a shell command on the box, which is useless advice to the
+        # one person in the room who IS their own admin.  The refusal was a
+        # leftover from keys being a side effect of student provisioning,
+        # not a decision: mint_key is idempotent by escrow, mints into the
+        # course team, and is gated by the pool like every other key, so
+        # there was never anything for the operator to adjudicate.
+        #
+        # It bites hardest where seniority and teaching come apart — a
+        # cohort where everyone is learning has no real TAs, only senior
+        # people, and `tas:` is exactly where that instinct files them.
+        try:
+            rec = await reconcile.mint_key(slug, email)
+        except reconcile.PoolExhausted:
+            raise ToolError(
+                f"There's nothing left in the {slug} pool to put behind a "
+                "key, so minting one would hand you a credential that's "
+                "dead on arrival.  `course_usage` shows where the term's "
+                "budget went."
+            ) from None
     if rec is None:
         raise ToolError(
             "You're on the roster but no key is escrowed yet — the roster "
@@ -210,7 +241,7 @@ async def rotate_my_key() -> str:
     when a key leaked or a laptop walked away."""
     email, _role, slug = _ident()
     course = _course_or_refuse(slug)
-    if email not in course.get("students", []):
+    if not _on_roster(email, course):
         raise ToolError(f"No key to rotate — you're not on the {slug} roster.")
     try:
         new = await reconcile.rotate_student_key(slug, email)
