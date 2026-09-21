@@ -25,6 +25,10 @@ Your students' own walkthrough is the [course guide](user-guide.md) — worth re
 3. **Keys**: hand the admin your roster; keys are minted with `owner=<your course>` and a per-student budget (the default is modest and adjustable).  Distribute via individual LMS messages.
 4. **Verify one student end to end** — login, open a shared agent, paste a key into opencode — before the assignment goes out.
 
+**If you want a key of your own, enrol yourself as a student.**  Keys are minted per student per course, so asking the chat for one as the instructor gets you a polite refusal and a pointer at the operator — which is a shell command on the box, not something you can do from the room.  Putting your own address in `students:` alongside `instructors:` is the whole fix, it costs one line, and your demo spend then lands in your course under your own name instead of nowhere.  The same goes for a TA who needs to test the thing they are supporting.
+
+This matters more than it sounds for a course where **everyone** is learning — a staff cohort, a workshop, a reading group.  There the honest roster is one instructor and everybody else a student, including the people who would normally be senior enough to be a TA.  A title in the roster is not seniority.  It decides who can change the roster and who can get a key.
+
 ## Adding a student to your class after it starts
 
 Someone joins your section in week three, or switches in from another class.  Nothing about that is unusual and none of it is enrolment — the university admitted them long ago.  What they need is **access to your course**, and that is a roster change.
