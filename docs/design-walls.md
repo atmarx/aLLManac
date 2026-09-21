@@ -640,6 +640,22 @@ Three things to know before you touch it:
 - **A fallback naming a model that is not in `model_list` is accepted without complaint.**  The tracked `litellm/config.yaml` ships `almanac-office` commented out and the fallback still names it; LiteLLM boots clean and says nothing.  That is convenient here and is also a trap — a typo in the model name fails exactly as quietly.
 - **The canned-sentence warning does not reach this one.**  The frontier-model wall says a scripted reply makes small models worse, because they pattern-match on the most distinctive string *in the prompt*.  This string is at the gateway, fires only after a model already refused, and is never in any prompt, so there is nothing to reach for.
 
+## An unreadable value has a direction, and it is not always "use the default" *(2026-09-21)*
+
+Three places in the registrar now decide what to do with a value that is present and cannot be parsed, and they do **three different things**.  They look inconsistent and are not:
+
+- `MeterUnreadable` — the gateway won't report spend, so rotation **refuses**.  Reading an unreadable meter as zero spend would hand back a full fuse.
+- `_money_or_zero` — an unparseable budget becomes **0**, so the course spends nothing until someone raises it.
+- `_int_or` — an unparseable `context_tokens` takes **the default**, and the conversation is a little shorter than intended.
+
+The rule that produces all three: **ask what the number authorises.**  If it gates spending or access, an unreadable value must take the most restrictive reading available, or refuse outright — because the symptom of getting it wrong is an *absence*, and an absence looks exactly like everything being fine.  A model metering at $0 is the canonical version: nothing errors, nothing alerts, and the bill is the first thing that tells you.  If the number only shapes the experience, fall back and let `validate` do the telling.
+
+**Why this needs writing down rather than being obvious:** the three look like an inconsistency, and the natural tidying instinct is to make them agree.  Making them agree *downward* (everything refuses) turns a typo in a context window into a course that will not start.  Making them agree *upward* (everything defaults) is the one that costs money, silently, and is the more tempting of the two because it reads as robustness.  **Robustness toward the permissive side is not robustness, it is a spending limit nobody wrote.**
+
+The same asymmetry runs through `context_tokens` itself, which is why `validate` refuses zero but only *warns* above 200k: too small trims a conversation, too large fails the request.  When a number's two failure directions have different costs, the guard is not symmetric either.
+
+---
+
 ## Structure decisions (settled — reopen only with cause)
 
 - **The Almanac consumes inference; it does not manage it** *(ruled 2026-09-12)*.  It is given a model and it uses that model — nothing more, nothing less.  Which weights exist, who approved them, when they load, and what hardware they sit on are decisions on the other side of `INFERENCE_BASE_URL`, and at a real institution they belong to a different team with a different change process.  The structure already enforces this and should keep doing so: `site/inference/` is gitignored, only an *example* vLLM stack is tracked, and every `just vllm-*` recipe is guarded by `_vllm-here`, which tells a box with no GPU that having no local inference is *a supported state, not a broken one*.  The house rig may co-locate a runtime for convenience; the platform must never require one, and must never grow a verb that pulls, evicts, or selects a served model.  The two carve-outs are narrow and stay narrow: `just embed-stage` materialises a model the platform *pins for its own machinery* (`EMBEDDINGS_MODEL` in `compose.yml` — it picks nothing, it only fetches what was already chosen), and `litellm/config.yaml` names models to *route to*, which is the handing-over, not the choosing.
