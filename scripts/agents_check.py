@@ -19,7 +19,7 @@ questions, in the order they go wrong:
      deliberate exception — it routes rather than answers, so it gets no
      corpus and no `file_search`, and `corpus/<slug>/` is what says which
      case a guide is in.
-  5. Does the attached knowledge MATCH the rendered corpus?  This is the
+  5. Does the attached knowledge MATCH the rendered corpus, byte for byte?  This is the
      third door in the render-check family and it cost a real find
      (2026-09-21): a green deploy does not re-seed the guides, so a prompt
      or corpus change is inert on the box and NOTHING says so.  Five guides
@@ -59,13 +59,18 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # Imported, never retyped: the whole failure this check exists to catch is
 # two copies of this string drifting apart.
 sys.path.insert(0, str(ROOT / "scripts"))
-from seed_agents import REGISTRAR_MCP, prompt_sha  # noqa: E402
+from seed_agents import (  # noqa: E402
+    NOT_KNOWLEDGE, REGISTRAR_MCP, knowledge, prompt_sha, sha,
+)
 
 OK, BAD, MEH = "  ok   ", "  FAIL ", "  warn "
 
-# Rendered for the operator, not the model — the same list seed_agents.py
-# holds.  A corpus directory with only these in it has no knowledge in it.
-NOT_KNOWLEDGE = {"MANIFEST.md", "SYSTEM-PROMPT.md", "EVALS.md"}
+# NOT_KNOWLEDGE, knowledge() and sha() are IMPORTED, never retyped.  They
+# were two identical literals in two files until 2026-09-21, which is one
+# edit away from a check that reports a file as drifted because the seeder
+# deliberately never uploads it.  A per-file comparison needs both sides to
+# agree on the file SET as well as each file's bytes, so the set has to be
+# one definition.
 
 
 def dc(*args: str) -> str:
@@ -168,6 +173,32 @@ def seeded_prompts() -> tuple[dict, bool]:
     return out, not any(out.values())
 
 
+def seeded_files() -> dict:
+    """slug -> {filename: sha} the seeder last uploaded, as this box recorded.
+
+    Same source and same reasoning as seeded_prompts(): `site/` is where a
+    box records what it actually sent, and the agents API will not tell you
+    the bytes behind a file_id.  Unlike the prompt there is no transform in
+    this path — knowledge files are copied and uploaded raw — so the stored
+    sha is sha() of the corpus file, and the check may hash the file
+    directly.
+    """
+    try:
+        raw = json.loads((ROOT / "site" / "agents-state.json").read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    out = {}
+    for slug, v in raw.items():
+        if not isinstance(v, dict):
+            continue
+        files = v.get("files")
+        if isinstance(files, dict):
+            out[slug] = {name: (meta or {}).get("sha")
+                         for name, meta in files.items()
+                         if isinstance(meta, dict)}
+    return out
+
+
 def main() -> int:
     # Without a render there is nothing to compare against, and every guide
     # would read as "no corpus by design" — a green check on a box whose
@@ -179,6 +210,7 @@ def main() -> int:
                  f"Run `just docs-corpus` first.")
     cfg = chat_config()
     live = agents()
+    state = seeded_files()
     specs = (cfg.get("modelSpecs") or {}).get("list") or []
     bad = 0
 
@@ -241,19 +273,50 @@ def main() -> int:
             bad += 1
         else:
             # The drift door: `just deploy` re-renders nothing the guides
-            # eat, so `n` is whatever the last `agents-seed` attached and
-            # `rendered` is what the tree says today.  Report, never repair —
-            # re-seeding six agents mid-deploy is a bigger surprise than a
-            # red line, and this is a class of bug you want told to you.
-            rendered = sum(1 for f in pages if f.name not in NOT_KNOWLEDGE)
-            if n != rendered:
-                print(f"{BAD}{label:20} {aid}  {n} files attached but the "
-                      f"corpus renders {rendered} — STALE: this guide is "
+            # eat, so what is attached is whatever the last `agents-seed`
+            # pushed and the corpus is what the tree says today.  Report,
+            # never repair — re-seeding six agents mid-deploy is a bigger
+            # surprise than a red line, and this is a class of bug you want
+            # told to you.
+            #
+            # CONTENT, not counts.  Counts were what this compared until an
+            # edit-in-place walked straight through it (2026-09-21): three
+            # guides each had one file replaced with a changed version,
+            # "9 unchanged, 1 embedded, 1 retired", and the count was
+            # identical on both sides.  Green, on stale knowledge.  The
+            # shortcut makes it worse — `--skip-files` is the fast path and
+            # the one that leaves the drift in place, so the blind spot
+            # lined up exactly with the command a busy operator reaches for.
+            want = {f.name: sha(f) for f in knowledge(slug)}
+            got = state.get(slug)
+            if not got:
+                # No per-file record yet: say so rather than pass silently.
+                # Counts still catch an added or removed page, which is the
+                # commoner drift; they just cannot see an edit in place.
+                rendered = len(want)
+                if n != rendered:
+                    print(f"{BAD}{label:20} {aid}  {n} files attached but the "
+                          f"corpus renders {rendered} — STALE.  "
+                          f"Run `just agents-seed`.")
+                    bad += 1
+                else:
+                    print(f"{MEH}{label:20} {aid}  {n} files, count only — "
+                          f"this box has not seeded since per-file hashes "
+                          f"shipped, so an edited page would not be seen")
+                continue
+            changed = sorted(k for k, v in want.items() if got.get(k) != v)
+            missing = sorted(set(want) - set(got))
+            extra = sorted(set(got) - set(want))
+            drift = sorted(set(changed) | set(missing) | set(extra))
+            if drift:
+                shown = ", ".join(drift[:3]) + ("…" if len(drift) > 3 else "")
+                print(f"{BAD}{label:20} {aid}  {n} files, {len(drift)} differ "
+                      f"from the render ({shown}) — STALE: this guide is "
                       f"answering from knowledge older than the tree.  "
                       f"Run `just agents-seed`.")
                 bad += 1
             else:
-                print(f"{OK}{label:20} {aid}  {n} files")
+                print(f"{OK}{label:20} {aid}  {n} files, content matches")
 
     # The report tool is wired in three places that must agree: the server
     # key in librechat.yaml, REGISTRAR_MCP in seed_agents.py, and the tool
