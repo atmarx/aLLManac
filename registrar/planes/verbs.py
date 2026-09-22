@@ -27,6 +27,7 @@ from .gateway import (
     ll_mint_key,
     ll_team_census,
     ll_team_remaining,
+    ll_update_key,
 )
 from .keycloak import (
     kc_active_sessions,
@@ -306,7 +307,12 @@ async def ensure_course(slug: str) -> dict:
                                        extra={"kind": "service"})
             summary["service_key"] = "minted + escrowed"
         else:
-            summary["service_key"] = "already escrowed"
+            # Chat spends on this key, so it has to follow the course, not
+            # the day it was minted.  Before this, `just course --budget`
+            # raised the pool and chat still stopped at the old number.
+            await ll_update_key(cx, svc["key"], course["budgets"]["course"],
+                                models)
+            summary["service_key"] = "already escrowed (budget + models synced)"
         client_uuid, client_secret = await kc_ensure_client(cx, slug)
         roles = await kc_ensure_client_roles(cx, client_uuid)
         summary["oidc_client"] = slug

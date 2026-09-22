@@ -54,6 +54,23 @@ async def ll_mint_key(cx: httpx.AsyncClient, slug: str, models: list[str],
     return r.json()["key"]
 
 
+async def ll_update_key(cx: httpx.AsyncClient, key: str, budget: float,
+                        models: list[str]) -> None:
+    """Bring a live key's ceiling and model list up to the course's.
+
+    A key carries what it was born with — `/key/generate` copies the budget
+    and models onto the key, and nothing afterwards re-reads the course.
+    For a student key that is the point (the fuse is theirs).  For the
+    service key it is a trap: raise the course budget or add a college pack
+    and the team moves while chat, which spends on the service key, stays
+    at the birth numbers.  `/key/update` is free-tier on our pin; it is
+    `/key/regenerate` that is paid.
+    """
+    r = await cx.post(f"{LITELLM_URL}/key/update", headers=_ll_headers(),
+                      json={"key": key, "max_budget": budget, "models": models})
+    r.raise_for_status()
+
+
 async def ll_delete_key(cx: httpx.AsyncClient, key: str) -> bool:
     r = await cx.post(f"{LITELLM_URL}/key/delete", headers=_ll_headers(),
                       json={"keys": [key]})

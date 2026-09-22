@@ -319,6 +319,18 @@ Both were reachable.  Three call sites minted and *then* escrowed with no cleanu
 
 ---
 
+## A key carries what it was born with — and chat's key IS the course pool *(2026-09-22)*
+
+`/key/generate` copies `max_budget` and `models` onto the key.  Nothing afterwards re-reads the course.  `ll_ensure_team` moves the *team* on every `just course`, so raising `budgets.course` or adding a college pack moved the pool and left every existing key at its birth numbers.
+
+For a student key that is correct — the fuse is theirs, and rotation carries the remainder on purpose.  **For the service key it was a bug.**  Chat has no per-student keys (spec decision 10): every chat request in a course spends on one team-scoped service key, minted with `max_budget = budgets.course`.  So `just course engr301 --budget 300` on a $150 course raised the team to $300 and chat still stopped at $150, with the key's own ceiling doing the refusing and the team census reading as headroom.  Fixed: `ensure_course` now `/key/update`s the service key's budget and models to the course's on every run (free on our pin — it's `/key/regenerate` that's paid).
+
+**The consequence that outlives the fix:** the service key's ceiling *is* the course pool for chat, independently of the team's.  Any design that makes the pool "advisory" by dropping the team's `max_budget` leaves chat behind a shared hard wall at the same number — and chat is where nearly all student spend is.  Read [the budget thread](budgets-and-meters.md) with that in mind: the pool cap and the chat cap are two enforcements of one number, and relaxing one does not relax the other.
+
+**Not fixed, and worth knowing:** existing *student* keys don't pick up models added to the course later.  A new college pack reaches chat (via the service key, now) and new enrollees, not keys already minted.  Rotation re-mints with the current list, so a student's `rotate_my_key` is the per-student repair — there is no fleet-wide one yet.
+
+---
+
 ## opencode
 
 - Official image is **`ghcr.io/anomalyco/opencode`** — the org moved from `sst`.  Old paths are stale.
