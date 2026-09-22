@@ -82,3 +82,49 @@
 # and docker cannot create a mountpoint inside the read-only one that holds
 # this file.  See the comment on the edge's volumes in compose.yml.
 import /etc/caddy-fleet/*.caddy
+
+# The catch-all — a hostname under this domain that matches no course.
+#
+# Last, because a Caddyfile site is chosen by SPECIFICITY, not by order: every
+# named site above and every rendered course vhost beats this one.  What
+# reaches here is what reached nothing else, and until now that was a closed
+# connection and a white screen.
+#
+# DELIBERATELY ADDRESSED BY PORT, NOT BY `*.{$ALMANAC_DOMAIN}`.  A wildcard
+# SITE is a wildcard NAME in the automation policy, and from Caddy 2.10 on an
+# automated wildcard is used for individual subdomains — Caddy stops obtaining
+# per-subdomain certificates unless told to with `force_automate`
+# (docs/tls.md).  So on a box doing HTTP-01, which cannot get a wildcard at
+# all, declaring one here would quietly cancel per-course issuance and take
+# the fleet's TLS down to fix a 404.  `:443` names nothing, automates nothing,
+# and matches only what no site claimed.
+#
+# The certificate is therefore whatever the box already holds for that SNI: a
+# real wildcard serves this cleanly, and a box without one shows the browser's
+# name-mismatch warning first.  That is the same warning that hostname would
+# have produced anyway, and it is not this route's to fix.
+#
+# Addressed on 443 only: a bare `:80` site here would sit under the ACME
+# HTTP-01 path on every box that uses it.  It costs nothing — measured, Caddy
+# 2.11.4: auto_https already 308s http://<unknown-slug>/ to https, so the
+# plain-http visitor lands here too.
+#
+# Measured alongside it, because this block could only be wrong in ways that
+# are invisible: the named sites above still beat it (a real host still
+# reaches its proxy, not this page), deep paths on an unknown host still get
+# it, and the automation policy still lists exactly chat/auth/gateway — no
+# wildcard, nothing new.
+:443 {
+    tls {$EDGE_TLS:internal}
+
+    root * /etc/caddy/nocourse
+    rewrite * /index.html
+    # Fills {{env "CHAT_HOST"}} — an absolute help link, because a relative
+    # one resolves back to this same catch-all and loops.
+    templates
+    # 404, not 200: the address really doesn't exist, and a crawler or a
+    # link-checker should be told so.  The page is the body of the 404.
+    file_server {
+        status 404
+    }
+}

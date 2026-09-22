@@ -1,0 +1,175 @@
+---
+title: What do I run after a deploy?
+description: The post-deploy runbook — what `just deploy` already did, the four things it deliberately does not do, and the order they have to run in.  Written for whoever (or whatever) has a shell on the box and needs a sequence rather than a reference.
+audience: operator
+also_reaches: [builder]
+status: draft
+owner: geordi
+tags: [deployment, operator-duty, rendered-config, doc-drift, docker-compose]
+tethered_to:
+  - justfile
+  - docs/design-walls.md
+  - docs/admin-guide.md
+  - docs/ci.md
+  - scripts/seed_agents.py
+  - scripts/agents_check.py
+---
+
+# After the deploy — the sequence, not the reference
+
+[The Admin Guide](admin-guide.md) is organised by subsystem, which is the right shape when you know what you're looking for and the wrong shape at 11pm after a push.  This page is the other shape: **run these, in this order, and here is what red means.**
+
+Everything here assumes you are on the deploy box, in the checkout, and `just` resolves.  The whole surface is the [`justfile`](../justfile) — nothing in this document is a command you have to compose yourself.
+
+## The short version
+
+```bash
+just sync && just deploy      # what CI runs
+just render                   # ONLY if deploy's render-check went red
+just agents-seed              # ONLY if anything under apex/ or the contract changed
+just fleet-smoke              # prove the courses answer, not just the control plane
+```
+
+Three of those four are conditional, and **the conditions are printed by the deploy itself.**  If you ran a green deploy and changed no documentation, you are done — the rest of this page is why.
+
+## What `just deploy` already did
+
+```
+channel  pull  build  secrets  up  config-refresh  bao-unseal
+smoke  egress-check  render-check  docs-corpus  agents-check
+```
+
+Read that as two halves.  The first seven **change the box**: resolve the image pins from `channels/<name>.env`, pull them, build what's local, fill in any secret still reading `change-me`, bring the stack up, restart containers whose mounted config changed since they booted, and unseal the escrow.  The last five **ask the box questions** and change nothing.
+
+Two of those are worth knowing by name because people re-run them by hand and get confused:
+
+- **`docs-build` rides on `up`**, so a deploy always rebuilds `site-dist/` from `apex/`.  The help site is built and mounted on every box; whether it is *served* is a route, and the route is not universally tracked yet.
+- **`secrets` never touches a value that is already set.**  It is safe on every deploy and it is not a rotation.
+
+**A green deploy is a green control plane, not a green fleet.**  `smoke` proves LibreChat, Keycloak, LiteLLM and the escrow are answering.  It says nothing about whether `engr301-2026fall.<domain>` resolves, holds a cert, and returns a login page — that's `fleet-smoke`, and it is deliberately not in the deploy.
+
+## The four things it does not do
+
+Every one of these is an **inert change**: the deploy shipped the new code and something else has to make it true.  That family is the longest section of [design-walls.md](design-walls.md), and these are its four live instances.
+
+### 1.  `just render` — when a render template changed
+
+`just deploy` ships `registrar/render.py`.  It does not re-render the fleet, so a change to a template is sitting in the image doing nothing until you run the verb.
+
+`render-check` is the guard that tells you that you owe it a run, and it is the **last** step of the deploy for a reason: everything before it has to have happened for its answer to mean anything.  Red looks like this:
+
+```
+  differs     /out/usage-mcp/roster.yaml
+
+render-check — 1 file(s) STALE on the fleet volume.
+```
+
+The fix is one command and it is not `deploy` again:
+
+```bash
+just render
+```
+
+That re-renders every course from `courses.yaml` using the templates in the registrar you just deployed, then recreates what changed and reloads the edge gracefully.  **`render-check` reports and never repairs** — no course instance is recreated mid-deploy, which is why a red render-check is a note to you rather than an outage.
+
+An **unrendered** line is not red.  A course record with no `fleet/<slug>.env` has never been provisioned on this box; that's `just course`, not `just render`.
+
+### 2.  `just agents-seed` — when the documentation changed
+
+The guide agents on the flagship carry the docs as knowledge and the contract as their prompt.  Neither is re-uploaded by a deploy.  `agents-check` runs last and *warns*, but a warning in a wall of green scrolls past:
+
+```bash
+just agents-seed                 # corpus + prompts + knowledge files
+just agents-seed --skip-files    # prompts only — seconds, not minutes
+```
+
+`agents-seed` runs `docs-corpus` itself, so you never have to sequence those two.
+
+**The trigger is any change under `apex/`, `docs/agent-contract.md`, or a page's front matter** — front matter included, because `audience:` and `status:` decide which corpus a page lands in, and moving a page between guides is invisible in a diff of prose.  Two of `agents-check`'s questions compare content rather than counts precisely because a page edited in place used to walk straight past.
+
+### 3.  `just fleet-smoke` — prove the courses answer
+
+```bash
+just fleet-smoke
+```
+
+One request per course vhost, through the edge, over TLS, by hostname — both `<slug>.<domain>` and `<slug>-admin.<domain>`.  It retries for ninety seconds per host, so a cold instance reads as slow rather than broken.
+
+Run it after `just render`, after `just course`, and before anyone outside the team is told a course is ready.  **It is the only check in the repo that exercises the path a student actually takes.**
+
+### 4.  `just evals` — after a prompt or model change
+
+```bash
+just evals
+just evals --guide student-guide --case F1,M1
+```
+
+Asks every guide every case in `docs/agent-contract.md` and writes the transcript to `site/evals/` (per box, gitignored).  It **scores nothing** — a human reads it, because "answers from the roster documentation" is not a string match.
+
+Results are per *model*, not per prompt.  A smaller local model fails these more often than a frontier one, so a run against a box pointed at a different `INFERENCE_MODEL` is not comparable to the last one.
+
+## The one ordering trap
+
+**A hand-run `render-check` used to lie.**  It renders inside the registrar container and diffs against the fleet volume — so when that container predates a change to `render.py`, it renders the old template, compares it to files the old template wrote, and reports two stale things agreeing as current.
+
+It now refuses instead:
+
+```
+  FAIL the deployed registrar is NOT this working tree.
+       Anything it says about renders describes the OLD templates,
+       including a green render-check.  Run `just deploy` first.
+```
+
+That FAIL means *do a deploy*, not *do a render*.  Inside `just deploy` it cannot happen, because `build` and `up` run first.  It is only the hand run that needs the guard — which is exactly the run [the verify-on-the-box wall](design-walls.md) tells you to make, and the one you trust most because you watched it happen.
+
+## Before the first test users
+
+Andrew's actual list, in order.  Steps 1–3 are commands; steps 4 and 5 are not, and no check in this repo can cover them.
+
+```bash
+just sync && just deploy      # 1.  green, top to bottom
+just agents-seed              # 2.  the guides carry today's docs
+just agents-check             # 3a. six specs, enforce: true, knowledge matches
+just fleet-smoke              # 3b. every course answers through the edge
+just courses                  # 3c. the roster is who you think it is
+```
+
+4. **Sign in as a person.**  Browser, through Keycloak, into the flagship.  A probe proves the endpoint answers; it does not prove a human can get in.
+5. **Ask a guide for help, accept the offer to file a report, then `just reports`.**  Pick any guide but the Front Desk, tell it something in your course is broken, and check that the record lands with your question *and* the answer attached.  That trace is the whole point of the tool and it has never been walked end to end.
+
+If step 5 never offers, the wording is the pedagogy lane's.  If it offers and nothing lands, that's the registrar.  If it never gets that far, that's the edge.
+
+## What only a human runs
+
+Never put these in a pipeline, a health check, or anything an agent can reach.
+
+| Command | Why |
+|---|---|
+| `just bao-init` | Once per box.  Prints the root token exactly once — password manager, not scrollback. |
+| `just key-show <slug> <email>` | Break-glass read of an escrowed key.  OpenBao audits it, and that audit line is the feature. |
+| `just nuke` | Stops the stack and wipes every volume.  It asks first; that is the only thing standing between you and the data. |
+| `just secrets` after a live start | Safe by construction — it skips set values — but `CREDS_KEY`/`CREDS_IV` are pinned, and regenerating them makes every saved user key undecryptable. |
+
+## What does not travel in git
+
+A box with a `site/` override **stops inheriting for the file it overrides, silently and for everything** — not just for the value you changed.  So a fix landing in a tracked file reaches every box except the ones that most needed it.
+
+Three known instances, all on the flagship's `librechat.yaml`:
+
+1. The `mcpServers.almanac-registrar` block and `registrar:8080` under `mcpSettings.allowedAddresses` — without them the front door has no way to take a complaint, and nothing looks wrong.
+2. `maxContextTokens`, sized to **what that box's endpoint actually serves** (`/api/ps` on a loaded model), never what the model supports.  On Ollama these differ silently and by a lot, and too large does not fail the request — it drops the front of the prompt, which is the system prompt.
+3. `almanac-declined` and `content_policy_fallbacks` in that box's `litellm/config.yaml`, if it serves a filtered hosted model.
+
+After editing anything under `site/`, bring the box up with **`just up`** — never a bare `docker compose up -d <service>`, which merges only `compose.yml` and silently recreates the container without your override.
+
+## When something is red
+
+| Symptom | Read this |
+|---|---|
+| `render-check` red | [`just render`](#1-just-render--when-a-render-template-changed) — above |
+| `render-check` FAILs on the registrar not matching the tree | `just deploy` first; the check is refusing to guess |
+| `agents-check` warns on knowledge or prompt | `just agents-seed` |
+| `agents-check` reports an orphan spec | A `modelSpecs` entry points at an agent id that no longer exists — re-seed, then paste the reprinted block ([Admin Guide](admin-guide.md)) |
+| `smoke` red on openbao | Sealed is a boot state, not an outage — `just bao-unseal` |
+| `fleet-smoke` red on one host | The instance, not the edge.  `just ps`, then `just logs chat-<slug>` |
+| A guide got worse deep in a long thread | Not the prompt.  The window trimmed it — see instance 2 above |

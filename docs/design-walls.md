@@ -677,6 +677,20 @@ This file said the opposite until 2026-09-22 — "too large fails the request" �
 
 ---
 
+## A catch-all vhost must be addressed by PORT, never by `*.<domain>` *(2026-09-22)*
+
+The edge now answers a hostname that matches no course with a page instead of a closed connection ([`caddy/Caddyfile`](../caddy/Caddyfile), the `:443` block).  **The obvious way to write that route would have taken the fleet's TLS down.**
+
+A wildcard *site* is a wildcard *name* in Caddy's automation policy, and from Caddy 2.10 on **an automated wildcard is used for individual subdomains — Caddy stops obtaining per-subdomain certificates unless told to with `force_automate`** ([tls.md](tls.md)).  On a box doing HTTP-01, which cannot get a wildcard at all under the CA/Browser Forum rules, declaring `*.{$ALMANAC_DOMAIN}` would therefore cancel per-course issuance in exchange for a certificate that never arrives.  Every course vhost loses its cert to add a 404 page.  Nothing in the config would look wrong, and the first report would be a student who cannot reach their course.
+
+`:443` names nothing, automates nothing, and is the lowest-specificity match there is — Caddyfile sites are chosen by specificity, not by order, so every named site and every rendered course vhost still beats it.  Measured on 2.11.4: the automation policy lists exactly chat/auth/gateway before and after, named hosts still reach their proxies, deep paths on an unknown host get the page, and `auto_https` already redirects plain http to it.
+
+**What it does not fix is the certificate**, and that limit is the honest half.  The page appears only once the edge holds a cert valid for the name that was typed — a real wildcard, which is the target posture.  Without one the browser fails the handshake before any route is consulted, exactly as it does today.  The tempting repairs are both worse than the gap: on-demand issuance under a public issuer asks a CA for a certificate for any hostname pointed at the box, and forcing the internal CA here would hand every mistyped course URL a full browser interstitial — teaching the one population we are trying to educate that clicking through certificate warnings is normal.  **A blank page is better than a trust warning.**
+
+The page itself deliberately cannot tell a typo from a finished course, because the edge cannot, and **enumerating the courses that do exist to help someone is a roster leak with a friendly face.**
+
+---
+
 ## Structure decisions (settled — reopen only with cause)
 
 - **The Almanac consumes inference; it does not manage it** *(ruled 2026-09-12)*.  It is given a model and it uses that model — nothing more, nothing less.  Which weights exist, who approved them, when they load, and what hardware they sit on are decisions on the other side of `INFERENCE_BASE_URL`, and at a real institution they belong to a different team with a different change process.  The structure already enforces this and should keep doing so: `site/inference/` is gitignored, only an *example* vLLM stack is tracked, and every `just vllm-*` recipe is guarded by `_vllm-here`, which tells a box with no GPU that having no local inference is *a supported state, not a broken one*.  The house rig may co-locate a runtime for convenience; the platform must never require one, and must never grow a verb that pulls, evicts, or selects a served model.  The two carve-outs are narrow and stay narrow: `just embed-stage` materialises a model the platform *pins for its own machinery* (`EMBEDDINGS_MODEL` in `compose.yml` — it picks nothing, it only fetches what was already chosen), and `litellm/config.yaml` names models to *route to*, which is the handing-over, not the choosing.

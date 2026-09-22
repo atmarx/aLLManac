@@ -23,6 +23,8 @@ tethered_to:
 
 ## The map (read this first)
 
+*Looking for a sequence rather than a reference — what to run after a deploy, and what red means?  That's [post-deploy.md](post-deploy.md).  This page is organised by subsystem, which is the right shape when you know what you're looking for and the wrong shape at 11pm after a push.*
+
 | Surface | Where | Login | What lives there |
 |---|---|---|---|
 | Keycloak admin | `:8080` | `KC_ADMIN` / `KC_ADMIN_PASSWORD` | Identity: users, realm roles, the Globus broker, OIDC clients |

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!--
+  The edge's catch-all page: a hostname under this platform's domain that
+  matches no course.  Served by the `:443` site block in ../Caddyfile.
+
+  A TYPO AND A FINISHED COURSE ARE THE SAME PAGE, on purpose.  The edge cannot
+  tell them apart — both are somebody holding a URL that never worked or
+  stopped working — and enumerating the courses that DO exist to help them is
+  a roster leak with a friendly face.  Say what happened, don't guess why,
+  give one way forward.  (Words: the pedagogy lane.  Route: the plumbing.)
+
+  {{env "CHAT_HOST"}} is filled by the `templates` directive.  A RELATIVE
+  /help/ link would resolve back to this same catch-all and loop.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>There's no course here</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --muted: #6a645c;
+    --rule: #e2ddd4; --accent: #7a5c2e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171614; --fg: #e8e4dd; --muted: #a09a91;
+      --rule: #322f2a; --accent: #d3ae6f;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 17px/1.65 ui-serif, Georgia, "Times New Roman", serif;
+    padding: 16px;
+  }
+  main { max-width: 34rem; margin: 12vh auto 6rem; }
+  h1 {
+    font-size: 1.7rem; line-height: 1.25; font-weight: 600;
+    margin: 0 0 1.4rem; letter-spacing: -0.01em;
+  }
+  p { margin: 0 0 1.15rem; }
+  .lede { font-size: 1.05rem; }
+  dl { margin: 1.8rem 0; }
+  dt { font-weight: 600; margin-top: 1.25rem; }
+  dd { margin: 0.3rem 0 0; color: var(--muted); }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 2.4rem 0 1.6rem; }
+  .fine { font-size: 0.92rem; color: var(--muted); }
+  a { color: var(--accent); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>There's no course here</h1>
+
+  <p class="lede">This address doesn't match a course on this platform.  That usually means one of three things: a typo, a course that has finished and been taken down, or a link that was never quite right.</p>
+
+  <dl>
+    <dt>If an instructor gave you this link</dt>
+    <dd>Check it against what they sent you — course addresses are short and easy to mistype, and your instructor is the fastest route to the right one.</dd>
+
+    <dt>If the course has ended</dt>
+    <dd>It is gone from here on purpose.  Your instructor can tell you whether anything was kept.</dd>
+
+    <dt>If you're stuck</dt>
+    <dd>The help pages are at <a href="https://{{env "CHAT_HOST"}}/help/">{{env "CHAT_HOST"}}/help/</a>.</dd>
+  </dl>
+
+  <hr>
+
+  <p class="fine">We can't tell you which courses exist from this page — that list isn't public, which is the same rule that keeps your own course's roster out of everyone else's view.</p>
+</main>
+</body>
+</html>
