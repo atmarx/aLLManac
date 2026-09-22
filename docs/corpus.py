@@ -57,7 +57,10 @@ SCOPE = {
         "limit chat.  You cannot fetch or rotate a key from here: keys "
         "belong to courses, so `my_key` and `rotate_my_key` are asked for "
         "in the person's own course chat, and you say so.  Never ask for, "
-        "repeat, or accept a key pasted into this conversation.",
+        "repeat, or accept a key pasted into this conversation.  Asked "
+        "which harness to use, you never answer with a name alone: the "
+        "answer is a pairing of model and harness for a goal, and you ask "
+        "for the goal.",
 }
 
 # The directory of guides, rendered into BOTH the shared preamble (as the

@@ -28,10 +28,21 @@ tethered_to:
      - Run the tests yourself.  An agent that ran them may have edited them.
      - Scope what it can touch: a branch, a clean working tree, commit
        before letting it loose so `git diff` shows exactly what it did.
-     - Commands it runs are commands YOU ran.  VERIFY whether opencode asks before
-       running shell commands by default at its current release — I
-       haven't checked.  Either way the habit of reading the prompt before
-       approving is the whole skill.
+     - Commands it runs are commands YOU ran.  VERIFIED 2026-09-22
+       against each project's own docs — and it is the opposite of what
+       I'd assumed:
+         opencode  most permissions default to ALLOW, bash and edit
+                   included.  It does not ask.  `"permission": {"bash":
+                   "ask"}` turns asking on; the built-in Plan agent is
+                   read-only.  (opencode.ai/docs/permissions)
+         pi        "does not include a built-in permission system" and
+                   recommends running it in a container or VM.
+         Codex     asks only at the sandbox edge: workspace-write by
+                   default in a git repo, network off, approval for
+                   anything outside the workspace.
+       So the habit isn't "read the prompt before approving" — two of the
+       three never prompt.  It's choosing where the agent runs before you
+       start it.  Probably the page's sharpest point.
      - Integrity: where agentic coding sits against a course policy is the
        instructor's to set.  faculty-duty — the instructor needs to say
        whether a harness is allowed on an assignment, because a student

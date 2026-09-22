@@ -36,7 +36,7 @@ Two things follow:
 
 ## opencode
 
-[opencode](https://opencode.ai) is an open-source harness that runs in your terminal.  Any harness that speaks the OpenAI API will work the same way — the settings below are the same two settings everywhere, the address and the key.
+[opencode](https://opencode.ai) is an open-source harness that runs in your terminal, and the one this page walks through in full.  It is not a recommendation — [which harness to use](choosing-a-harness.md) depends on the model and the goal.  Any harness that speaks the OpenAI API works the same way: the address and the key.
 
 **Install** one of these ways:
 
@@ -72,9 +72,10 @@ brew install anomalyco/tap/opencode              # macOS
 }
 ```
 
-Three settings in there are load-bearing:
+Four things about that config are load-bearing:
 
 - **`tool_call: true`** on each model.  Without it opencode never offers the model any tools, and you have a chat window in a terminal.
+- **Permissions default to allowed** — opencode runs shell commands and edits files without asking.  Add `"permission": { "bash": "ask" }` at the top level if you want it to ask first, and read [supervising an agent](supervising-an-agent.md) either way.
 - **`limit.context`** is what opencode believes it can send.  Set it to what the model is **served** with — ask your instructor — and never to what the model's documentation says it supports.  Too high and some servers silently drop the front of the prompt, which is where opencode's instructions live.  Too low and it trims your work early.  16384 is the floor, not a recommendation.
 - **`{env:ALMANAC_API_KEY}`** keeps the key out of the file, so the file can be committed and the key can't.
 
@@ -86,6 +87,42 @@ opencode run -m almanac/almanac-chat "Say hello and name your model."
 ```
 
 Then `cd` into a project and run `opencode` for the full interface.
+
+## Codex and pi
+
+The same two settings — address and key — in each one's own format.  Which one suits you is [a question about the pairing](choosing-a-harness.md), not about the harness alone.
+
+**Codex CLI** (`npm install -g @openai/codex`), in `~/.codex/config.toml`:
+
+```toml
+model = "almanac-chat"
+model_provider = "almanac"
+
+[model_providers.almanac]
+name = "Almanac (campus gateway)"
+base_url = "https://GATEWAY-ADDRESS/v1"
+env_key = "ALMANAC_API_KEY"
+wire_api = "responses"
+```
+
+Codex speaks **only** the Responses API — `wire_api = "chat"` has been an error since February 2026.  The gateway translates, but **Codex against campus models is untested here**: whether tool calls survive that translation is the open question.  The provider can't be named `openai`, `ollama`, or `lmstudio`; those are reserved.  Set `model_context_window` to the number the model is served with, for the same reason as opencode's `limit.context`.
+
+**pi** (`npm install -g --ignore-scripts @earendil-works/pi-coding-agent`, Node 22.19 or later — the older `@mariozechner/pi-coding-agent` package is deprecated), in `~/.pi/agent/models.json`:
+
+```json
+{
+  "providers": {
+    "almanac": {
+      "baseUrl": "https://GATEWAY-ADDRESS/v1",
+      "api": "openai-completions",
+      "apiKey": "$ALMANAC_API_KEY",
+      "models": [ { "id": "almanac-chat" } ]
+    }
+  }
+}
+```
+
+pi has no permission system: it runs whatever the model asks.  Its own docs recommend a container or a VM, and they mean it.
 
 ## What to expect from a campus model
 

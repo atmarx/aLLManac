@@ -23,6 +23,8 @@ Three things change the moment you leave the chat window, and they are worth kno
 - **The limits are different.**  In chat, a long conversation gets trimmed at the course's context window.  Through a key, nothing trims your requests at the gateway — what stops you is the budget on the key.  Anyone who learns the chat rule and assumes it applies to code will predict a limit that does not exist.  → [The gateway](the-gateway.md)
 - **A harness spends differently from a person.**  A coding agent re-sends its whole working context on every step of its loop, dozens of times per task, without you watching each one.  → [Coding harnesses](harnesses.md)
 
+Which harness?  The research says that's the wrong question on its own: the same model gains or loses tens of points depending on the harness around it, and which harness wins depends on the model.  → [Choosing a harness](choosing-a-harness.md)
+
 When something goes wrong, the errors are rarely self-explanatory, and several of them look like a broken key when they aren't.  → [When it breaks](when-it-breaks.md)
 
 And the part no config file covers — what it means to hand an agent your repository and your name, and how to supervise it rather than trust it.  → [Supervising an agent](supervising-an-agent.md)
