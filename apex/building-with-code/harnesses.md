@@ -90,7 +90,7 @@ Then `cd` into a project and run `opencode` for the full interface.
 
 ## Codex and pi
 
-The same two settings — address and key — in each one's own format.  Which one suits you is [a question about the pairing](choosing-a-harness.md), not about the harness alone.
+The same two settings — address and key — in each one's own format.  Every config on this page was checked against the releases listed in [the versions table](choosing-a-harness.md#versions-this-page-was-checked-against); config formats are exactly the kind of thing a new release renames.  Which one suits you is [a question about the pairing](choosing-a-harness.md), not about the harness alone.
 
 **Codex CLI** (`npm install -g @openai/codex`), in `~/.codex/config.toml`:
 

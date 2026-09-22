@@ -42,6 +42,8 @@ It does not say the model stops mattering.  The same Terminal-Bench paper that s
 
 The fair reading: **the model sets the ceiling, and the harness decides how much of it you reach** — and how much you reach can vary by more than the distance between two good models.  That is why the pairing is what you choose, rather than either half.
 
+**And a pairing has a version on both sides.**  Harnesses ship weekly, and a release can change the instructions the model sees, the tools it is offered, and the format it edits in — everything the research above says moves the score.  It runs the other way too: when a vendor releases a new model, it can arrive supported only by the newest release of the vendor's own harness, so last month's install can't run this month's model at all.  "opencode with model X" is not quite a pairing.  "opencode 1.18 with model X, served at a 32k context" is.
+
 These are also benchmarks: fixed tasks, frontier models, measured on a date.  Your task is not on any leaderboard, and the numbers will be stale by the time you read them.  What transfers is the shape, not the scores.
 
 ## Small models are a different problem
@@ -80,7 +82,7 @@ Start from what you are trying to do, not from the tool.
 
 The benchmarks can't tell you about your task.  An afternoon can.
 
-1. Pick a small, real task in a project under git — fix a bug, add a test, rename something across files.  Commit first, so the working tree is clean.
+1. Pick a small, real task in a project under git — fix a bug, add a test, rename something across files.  Commit first, so the working tree is clean.  **Write down both harnesses' versions** (`opencode --version` and `codex --version`; pi's `--help` lists its flag) and the model name.  A result without them can't be compared with anyone else's, including yours next month.
 2. Ask your course's chat for your usage, and note it.
 3. Run the task in harness A.  When it says it is done, run your tests yourself and read `git diff`.  Note whether it worked, how many steps it took, and your usage afterwards.
 4. `git stash` or `git checkout .` to put the tree back.
@@ -89,6 +91,16 @@ The benchmarks can't tell you about your task.  An afternoon can.
 Compare four things: **did it work, what did it touch, how many tokens did it read, how many did it write.**  The third is usually the surprise — it is the harness's instructions and every file it opened, re-sent on every step.
 
 Then try it once with a different model in the same harness.  You will have measured, on your own task, the two halves of the pairing — which is more than any of the leaderboards can tell you.
+
+## Versions this page was checked against
+
+| | Version | Released |
+|---|---|---|
+| Codex CLI (`@openai/codex`) | 0.155.1 | 2026-09-18 |
+| opencode (`opencode-ai`) | 1.18.32 | 2026-09-21 |
+| pi (`@earendil-works/pi-coding-agent`) | 0.87.0 | 2026-09-21 |
+
+Checked 2026-09-22 against each project's own documentation and source, not run against this platform's models.  The research results above used whatever versions each study ran; where a paper names its harness version, it is in the paper, not here.  **If your version is newer than this table, the facts in the comparison table may have moved** — the permission defaults and API requirements especially.
 
 ## What we don't know yet
 
