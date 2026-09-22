@@ -513,7 +513,9 @@ Its own design note is the line to hand the reader, not hide from them: *"Pull, 
 
 That is worth saying out loud because the alternative is the failure this whole tool was built to avoid.  **A report filed into a silence the reporter cannot see into is worse than no report**, because they now believe they have been heard.  Saying *nobody will chase you, ask me any time and I'll tell you where it got to* costs one sentence and converts an unbounded wait into a thing they can check.
 
-So a receipt carries three things: **what was filed, where it went, and how to find out what became of it.**  Never imply a notification we do not send.The over-refusal case is the obvious one: someone who asks for everything before day one has asked for the page, and the brevity rule must not turn that into one item and an offer.
+So a receipt carries three things: **what was filed, where it went, and how to find out what became of it.**  Never imply a notification we do not send.
+
+The over-refusal case is the obvious one: someone who asks for everything before day one has asked for the page, and the brevity rule must not turn that into one item and an offer.
 
 ---
 
@@ -608,6 +610,24 @@ Each case runs as a single conversation, with the guide's own replies in the his
 ```
 
 M3 is not decoration.  The fix for a ratchet is a guide that re-examines every turn, and a guide that re-examines every turn is one turn away from getting *more* suspicious as a conversation lengthens.  That would be [the failure the fix can cause](#the-failure-the-fix-can-cause) arriving on a timer.
+
+---
+
+## The case this file cannot write
+
+Every case above — the table and the multi-turn block alike — assumes one thing without ever saying it: that **the preamble is in the prompt.**  There is a way for it not to be, and it is not a prompt problem, so no row can catch it.
+
+`maxContextTokens` is how much conversation LibreChat assembles before it trims.  Set above what the endpoint actually serves, the backend has to shed the excess, and Ollama sheds it from the **front** and answers anyway.  The front is the system prompt.  So a long enough conversation walks the guide out of its own contract — the vocabulary, the hatches, the anti-fabrication rules, the floor — and it keeps talking, with nothing in any log.  [The wall has the mechanism and the numbers](design-walls.md#a-context-window-larger-than-the-endpoint-serves-deletes-the-system-prompt-2026-09-21); the knob is [an operator's](admin-guide.md#set-the-context-window-because-nothing-does-it-for-you), per deployment, and it is not ours to turn.
+
+**What is ours is the admission that the evals are blind to it, and why.**  Not because we forgot a row — because **every eval prompt here is short.**  A short conversation cannot overflow a window, so the contract is guaranteed present in exactly the condition we test, and the suite is at its most confident precisely where the failure cannot happen.  Adding a case would not help: a case long enough to trigger it would be testing that box's config, not that guide's prompt, and would pass or fail on a number in a file nobody editing this page can see.
+
+It also does not present as one failure.  When the preamble goes, every rule it carries goes at once, so this arrives looking like [the fabrication](#the-fabrication-observed-2026-09-11), [the borrowed word](#the-borrowed-word-observed-2026-09-12) and [the whole shelf](#the-whole-shelf-observed-2026-09-15) together — **and the obvious response to that is to rewrite the preamble, which is the one thing that cannot work, because the preamble is not being disobeyed.  It is not there.**  An afternoon spent sharpening a rule that was never read is the expensive shape of this.
+
+**The one test that separates it, and it costs a minute:** ask the same question again in a **new conversation**.  Every failure named in this file is question-dependent and reproduces on turn one.  This one is *length*-dependent and cannot — a guide that answers correctly in a fresh thread and badly deep in a long one has not learned anything, it has been quietly trimmed.  Hand that to the operator with the thread length, not a prompt suggestion.
+
+Which is also the line to add to how we read a report.  *"It used to be good and now it's worse"* is the least actionable sentence a student can send, and it is the native symptom of this.  **Ask how long the conversation was.**  That question turns the vaguest report we get into the one with a config answer — and asking it early is cheaper than the alternative, because the alternative is believing the model changed.
+
+Nothing in this section is a named failure.  The named ones are things a guide did **with its contract in hand**; this is the guide not having one.  It sits here so that the next person who reads a wall of fabrication does not start by editing the preamble — and so nobody closes it by adding a row and believing it covered.
 
 ---
 

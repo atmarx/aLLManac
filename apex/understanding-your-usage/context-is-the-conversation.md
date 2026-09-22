@@ -75,9 +75,11 @@ So the guides are cheap to ask precise questions of and expensive to ask woolly 
 
 Two things, honestly.
 
-**You cannot see the number while you are working.**  There is a running total available on request, but the chat window does not show you the size of the thing you are about to send before you send it.  You find out afterwards.  That is a real gap, it is known, and it is the reason a page like this one has to exist at all — explanation is a poor substitute for an instrument, and we are currently offering the substitute.
+**Whether you can watch the number while you work, we are not currently sure.**  This page said flatly that you could not.  That was written from the running total you can ask for, and it went further than anyone had checked: the version of the chat we run ships a context gauge in the composer, switched on by default, and we do not switch it off.  So it is probably there, above the box you type into, and this page was apologising for a missing instrument that may have been in front of you the whole time.  **If you can see it, that gauge is the honest answer to everything below** — and if you cannot, telling us is a genuinely useful thing to do, because you are looking at a screen we have been reasoning about from a config file.
 
 **Nothing warns you before the limit bites.**  The conversation does not announce that it just dropped your opening message.  It simply stops knowing it, and carries on confidently, which is the worst possible way for that to be communicated.
+
+**And what falls off the front may not be yours.**  Everything above describes losing the beginning of *your* conversation.  But an agent's own instructions sit in front of the first thing you ever typed — that is what makes it a guide and not a general chatbot — so they are first in the queue to go.  When that happens you do not get an error.  You get a guide that starts answering questions it would have declined, inventing details it would have refused to guess at, or simply sounding like something else.  **The tell is that it is fine in a new conversation and strange in a long one.**  If you see that, you have not found a bad model; you have found a conversation that outgrew its window.  Start a fresh one, and mention it to us — it is a setting, it is on our side, and it is the kind of thing that is much easier for you to notice than for us.
 
 ## Try it yourself
 
