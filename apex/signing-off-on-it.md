@@ -54,6 +54,20 @@ And one reason that is not commercial at all, which for a Provost may be the str
 
 ---
 
+## Two doors, and they are limited by different things
+
+Worth a paragraph on its own, because everyone assumes one rule covers both and the assumption is wrong in the direction that costs money.
+
+**The chat window is capped in length.**  A conversation may grow to a set size — a few hundred pages of text — and past that the software drops the oldest part before sending the rest.  We choose that number per course.  It reads as a capability limit and it is really a cost control wearing a capability's costume: a bound on what one conversation can spend against a metered model.
+
+**A personal key is capped in money.**  When a student points their own editor or scripts at the gateway, that traffic never passes through the chat software at all, so the length cap does not apply — the request gets whatever the model itself serves.  What stops it is the dollar fuse on the key.
+
+**Chat is bounded in tokens; keys are bounded in dollars.**  Both are enforced, neither is optional, and the practical consequence is that a student in the chat window gets trimmed while the same student with a harness can send an enormous request and simply spend for it.  The fuse is the only thing standing there, and it stops them in cents rather than in context.
+
+That asymmetry is deliberate and it is also the single thing most likely to be taught wrong, so it belongs in the first hour of any training rather than in a footnote.
+
+---
+
 ## Why it is defensible in front of students
 
 **Identity.**  Campus single sign-on, brokered through a standard identity provider.  No separate password for a student to create or for us to lose, and no account lifecycle running beside the institutional one.
