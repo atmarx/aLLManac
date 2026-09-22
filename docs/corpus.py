@@ -45,6 +45,12 @@ SCOPE = {
         "You are the Security Guide: the Almanac's security posture — the "
         "controls, the boundaries, and the blue-team and purple-team "
         "exercises that test them.",
+    "usage-guide":
+        "You are the Usage Guide: what the numbers mean — tokens, context, "
+        "what actually moves a bill, and how to read your own usage.  You "
+        "explain; you never grade.  Every figure you state came back from a "
+        "tool call verbatim, and you do no arithmetic on those figures — a "
+        "number you computed is a number the reader cannot check.",
 }
 
 # The directory of guides, rendered into BOTH the shared preamble (as the
@@ -58,7 +64,8 @@ DIRECTORY = """\
                          shared agents, what students can see
       Platform Guide     how the Almanac is built, and why
       Dev Guide          deploying and operating it
-      Security Guide     the security posture, and the exercises that test it\
+      Security Guide     the security posture, and the exercises that test it
+      Usage Guide        what the numbers mean — tokens, context, and cost\
 """
 
 # Deployment config, not code: a different institution names a different
@@ -93,6 +100,21 @@ SECURITY_TAGS = {
     "chokepoint", "supply-chain",
 }
 SECURITY_MIN = 3   # below this it's a passing mention, not a security page
+
+# The Usage Guide is the SECOND cross-cut, and it exists for the same reason
+# the first one does: "what the numbers mean" is a subject, not an audience,
+# and giving it an `audience:` value would put a fifth entry in an enum whose
+# whole job is to stay small.  Kept deliberately tight — these are the tags a
+# page about tokens, context and cost carries, and nothing else does.
+USAGE_TAGS = {
+    "metering", "attribution", "context-window", "token-economy",
+    "cost-intuition",
+}
+USAGE_MIN = 3
+
+# One place that knows every cross-cut, so adding a third does not mean
+# remembering to touch the report at the bottom of this file too.
+CROSS_CUTS = {"security-guide": SECURITY_MIN, "usage-guide": USAGE_MIN}
 
 
 def welcome(body: str) -> str:
@@ -236,8 +258,11 @@ def main() -> int:
         for guide, audience in GUIDES.items():
             if audience in reach:
                 corpora.setdefault(guide, []).append((rel, fm, body))
-        if len(set(fm.get("tags") or []) & SECURITY_TAGS) >= SECURITY_MIN:
+        tags = set(fm.get("tags") or [])
+        if len(tags & SECURITY_TAGS) >= SECURITY_MIN:
             corpora.setdefault("security-guide", []).append((rel, fm, body))
+        if len(tags & USAGE_TAGS) >= USAGE_MIN:
+            corpora.setdefault("usage-guide", []).append((rel, fm, body))
 
     tethers = {}
     for guide, entries in sorted(corpora.items()):
@@ -300,8 +325,11 @@ def main() -> int:
               "See [docs/audience-projection.md](../docs/audience-projection.md).", "",
               "## Corpora", "", "| guide | query | pages |", "|---|---|---|"]
     for guide, entries in sorted(corpora.items()):
-        q = (f"`audience: {GUIDES[guide]}` or `also_reaches` contains it"
-             if guide in GUIDES else f"≥{SECURITY_MIN} security tags (cross-cut)")
+        if guide in GUIDES:
+            q = f"`audience: {GUIDES[guide]}` or `also_reaches` contains it"
+        else:
+            cut = CROSS_CUTS[guide]
+            q = f"≥{cut} {guide.removesuffix('-guide')} tags (cross-cut)"
         report += [f"| {guide} | {q} | {len(entries)} |"]
     report += ["| welcome | no query — it routes, it does not answer | 0 |"]
     report += ["", "## Withheld", "",

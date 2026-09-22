@@ -92,6 +92,20 @@ REPORT_TOOLS = [_M("report_problem"), _M("my_reports")]
 # so attaching it to a public agent grants nothing; a student who calls it
 # gets a clean refusal.  On the Dev Guide because that is who reads it.
 TRIAGE_TOOLS = [_M("reports"), _M("report_triage")]
+# The ledger, served back into the chat.  A DIFFERENT server key from the
+# registrar's, so it needs its own delimiter join — `almanac-usage` under
+# `mcpServers:` in librechat/librechat.yaml.  Until now no guide carried
+# these, which made the numbers askable only by someone who already knew the
+# tool existed.  `course_usage` refuses non-faculty server-side, so attaching
+# it to a student-facing agent grants nothing — same reasoning as TRIAGE_TOOLS
+# on the Dev Guide.
+USAGE_MCP = "almanac-usage"
+_U = lambda t: f"{t}_mcp_{USAGE_MCP}"             # noqa: E731
+USAGE_TOOLS = [_U("my_usage"), _U("course_usage")]
+
+# Every server key a guide's tools may point at.  The shape check below is
+# only as good as this set, so a new server goes here first and is used second.
+MCP_SERVERS = {REGISTRAR_MCP, USAGE_MCP}
 
 GUIDES = [
     # FIRST on purpose: model_specs() marks entry 0 `default`, and the default
@@ -121,6 +135,13 @@ GUIDES = [
      REPORT_TOOLS + TRIAGE_TOOLS),
     ("security-guide", "Security Guide",
      "The Almanac's security posture — controls, boundaries, and the blue/purple team exercises that test them."),
+    # The one guide that needs an instrument rather than only a shelf: it
+    # explains what a number means, so it has to be able to read the number.
+    # The prompt forbids it doing arithmetic on what comes back — a figure it
+    # computed is a figure the reader has no way to check.
+    ("usage-guide", "Usage Guide",
+     "What the numbers mean — tokens, context, what actually moves a bill, and how to read your own usage.",
+     REPORT_TOOLS + USAGE_TOOLS),
 ]
 
 # The table above is positional, and it grew an optional fourth element on
@@ -148,11 +169,22 @@ def _check_guides() -> None:
             # A wrong MCP tool name does not error at runtime — LibreChat
             # simply hands the agent nothing.  Catch the shape here, since
             # nothing downstream ever will.
-            if not t.endswith(f"_mcp_{REGISTRAR_MCP}"):
+            #
+            # This checked against the registrar alone until 2026-09-22, when
+            # the Usage Guide became the first agent to carry a tool from a
+            # second server and the guard refused a correct name.  It was
+            # right to refuse: it could not tell a typo from a server it had
+            # never heard of, and guessing would have made it useless.  The
+            # fix is to name every server the guides may draw from, so an
+            # actual typo is still caught and a new server has to be declared
+            # here on purpose rather than by slipping past a loosened rule.
+            if not any(t.endswith(f"_mcp_{srv}") for srv in MCP_SERVERS):
                 raise SystemExit(
                     f"GUIDES[{i}] ({slug}): tool {t!r} does not end in "
-                    f"'_mcp_{REGISTRAR_MCP}' — it would attach nothing, "
-                    f"silently.  Build names with _M().")
+                    f"'_mcp_<server>' for any known server "
+                    f"({', '.join(sorted(MCP_SERVERS))}) — it would attach "
+                    f"nothing, silently.  Build names with _M() or _U(), and "
+                    f"add a new server to MCP_SERVERS before using it.")
 
 
 _check_guides()

@@ -55,6 +55,7 @@ SLUG_BY_NAME = {
     "Platform Guide": "platform-guide",
     "Dev Guide": "dev-guide",
     "Security Guide": "security-guide", "SecurityBot3000": "security-guide",
+    "Usage Guide": "usage-guide",
 }
 
 # The welcome desk carries no knowledge files and answers nothing, so the

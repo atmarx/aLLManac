@@ -36,6 +36,12 @@ nav:
   - Teaching a course: teaching-a-course.md
   - Evaluating it: evaluating-it.md
   - Signing off on it: signing-off-on-it.md
+  - Understanding your usage:
+      - understanding-your-usage/index.md
+      - Why tokens?: understanding-your-usage/tokens.md
+      - What context is: understanding-your-usage/context-is-the-conversation.md
+      - What actually costs: understanding-your-usage/what-actually-costs.md
+      - Reading your numbers: understanding-your-usage/reading-your-numbers.md
   - Teaching with AI:
       - teaching-with-ai/index.md
       - Designing assignments: teaching-with-ai/designing-assignments.md

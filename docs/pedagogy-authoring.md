@@ -145,6 +145,8 @@ Tags are an index, so they only work if the same idea always gets the same word.
 
 **Architecture** `tenancy` · `isolation` · `multi-tenant` · `gateway` · `chokepoint` · `attribution` · `metering` · `rendered-config` · `doc-drift`
 
+**Usage and cost** `context-window` · `token-economy` · `cost-intuition` — the Usage Guide cross-cut, alongside `metering` and `attribution` from Architecture.  Three or more of those five pull a page into that guide regardless of who it addresses, on the same principle as the Controls group and the Security Guide.
+
 **Stack and backends** `openbao` · `keycloak` · `litellm` · `librechat` · `mongodb` · `caddy` · `docker-compose` · `kubernetes` · `azure` · `aws` · `globus` · `vllm`
 
 **Teaching and learning** `assessment-design` · `academic-integrity` · `syllabus-policy` · `detection` · `disclosure` · `ai-literacy` · `critical-evaluation` · `hallucination` · `equity` · `accountability` · `source-verification`
