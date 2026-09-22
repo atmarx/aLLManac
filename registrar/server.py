@@ -615,8 +615,10 @@ async def course_keys(course: str = "") -> str:
 
 # ---- tools: the front office ---------------------------------------------------
 # Phase 2a (docs/registrar-spec.md, "Phase 2a — the front office").  Two
-# doors.  The open one — course_request, my_requests — answers anyone who can
-# sign in, because asking costs nothing and nothing provisions on a request.
+# doors.  The open one — course_request, my_requests, course_request_reply —
+# answers anyone who can sign in, because asking costs nothing: a request is
+# a ticket, like a problem report, and nothing provisions until an admin
+# approves it and sets its budget.
 # The desk — everything else here — answers the `admins:` list only, takes
 # the course as an argument (admins span courses), and never acts on the
 # first call: without confirm=true every desk tool describes what it WOULD
@@ -667,17 +669,21 @@ def _url(slug: str) -> str:
 
 @mcp.tool
 async def course_request(kind: str, name: str, purpose: str,
-                         instructors: str = "", term: str = "",
-                         headcount: int = 0, budget: float = 0.0,
+                         details: str = "", instructors: str = "",
+                         term: str = "", headcount: int = 0,
                          parent_course: str = "", slug: str = "",
                          coursework_confirmed: bool = False) -> str:
-    """Ask for a new room on the aLLManac — anyone can.  Nothing is created
-    until a platform admin approves it.
+    """Ask for a new room on the aLLManac — anyone can.  It files a ticket
+    for the platform admins, who approve it, return it with questions, or
+    reject it with a reason.  Nothing is created until they approve.
 
     `kind`: "course" (they teach it), "project" (a project room under an
     existing course — set parent_course), or "standalone" (a club, team or
-    thesis group).  `instructors`: who will run it, as emails; leave empty
-    when that's the person asking.  `slug`: a suggested id, optional.
+    thesis group).  `purpose`: a sentence on what it's for.  `details`:
+    anything else they want the admins to know — sections, dates, what
+    they plan to build.  `instructors`: who will run it, as emails; leave
+    empty when that's the person asking.  `slug`: a suggested id, optional.
+    Never ask them for a budget: the admins set the pool.
 
     The first call without coursework_confirmed returns a question you must
     put to them in its own words.  File again with coursework_confirmed=true
@@ -716,34 +722,66 @@ async def course_request(kind: str, name: str, purpose: str,
                 "details and coursework_confirmed=true.  If they say no, don't "
                 "file it — the text above says where that work belongs.")
     rec = reconcile.file_request(
-        by=email, kind=kind, name=name, purpose=purpose, instructors=runs,
-        term=term, headcount=headcount, budget=budget, parent=parent,
+        by=email, kind=kind, name=name, purpose=purpose, details=details,
+        instructors=runs, term=term, headcount=headcount, parent=parent,
         slug=wanted, attested=question)
-    return (f"Filed — request {rec['id']} ({kind}: {rec['name']}).  A platform "
-            "admin reviews each one; nothing is created until they approve.  "
-            "Ask my_requests any time to see where it stands — if it's "
-            "approved, that's where the new chat's address will be.")
+    return (f"Filed — request {rec['id']} ({kind}: {rec['name']}).  The "
+            "platform admins review each one: they approve it, return it with "
+            "questions, or turn it down with a reason, and nothing is created "
+            "until they approve.  They set the budget.  my_requests shows "
+            "where it stands and anything they've written back.")
 
 
 @mcp.tool
 async def my_requests() -> str:
-    """The caller's own environment requests and what became of each."""
+    """The caller's own room requests: where each stands, and everything the
+    admins have written back."""
     email, _role, _here = _ident_open()
     rows = reconcile.requests_list(by=email)
     if not rows:
         return "You haven't asked for a room.  course_request is how."
-    out = ["| request | filed | kind | name | status | |", "|---|---|---|---|---|---|"]
+    out = []
     for r in rows:
-        extra = _url(r["course"]) if r.get("course") else (r.get("note") or "")
-        out.append(f"| {r['id']} | {r['filed']} | {r['kind']} | {r['name']} | "
-                   f"{r['status']} | {extra} |")
-    return "\n".join(out)
+        head = f"**{r['id']}** — {r['kind']}: {r['name']} · filed {r['filed']} · **{r['status']}**"
+        out.append(head)
+        for m in r.get("thread") or []:
+            who = "admins" if m["as"] == "admin" else "you"
+            out.append(f"- {m['at']}, {who}: {m['text']}")
+        if r["status"] == "returned":
+            out.append("- Waiting on you: answer with course_request_reply and "
+                       "it goes back to the admins.")
+        elif r["status"] == "approved" and r.get("course"):
+            out.append(f"- Your chat: {_url(r['course'])}")
+        out.append("")
+    return "\n".join(out).rstrip()
+
+
+@mcp.tool
+async def course_request_reply(request_id: str, message: str) -> str:
+    """Answer the admins on one of the caller's own requests — usually one
+    they returned with questions.  Sends it back to the admins to review.
+    Only the person who filed a request can reply to it."""
+    email, _role, _here = _ident_open()
+    rid = request_id.strip()
+    rec = next((r for r in reconcile.requests_list(by=email)
+                if r["id"] == rid), None)
+    if rec is None:
+        raise ToolError(f"You don't have a request {rid!r} — my_requests "
+                        "lists yours.")
+    if rec["status"] in ("approved", "rejected"):
+        raise ToolError(f"{rid} was already {rec['status']}.  For something "
+                        "new, file a new request.")
+    if not (message or "").strip():
+        raise ToolError("Say what you'd like to add.")
+    reconcile.answer_request(rid, email, message)
+    return f"Added to {rid}, and it's back with the admins."
 
 
 @mcp.tool
 async def course_requests(status: str = "open") -> str:
-    """The request queue, oldest first.  `status`: open, approved,
-    declined, or all.  Platform admins only."""
+    """The request tickets, oldest first.  `status`: open (waiting on an
+    admin), returned (waiting on the requester), approved, rejected, or
+    all.  Platform admins only."""
     email, _role, _here = _ident_open()
     _admin_or_refuse(email)
     want = None if status.strip().lower() == "all" else status.strip().lower()
@@ -758,51 +796,74 @@ async def course_requests(status: str = "open") -> str:
                 + (f" · wants id `{r['slug_wanted']}`" if r.get("slug_wanted") else ""),
                 f"- runs it: {', '.join(r['instructors'])}"
                 + (f" · {r['term']}" if r.get("term") else "")
-                + (f" · ~{r['headcount']} people" if r.get("headcount") else "")
-                + (f" · asks ${r['budget_ask']:g}" if r.get("budget_ask") else ""),
-                f"- why: {r['purpose']}",
-                f"- said yes to the front-door question {r['attestation']['at']}"]
+                + (f" · ~{r['headcount']} people" if r.get("headcount") else ""),
+                f"- why: {r['purpose']}"]
+        if r.get("details"):
+            out.append(f"- details: {r['details']}")
+        out.append(f"- said yes to the front-door question {r['attestation']['at']}")
+        for m in r.get("thread") or []:
+            out.append(f"- {m['at']}, {m['as']} ({m['by']}): {m['text']}")
         if r.get("course"):
-            out.append(f"- became {r['course']}")
-        if r.get("note"):
-            out.append(f"- note: {r['note']}")
+            out.append(f"- became {r['course']} with a ${r.get('budget', 0):g} pool")
         out.append("")
     return "\n".join(out).rstrip()
 
 
-@mcp.tool
-async def course_approve(request_id: str, slug: str = "", budget: float = 0.0,
-                         confirm: bool = False) -> str:
-    """Approve a request: create the course from it and provision it.
-    `slug` is the new course's id (defaults to the one the request asked
-    for); `budget` its pool in dollars per term (defaults to the ask, then
-    the platform default).  Without confirm=true this only describes what
-    it would create.  Platform admins only."""
-    email, _role, _here = _ident_open()
-    _admin_or_refuse(email)
-    rid = request_id.strip()
+def _open_ticket_or_refuse(rid: str) -> dict:
     rec = next((r for r in reconcile.requests_list() if r["id"] == rid), None)
     if rec is None:
         raise ToolError(f"No request {rid!r}.  course_requests lists them.")
-    if rec["status"] != "open":
+    if rec["status"] in ("approved", "rejected"):
         raise ToolError(f"{rid} is already {rec['status']}.")
+    return rec
+
+
+@mcp.tool
+async def course_approve(request_id: str, budget: float, slug: str = "",
+                         tas: str = "", note: str = "",
+                         confirm: bool = False) -> str:
+    """Approve a request: create the course and provision it.  `budget` is
+    the pool, dollars per term — required, because the pool is yours to
+    set, never the requester's.  `slug` is the new course's id (defaults
+    to the one the request suggested).  `tas`: TA emails to add, often
+    from the requester's replies.  `note` is shown to the requester.
+    Without confirm=true this only describes what it would create.
+    Platform admins only."""
+    email, _role, _here = _ident_open()
+    _admin_or_refuse(email)
+    rid = request_id.strip()
+    rec = _open_ticket_or_refuse(rid)
+    if rec["status"] == "returned":
+        raise ToolError(f"{rid} is waiting on the requester's answer.  "
+                        "Approve it once they reply, or reject it.")
+    pool = float(budget or 0)
+    if pool <= 0:
+        raise ToolError("Set a budget — the course's pool in dollars per "
+                        f"term.  The platform default is "
+                        f"${reconcile.DEFAULT_COURSE_BUDGET:g}.")
     courses = _courses_or_refuse()["courses"]
     if not (slug or rec.get("slug_wanted")):
         raise ToolError("This request didn't suggest an id — pick one "
                         "(it becomes the chat's address) and pass it as slug.")
     new = _slug_or_refuse(slug or rec["slug_wanted"], courses, new=True)
-    pool = float(budget or rec.get("budget_ask") or reconcile.DEFAULT_COURSE_BUDGET)
+    ta = [e for e in _people(tas) if e not in rec["instructors"]]
     plan = [f"Would create **{new}** — {rec['name']}",
-            f"- instructors: {', '.join(rec['instructors'])}",
-            f"- pool: ${pool:g} per term",
+            f"- instructors: {', '.join(rec['instructors'])}"]
+    if ta:
+        plan.append(f"- TAs: {', '.join(ta)}")
+    plan += [f"- pool: ${pool:g} per term",
             f"- chat at {_url(new)}"]
+    if note.strip():
+        plan.append(f"- note to {rec['by']}: {note.strip()}")
     if not confirm:
         return "\n".join(plan + ["", "Nothing has changed.  If that's right, "
                                   "call course_approve again with "
                                   "confirm=true."])
-    reconcile.upsert_course(new, rec["name"], rec["instructors"], budget=pool)
+    reconcile.upsert_course(new, rec["name"], rec["instructors"], tas=ta,
+                            budget=pool)
     summary = await _provision(new)
-    reconcile.decide_request(rid, "approved", email, course=new)
+    reconcile.decide_request(rid, "approved", email, note=note.strip(),
+                             course=new, budget=pool)
     return "\n".join([f"Approved {rid} → {new} is provisioned.",
                       f"- staff granted: {', '.join(summary['staff']['granted'])}",
                       f"- chat: {_url(new)}", "", _UP_NOTE,
@@ -810,19 +871,34 @@ async def course_approve(request_id: str, slug: str = "", budget: float = 0.0,
 
 
 @mcp.tool
-async def course_decline(request_id: str, note: str) -> str:
-    """Decline a request, with the reason — the person who asked reads the
-    note in my_requests.  Platform admins only."""
+async def course_return(request_id: str, note: str) -> str:
+    """Send a request back to the person who filed it, with what you need
+    from them.  They answer with course_request_reply and it comes back to
+    the queue.  Platform admins only."""
+    email, _role, _here = _ident_open()
+    _admin_or_refuse(email)
+    if not (note or "").strip():
+        raise ToolError("Say what you need from them — they'll read it.")
+    rid = request_id.strip()
+    rec = _open_ticket_or_refuse(rid)
+    reconcile.decide_request(rid, "returned", email, note=note.strip())
+    return (f"Returned {rid} to {rec['by']} with your note.  It's back in "
+            "the open queue when they reply.")
+
+
+@mcp.tool
+async def course_reject(request_id: str, note: str) -> str:
+    """Turn a request down, with the reason — the person who asked reads it
+    in my_requests.  A rejected request is closed; they can file a new one.
+    Platform admins only."""
     email, _role, _here = _ident_open()
     _admin_or_refuse(email)
     if not (note or "").strip():
         raise ToolError("Say why — the person who asked will read it.")
     rid = request_id.strip()
-    rec = next((r for r in reconcile.requests_list() if r["id"] == rid), None)
-    if rec is None or rec["status"] != "open":
-        raise ToolError(f"No open request {rid!r}.")
-    reconcile.decide_request(rid, "declined", email, note=note)
-    return f"Declined {rid}.  {rec['by']} will see your note in my_requests."
+    rec = _open_ticket_or_refuse(rid)
+    reconcile.decide_request(rid, "rejected", email, note=note.strip())
+    return f"Rejected {rid}.  {rec['by']} will see your note in my_requests."
 
 
 @mcp.tool

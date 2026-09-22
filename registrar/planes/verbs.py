@@ -48,7 +48,7 @@ from .keycloak import (
 )
 from .nominations import add_nomination, load_nominations, mark_nomination
 from .reports import add_report, load_reports, mark_report
-from .requests import add_request, load_requests, mark_request
+from .requests import add_request, load_requests, mark_request, reply_request
 
 
 def _now() -> str:
@@ -705,6 +705,11 @@ def requests_list(status: str | None = None, by: str | None = None) -> list[dict
 
 
 def decide_request(rid: str, status: str, by: str, note: str = "",
-                   course: str | None = None) -> dict | None:
-    return mark_request(rid, status, by, note, course)
+                   course: str | None = None,
+                   budget: float | None = None) -> dict | None:
+    return mark_request(rid, status, by, note, course, budget)
+
+
+def answer_request(rid: str, by: str, text: str) -> dict | None:
+    return reply_request(rid, by, text)
 

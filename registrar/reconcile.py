@@ -81,6 +81,7 @@ from planes.requests import (
 from planes.verbs import (
     MeterUnreadable,
     PoolExhausted,
+    answer_request,
     apply_roster,
     close_report,
     courses_for,

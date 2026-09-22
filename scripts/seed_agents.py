@@ -104,15 +104,16 @@ ENROLL_TOOLS = [_M(t) for t in ("roster_show", "enroll", "unenroll",
                                 "roster_stage", "roster_apply", "course_keys")]
 # The front office's open door: anyone may ask for a room, and nothing
 # provisions until an admin says so (docs/registrar-spec.md, "Phase 2a").
-REQUEST_TOOLS = [_M("course_request"), _M("my_requests")]
+REQUEST_TOOLS = [_M("course_request"), _M("my_requests"),
+                 _M("course_request_reply")]
 # The operator's desk.  Gated on `admins:` server-side, same reasoning as
 # TRIAGE_TOOLS — on the Dev Guide because that is who reads it, and because
 # its corpus is the admin guide and the spec, which is what an operator
 # approving a course needs to have on hand.
 DESK_TOOLS = [_M(t) for t in ("course_requests", "course_approve",
-                              "course_decline", "course_create",
-                              "course_staff", "course_budget_set",
-                              "fleet_inventory")]
+                              "course_return", "course_reject",
+                              "course_create", "course_staff",
+                              "course_budget_set", "fleet_inventory")]
 # The ledger, served back into the chat.  A DIFFERENT server key from the
 # registrar's, so it needs its own delimiter join — `almanac-usage` under
 # `mcpServers:` in librechat/librechat.yaml.  Until now no guide carried
