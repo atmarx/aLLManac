@@ -42,6 +42,13 @@ nav:
       - What context is: understanding-your-usage/context-is-the-conversation.md
       - What actually costs: understanding-your-usage/what-actually-costs.md
       - Reading your numbers: understanding-your-usage/reading-your-numbers.md
+  - Building with code:
+      - building-with-code/index.md
+      - Your API key: building-with-code/your-key.md
+      - The gateway: building-with-code/the-gateway.md
+      - Coding harnesses: building-with-code/harnesses.md
+      - When it breaks: building-with-code/when-it-breaks.md
+      - Supervising an agent: building-with-code/supervising-an-agent.md
   - Teaching with AI:
       - teaching-with-ai/index.md
       - Designing assignments: teaching-with-ai/designing-assignments.md

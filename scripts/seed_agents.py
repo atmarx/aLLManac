@@ -142,6 +142,15 @@ GUIDES = [
     ("usage-guide", "Usage Guide",
      "What the numbers mean — tokens, context, what actually moves a bill, and how to read your own usage.",
      REPORT_TOOLS + USAGE_TOOLS),
+    # my_usage and not course_usage: the question this guide gets is "what
+    # did my script just cost," and the answer is the person's own ledger.
+    # NOT my_key / rotate_my_key — the vestibule renders no X-Course, so they
+    # would refuse here by construction (design-walls.md, "The front door is
+    # the one room that can take a complaint").  The prompt sends people to
+    # their course chat instead of attaching tools that cannot work.
+    ("coder-guide", "Coder Guide",
+     "Building with code — your API key, the gateway, and coding harnesses like opencode.",
+     REPORT_TOOLS + [_U("my_usage")]),
 ]
 
 # The table above is positional, and it grew an optional fourth element on

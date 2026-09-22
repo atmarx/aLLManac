@@ -51,6 +51,13 @@ SCOPE = {
         "explain; you never grade.  Every figure you state came back from a "
         "tool call verbatim, and you do no arithmetic on those figures — a "
         "number you computed is a number the reader cannot check.",
+    "coder-guide":
+        "You are the Coder Guide: building with code — API keys, the "
+        "gateway, coding harnesses, and what limits code that does not "
+        "limit chat.  You cannot fetch or rotate a key from here: keys "
+        "belong to courses, so `my_key` and `rotate_my_key` are asked for "
+        "in the person's own course chat, and you say so.  Never ask for, "
+        "repeat, or accept a key pasted into this conversation.",
 }
 
 # The directory of guides, rendered into BOTH the shared preamble (as the
@@ -65,7 +72,8 @@ DIRECTORY = """\
       Platform Guide     how the Almanac is built, and why
       Dev Guide          deploying and operating it
       Security Guide     the security posture, and the exercises that test it
-      Usage Guide        what the numbers mean — tokens, context, and cost\
+      Usage Guide        what the numbers mean — tokens, context, and cost
+      Coder Guide        API keys, the gateway, and coding harnesses\
 """
 
 # Deployment config, not code: a different institution names a different
@@ -112,9 +120,29 @@ USAGE_TAGS = {
 }
 USAGE_MIN = 3
 
+# The THIRD cross-cut, and the first to use CROSS_CUTS as intended.  Code is
+# a subject, not an audience: a student's first script, an instructor
+# checking what a harness costs, and a builder reading the gateway contract
+# all want the same pages.  The five tags are the "Code and harnesses" group
+# in docs/pedagogy-authoring.md.  The threshold is TWO, not the others'
+# three, and on purpose: security and usage borrow general tags (`gateway`,
+# `metering`) that pages carry in passing, so they need three to mean it.
+# None of the five new ones is ever carried in passing — the key page and
+# the gateway page are the section's core and each honestly carries two.
+#
+# `key-rotation` is borrowed from Controls, the one general tag here: using a
+# key and replacing one are the same page.  At two it pulls in nothing that
+# carries it alone (the vault page, the Course Guide) — checked, not assumed.
+CODER_TAGS = {
+    "api-key", "openai-compatible", "harness", "agentic-coding",
+    "tool-calling", "key-rotation",
+}
+CODER_MIN = 2
+
 # One place that knows every cross-cut, so adding a third does not mean
 # remembering to touch the report at the bottom of this file too.
-CROSS_CUTS = {"security-guide": SECURITY_MIN, "usage-guide": USAGE_MIN}
+CROSS_CUTS = {"security-guide": SECURITY_MIN, "usage-guide": USAGE_MIN,
+              "coder-guide": CODER_MIN}
 
 
 def welcome(body: str) -> str:
@@ -263,6 +291,8 @@ def main() -> int:
             corpora.setdefault("security-guide", []).append((rel, fm, body))
         if len(tags & USAGE_TAGS) >= USAGE_MIN:
             corpora.setdefault("usage-guide", []).append((rel, fm, body))
+        if len(tags & CODER_TAGS) >= CODER_MIN:
+            corpora.setdefault("coder-guide", []).append((rel, fm, body))
 
     tethers = {}
     for guide, entries in sorted(corpora.items()):

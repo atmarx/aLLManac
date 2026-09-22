@@ -147,6 +147,8 @@ Tags are an index, so they only work if the same idea always gets the same word.
 
 **Usage and cost** `context-window` · `token-economy` · `cost-intuition` — the Usage Guide cross-cut, alongside `metering` and `attribution` from Architecture.  Three or more of those five pull a page into that guide regardless of who it addresses, on the same principle as the Controls group and the Security Guide.
 
+**Code and harnesses** `api-key` · `openai-compatible` · `harness` · `agentic-coding` · `tool-calling` — the Coder Guide cross-cut.  **Two** or more pull a page into that guide regardless of audience — one fewer than the other cross-cuts, because none of the five new ones is a tag a page carries in passing.  The cross-cut also borrows `key-rotation` from Controls, because using a key and replacing one are the same page; `secrets-management` stays out, because a page about custody is a security page first and reaches the Coder Guide only if it is also about using a key.
+
 **Stack and backends** `openbao` · `keycloak` · `litellm` · `librechat` · `mongodb` · `caddy` · `docker-compose` · `kubernetes` · `azure` · `aws` · `globus` · `vllm`
 
 **Teaching and learning** `assessment-design` · `academic-integrity` · `syllabus-policy` · `detection` · `disclosure` · `ai-literacy` · `critical-evaluation` · `hallucination` · `equity` · `accountability` · `source-verification`
