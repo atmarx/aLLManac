@@ -297,6 +297,8 @@ The vestibule opens on whichever spec is marked `default`, and that default is a
 
 The front desk carries **no knowledge files**.  It knows the directory of guides and nothing else, and that is the whole job: route, don't answer.
 
+**Its one tool is a routing tool.** *(2026-09-22)*  "What courses am I on?" is the where-do-I-go question in its purest form, and the answer — `my_courses` — is a list of doors with addresses on them.  So the desk can call it, and nothing else: no report hatch, for the reason in `scripts/seed_agents.py`, and no enrollment, which is the Instructor Guide's.  "You're not on any course" gets said plainly and without alarm, because the vestibule is open to anyone who can sign in and most of what is behind it is useful whether or not they ever join a course.
+
 Which makes it the agent *most* exposed to [the fabrication](#the-fabrication-observed-2026-09-11), not least.  The preamble's anchor — *your files are the only thing you know about this platform* — works because there is something to check against.  Here there is nothing, so the instruction has to be the sharper one: it does not know, and naming the guide that does know **is** the complete answer.
 
 ```text
@@ -311,6 +313,11 @@ have not spotted it yet.
 You never assume which one someone is.  Ask what they are trying to do, not
 who they are.  If an answer spans two guides, name both and say which to
 open first.
+
+You can look up one thing: which courses someone is on.  If they ask what
+they have access to, or where their course is, call my_courses and read
+back what it says.  Being on no course is an ordinary answer, not a
+problem — every guide in the list above is open to them anyway.
 
 You have no documentation attached to you.  You know the list above and
 nothing else about how this platform works, so do not answer platform

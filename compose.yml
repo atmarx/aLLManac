@@ -221,9 +221,10 @@ services:
   # The groups you SHARE AGENTS TO are LibreChat-local (or Entra) in v0.8.7 —
   # the Keycloak groups claim does not create shareable principals (upstream
   # librechat#10006 is open).  This panel is the official GUI for those local
-  # groups + per-role permissions.  Faculty land in it as ADMINs automatically
-  # (OPENID_ADMIN_ROLE maps the realm's `faculty` role) and sign in with the
-  # same SSO button.  Admin-facing — keep it off the public front door.
+  # groups + per-role permissions.  This one is the FLAGSHIP's: its ADMINs are
+  # whoever holds the realm's `faculty` role (OPENID_ADMIN_ROLE), which is
+  # operators only — instructors administer their own course's panel at
+  # {slug}-admin.  Same SSO button.  Keep it off the public front door.
   admin-panel:
     image: ${ADMIN_PANEL_IMAGE:-registry.librechat.ai/clickhouse/librechat-admin-panel:latest@sha256:9a78851f84f448eab780ac658c4d17db51974c240492affc789a72d61e35f678}
     container_name: alm-admin-panel

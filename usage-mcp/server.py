@@ -171,16 +171,17 @@ def _course_or_refuse(email: str, role: str, course: str) -> tuple[str, dict]:
     if c is None:
         known = ", ".join(sorted(r["courses"])) or "none on file yet"
         raise ToolError(f"No course '{course}' in the roster (I know: {known}).")
-    is_admin = email in r["admins"]
-    if role != "ADMIN" and not is_admin:
+    # The roster decides, not the instance's ADMIN role.  The role used to be
+    # required too, and at the front door ADMIN comes only from the realm's
+    # `faculty` role — which instructors don't need for anything else, and
+    # which hands its holder the flagship's admin panel.  The registrar
+    # gates its staff tools on the roster alone for the same reason.
+    # `role` stays in the signature so the callers read the same.
+    if email not in r["admins"] and email not in c["faculty"]:
         raise ToolError(
-            "Course-wide stats are a faculty view.  Your own numbers are "
+            f"Course-wide stats are a faculty view, and the roster doesn't "
+            f"list you as teaching staff on {slug}.  Your own numbers are "
             "always available — ask for my_usage."
-        )
-    if not is_admin and email not in c["faculty"]:
-        raise ToolError(
-            f"You're not listed as faculty for {slug} in the roster — the "
-            "platform admin can add you (usage-mcp/roster.yaml on the box)."
         )
     return slug, c
 
@@ -330,27 +331,20 @@ async def course_usage(course: str, days: int = 30) -> str:
 async def list_courses() -> str:
     """Which courses the caller can see usage for, and how.  Start here when
     unsure of a course slug."""
-    email, role = _ident()
+    email, _role = _ident()
     r = _load_roster()
     is_admin = email in r["admins"]
     out = []
-    if role == "ADMIN" or is_admin:
-        vis = sorted(
-            s for s, c in r["courses"].items() if is_admin or email in c["faculty"]
-        )
-        if vis:
-            out.append("Courses you can pull usage for:")
-            for s in vis:
-                c = r["courses"][s]
-                out.append(f"- {s} — {c['name']} ({len(c['students'])} students)")
-            out.append("")
-            out.append("Ask course_usage with a slug, e.g. course_usage('%s')." % vis[0])
-        else:
-            out.append(
-                "You're signed in with the faculty role, but no course in the "
-                "roster lists you yet — the platform admin can add you "
-                "(usage-mcp/roster.yaml on the box)."
-            )
+    vis = sorted(
+        s for s, c in r["courses"].items() if is_admin or email in c["faculty"]
+    )
+    if vis:
+        out.append("Courses you can pull usage for:")
+        for s in vis:
+            c = r["courses"][s]
+            out.append(f"- {s} — {c['name']} ({len(c['students'])} students)")
+        out.append("")
+        out.append("Ask course_usage with a slug, e.g. course_usage('%s')." % vis[0])
     enrolled = sorted(s for s, c in r["courses"].items() if email in c["students"])
     if enrolled:
         out.append("You're on the roster for: " + ", ".join(enrolled) + ".")

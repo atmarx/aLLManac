@@ -92,6 +92,16 @@ REPORT_TOOLS = [_M("report_problem"), _M("my_reports")]
 # so attaching it to a public agent grants nothing; a student who calls it
 # gets a clean refusal.  On the Dev Guide because that is who reads it.
 TRIAGE_TOOLS = [_M("reports"), _M("report_triage")]
+# "What courses am I on, and where are they?"  Answers only about the caller,
+# works from the front door, and "none" is a normal answer — so it goes
+# wherever that question gets asked, which is nearly everywhere.
+WHERE_TOOLS = [_M("my_courses")]
+# Enrollment from the front door (2026-09-22).  Every one of these re-checks
+# the caller against the roster server-side (`_staff_scope` in
+# registrar/server.py), so attaching them to an agent a student can open
+# grants nothing — a student who calls one is told whose job it is.
+ENROLL_TOOLS = [_M(t) for t in ("roster_show", "enroll", "unenroll",
+                                "roster_stage", "roster_apply", "course_keys")]
 # The ledger, served back into the chat.  A DIFFERENT server key from the
 # registrar's, so it needs its own delimiter join — `almanac-usage` under
 # `mcpServers:` in librechat/librechat.yaml.  Until now no guide carried
@@ -121,13 +131,18 @@ GUIDES = [
     # runs on its own fence (docs/corpus.py, `welcome`), which never gets the
     # shared preamble's hatch list, so giving it the tool would hand it
     # something nothing told it how to use.
+    # my_courses IS routing, which is why it is the one tool here: "which
+    # courses am I on" is a where-do-I-go question, and the answer is a list
+    # of doors.  Its fence says when to call it (docs/agent-contract.md).
     ("welcome", "Front Desk",
      "New here?  Start with this and it will point you at the right guide.",
-     []),
+     WHERE_TOOLS),
     ("student-guide", "Student Guide",
-     "Using the Almanac in your courses — agents, knowledge files, API keys, and what the budget numbers mean."),
+     "Using the Almanac in your courses — agents, knowledge files, API keys, and what the budget numbers mean.",
+     REPORT_TOOLS + WHERE_TOOLS),
     ("instructor-guide", "Instructor Guide",
-     "Running a course on the Almanac — rosters, class configuration, shared agents, and what students can see."),
+     "Running a course on the Almanac — enrollment, class configuration, shared agents, and what students can see.",
+     REPORT_TOOLS + WHERE_TOOLS + ENROLL_TOOLS),
     ("platform-guide", "Platform Guide",
      "How the Almanac is built and why — the architecture, the decisions, and what they cost."),
     ("dev-guide", "Dev Guide",
@@ -150,7 +165,7 @@ GUIDES = [
     # their course chat instead of attaching tools that cannot work.
     ("coder-guide", "Coder Guide",
      "Building with code — your API key, the gateway, and coding harnesses like opencode.",
-     REPORT_TOOLS + [_U("my_usage")]),
+     REPORT_TOOLS + WHERE_TOOLS + [_U("my_usage")]),
 ]
 
 # The table above is positional, and it grew an optional fourth element on

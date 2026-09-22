@@ -29,7 +29,7 @@ tethered_to:
 |---|---|---|---|
 | Keycloak admin | `:8080` | `KC_ADMIN` / `KC_ADMIN_PASSWORD` | Identity: users, realm roles, the Globus broker, OIDC clients |
 | LiteLLM admin | `:4000/ui` | `LITELLM_MASTER_KEY` | The ledger: models, keys, budgets, spend |
-| LibreChat admin panel | `:3082` (flagship) / `{slug}-admin.` (a course) | faculty SSO (same button) | **Local groups** for agent sharing, role permissions, config overrides — per instance |
+| LibreChat admin panel | `:3082` (flagship) / `{slug}-admin.` (a course) | SSO (same button), that instance's ADMINs | **Local groups** for agent sharing, role permissions, config overrides — per instance |
 | LibreChat | `:3080` | SSO | The chat itself — mostly runs itself |
 
 **Those four ports bind loopback** (`PUBLISH_BIND`, default `127.0.0.1`) — they are admin surfaces and a bypass of every rule the edge enforces, so from anywhere but the box itself they need a tunnel:
@@ -46,7 +46,7 @@ Both panels carry a `Secure` session cookie (`ADMIN_PANEL_SESSION_COOKIE_SECURE`
 
 Three things in this stack are called "groups," and confusing them costs an afternoon:
 
-- **Keycloak groups/roles** — identity facts.  The `faculty` realm role is the one that matters: it makes someone a LibreChat ADMIN at login.
+- **Keycloak groups/roles** — identity facts.  The roles that matter are the ones the registrar sets on each course's own client (`admin`, `member`); the realm's `faculty` role reaches only the front door — see [who is an instructor](#roles-who-is-an-instructor).
 - **LibreChat local groups** (admin panel) — the ONLY groups the agent-share dialog can see.  Keycloak's groups claim never reaches LibreChat's ACL system at v0.8.7 (upstream [#10006](https://github.com/danny-avila/LibreChat/issues/10006)).
 - **LiteLLM teams** — optional ledger structure.  Usable, but see [the boundary table](#faculty-analytics--what-you-can-see) before you build a course on them.
 
@@ -61,11 +61,24 @@ Admin console at `:8080`, then **switch the realm** (top-left dropdown) from `ma
 ### Users
 
 - **Local (demo/mock) users:** Users → Add user (set email, mark email verified) → Credentials → set a password (temporary off).  The bundled realm ships `prof.vex`, `stu.amaya`, `stu.bram` (password `Demo123!`).
-- **Federated users (production):** you don't create them.  When identity brokering is on, a person's first SSO login creates their Keycloak user automatically (`syncMode: IMPORT`).  Your job is what happens *after* arrival: role assignment.
+- **Federated users (production):** you don't create them.  When identity brokering is on, a person's first SSO login creates their Keycloak user automatically (`syncMode: IMPORT`), and a rostered person lands on the account the registrar already made for them.  There is no role to assign on arrival — see below.
 
-### Roles: the faculty switch
+### Roles: who is an instructor
 
-The realm has two roles, `faculty` and `student`.  The one with teeth is `faculty`: LibreChat maps it to its ADMIN role at login via
+**An instructor is whoever `registrar/courses.yaml` lists under `instructors:` or `tas:` for a course.  Nothing in Keycloak makes someone one, and nothing you click there should.**  Every reconcile turns those lists into two roles on *that course's own* OIDC client — `member` opens the course's chat, `admin` makes the person a LibreChat ADMIN in that course and nowhere else (`render.py` points `OPENID_ADMIN_ROLE` at `resource_access.<slug>.roles`).  The lists are also what the registrar's staff tools and `course_usage` check before they answer, which is why the file is the authority rather than the role: the role is a copy the registrar keeps in step with it.
+
+To add an instructor or TA to a course, run the course verb again — it appends and never removes, so repeating it is safe.  It wants at least one instructor every time, so name an existing one when you're only adding a TA:
+
+```
+just course engr301-2026fall "ENGR 301 (Fall 2026)" new.prof@example.edu
+just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@example.edu --ta ta@example.edu
+```
+
+It takes effect at their next sign-in, and they don't need to have signed in before; the registrar pre-creates their account.  **Removing** someone is two steps today: delete them from `instructors:`/`tas:` (which ends their staff tools and usage view at once), then remove the course client's `admin` role from them in Keycloak (Clients → the course slug → Roles → `admin` → Users in role), because reconcile grants that role and does not yet revoke it.
+
+Once someone is on the list, they manage who else gets into their course without you — from their course's chat, or from the Instructor Guide at the front door ("add pat@example.edu to my course").  That is enrollment, and it lives with them; [registrar-spec.md](registrar-spec.md) has the two-step stage-and-apply it runs on.
+
+**The realm's `faculty` role is for operators only.**  It is still wired on the flagship —
 
 ```
 OPENID_ADMIN_ROLE=faculty
@@ -73,7 +86,7 @@ OPENID_ADMIN_ROLE_PARAMETER_PATH=realm_access.roles
 OPENID_ADMIN_ROLE_TOKEN_KIND=access
 ```
 
-(Keycloak puts realm roles at `realm_access.roles` in access tokens by default — no mapper needed.)  **To make someone faculty:** Users → pick the user → Role mapping → Assign role → `faculty`.  Takes effect at their next login.  This works identically for local and Globus-federated users.
+— so whoever holds it is ADMIN **at the front door**, which is the vestibule's admin panel on `:3082` and not much else, since the vestibule's lockdown is seeded into ADMIN as well.  Instructors used to be told to take it; that advice predates per-course clients, and it handed every instructor the one panel [the map](#the-map-read-this-first) says to keep in operator hands.  Nothing an instructor does needs it any more: `course_usage` stopped asking for it on 2026-09-22 and reads the roster instead.  Give it to the people who run the box, and take it off anyone else who has it.
 
 ### Groups
 
@@ -94,7 +107,7 @@ The realm ships a **disabled** Globus identity provider so going live is a paste
    **Until an identity provider is on**, a pre-created user has no password: on a username/password lab realm, set one by hand (Users → the user → Credentials) or nobody rostered after the realm import can sign in.
 3. Test in a private window: the login page now offers **Globus**.  Students authenticate through it (their campus IdP behind Globus does the real work), land in Keycloak as federated users, and LibreChat never knows the difference.
 
-After the flip, day-to-day admin work is: new semester → students arrive by logging in → you assign `faculty` to instructors → done.  Optional polish: to skip Keycloak's login page entirely (straight to Globus), set the realm's browser flow's Identity Provider Redirector to default to `globus` — do this only after local demo accounts are retired.
+After the flip, day-to-day admin work is: new semester → `just course` with each course's instructors → they enroll their own students from chat → done.  Optional polish: to skip Keycloak's login page entirely (straight to Globus), set the realm's browser flow's Identity Provider Redirector to default to `globus` — do this only after local demo accounts are retired.
 
 **What Globus does not carry:** groups or rosters.  Group membership stays manual (or waits for the platform's roster sync — deliberately out of scope here).
 
@@ -217,7 +230,7 @@ admins: []          # platform folks who may pull EVERY course
 - The course slug is the SAME owner slug you mint keys with (`just key engr301 ...`) — that's what folds vAPI-key spend into the course rollup.
 - `students:` powers both the chat-usage join and the "who hasn't started yet" answer.  No roster, no anti-join.
 - Mint keys with the person's **sign-in email** as the user (`just key engr301 amaya@example.edu`) and their chat + key usage join automatically.  A key minted under any other user_id needs an `aliases:` entry (email → `[user_ids]`) to fold back onto the student.
-- Faculty need BOTH the `faculty` realm role (that's what makes the role header say ADMIN) and a roster listing (that's what narrows it to *their* course).
+- Faculty need only the roster listing — the registrar renders `instructors:` + `tas:` from `courses.yaml` into `faculty:` here.  The ADMIN role header used to be required as well, which at the front door meant the realm `faculty` role; since 2026-09-22 the roster alone decides.
 
 ### The "Almanac Usage" agent (one-time, two minutes)
 
@@ -242,7 +255,7 @@ The flagship at `chat.<ALMANAC_DOMAIN>` is the room everyone can reach — the o
 
 **The vestibule is locked down on purpose.**  `librechat/librechat.yaml` turns off the agent builder, sharing, the people picker, the marketplace, prompts, bookmarks, presets, memories (and the memory subsystem itself), multi-convo, model parameters, code execution, web search, composer file search, shared links, skills and user-added MCP servers.  What is left is the picker of guide agents and a place to ask them questions.  Course instances are unaffected — they render their own, classroom-shaped config from `registrar/render.py`.  If your `site/librechat/librechat.yaml` predates 2026-09-15, copy the `interface:` and `memory:` blocks and `endpoints.agents.disableBuilder` across; the modelSpecs block is the only thing that should differ.
 
-**Two tools, and the second one needs a merge on boxes with a `site/` override.**  The vestibule carries `almanac-usage` (spend questions) and, since 2026-09-21, `almanac-registrar` — wired **without** an `X-Course` header so that only `report_problem` answers there and the thirteen course tools go on refusing exactly as they do today.  That block lives in the tracked `librechat/librechat.yaml`, which means **a box running `site/librechat/librechat.yaml` will not get it** until someone copies the `mcpServers.almanac-registrar` entry and the `registrar:8080` line under `mcpSettings.allowedAddresses` across by hand.  Nothing breaks without it; the front door just silently has no way to take a complaint, which is the kind of missing thing nobody notices.  The token is already in the container (`env_file: .env`), so no compose change is needed.  Verify with `just reports` after someone files one — and see [design-walls.md](design-walls.md), "The front door is the one room that can take a complaint," before adding an `X-Course` line to make something work.
+**Two tools, and the second one needs a merge on boxes with a `site/` override.**  The vestibule carries `almanac-usage` (spend questions) and, since 2026-09-21, `almanac-registrar` — wired **without** an `X-Course` header.  At the front door that means the report tools answer, `my_courses` answers, and the enrollment tools answer for whoever the roster lists as staff on the course they name; `my_key` and the other course-bound tools go on refusing.  That block lives in the tracked `librechat/librechat.yaml`, which means **a box running `site/librechat/librechat.yaml` will not get it** until someone copies the `mcpServers.almanac-registrar` entry and the `registrar:8080` line under `mcpSettings.allowedAddresses` across by hand.  Nothing breaks without it; the front door just silently has no way to take a complaint, which is the kind of missing thing nobody notices.  The token is already in the container (`env_file: .env`), so no compose change is needed.  Verify with `just reports` after someone files one — and see [design-walls.md](design-walls.md), "The front door is the one room that can take a complaint," before adding an `X-Course` line to make something work.
 
 **Working the queue without a shell.**  `devs:` in `courses.yaml` is the platform team's bug queue — `reports` and `report_triage` from the vestibule, and nothing else: no fleet view, no roster, no key.  That separation is the point, so the queue is safe to hand to a student worker; the reasoning is in [registrar-spec.md](registrar-spec.md), "Reports."  Admins triage implicitly, and `just course-check` warns if you list someone who's already an admin.  `just devs` shows both lists.  Closing a report needs a note, because `my_reports` shows that note back to whoever filed it.
 
@@ -517,7 +530,7 @@ And the facts that outrank everything: **`.env` is not in git** (it holds every 
 | Login bounces with a redirect-URI error | Callback URL missing from the `librechat` client → add it (Keycloak → Clients) |
 | `[openidStrategy] only requests to HTTPS are allowed` | Plain-http `OPENID_ISSUER` — LibreChat ≥0.8 refuses it → README "LAN HTTPS" |
 | Share dialog can't find a group | It's looking at **LibreChat-local** groups — create it in that instance's own admin panel (`:3082` for the flagship, `{slug}-admin.` for a course); and the person must have logged in once |
-| Faculty missing admin controls | `faculty` realm role not assigned, or assigned after login → assign, re-login |
+| Faculty missing admin controls in their course | Not in that course's `instructors:`/`tas:`, or added after their last sign-in → `just course <slug> "<name>" <email>`, then sign out and back in |
 | `just spend` / tags look empty | Aggregation lag (~10 s batch + async rollup) → wait a beat |
 | Invitation link dead | 7-day expiry → `just invite` again |
 | Users suddenly get "invalid key provided" | `CREDS_KEY`/`CREDS_IV` changed on a live instance → restore the old pair if you have it; otherwise users re-save keys |
@@ -527,4 +540,4 @@ And the facts that outrank everything: **`.env` is not in git** (it holds every 
 | Usage tool answers "couldn't tell who's asking" | The call didn't come through LibreChat's per-user connection (or placeholders didn't resolve) → re-login; check the two `{{...}}` headers in librechat.yaml |
 | `usage-mcp (stats)` FAILs in smoke / health says db unreachable | The `usage_ro` role is missing (first boot on an old checkout) → `just usage-role` |
 | Course rollup misses a student's key usage | Key minted under a user_id that isn't their email → add an `aliases:` entry in roster.yaml, or re-mint with the email |
-| Faculty gets "not listed as faculty for..." | They're ADMIN (realm role) but not in that course's `faculty:` list → edit roster.yaml (live, no restart) |
+| Faculty told the course view is "a faculty view" | Not in that course's `instructors:`/`tas:` → `just course <slug> "<name>" <email>`; roster.yaml is a render, never edit it |

@@ -5,7 +5,9 @@ Rosters, key custody, and course enrollment served as MCP tools, so
 tickets.  LibreChat connects here per user and injects WHO IS ASKING as
 trusted headers; each course INSTANCE additionally injects WHICH COURSE
 (X-Course) as a literal the registrar itself rendered into that instance's
-config.  Identity is never a tool argument — and neither is the course.
+config.  Identity is never a tool argument.  The course is one only at the
+front door, where there is no header to take it from — and there it names a
+course the roster must already say the caller teaches (_staff_scope).
 
 Trust model, in one breath: reachable only on the compose network (plus a
 127.0.0.1 bind for smoke), LibreChat proves itself with a bearer token,
@@ -71,7 +73,7 @@ def _ident() -> tuple[str, str, str]:
 
 
 def _ident_open() -> tuple[str, str, str]:
-    """(email, role, course-or-empty) — for the ONE tool that also serves the
+    """(email, role, course-or-empty) — for the tools that also serve the
     vestibule.
 
     Every other tool in this file calls `_ident()`, which refuses without an
@@ -82,8 +84,9 @@ def _ident_open() -> tuple[str, str, str]:
     name, which is what this function is for.
 
     The token check and the who-is-asking check are unchanged; only the
-    course becomes optional, and the caller must then work out routing from
-    the roster instead (reconcile.file_report).
+    course becomes optional, and the caller must then work out the course
+    from the roster instead — reconcile.file_report for routing a complaint,
+    _staff_scope for enrollment, my_courses for "where am I?".
     """
     h = get_http_headers(include={"authorization"})
     auth = h.get("authorization", "")
@@ -137,15 +140,74 @@ def _course_or_refuse(slug: str) -> dict:
     return c
 
 
-def _staff_or_refuse(email: str, course: dict, slug: str) -> None:
+def _staff_or_refuse(email: str, course: dict, slug: str,
+                     front_door: bool = False) -> None:
     """Instructors and TAs — the courses.yaml lists ARE the authority (the
     file-backend equivalent of the managed group's manager role)."""
     if email not in course.get("instructors", []) and email not in course.get("tas", []):
+        # my_key refuses at the front door, so don't send anyone to it there.
         raise ToolError(
+            f"Enrollment for {slug} is managed by its teaching staff, and "
+            "the roster doesn't list you as one.  my_courses shows what "
+            "you're on." if front_door else
             f"Roster operations are for the teaching staff of {slug}.  Your "
             "own key and usage are always available — ask for my_key or "
             "my_usage."
         )
+
+
+def _staff_scope(course_arg: str = "") -> tuple[str, str, dict]:
+    """(email, slug, course) for a teaching-staff tool, from either room.
+
+    In a course instance the header decides, as it always has, and a named
+    course that disagrees is refused rather than obeyed: the header is
+    config the registrar rendered, the argument is a model repeating what
+    somebody typed.  At the front door there is no header, so the course
+    has to be named — or, when the caller teaches exactly one, it is that
+    one (the same "one course is an answer" rule report routing uses).
+
+    Either way the authority is the line after this: `_staff_or_refuse`
+    against the roster.  The header only ever chose WHICH course; it never
+    decided who may change it.  That is why taking the course as an
+    argument here opens nothing — a student at the front door who names a
+    course gets the same refusal a student in that course's chat does.
+    """
+    email, _role, header = _ident_open()
+    named = (course_arg or "").strip().lower()
+    if header:
+        if named and named != header:
+            raise ToolError(
+                f"This chat belongs to {header}.  To manage {named}, use its "
+                "own chat or the front door."
+            )
+        slug = header
+        course = _course_or_refuse(slug)
+        _staff_or_refuse(email, course, slug)
+        return email, slug, course
+    courses = _courses_or_refuse()["courses"]
+    teaching = sorted(s for s, c in courses.items() if _is_staff(email, c))
+    if not named:
+        if len(teaching) == 1:
+            named = teaching[0]
+        elif teaching:
+            raise ToolError(
+                "You teach more than one course — which one?  "
+                + ", ".join(teaching) + "."
+            )
+        else:
+            raise ToolError(
+                "The roster doesn't list you as teaching staff on any course, "
+                "so there's no enrollment for you to manage from here.  "
+                "my_courses shows what you're on; who teaches a course is set "
+                "by the platform operator."
+            )
+    course = courses.get(named)
+    if course is None:
+        mine = ("  The courses you teach: " + ", ".join(teaching) + ".") \
+            if teaching else ""
+        raise ToolError(f"There's no course called '{named}'.{mine}")
+    _staff_or_refuse(email, course, named, front_door=True)
+    return email, named, course
 
 
 def _is_staff(email: str, course: dict) -> bool:
@@ -328,69 +390,113 @@ async def rotate_my_key() -> str:
     )
 
 
-# ---- tools: teaching staff ----------------------------------------------------
+# ---- tools: anyone ------------------------------------------------------------
 
 @mcp.tool
-async def roster_show() -> str:
-    """The current roster for THIS course as the registrar holds it:
-    students, staff, and key-custody status.  Teaching staff only."""
-    email, _role, slug = _ident()
-    course = _course_or_refuse(slug)
-    _staff_or_refuse(email, course, slug)
-    students = course.get("students", [])
-    out = [f"{course.get('name', slug)} ({slug})", ""]
-    out.append("Staff: " + ", ".join(course.get("instructors", []) +
-                                     course.get("tas", [])))
+async def my_courses() -> str:
+    """Which courses the caller is on — as student, TA or instructor — and
+    where each one's chat is.  Works from any room, including the front
+    door, and only ever answers about the person asking.  Not being on any
+    course is a normal answer: the front door and its guides are open to
+    everyone who can sign in."""
+    email, _role, _here = _ident_open()
+    courses = _courses_or_refuse()["courses"]
+    rows = []
+    for slug in reconcile.courses_for(email):
+        c = courses[slug]
+        role = ("instructor" if email in c.get("instructors", []) else
+                "TA" if email in c.get("tas", []) else "student")
+        rows.append(f"| {c.get('name', slug)} | {role} | "
+                    f"https://{slug}.{reconcile.ALMANAC_DOMAIN} |")
+    if not rows:
+        return (
+            f"I don't see {email} on any course's roster.  If you expected "
+            "to be, check with your instructor — they add people, and it "
+            "takes effect the next time you sign in.  Everything at the "
+            "front door is yours either way."
+        )
+    return "\n".join([f"Courses {email} is on:", "",
+                      "| course | you are | chat |", "|---|---|---|", *rows])
+
+
+# ---- tools: teaching staff ----------------------------------------------------
+# Every one of these answers in a course's own chat AND at the front door.
+# `course` is ignored-unless-it-disagrees in a course (the header wins) and
+# names the course at the front door; `_staff_scope` has the reasoning.
+# "Enrollment" is the word faculty use for this, and it is the right one for
+# the conversation even though it is not the registrar's enrollment: being
+# on a roster here opens a door and mints a key, it does not put anyone in
+# a class.
+
+@mcp.tool
+async def roster_show(course: str = "") -> str:
+    """The current roster for a course you teach, as the registrar holds it:
+    students, staff, and key-custody status.  Teaching staff only.  In a
+    course's own chat leave `course` empty; at the front door name the
+    course (my_courses lists them)."""
+    email, slug, c = _staff_scope(course)
+    students = c.get("students", [])
+    out = [f"{c.get('name', slug)} ({slug})", ""]
+    out.append("Staff: " + ", ".join(c.get("instructors", []) +
+                                     c.get("tas", [])))
     if not students:
-        out.append("No students on the roster yet — paste one at roster_stage.")
+        out.append("No students on the roster yet — enroll some, or paste a "
+                   "class list at roster_stage.")
         return "\n".join(out)
     custody = await reconcile.escrow_status(slug, students)
     out += ["", f"{len(students)} students:", "",
             "| student | key | minted |", "|---|---|---|"]
-    for s in students:
-        c = custody.get(s)
+    for st in students:
+        k = custody.get(st)
         out.append(
-            f"| {s} | {'escrowed' if c else 'MISSING'} | "
-            f"{c.get('minted_at', '?') if c else '—'} |"
+            f"| {st} | {'escrowed' if k else 'MISSING'} | "
+            f"{k.get('minted_at', '?') if k else '—'} |"
         )
-    if any(custody.get(s) is None for s in students):
+    if any(custody.get(st) is None for st in students):
         out += ["", "MISSING keys usually mean a partial apply — run "
                     "roster_stage + roster_apply again; it's idempotent."]
     return "\n".join(out)
 
 
-@mcp.tool
-async def roster_stage(roster_text: str) -> str:
-    """Stage a roster for THIS course: paste your class list in ANY format
-    (CSV export, one email per line, whatever) — the registrar extracts the
-    emails, shows you exactly what changes, and changes NOTHING until you
-    confirm with roster_apply.  Teaching staff only."""
-    email, _role, slug = _ident()
-    course = _course_or_refuse(slug)
-    _staff_or_refuse(email, course, slug)
-    emails, ignored = _parse_roster(roster_text)
-    if not emails:
-        raise ToolError(
-            "I found no email addresses in that paste.  The roster is matched "
-            "on sign-in emails — export the email column and paste it here."
-        )
+def _stage(email: str, slug: str, course: dict, emails: list[str],
+           mode: str, ignored: list[str] | None = None) -> str:
+    """Build a stage and describe it.  NOTHING changes here — the stage is
+    the exact plan roster_apply will execute, and the description is what
+    the person says yes to.
+
+    mode: "replace" (the paste IS the class list — anyone missing from it
+    is removed), "add", or "remove".  Staff addresses are never students,
+    whichever way they arrive.
+    """
     current = set(course.get("students", []))
     staff = set(course.get("instructors", [])) | set(course.get("tas", []))
-    desired = [e for e in emails if e not in staff]  # staff aren't students
-    adds = [e for e in desired if e not in current]
-    keeps = [e for e in desired if e in current]
-    removes = sorted(current - set(desired))
+    wanted = [e for e in emails if e not in staff]
+    if mode == "replace":
+        adds = [e for e in wanted if e not in current]
+        removes = sorted(current - set(wanted))
+    elif mode == "add":
+        adds, removes = [e for e in wanted if e not in current], []
+    else:
+        adds, removes = [], sorted(e for e in wanted if e in current)
+    already = [e for e in wanted if e in current] if mode != "remove" else \
+        [e for e in wanted if e not in current]
     _purge_stages()
     sid = pysecrets.token_hex(4)
     _stages[sid] = {"course": slug, "by": email, "adds": adds,
                     "removes": removes, "created": time.monotonic()}
     out = [f"Staged for {slug} — NOTHING has changed yet.", ""]
-    out.append(f"Parsed {len(emails)} email(s); {len(keeps)} already enrolled.")
+    if mode == "replace":
+        out.append(f"Parsed {len(emails)} email(s); {len(already)} already "
+                   "enrolled.")
+    elif already:
+        out.append(("Already enrolled: " if mode == "add" else
+                    "Not enrolled, so nothing to remove: ") + ", ".join(already))
     if adds:
-        out.append(f"ADD ({len(adds)}): " + ", ".join(adds))
+        out.append(f"ADD ({len(adds)}): " + ", ".join(adds) +
+                   "  — each gets access to this course's chat and a key")
     if removes:
         out.append(f"REMOVE ({len(removes)}): " + ", ".join(removes) +
-                   "  — their keys will be revoked")
+                   "  — access closed and their keys revoked")
     if not adds and not removes:
         out.append("No changes — the roster already matches.")
     if ignored:
@@ -398,29 +504,79 @@ async def roster_stage(roster_text: str) -> str:
         out.append(f"Ignored {len(ignored)} line(s) with no email "
                    f"(e.g. {sample!r}) — headers and junk columns, usually.")
     if staff & set(emails):
-        out.append("Staff addresses in the paste were skipped (staff aren't "
-                   "students): " + ", ".join(sorted(staff & set(emails))))
+        out.append("Staff addresses were skipped (staff aren't students, and "
+                   "who teaches a course is the operator's to change): "
+                   + ", ".join(sorted(staff & set(emails))))
     if adds or removes:
         out += ["", f"If that's exactly right: roster_apply(\"{sid}\") "
                     f"(stage expires in {_STAGE_TTL // 60} minutes)."]
     return "\n".join(out)
 
 
+def _emails_or_refuse(text: str) -> tuple[list[str], list[str]]:
+    emails, ignored = _parse_roster(text)
+    if not emails:
+        raise ToolError(
+            "I found no email addresses in that.  Access is matched on "
+            "sign-in emails, so I need the email, not a name."
+        )
+    return emails, ignored
+
+
+@mcp.tool
+async def enroll(emails: str, course: str = "") -> str:
+    """Stage giving one or more people access to a course you teach — they
+    can sign in to its chat and fetch their own API key.  Adds only; nobody
+    already enrolled is touched.  Changes NOTHING until roster_apply.
+    `emails`: one or more addresses, any separator.  In a course's own chat
+    leave `course` empty; at the front door name it.  Teaching staff only."""
+    email, slug, c = _staff_scope(course)
+    emails_, ignored = _emails_or_refuse(emails)
+    return _stage(email, slug, c, emails_, "add", ignored)
+
+
+@mcp.tool
+async def unenroll(emails: str, course: str = "") -> str:
+    """Stage removing one or more people from a course you teach — their
+    access closes and their API key is revoked.  Removes only.  Changes
+    NOTHING until roster_apply.  Teaching staff only."""
+    email, slug, c = _staff_scope(course)
+    emails_, ignored = _emails_or_refuse(emails)
+    return _stage(email, slug, c, emails_, "remove", ignored)
+
+
+@mcp.tool
+async def roster_stage(roster_text: str, course: str = "") -> str:
+    """Stage a WHOLE class list for a course you teach: paste it in any
+    format (CSV export, one email per line, whatever) and the registrar
+    extracts the emails.  The paste becomes the roster — anyone enrolled
+    who is missing from it is REMOVED.  To add or remove a few people, use
+    enroll / unenroll instead.  Changes NOTHING until roster_apply.
+    Teaching staff only."""
+    email, slug, c = _staff_scope(course)
+    emails_, ignored = _emails_or_refuse(roster_text)
+    return _stage(email, slug, c, emails_, "replace", ignored)
+
+
 @mcp.tool
 async def roster_apply(stage_id: str) -> str:
-    """Execute a staged roster change — and only that change: enroll the
-    adds (login access + key minted + escrowed), un-enroll the removes
-    (key revoked).  Teaching staff only; stage first with roster_stage."""
-    email, _role, slug = _ident()
-    course = _course_or_refuse(slug)
-    _staff_or_refuse(email, course, slug)
+    """Execute a staged enrollment change — and only that change: enroll
+    the adds (sign-in access + key minted + escrowed), un-enroll the
+    removes (key revoked).  Only after the person has read the stage and
+    said yes to it.  Teaching staff only."""
     _purge_stages()
     st = _stages.get(stage_id.strip())
-    if st is None or st["course"] != slug:
+    if st is None:
+        _ident_open()     # the token check still comes before any answer
         raise ToolError(
-            "That stage doesn't exist (expired, already applied, or from a "
-            "different course).  roster_stage again — staging is cheap."
+            "That stage doesn't exist (expired or already applied).  Stage "
+            "it again — staging is cheap."
         )
+    # The stage names its own course, so apply needs no `course` argument
+    # at the front door — and _staff_scope re-checks that the person
+    # applying teaches it, whoever staged it.  In a course's chat, a stage
+    # from another course is refused there as a disagreeing course.
+    email, slug, _c = _staff_scope(st["course"])
     del _stages[stage_id.strip()]
     results = await reconcile.apply_roster(slug, st["adds"], st["removes"])
     ok = sum(1 for r in results if r["ok"])
@@ -429,21 +585,20 @@ async def roster_apply(stage_id: str) -> str:
         mark = "ok " if r["ok"] else "FAIL"
         out.append(f"  {mark}  {r['op']:6} {r['who']}  {r.get('note', '')}".rstrip())
     if ok < len(results):
-        out += ["", "Failures are safe to retry — stage the same roster "
+        out += ["", "Failures are safe to retry — stage the same change "
                     "again; every operation is idempotent."]
-    out += ["", "Students log in at this course's address; keys are ready "
-                "the moment they ask my_key."]
+    out += ["", f"Students sign in at https://{slug}.{reconcile.ALMANAC_DOMAIN} "
+                "— access takes effect at their next sign-in, and keys are "
+                "ready the moment they ask my_key there."]
     return "\n".join(out)
 
 
 @mcp.tool
-async def course_keys() -> str:
-    """Key custody for THIS course — who's minted, who's missing, when.
-    Shows status only, never the keys themselves: nobody but the owner
-    ever retrieves a key.  Spend questions belong to course_usage."""
-    email, _role, slug = _ident()
-    course = _course_or_refuse(slug)
-    _staff_or_refuse(email, course, slug)
+async def course_keys(course: str = "") -> str:
+    """Key custody for a course you teach — who's minted, who's missing,
+    when.  Shows status only, never the keys themselves: nobody but the
+    owner ever retrieves a key.  Spend questions belong to course_usage."""
+    _email, slug, course = _staff_scope(course)
     students = course.get("students", [])
     if not students:
         return f"No students on the {slug} roster yet."
