@@ -357,6 +357,16 @@ services:
       REGISTRAR_MAX_FUSE: "${REGISTRAR_MAX_FUSE:-25}"
       REGISTRAR_MIN_FUSE: "${REGISTRAR_MIN_FUSE:-1}"
       REGISTRAR_DEFAULT_COURSE_BUDGET: "${REGISTRAR_DEFAULT_COURSE_BUDGET:-1000}"
+      # Notifications (registrar/planes/notify.py) — all optional.  Unset,
+      # mail lands in registrar/outbox.log on the host and nothing leaves.
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-}"
+      SMTP_TLS: "${SMTP_TLS:-}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      SMTP_FROM: "${SMTP_FROM:-}"
+      NOTIFY_WEBHOOK_URL: "${NOTIFY_WEBHOOK_URL:-}"
+      NOTIFY_WEBHOOK_FORMAT: "${NOTIFY_WEBHOOK_FORMAT:-}"
       # The per-course context window.  A cost cap, not a capability claim —
       # LOWER it on a box whose endpoint serves less than this.  Over-long
       # prompts are not reliably refused: Ollama drops the front, which is

@@ -440,6 +440,18 @@ Everything `just course` does, a platform admin can do from the **Dev Guide** at
 - **The wording is yours.**  The front-door question comes from `registrar/front-door.md` if you write one, and the tracked `front-door.example.md` if you don't.  Edit it on the box; it's read on every request, no restart and no reseed.
 - **A new course isn't running until the host starts it** — see the next section.  Without the watcher, `just course-up` after an approval finishes the job.
 
+### Who hears about it: notifications
+
+Tickets move without anyone being told unless you set this up, and every piece of it is optional.
+
+- **The person** who filed a request gets an email when it's approved, returned or rejected, with the admin's note in full — plus the chat address on approval, sent to the instructors and any TAs as well.
+- **The desk** hears about new requests and replies.  With `NOTIFY_WEBHOOK_URL` set, that's one post to your admins' channel — a Teams Workflows "when a webhook request is received" URL by default, or anything that takes `{"text": ...}` with `NOTIFY_WEBHOOK_FORMAT=text`.  Decisions and new problem reports go to the channel too, so whoever is on the desk sees what the others did.  With no webhook, new requests and replies are emailed to the `admins:` list, and decisions and reports aren't sent anywhere, since each would be one more email to everyone.
+- **Mail** goes through `SMTP_HOST`.  A campus relay that trusts the box's address needs only the host, port and a `SMTP_FROM` it accepts; `SMTP_USER`/`SMTP_PASSWORD` switch on authentication (and STARTTLS by default — `SMTP_TLS=ssl` for port 465).  **With no `SMTP_HOST`, every message is appended to `registrar/outbox.log`** instead, which is the home-lab answer: nothing is lost and nothing leaves the box.  A relay that's down never fails the tool — the message lands in the outbox and the admin is told.
+
+**What leaves the box is the envelope, never the content** — ticket id, kind, name, who, term.  The purpose, the details, the thread and every word of a problem report stay in the queue, where the desk reads them.  The only full text that travels is an admin's note to a requester, which the admin wrote to be sent.  [design-walls.md](design-walls.md), "A notification is a pointer, not the content," has the reasoning.
+
+After setting any of it, `just deploy` (the registrar reads these at start), then `just notify-test` — it prints what's configured without printing a secret, sends a test email to the `admins:` list (or `just notify-test you@example.edu`), and posts once to the webhook.
+
 ### The fleet watcher
 
 The registrar never holds the docker socket, so a course created from chat is provisioned and rendered but not started.  Once per box:

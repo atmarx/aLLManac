@@ -33,6 +33,28 @@ FRONT_DOOR_PATHS = [
     os.path.join(os.path.dirname(COURSES_PATH), "front-door.example.md"),
 ]
 
+# Notifications (planes/notify.py).  All optional: with nothing set, mail is
+# appended to the outbox file on the state volume and the desk is "emailed"
+# there too — nothing is lost, and nothing leaves the box.
+#   SMTP_TLS: none (plain, e.g. a campus relay that trusts the box's IP),
+#   starttls, or ssl (implicit TLS, usually port 465).  Defaults to starttls
+#   when a user is set, none otherwise.
+SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "") or 25)
+SMTP_USER = os.environ.get("SMTP_USER", "").strip()
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_TLS = (os.environ.get("SMTP_TLS", "").strip().lower()
+            or ("starttls" if SMTP_USER else "none"))
+OUTBOX_PATH = os.environ.get(
+    "REGISTRAR_OUTBOX",
+    os.path.join(os.path.dirname(COURSES_PATH), "outbox.log"))
+# teams (a Workflows "when a webhook request is received" URL) or text
+# (anything that takes {"text": ...} — Slack, Mattermost).  The URL is a
+# credential: anyone holding it can post to the channel.
+NOTIFY_WEBHOOK_URL = os.environ.get("NOTIFY_WEBHOOK_URL", "").strip()
+NOTIFY_WEBHOOK_FORMAT = (os.environ.get("NOTIFY_WEBHOOK_FORMAT", "").strip().lower()
+                         or "teams")
+
 KC_URL = os.environ.get("KC_URL", "http://keycloak:8080")
 KC_REALM = os.environ.get("KC_REALM", "classroom")
 KC_ADMIN = os.environ.get("KC_ADMIN", "admin")
@@ -52,6 +74,10 @@ BAO_SECRET_ID = os.environ.get("BAO_REGISTRAR_SECRET_ID", "")
 BAO_MOUNT = os.environ.get("BAO_MOUNT", "almanac")
 
 ALMANAC_DOMAIN = os.environ.get("ALMANAC_DOMAIN", "localhost")
+# Who notification mail is from.  A campus relay that trusts the box's IP
+# usually still wants a From in a domain it recognises — set it if so.
+SMTP_FROM = (os.environ.get("SMTP_FROM", "").strip()
+             or f"aLLManac <noreply@{ALMANAC_DOMAIN}>")
 # The flagship's hostname — read here ONLY so validate_courses can refuse
 # to mint courses at <slug>.localhost on a box that clearly isn't one.
 CHAT_HOST = os.environ.get("CHAT_HOST", "chat.localhost")

@@ -50,3 +50,5 @@ registrar/reports.yaml
 # wording (front-door.example.md is the tracked default).
 registrar/requests.yaml
 registrar/front-door.md
+# Notification mail when no SMTP server is set (names people).
+registrar/outbox.log

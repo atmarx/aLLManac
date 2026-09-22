@@ -715,6 +715,18 @@ The page itself deliberately cannot tell a typo from a finished course, because 
 
 ---
 
+## A notification is a pointer, not the content *(2026-09-22)*
+
+The registrar tells people when a ticket moves — by email, and by a webhook to the admins' channel (Teams, by default).  **What it sends to the desk is the envelope**: ticket id, kind, name, who asked, term.  Never the purpose, the details, the reply thread, or any of a problem report's text.
+
+The reason is where those words end up.  A request's details and a report's quoted exchange were typed into this platform by people who were talking to it; a Teams webhook is Microsoft's cloud and an email is every mail client the admins read on.  The desk needs to know *that* something is waiting and *where*, and it already has a place to read the rest — `course_requests` and `reports`, on the box.  Same line as the census: the envelope is operational, the content is somebody's.
+
+**The one exception is an admin's note to a requester**, which goes out in full — the admin wrote it to be sent, and a "your request needs more" email that doesn't say what more is useless.
+
+If a notification ever needs more than the envelope to be useful, the fix is a better pointer (a link, a clearer title), not a bigger payload.  And a relay that's down never fails a tool: the message goes to `registrar/outbox.log` and the admin is told.
+
+---
+
 ## Structure decisions (settled — reopen only with cause)
 
 - **The Almanac consumes inference; it does not manage it** *(ruled 2026-09-12)*.  It is given a model and it uses that model — nothing more, nothing less.  Which weights exist, who approved them, when they load, and what hardware they sit on are decisions on the other side of `INFERENCE_BASE_URL`, and at a real institution they belong to a different team with a different change process.  The structure already enforces this and should keep doing so: `site/inference/` is gitignored, only an *example* vLLM stack is tracked, and every `just vllm-*` recipe is guarded by `_vllm-here`, which tells a box with no GPU that having no local inference is *a supported state, not a broken one*.  The house rig may co-locate a runtime for convenience; the platform must never require one, and must never grow a verb that pulls, evicts, or selects a served model.  The two carve-outs are narrow and stay narrow: `just embed-stage` materialises a model the platform *pins for its own machinery* (`EMBEDDINGS_MODEL` in `compose.yml` — it picks nothing, it only fetches what was already chosen), and `litellm/config.yaml` names models to *route to*, which is the handing-over, not the choosing.

@@ -150,6 +150,11 @@ def main() -> int:
     t = sub.add_parser("template", help="export a nomination as fleet/templates/<id>-<name>.yaml")
     t.add_argument("nomination_id")
 
+    nt = sub.add_parser("notify-test",
+                        help="send one test message through the configured channels")
+    nt.add_argument("email", nargs="?", default="",
+                    help="who gets the test email (default: the admins: list)")
+
     rp = sub.add_parser("reports", help="problem reports filed from the chat")
     rp.add_argument("--status", default="open",
                     help="open|triaged|closed|all (default open)")
@@ -283,6 +288,24 @@ def main() -> int:
             print(f"ERROR: {e.args[0]}", file=sys.stderr)
             return 1
         print(r["path"])
+        return 0
+
+    if args.cmd == "notify-test":
+        cfg = reconcile.notify_configured()
+        print(f"smtp:    {cfg['smtp']}\nwebhook: {cfg['webhook']}")
+        admins = reconcile.load_courses()["admins"]
+        to = [args.email.strip().lower()] if args.email.strip() else admins
+        if not to:
+            print("no address given and `admins:` is empty — nothing to email")
+        else:
+            print("email:  ", asyncio.run(reconcile.notify_person(
+                to, "Test message",
+                "This is a test from `just notify-test`.  If you're reading "
+                "it, the registrar can reach you.\n")))
+        print("desk:   ", asyncio.run(reconcile.notify_desk(
+            admins, "Test from just notify-test",
+            ["If this reached the admins' channel, the desk webhook works."],
+            email_fallback=False)) or "no webhook set — skipped")
         return 0
 
     if args.cmd == "reports":

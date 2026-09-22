@@ -35,6 +35,7 @@ from planes.config import (
     ALMANAC_DOMAIN,
     BASE_MODELS,
     BAO_MOUNT,
+    CHAT_HOST,
     DEFAULT_CAPABILITIES,
     DEFAULT_COURSE_BUDGET,
     DEFAULT_FUSE,
@@ -71,6 +72,11 @@ from planes.keycloak import (
     kc_ensure_client_roles,
     kc_set_client_role,
     kc_user_id,
+)
+from planes.notify import (
+    configured as notify_configured,
+    desk as notify_desk,
+    person as notify_person,
 )
 from planes.requests import (
     KINDS as REQUEST_KINDS,

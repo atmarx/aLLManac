@@ -875,6 +875,14 @@ reports status="open":
 report-close id note="":
     {{compose}} exec -T registrar python course_admin.py report-close "{{id}}" --note "{{note}}" </dev/null
 
+# Prove the notification channels from the box: prints what's configured
+# (never a secret), sends one test email (to EMAIL, else the `admins:` list)
+# and one desk-webhook post.  With no SMTP_HOST the email lands in
+# registrar/outbox.log, which is the right answer on a box with no relay.
+# Send one test through the configured mail and webhook channels
+notify-test email="":
+    {{compose}} exec -T registrar python course_admin.py notify-test "{{email}}" </dev/null
+
 # The list is operator-edited like the rest of courses.yaml, so this is the
 # read-only look at it — add or remove names by editing the file.
 # Who may work the report queue from chat (`devs:` in courses.yaml)

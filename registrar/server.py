@@ -667,6 +667,23 @@ def _url(slug: str) -> str:
     return f"https://{slug}.{reconcile.ALMANAC_DOMAIN}"
 
 
+def _front_door() -> str:
+    return f"https://{reconcile.CHAT_HOST}"
+
+
+def _admins() -> list[str]:
+    try:
+        return reconcile.load_courses()["admins"]
+    except reconcile.CoursesError:
+        return []
+
+
+def _told(status: str) -> str:
+    """The notification status line an ADMIN sees.  Requesters never see
+    one: whether our mail relay is up is not their problem."""
+    return f"\n\nNotified: {status}." if status else ""
+
+
 @mcp.tool
 async def course_request(kind: str, name: str, purpose: str,
                          details: str = "", instructors: str = "",
@@ -725,6 +742,16 @@ async def course_request(kind: str, name: str, purpose: str,
         by=email, kind=kind, name=name, purpose=purpose, details=details,
         instructors=runs, term=term, headcount=headcount, parent=parent,
         slug=wanted, attested=question)
+    # The envelope only — see planes/notify.py.  Purpose and details stay
+    # on the box; the desk reads them in course_requests.
+    await reconcile.notify_desk(
+        _admins(), f"New room request {rec['id']}",
+        [f"{kind}: {rec['name']}" + (f" (under {parent})" if parent else ""),
+         f"from {email}" + (f" · {rec['term']}" if rec["term"] else "")
+         + (f" · ~{rec['headcount']} people" if rec["headcount"] else ""),
+         "Read it and decide in the Dev Guide at the front door — ask what's "
+         "waiting."],
+        _front_door())
     return (f"Filed — request {rec['id']} ({kind}: {rec['name']}).  The "
             "platform admins review each one: they approve it, return it with "
             "questions, or turn it down with a reason, and nothing is created "
@@ -774,6 +801,11 @@ async def course_request_reply(request_id: str, message: str) -> str:
     if not (message or "").strip():
         raise ToolError("Say what you'd like to add.")
     reconcile.answer_request(rid, email, message)
+    await reconcile.notify_desk(
+        _admins(), f"Request {rid} answered — back in the queue",
+        [f"{rec['kind']}: {rec['name']}", f"from {email}",
+         "Their reply is on the ticket in the Dev Guide."],
+        _front_door())
     return f"Added to {rid}, and it's back with the admins."
 
 
@@ -864,10 +896,24 @@ async def course_approve(request_id: str, budget: float, slug: str = "",
     summary = await _provision(new)
     reconcile.decide_request(rid, "approved", email, note=note.strip(),
                              course=new, budget=pool)
+    body = (f"Your request for {rec['name']} ({rid}) is approved.\n\n"
+            f"Its chat: {_url(new)}\n"
+            f"Its budget for the term: ${pool:g}, shared by everyone in it.\n\n"
+            + (f"A note from the platform admins:\n{note.strip()}\n\n" if note.strip() else "")
+            + "The address should answer within a few minutes.  Sign in with "
+              "your campus account; the instructors can add people from the "
+              "Instructor Guide at the front door "
+              f"({_front_door()}) or from the course's own chat.\n")
+    told = await reconcile.notify_person(
+        [rec["by"], *rec["instructors"], *ta], f"{rec['name']} is approved",
+        body)
+    await reconcile.notify_desk(
+        _admins(), f"Request {rid} approved → {new}",
+        [f"by {email} · ${pool:g} pool"], email_fallback=False)
     return "\n".join([f"Approved {rid} → {new} is provisioned.",
                       f"- staff granted: {', '.join(summary['staff']['granted'])}",
                       f"- chat: {_url(new)}", "", _UP_NOTE,
-                      "", f"{rec['by']} sees this in my_requests."])
+                      "", f"{rec['by']} sees this in my_requests."]) + _told(told)
 
 
 @mcp.tool
@@ -882,8 +928,18 @@ async def course_return(request_id: str, note: str) -> str:
     rid = request_id.strip()
     rec = _open_ticket_or_refuse(rid)
     reconcile.decide_request(rid, "returned", email, note=note.strip())
+    told = await reconcile.notify_person(
+        [rec["by"]], f"Your request {rid} needs a little more",
+        f"The platform admins looked at your request for {rec['name']} and "
+        f"need a bit more before they can decide:\n\n{note.strip()}\n\n"
+        f"To answer, open the aLLManac front door ({_front_door()}), choose "
+        f"the Instructor Guide or the Student Guide, and ask it to reply to "
+        f"{rid}.  Your answer goes straight back to them.\n")
+    await reconcile.notify_desk(
+        _admins(), f"Request {rid} returned to {rec['by']}",
+        [f"by {email}"], email_fallback=False)
     return (f"Returned {rid} to {rec['by']} with your note.  It's back in "
-            "the open queue when they reply.")
+            "the open queue when they reply.") + _told(told)
 
 
 @mcp.tool
@@ -898,7 +954,17 @@ async def course_reject(request_id: str, note: str) -> str:
     rid = request_id.strip()
     rec = _open_ticket_or_refuse(rid)
     reconcile.decide_request(rid, "rejected", email, note=note.strip())
-    return f"Rejected {rid}.  {rec['by']} will see your note in my_requests."
+    told = await reconcile.notify_person(
+        [rec["by"]], f"Your request {rid} wasn't approved",
+        f"The platform admins looked at your request for {rec['name']} and "
+        f"can't approve it:\n\n{note.strip()}\n\n"
+        "You're welcome to file a new request if something changes — the "
+        f"guides at the front door ({_front_door()}) can help.\n")
+    await reconcile.notify_desk(
+        _admins(), f"Request {rid} rejected",
+        [f"by {email}"], email_fallback=False)
+    return (f"Rejected {rid}.  {rec['by']} will see your note in "
+            "my_requests.") + _told(told)
 
 
 @mcp.tool
@@ -1277,6 +1343,16 @@ async def report_problem(what: str, course: str = "", asked: str = "",
             "fault, not something you did — tell the platform admin."
         ) from None
 
+    # The desk channel only, and the envelope only: a report quotes what a
+    # person typed, and none of that leaves the box.  No email fallback —
+    # the report queue has its own readers (devs:), and mailing every admin
+    # per report would teach them to filter it.
+    await reconcile.notify_desk(
+        [], f"Problem report {rec['id']}",
+        [f"about {rec['about'] or 'no single course — needs routing'} · "
+         f"filed from {slug or 'the front door'}",
+         "Read it in the Dev Guide (reports) or with `just reports`."],
+        _front_door(), email_fallback=False)
     out = [f"Filed — report {rec['id']}."]
     if rec["about"]:
         how = {"header": "this course",
