@@ -9,6 +9,7 @@ tethered_to:
   - apex/user-guide.md
   - apex/your-data/how-long-we-keep-it.md
   - usage-mcp/server.py
+  - registrar/planes/gateway.py
   - docs/admin-guide.md#backups
 ---
 
@@ -28,6 +29,8 @@ Your students' own walkthrough is the [course guide](user-guide.md) — worth re
 **If you want a key of your own, just ask for one in the chat.**  Ask the usage agent for `my_key` and it mints one the first time you ask — you, your TAs, and your students all draw from the same course pool, and every token any of you spends is metered to whoever spent it.  Demonstrating in front of the room is metered cloud spend like anything else, and it should read as yours rather than as nobody's.
 
 **Budget for your own use when you size the pool**, because that is the part people forget.  Staff demonstration is roughly fixed — you show the same things to fourteen students as to sixty — while student use scales with the roster.  A pool sized only for the students starves the teaching.
+
+**Know what happens when the pool runs out, because today it is everyone at once.**  The course pool is a ceiling on the whole course — chat and keys alike draw from it — and when it is spent, the course stops.  Not the student who spent the most: the student who opens their first assignment that evening, too.  Each key also carries its own smaller limit, so one runaway script hits its own wall long before it can empty the pool on its own; what empties a pool is a whole class running a little hot for a few weeks.  So watch the ledger (below) around the middle of term rather than the end, and if the numbers are trending past what you asked for, ask your admin to raise the pool before it runs dry rather than after.
 
 One thing the roster does *not* decide is seniority.  It answers two separate questions: **who may change the roster** (instructors and TAs) and **who may hold a key** (everyone it names).  Those are unrelated, so put people where their job is rather than where their rank is — and for a course where *everybody* is learning, a staff cohort or a workshop or a reading group, the honest answer is usually one instructor and everyone else a student.
 
