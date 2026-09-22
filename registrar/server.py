@@ -232,9 +232,10 @@ def _admin_or_refuse(email: str) -> None:
     to the list the operator keeps in courses.yaml."""
     if email not in _courses_or_refuse()["admins"]:
         raise ToolError(
-            "The fleet view is for platform admins (the `admins:` list in "
-            "registrar/courses.yaml).  Course staff: roster_show and "
-            "course_usage cover your own course."
+            "That's the operator's desk — it answers to the `admins:` list in "
+            "registrar/courses.yaml.  Course staff: roster_show and "
+            "course_usage cover your own course, and anyone can ask for a "
+            "new one with course_request."
         )
 
 
@@ -610,6 +611,328 @@ async def course_keys(course: str = "") -> str:
         out += ["", "Missing: " + ", ".join(missing),
                 "(re-apply the roster to mint stragglers — it's idempotent)"]
     return "\n".join(out)
+
+
+# ---- tools: the front office ---------------------------------------------------
+# Phase 2a (docs/registrar-spec.md, "Phase 2a — the front office").  Two
+# doors.  The open one — course_request, my_requests — answers anyone who can
+# sign in, because asking costs nothing and nothing provisions on a request.
+# The desk — everything else here — answers the `admins:` list only, takes
+# the course as an argument (admins span courses), and never acts on the
+# first call: without confirm=true every desk tool describes what it WOULD
+# do, and that description is what the admin says yes to.  Same shape as
+# roster_stage/roster_apply, without a stage id, because the arguments are
+# short enough to repeat.
+
+_UP_NOTE = ("Its chat comes up when the box next runs `just course-up` — "
+            "automatic where the fleet watcher is installed (admin-guide, "
+            "\"The fleet watcher\").  Until then the address won't answer.")
+
+
+def _slug_or_refuse(slug: str, courses: dict, *, new: bool) -> str:
+    slug = (slug or "").strip().lower()
+    if not reconcile.SLUG_RE.match(slug):
+        raise ToolError(
+            f"'{slug}' won't work as a course id — lowercase letters, digits "
+            "and hyphens, starting and ending with a letter or digit.  It "
+            "becomes the chat's address, so something like "
+            "engr301-2026fall.")
+    if new and slug in courses:
+        raise ToolError(
+            f"{slug} already exists.  course_staff changes who teaches it; "
+            "course_budget_set changes its pool.")
+    if not new and slug not in courses:
+        raise ToolError(f"There's no course called '{slug}'.")
+    return slug
+
+
+def _people(text: str) -> list[str]:
+    return _parse_roster(text or "")[0]
+
+
+async def _provision(slug: str) -> dict:
+    try:
+        return await reconcile.ensure_course(slug)
+    except Exception as e:
+        raise ToolError(
+            f"The record for {slug} is saved, but provisioning stopped "
+            f"({type(e).__name__}: {str(e)[:200]}).  It's safe to run again — "
+            "every step is idempotent — and `just course` on the box shows "
+            "the whole error.") from None
+
+
+def _url(slug: str) -> str:
+    return f"https://{slug}.{reconcile.ALMANAC_DOMAIN}"
+
+
+@mcp.tool
+async def course_request(kind: str, name: str, purpose: str,
+                         instructors: str = "", term: str = "",
+                         headcount: int = 0, budget: float = 0.0,
+                         parent_course: str = "", slug: str = "",
+                         coursework_confirmed: bool = False) -> str:
+    """Ask for a new room on the aLLManac — anyone can.  Nothing is created
+    until a platform admin approves it.
+
+    `kind`: "course" (they teach it), "project" (a project room under an
+    existing course — set parent_course), or "standalone" (a club, team or
+    thesis group).  `instructors`: who will run it, as emails; leave empty
+    when that's the person asking.  `slug`: a suggested id, optional.
+
+    The first call without coursework_confirmed returns a question you must
+    put to them in its own words.  File again with coursework_confirmed=true
+    only if they said yes to it."""
+    email, _role, _here = _ident_open()
+    courses = _courses_or_refuse()["courses"]
+    kind = (kind or "").strip().lower()
+    if kind not in reconcile.REQUEST_KINDS:
+        raise ToolError("kind is one of: " + ", ".join(reconcile.REQUEST_KINDS)
+                        + ".")
+    if not (name or "").strip() or not (purpose or "").strip():
+        raise ToolError("A request needs a name and a sentence on what it's "
+                        "for — the person approving it has only this to go on.")
+    parent = (parent_course or "").strip().lower() or None
+    if kind == "project":
+        if not parent:
+            raise ToolError("A project room hangs off an existing course — "
+                            "which one?  (parent_course)")
+        if parent not in courses:
+            raise ToolError(f"There's no course called '{parent}' to put a "
+                            "project under.  my_courses shows theirs.")
+    wanted = None
+    if (slug or "").strip():
+        wanted = _slug_or_refuse(slug, courses, new=True)
+    runs = _people(instructors) or [email]
+    if reconcile.open_count(email) >= reconcile.MAX_OPEN_PER_PERSON:
+        raise ToolError(
+            f"You already have {reconcile.MAX_OPEN_PER_PERSON} requests "
+            "waiting — my_requests shows them.  Let those be decided first.")
+    question = reconcile.front_door_text()
+    if not coursework_confirmed:
+        return ("NOT FILED YET.  Before this can be filed, put the following "
+                "to them in these words, and wait for their answer:\n\n"
+                f"{question}\n\n"
+                "Only if they say yes, call course_request again with the same "
+                "details and coursework_confirmed=true.  If they say no, don't "
+                "file it — the text above says where that work belongs.")
+    rec = reconcile.file_request(
+        by=email, kind=kind, name=name, purpose=purpose, instructors=runs,
+        term=term, headcount=headcount, budget=budget, parent=parent,
+        slug=wanted, attested=question)
+    return (f"Filed — request {rec['id']} ({kind}: {rec['name']}).  A platform "
+            "admin reviews each one; nothing is created until they approve.  "
+            "Ask my_requests any time to see where it stands — if it's "
+            "approved, that's where the new chat's address will be.")
+
+
+@mcp.tool
+async def my_requests() -> str:
+    """The caller's own environment requests and what became of each."""
+    email, _role, _here = _ident_open()
+    rows = reconcile.requests_list(by=email)
+    if not rows:
+        return "You haven't asked for a room.  course_request is how."
+    out = ["| request | filed | kind | name | status | |", "|---|---|---|---|---|---|"]
+    for r in rows:
+        extra = _url(r["course"]) if r.get("course") else (r.get("note") or "")
+        out.append(f"| {r['id']} | {r['filed']} | {r['kind']} | {r['name']} | "
+                   f"{r['status']} | {extra} |")
+    return "\n".join(out)
+
+
+@mcp.tool
+async def course_requests(status: str = "open") -> str:
+    """The request queue, oldest first.  `status`: open, approved,
+    declined, or all.  Platform admins only."""
+    email, _role, _here = _ident_open()
+    _admin_or_refuse(email)
+    want = None if status.strip().lower() == "all" else status.strip().lower()
+    rows = reconcile.requests_list(status=want)
+    if not rows:
+        return f"No {status} requests."
+    out = []
+    for r in rows:
+        out += [f"**{r['id']}** · {r['status']} · filed {r['filed']} by {r['by']}",
+                f"- {r['kind']}: {r['name']}"
+                + (f" (under {r['parent']})" if r.get("parent") else "")
+                + (f" · wants id `{r['slug_wanted']}`" if r.get("slug_wanted") else ""),
+                f"- runs it: {', '.join(r['instructors'])}"
+                + (f" · {r['term']}" if r.get("term") else "")
+                + (f" · ~{r['headcount']} people" if r.get("headcount") else "")
+                + (f" · asks ${r['budget_ask']:g}" if r.get("budget_ask") else ""),
+                f"- why: {r['purpose']}",
+                f"- said yes to the front-door question {r['attestation']['at']}"]
+        if r.get("course"):
+            out.append(f"- became {r['course']}")
+        if r.get("note"):
+            out.append(f"- note: {r['note']}")
+        out.append("")
+    return "\n".join(out).rstrip()
+
+
+@mcp.tool
+async def course_approve(request_id: str, slug: str = "", budget: float = 0.0,
+                         confirm: bool = False) -> str:
+    """Approve a request: create the course from it and provision it.
+    `slug` is the new course's id (defaults to the one the request asked
+    for); `budget` its pool in dollars per term (defaults to the ask, then
+    the platform default).  Without confirm=true this only describes what
+    it would create.  Platform admins only."""
+    email, _role, _here = _ident_open()
+    _admin_or_refuse(email)
+    rid = request_id.strip()
+    rec = next((r for r in reconcile.requests_list() if r["id"] == rid), None)
+    if rec is None:
+        raise ToolError(f"No request {rid!r}.  course_requests lists them.")
+    if rec["status"] != "open":
+        raise ToolError(f"{rid} is already {rec['status']}.")
+    courses = _courses_or_refuse()["courses"]
+    if not (slug or rec.get("slug_wanted")):
+        raise ToolError("This request didn't suggest an id — pick one "
+                        "(it becomes the chat's address) and pass it as slug.")
+    new = _slug_or_refuse(slug or rec["slug_wanted"], courses, new=True)
+    pool = float(budget or rec.get("budget_ask") or reconcile.DEFAULT_COURSE_BUDGET)
+    plan = [f"Would create **{new}** — {rec['name']}",
+            f"- instructors: {', '.join(rec['instructors'])}",
+            f"- pool: ${pool:g} per term",
+            f"- chat at {_url(new)}"]
+    if not confirm:
+        return "\n".join(plan + ["", "Nothing has changed.  If that's right, "
+                                  "call course_approve again with "
+                                  "confirm=true."])
+    reconcile.upsert_course(new, rec["name"], rec["instructors"], budget=pool)
+    summary = await _provision(new)
+    reconcile.decide_request(rid, "approved", email, course=new)
+    return "\n".join([f"Approved {rid} → {new} is provisioned.",
+                      f"- staff granted: {', '.join(summary['staff']['granted'])}",
+                      f"- chat: {_url(new)}", "", _UP_NOTE,
+                      "", f"{rec['by']} sees this in my_requests."])
+
+
+@mcp.tool
+async def course_decline(request_id: str, note: str) -> str:
+    """Decline a request, with the reason — the person who asked reads the
+    note in my_requests.  Platform admins only."""
+    email, _role, _here = _ident_open()
+    _admin_or_refuse(email)
+    if not (note or "").strip():
+        raise ToolError("Say why — the person who asked will read it.")
+    rid = request_id.strip()
+    rec = next((r for r in reconcile.requests_list() if r["id"] == rid), None)
+    if rec is None or rec["status"] != "open":
+        raise ToolError(f"No open request {rid!r}.")
+    reconcile.decide_request(rid, "declined", email, note=note)
+    return f"Declined {rid}.  {rec['by']} will see your note in my_requests."
+
+
+@mcp.tool
+async def course_create(slug: str, name: str, instructors: str, tas: str = "",
+                        budget: float = 0.0, confirm: bool = False) -> str:
+    """Create and provision a course directly, skipping the request queue.
+    `slug` becomes the chat's address; `instructors` and `tas` are emails.
+    Without confirm=true this only describes what it would create.
+    Platform admins only."""
+    email, _role, _here = _ident_open()
+    _admin_or_refuse(email)
+    courses = _courses_or_refuse()["courses"]
+    new = _slug_or_refuse(slug, courses, new=True)
+    ins, ta = _people(instructors), _people(tas)
+    if not ins:
+        raise ToolError("A course needs at least one instructor, by email.")
+    if not (name or "").strip():
+        raise ToolError("A course needs a name people will recognise.")
+    pool = float(budget or reconcile.DEFAULT_COURSE_BUDGET)
+    plan = [f"Would create **{new}** — {name.strip()}",
+            f"- instructors: {', '.join(ins)}"]
+    if ta:
+        plan.append(f"- TAs: {', '.join(ta)}")
+    plan += [f"- pool: ${pool:g} per term", f"- chat at {_url(new)}"]
+    if not confirm:
+        return "\n".join(plan + ["", "Nothing has changed.  If that's right, "
+                                  "call course_create again with "
+                                  "confirm=true."])
+    reconcile.upsert_course(new, name.strip(), ins, tas=ta, budget=pool)
+    summary = await _provision(new)
+    return "\n".join([f"Created {new}.",
+                      f"- staff granted: {', '.join(summary['staff']['granted'])}",
+                      f"- chat: {_url(new)}", "", _UP_NOTE])
+
+
+@mcp.tool
+async def course_staff(course: str, add_instructors: str = "",
+                       add_tas: str = "", remove: str = "",
+                       confirm: bool = False) -> str:
+    """Change who teaches a course: add instructors or TAs, or remove
+    staff.  Removing someone takes away their admin rights in that course's
+    chat as well as their staff tools; if they aren't also a student, their
+    access and key go too.  Without confirm=true this only describes the
+    change.  Platform admins only."""
+    email, _role, _here = _ident_open()
+    _admin_or_refuse(email)
+    courses = _courses_or_refuse()["courses"]
+    slug = _slug_or_refuse(course, courses, new=False)
+    c = courses[slug]
+    ai, at, rm = _people(add_instructors), _people(add_tas), _people(remove)
+    if not (ai or at or rm):
+        raise ToolError("Nothing to change — name someone to add or remove.")
+    ins = [e for e in c["instructors"] + ai if e not in rm and e not in at]
+    if not ins:
+        raise ToolError(f"That would leave {slug} with no instructor.  Add "
+                        "the new one in the same call.")
+    staff_now = set(c["instructors"]) | set(c["tas"])
+    plan = [f"Staff change for **{slug}**"]
+    if ai:
+        plan.append(f"- add as instructor: {', '.join(ai)}")
+    if at:
+        plan.append(f"- add as TA: {', '.join(at)}")
+    for e in rm:
+        if e not in staff_now:
+            plan.append(f"- {e} isn't staff here — nothing to remove")
+        elif e in (c.get("students") or []):
+            plan.append(f"- remove {e} from staff (stays enrolled as a student)")
+        else:
+            plan.append(f"- remove {e}: staff rights, access and key all end")
+    if not confirm:
+        return "\n".join(plan + ["", "Nothing has changed.  If that's right, "
+                                  "call course_staff again with confirm=true."])
+    try:
+        reconcile.set_staff(slug, ai, at, rm)
+    except ValueError as e:
+        raise ToolError(str(e)) from None
+    summary = await _provision(slug)
+    st = summary["staff"]
+    out = [f"Staff for {slug} updated.",
+           f"- staff now: {', '.join(st['granted'])}"]
+    if st.get("revoked"):
+        out.append(f"- rights removed: {', '.join(st['revoked'])}")
+    out.append("Changes take effect at each person's next sign-in.")
+    return "\n".join(out)
+
+
+@mcp.tool
+async def course_budget_set(course: str, amount: float,
+                            confirm: bool = False) -> str:
+    """Set a course's pool — the whole class's shared ceiling for the term,
+    chat and API keys together — in dollars.  Not anyone's personal key.
+    Without confirm=true this only describes the change.  Platform admins
+    only."""
+    email, _role, _here = _ident_open()
+    _admin_or_refuse(email)
+    courses = _courses_or_refuse()["courses"]
+    slug = _slug_or_refuse(course, courses, new=False)
+    amount = float(amount)
+    if amount <= 0:
+        raise ToolError("A pool has to be more than $0 — a course with no "
+                        "pool can't chat at all.")
+    was = courses[slug]["budgets"]["course"]
+    if not confirm:
+        return (f"Would set the {slug} pool from ${was:g} to ${amount:g} per "
+                "term.  Nothing has changed.  If that's right, call "
+                "course_budget_set again with confirm=true.")
+    reconcile.set_course_budget(slug, amount)
+    await _provision(slug)
+    return (f"{slug} pool is now ${amount:g} per term (was ${was:g}).  The "
+            "gateway enforces it from the next request.")
 
 
 # ---- tools: the fleet from above ----------------------------------------------

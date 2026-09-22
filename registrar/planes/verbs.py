@@ -17,7 +17,13 @@ import httpx
 import os
 
 from .chatdb import agent_template, census, db_name, list_databases
-from .config import ALMANAC_DOMAIN, MIN_FUSE
+from .config import (
+    ALMANAC_DOMAIN,
+    BASE_MODELS,
+    DEFAULT_COURSE_BUDGET,
+    DEFAULT_FUSE,
+    MIN_FUSE,
+)
 from .courses import course_models, load_courses, save_courses
 from .escrow import escrow_delete, escrow_read, escrow_write
 from .gateway import (
@@ -42,6 +48,7 @@ from .keycloak import (
 )
 from .nominations import add_nomination, load_nominations, mark_nomination
 from .reports import add_report, load_reports, mark_report
+from .requests import add_request, load_requests, mark_request
 
 
 def _now() -> str:
@@ -325,7 +332,28 @@ async def ensure_course(slug: str) -> dict:
             granted.append(email)
             if created:
                 precreated.append(email)
-        summary["staff"] = {"granted": granted, "precreated": precreated}
+        # Converge the other way too.  Until 2026-09-22 reconcile only ever
+        # GRANTED `admin`, so taking someone off `instructors:` ended their
+        # registrar and usage tools but left them ADMIN in the course's chat
+        # until someone found the role in Keycloak by hand.  The file is the
+        # authority; the role is a copy of it, so a holder the file doesn't
+        # name loses it here.  Someone who is also a student keeps the door
+        # and their key — they were demoted, not removed.
+        staff = set(course["instructors"]) | set(course["tas"])
+        students = set(course.get("students") or [])
+        revoked = []
+        for holder in await kc_role_holders(cx, client_uuid, "admin"):
+            if holder in staff:
+                continue
+            uid = await kc_user_id(cx, holder)
+            if uid:
+                await kc_set_client_role(cx, uid, client_uuid, roles["admin"],
+                                         False)
+            if holder not in students:
+                await _unenroll_one(cx, slug, holder, roles, client_uuid)
+            revoked.append(holder)
+        summary["staff"] = {"granted": granted, "precreated": precreated,
+                            "revoked": revoked}
     render.render_course(courses, slug,
                          oidc_secret=client_secret, service_key=svc["key"])
     render.render_fleet(courses)
@@ -584,3 +612,99 @@ def reports(slug: str | None = None, status: str | None = None) -> list[dict]:
 def close_report(rid: str, by: str, note: str = "",
                  status: str = "closed") -> dict | None:
     return mark_report(rid, status, by, note)
+
+
+# ---- the front office: courses, staff, budgets, requests ----------------------
+# The Phase 2a desk (docs/registrar-spec.md, "Phase 2a — the front office").
+# These write courses.yaml and nothing else; the caller then runs
+# ensure_course, which is the one place a course's systems are made to match
+# its record.  `course_admin.py create` goes through upsert_course too, so the
+# CLI and the chat desk cannot drift into two ideas of a new course.
+
+
+def upsert_course(slug: str, name: str, instructors: list[str],
+                  tas: list[str] | None = None, budget: float | None = None,
+                  college: str | None = None) -> dict:
+    """Create the record, or add to it.  Appends staff, never removes —
+    removal is set_staff, on purpose, so a create can't demote anyone."""
+    data = load_courses()
+    c = data["courses"].get(slug) or {
+        "name": name, "instructors": [], "tas": [],
+        "budgets": {"course": DEFAULT_COURSE_BUDGET,
+                    "key_fuse": DEFAULT_FUSE,
+                    "advisory_weekly": 2.0},
+        "college": None, "models": list(BASE_MODELS),
+        "group": "", "students": [], "aliases": {},
+    }
+    c["name"] = name
+    for i in [e.strip().lower() for e in instructors]:
+        if i and i not in c["instructors"]:
+            c["instructors"].append(i)
+    for t in [e.strip().lower() for e in (tas or [])]:
+        if t and t not in c["tas"]:
+            c["tas"].append(t)
+    if budget is not None:
+        c["budgets"]["course"] = float(budget)
+    if college:
+        c["college"] = college.strip().lower()
+    data["courses"][slug] = c
+    save_courses(data)
+    return c
+
+
+def set_staff(slug: str, add_instructors: list[str], add_tas: list[str],
+              remove: list[str]) -> dict:
+    """Edit who teaches a course.  A person is in at most one of the two
+    lists — adding someone as a TA moves them out of instructors, and the
+    other way round.  Staff aren't students, so an added staffer leaves
+    `students:` (their key is theirs either way).  Refuses to leave a
+    course with no instructor: every course has someone who answers for it."""
+    data = load_courses()
+    c = data["courses"][slug]
+    ins, tas = list(c["instructors"]), list(c["tas"])
+    for e in add_instructors:
+        if e in tas:
+            tas.remove(e)
+        if e not in ins:
+            ins.append(e)
+    for e in add_tas:
+        if e in ins:
+            ins.remove(e)
+        if e not in tas:
+            tas.append(e)
+    ins = [e for e in ins if e not in remove]
+    tas = [e for e in tas if e not in remove]
+    if not ins:
+        raise ValueError(f"{slug} would have no instructor left")
+    c["instructors"], c["tas"] = ins, tas
+    staff = set(ins) | set(tas)
+    c["students"] = [e for e in c.get("students") or [] if e not in staff]
+    save_courses(data)
+    return c
+
+
+def set_course_budget(slug: str, amount: float) -> dict:
+    data = load_courses()
+    c = data["courses"][slug]
+    c["budgets"]["course"] = float(amount)
+    save_courses(data)
+    return c
+
+
+def file_request(**kw) -> dict:
+    return add_request(**kw)
+
+
+def requests_list(status: str | None = None, by: str | None = None) -> list[dict]:
+    rows = load_requests()
+    if status is not None:
+        rows = [r for r in rows if r.get("status") == status]
+    if by is not None:
+        rows = [r for r in rows if r.get("by") == by]
+    return rows
+
+
+def decide_request(rid: str, status: str, by: str, note: str = "",
+                   course: str | None = None) -> dict | None:
+    return mark_request(rid, status, by, note, course)
+

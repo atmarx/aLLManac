@@ -722,12 +722,66 @@ course slug name +instructors:
     {{compose}} exec -T registrar python course_admin.py create "{{slug}}" "{{name}}" {{instructors}} </dev/null
     @{{just_executable()}} course-up
 
+# Start newly rendered instances + reload the edge's vhosts (graceful).
+#
+# Serialized on a lock since 2026-09-22, when this got a second caller: the
+# fleet watcher (below) runs it whenever the registrar rewrites fleet.yml,
+# and `just course` both rewrites fleet.yml AND runs this — so without the
+# lock one course created by hand is two `compose up`s racing each other.
 # Start newly rendered instances + reload the edge's vhosts (graceful)
 course-up:
-    {{compose}} up -d --remove-orphans
-    @{{compose}} ps --status=running --services 2>/dev/null | grep -qx edge \
+    #!/usr/bin/env bash
+    set -uo pipefail
+    exec 9>fleet/.course-up.lock
+    flock -w 600 9 || { echo "course-up: another run held the lock for 10 minutes"; exit 1; }
+    {{compose}} up -d --remove-orphans || exit 1
+    {{compose}} ps --status=running --services 2>/dev/null | grep -qx edge \
       && {{compose}} exec -T edge caddy reload --config /etc/caddy/Caddyfile </dev/null \
       && echo "edge reloaded" || echo "(edge not running — vhosts load when it starts)"
+
+# The fleet watcher: start what the registrar renders, without a shell.
+#
+# The registrar may never hold the docker socket (docs/registrar-spec.md),
+# so a course created from CHAT — course_create, course_approve — is fully
+# provisioned and rendered but not running until something on the host runs
+# `just course-up`.  This installs that something: a systemd --user path
+# unit on fleet/fleet.yml, which every provision rewrites last, after the
+# course's own files.  Runs as whoever installs it — the repo owner, the
+# same uid the registrar renders as.  `just course-up` by hand is always
+# the fallback, and the watcher changes nothing else about the box.
+#
+# Install the fleet watcher (systemd --user) — once per box
+fleet-watch-install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    d="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+    mkdir -p "$d"
+    cat > "$d/almanac-fleet.service" <<EOF
+    [Unit]
+    Description=aLLManac: start course instances the registrar rendered
+    [Service]
+    Type=oneshot
+    WorkingDirectory={{justfile_directory()}}
+    # Let a burst of renders settle into one run.
+    ExecStartPre=/bin/sleep 3
+    ExecStart={{just_executable()}} course-up
+    EOF
+    cat > "$d/almanac-fleet.path" <<EOF
+    [Unit]
+    Description=aLLManac: watch the rendered fleet
+    [Path]
+    PathChanged={{justfile_directory()}}/fleet/fleet.yml
+    Unit=almanac-fleet.service
+    [Install]
+    WantedBy=default.target
+    EOF
+    systemctl --user daemon-reload
+    systemctl --user enable --now almanac-fleet.path
+    echo "fleet watcher on — journalctl --user -u almanac-fleet shows each run"
+    if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null)" != "yes" ]; then
+      echo "WARN: lingering is off for $USER, so the watcher stops when you log out."
+      echo "      sudo loginctl enable-linger $USER"
+    fi
 
 # Is the fleet running the templates we shipped?  Renders every course into
 # MEMORY and diffs against the fleet volume — changes nothing, reads no

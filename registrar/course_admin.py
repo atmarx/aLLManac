@@ -31,29 +31,9 @@ import render
 
 
 def _upsert(args) -> None:
-    data = reconcile.load_courses()
-    slug = args.slug.strip().lower()
-    c = data["courses"].get(slug) or {
-        "name": args.name, "instructors": [], "tas": [],
-        "budgets": {"course": reconcile.DEFAULT_COURSE_BUDGET,
-                    "key_fuse": reconcile.DEFAULT_FUSE,
-                    "advisory_weekly": 2.0},
-        "college": None, "models": list(reconcile.BASE_MODELS),
-        "group": "", "students": [], "aliases": {},
-    }
-    c["name"] = args.name
-    for i in [e.strip().lower() for e in args.instructors]:
-        if i not in c["instructors"]:
-            c["instructors"].append(i)
-    for t in [e.strip().lower() for e in (args.ta or [])]:
-        if t not in c["tas"]:
-            c["tas"].append(t)
-    if args.budget is not None:
-        c["budgets"]["course"] = float(args.budget)
-    if args.college:
-        c["college"] = args.college.strip().lower()
-    data["courses"][slug] = c
-    reconcile.save_courses(data)
+    reconcile.upsert_course(
+        args.slug.strip().lower(), args.name, args.instructors,
+        tas=args.ta, budget=args.budget, college=args.college)
 
 
 def _report(errors: list, warnings: list) -> None:

@@ -102,6 +102,17 @@ WHERE_TOOLS = [_M("my_courses")]
 # grants nothing — a student who calls one is told whose job it is.
 ENROLL_TOOLS = [_M(t) for t in ("roster_show", "enroll", "unenroll",
                                 "roster_stage", "roster_apply", "course_keys")]
+# The front office's open door: anyone may ask for a room, and nothing
+# provisions until an admin says so (docs/registrar-spec.md, "Phase 2a").
+REQUEST_TOOLS = [_M("course_request"), _M("my_requests")]
+# The operator's desk.  Gated on `admins:` server-side, same reasoning as
+# TRIAGE_TOOLS — on the Dev Guide because that is who reads it, and because
+# its corpus is the admin guide and the spec, which is what an operator
+# approving a course needs to have on hand.
+DESK_TOOLS = [_M(t) for t in ("course_requests", "course_approve",
+                              "course_decline", "course_create",
+                              "course_staff", "course_budget_set",
+                              "fleet_inventory")]
 # The ledger, served back into the chat.  A DIFFERENT server key from the
 # registrar's, so it needs its own delimiter join — `almanac-usage` under
 # `mcpServers:` in librechat/librechat.yaml.  Until now no guide carried
@@ -139,15 +150,15 @@ GUIDES = [
      WHERE_TOOLS),
     ("student-guide", "Student Guide",
      "Using the Almanac in your courses — agents, knowledge files, API keys, and what the budget numbers mean.",
-     REPORT_TOOLS + WHERE_TOOLS),
+     REPORT_TOOLS + WHERE_TOOLS + REQUEST_TOOLS),
     ("instructor-guide", "Instructor Guide",
-     "Running a course on the Almanac — enrollment, class configuration, shared agents, and what students can see.",
-     REPORT_TOOLS + WHERE_TOOLS + ENROLL_TOOLS),
+     "Running a course on the Almanac — enrollment, class configuration, shared agents, and asking for a new course.",
+     REPORT_TOOLS + WHERE_TOOLS + ENROLL_TOOLS + REQUEST_TOOLS),
     ("platform-guide", "Platform Guide",
      "How the Almanac is built and why — the architecture, the decisions, and what they cost."),
     ("dev-guide", "Dev Guide",
-     "Operating the Almanac — deployment, runbooks, verification, and what breaks.",
-     REPORT_TOOLS + TRIAGE_TOOLS),
+     "Operating the Almanac — deployment, runbooks, what breaks, and the operator's desk for courses and requests.",
+     REPORT_TOOLS + TRIAGE_TOOLS + DESK_TOOLS),
     ("security-guide", "Security Guide",
      "The Almanac's security posture — controls, boundaries, and the blue/purple team exercises that test them."),
     # The one guide that needs an instrument rather than only a shelf: it

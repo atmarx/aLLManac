@@ -45,3 +45,8 @@ corpus/
 
 # Problem reports (quotes people, names their course).
 registrar/reports.yaml
+
+# Environment requests (names people) and this deployment's front-door
+# wording (front-door.example.md is the tracked default).
+registrar/requests.yaml
+registrar/front-door.md

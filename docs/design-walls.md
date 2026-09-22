@@ -705,6 +705,16 @@ The page itself deliberately cannot tell a typo from a finished course, because 
 
 ---
 
+## A course made in chat is rendered, not running *(2026-09-22)*
+
+`course_create` and `course_approve` provision everything the registrar can reach — the gateway team and service key, the Keycloak client and roles, the escrow, and the render under `fleet/` — and stop there.  **The containers start when something on the host runs `just course-up`**, and the tool says so in its reply.
+
+**Do not fix that by giving the registrar the docker socket.**  It is settled above ("The census stops at the envelope"): the socket is root on the box, and the registrar already holds three credentials.  The fix is the other direction — the host watches a file the registrar writes.  `just fleet-watch-install` puts a systemd `--user` path unit on `fleet/fleet.yml`, which every provision rewrites *last*, after the course's own files, and the unit runs `just course-up`.  The justfile keeps owning lifecycle; the registrar keeps owning renders; the seam between them is a file on disk, same as it always was.
+
+`course-up` takes a lock since the watcher arrived, because `just course` both rewrites `fleet.yml` and runs `course-up` itself — one hand-made course is otherwise two `compose up`s racing.  A box without the watcher still works: the course is fully provisioned and `just course-up` by hand finishes the job.
+
+---
+
 ## Structure decisions (settled — reopen only with cause)
 
 - **The Almanac consumes inference; it does not manage it** *(ruled 2026-09-12)*.  It is given a model and it uses that model — nothing more, nothing less.  Which weights exist, who approved them, when they load, and what hardware they sit on are decisions on the other side of `INFERENCE_BASE_URL`, and at a real institution they belong to a different team with a different change process.  The structure already enforces this and should keep doing so: `site/inference/` is gitignored, only an *example* vLLM stack is tracked, and every `just vllm-*` recipe is guarded by `_vllm-here`, which tells a box with no GPU that having no local inference is *a supported state, not a broken one*.  The house rig may co-locate a runtime for convenience; the platform must never require one, and must never grow a verb that pulls, evicts, or selects a served model.  The two carve-outs are narrow and stay narrow: `just embed-stage` materialises a model the platform *pins for its own machinery* (`EMBEDDINGS_MODEL` in `compose.yml` — it picks nothing, it only fetches what was already chosen), and `litellm/config.yaml` names models to *route to*, which is the handing-over, not the choosing.

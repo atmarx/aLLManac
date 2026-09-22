@@ -42,6 +42,7 @@ from planes.config import (
     KNOWN_CAPABILITIES,
     MAX_FUSE,
     MIN_FUSE,
+    SLUG_RE,
 )
 from planes.courses import (
     CoursesError,
@@ -71,16 +72,24 @@ from planes.keycloak import (
     kc_set_client_role,
     kc_user_id,
 )
+from planes.requests import (
+    KINDS as REQUEST_KINDS,
+    MAX_OPEN_PER_PERSON,
+    front_door_text,
+    open_count,
+)
 from planes.verbs import (
     MeterUnreadable,
     PoolExhausted,
     apply_roster,
     close_report,
     courses_for,
+    decide_request,
     decline_nomination,
     ensure_course,
     export_nomination,
     file_report,
+    file_request,
     fleet_access,
     fleet_exposure,
     fleet_inventory,
@@ -89,5 +98,9 @@ from planes.verbs import (
     nominations,
     reconcile_students_cmd,
     reports,
+    requests_list,
     rotate_student_key,
+    set_course_budget,
+    set_staff,
+    upsert_course,
 )

@@ -20,6 +20,18 @@ NOMINATIONS_PATH = os.environ.get(
 REPORTS_PATH = os.environ.get(
     "REGISTRAR_REPORTS",
     os.path.join(os.path.dirname(COURSES_PATH), "reports.yaml"))
+# Environment requests from the front office's open door — same volume,
+# same reason (they name the person asking).
+REQUESTS_PATH = os.environ.get(
+    "REGISTRAR_REQUESTS",
+    os.path.join(os.path.dirname(COURSES_PATH), "requests.yaml"))
+# The boundary question the request desk asks before filing.  Deployment
+# config: front-door.md if the operator wrote one, else the shipped example
+# (both sit on the state volume, which is ./registrar on the host).
+FRONT_DOOR_PATHS = [
+    os.path.join(os.path.dirname(COURSES_PATH), "front-door.md"),
+    os.path.join(os.path.dirname(COURSES_PATH), "front-door.example.md"),
+]
 
 KC_URL = os.environ.get("KC_URL", "http://keycloak:8080")
 KC_REALM = os.environ.get("KC_REALM", "classroom")

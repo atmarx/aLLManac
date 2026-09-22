@@ -74,7 +74,9 @@ just course engr301-2026fall "ENGR 301 (Fall 2026)" new.prof@example.edu
 just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@example.edu --ta ta@example.edu
 ```
 
-It takes effect at their next sign-in, and they don't need to have signed in before; the registrar pre-creates their account.  **Removing** someone is two steps today: delete them from `instructors:`/`tas:` (which ends their staff tools and usage view at once), then remove the course client's `admin` role from them in Keycloak (Clients → the course slug → Roles → `admin` → Users in role), because reconcile grants that role and does not yet revoke it.
+It takes effect at their next sign-in, and they don't need to have signed in before; the registrar pre-creates their account.  **Removing** someone: take them off `instructors:`/`tas:` and run `just course` for that course again — reconcile now takes the course's `admin` role back from anyone the file doesn't name, and if they aren't also a student, their access and key go with it.  Or skip the shell entirely: from the Dev Guide at the front door, `course_staff` adds and removes staff in one sentence (see [the front office](#from-chat-the-front-office)).
+
+**That reconcile revokes as well as grants is new (2026-09-22), and it is worth a look before the first run on a live box.**  Anyone you gave a course's `admin` role by hand in Keycloak, without listing them in `courses.yaml`, loses it on the next `just course` for that course.  That is the file being the authority, which is the design — but it will be a surprise if you didn't know you were relying on a hand grant.
 
 Once someone is on the list, they manage who else gets into their course without you — from their course's chat, or from the Instructor Guide at the front door ("add pat@example.edu to my course").  That is enrollment, and it lives with them; [registrar-spec.md](registrar-spec.md) has the two-step stage-and-apply it runs on.
 
@@ -428,6 +430,25 @@ just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@example.edu
 That single act provisions everything the spec promises: the LiteLLM **team** (the course's $1000/term pool — override with `--budget`), the team-scoped **service key** (escrowed), the course's **OIDC client** with its `admin`/`member` door roles, staff grants, the **instance render** (chat + Meili + panel + vhost under `fleet/`), and finishes by starting the containers and gracefully reloading the edge.  Extra flags pass through: `--ta ta@x.edu`, `--college cci`, `--budget 1500`.  Run it twice — it's idempotent; that's the point.
 
 DNS: point `*.<ALMANAC_DOMAIN>` at the box once and every future course is covered (wildcard cert via the DNS-01 block in `caddy/Caddyfile` for real deployments; `*.localhost` needs nothing at all).
+
+### From chat: the front office
+
+Everything `just course` does, a platform admin can do from the **Dev Guide** at the front door — and anyone at all can *ask* for a room.  [registrar-spec.md](registrar-spec.md), "Phase 2a — the front office," is the design; this is the operating view.
+
+- **The open door.**  Anyone who can sign in can say "I'd like a course for BIO 210 next term" to the Instructor or Student Guide.  `course_request` puts the deployment's front-door question to them first — coursework, not sponsored research — and files only on a yes, recording the exact wording they agreed to.  Requests land in `registrar/requests.yaml` (gitignored; it names people).  `my_requests` shows the person where theirs stands, and the new chat's address once it's approved.
+- **The desk** answers the `admins:` list and nobody else: `course_requests` (the queue), `course_approve` / `course_decline` (a decline needs a reason, which the requester reads), `course_create` (skip the queue), `course_staff`, `course_budget_set`, and `fleet_inventory`.  Every one that changes something describes the change first and acts only when called again with `confirm=true` — the guide is told to wait for a yes in between.
+- **The wording is yours.**  The front-door question comes from `registrar/front-door.md` if you write one, and the tracked `front-door.example.md` if you don't.  Edit it on the box; it's read on every request, no restart and no reseed.
+- **A new course isn't running until the host starts it** — see the next section.  Without the watcher, `just course-up` after an approval finishes the job.
+
+### The fleet watcher
+
+The registrar never holds the docker socket, so a course created from chat is provisioned and rendered but not started.  Once per box:
+
+```
+just fleet-watch-install
+```
+
+That installs a systemd `--user` path unit on `fleet/fleet.yml`; every provision rewrites that file last, and the unit runs `just course-up`, which starts new instances and reloads the edge.  It runs as whoever installs it, which should be the repo owner — the uid the registrar renders as.  It needs lingering on (`sudo loginctl enable-linger <user>`) or it stops when that user logs out; the recipe warns if it's off.  `journalctl --user -u almanac-fleet` shows each run.  The reasoning, and why it isn't the socket, is a wall: [design-walls.md](design-walls.md), "A course made in chat is rendered, not running."
 
 ### The roster is a chat message now
 
