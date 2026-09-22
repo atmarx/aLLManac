@@ -16,6 +16,15 @@ tethered_to:
 
 **Status: proposed, 2026-09-10.**  Not ruled.  The budget layers described here already exist (`course` as the hard term cap, `key_fuse` as per-key blast radius, `advisory_weekly` as pacing that never blocks — see [registrar-spec.md](registrar-spec.md)); what is proposed is a rule for *what a student sees*, where they see it, and what happens when they run out.  Everything under [What the pin actually does](#what-the-pin-actually-does) is verified against `ghcr.io/danny-avila/librechat:v0.8.7` and is fact, not proposal.
 
+!!! info "Ruled 2026-09-22 (@xram) — what happens when a student runs out.  Not built."
+    **Chat runs in audit mode.**  There is no global per-student limit, and nobody sees an "over quota" error.  A student over their share *of one course* is redirected to the institution's general assistant on every request until the accounting clears them.  The per-course service key stays: it is what makes the per-student numbers attributable.
+
+    **The redirect is a canned reply at the gateway, not a system-prompt instruction.**  A LiteLLM pre-call hook checks the registrar's over-quota list and answers through `mock_response`, so the request never reaches a model — it costs $0, it reads the same every time, and it can't be argued with.  A system-prompt version fails twice over, on grounds this repo already measured: front-trimming drops the instruction on exactly the long threads heavy users have ([design-walls.md](design-walls.md), "A context window larger than the endpoint serves deletes the system prompt"), and a student who wants past it is running the injection case the guides already fail.
+
+    **API keys keep hard fuses.**  A script can't be redirected — it retries — so a budget error is the honest answer to a program.  The course cap stays as a high circuit breaker against bugs, not as policy.
+
+    The advisory-pool proposal of 2026-09-22 is **withdrawn**.  It assumed dropping the team's `max_budget` made chat advisory; the service key carries the course number as its own ceiling, so it didn't ([design-walls.md](design-walls.md), "A key carries what it was born with").  First build step is the rig: a mocked reply streaming through LibreChat, and what the ledger records for it.
+
 ---
 
 ## The rule
