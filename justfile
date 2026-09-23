@@ -410,6 +410,13 @@ smoke:
     # sealed/uninitialized read as 200 here — a sealed bao is a boot state,
     # not an outage (just bao-unseal / bao-init):
     check "openbao (escrow)"   "http://127.0.0.1:${BAO_PORT:-8200}/v1/sys/health?uninitcode=200&sealedcode=200"
+    # ...but not a silent one.  Sealed, chat still works on the keys already
+    # rendered, and every path that mints or reads one fails: enrollment,
+    # my_key, rotation, approving a course.  After a reboot this line is the
+    # only thing on the page that says so.
+    if curl -fs --max-time 5 "http://127.0.0.1:${BAO_PORT:-8200}/v1/sys/seal-status" | grep -q '"sealed":true'; then
+        echo "  warn  openbao is SEALED — no key can be minted or fetched until: just bao-unseal"
+    fi
     check "keycloak (realm)"   "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-classroom}/.well-known/openid-configuration"
     exit $fail
 
@@ -750,7 +757,7 @@ course-up:
 # same uid the registrar renders as.  `just course-up` by hand is always
 # the fallback, and the watcher changes nothing else about the box.
 #
-# Install the fleet watcher (systemd --user) — once per box
+# Install the fleet watcher + boot unseal (systemd --user) — once per box
 fleet-watch-install:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -775,9 +782,27 @@ fleet-watch-install:
     [Install]
     WantedBy=default.target
     EOF
+    # The escrow comes back SEALED from every reboot, and until 2026-09-23 only
+    # `just up`/`deploy` unsealed it — so a box that rebooted on its own served
+    # chat and refused every key until someone pushed.  Same lingering user
+    # manager, same once-per-box install, so it rides along here.
+    cat > "$d/almanac-unseal.service" <<EOF
+    [Unit]
+    Description=aLLManac: unseal the escrow after boot
+    [Service]
+    Type=oneshot
+    WorkingDirectory={{justfile_directory()}}
+    # Up to ten minutes for docker and openbao to answer on a cold boot.
+    ExecStart={{just_executable()}} bao-unseal 120
+    TimeoutStartSec=15min
+    [Install]
+    WantedBy=default.target
+    EOF
     systemctl --user daemon-reload
     systemctl --user enable --now almanac-fleet.path
+    systemctl --user enable almanac-unseal.service
     echo "fleet watcher on — journalctl --user -u almanac-fleet shows each run"
+    echo "boot unseal on  — journalctl --user -u almanac-unseal after a reboot"
     if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null)" != "yes" ]; then
       echo "WARN: lingering is off for $USER, so the watcher stops when you log out."
       echo "      sudo loginctl enable-linger $USER"
@@ -961,22 +986,32 @@ bao-init:
         echo "ROOT TOKEN (shown ONCE — password manager, not .env):  $ROOT_TOKEN"
     fi
 
+# `tries` is how many 5s waits for openbao to answer: a minute inside
+# `deploy`, where `up` just ran; the boot unit (fleet-watch-install) passes
+# more, because at boot the daemon itself may not be up yet.  A wrong key
+# exits 1 — it used to print FAILED and exit 0, and a deploy went green with
+# the escrow shut.
+#
 # Unseal after a restart (no-op when unsealed, uninitialized, or key unset).
 # Reads .env directly — same dotenv-snapshot trap usage-role documents.
-bao-unseal:
+bao-unseal tries="12":
     #!/usr/bin/env bash
     set -uo pipefail
     key=$(grep '^BAO_UNSEAL_KEY=' .env 2>/dev/null | head -1 | cut -d= -f2-)
     [ -z "$key" ] && exit 0
-    for i in $(seq 1 12); do
+    for i in $(seq 1 {{tries}}); do
         {{compose}} exec -T openbao bao status </dev/null >/dev/null 2>&1; rc=$?
         [ $rc -eq 0 ] && exit 0          # already unsealed
         [ $rc -eq 2 ] && break           # sealed and answering — unseal it
         sleep 5
     done
     [ ${rc:-1} -eq 2 ] || exit 0         # not answering (no openbao yet) — leave it
-    {{compose}} exec -T openbao bao operator unseal "$key" </dev/null >/dev/null \
-      && echo "openbao — unsealed" || echo "openbao — unseal FAILED (check BAO_UNSEAL_KEY)"
+    if {{compose}} exec -T openbao bao operator unseal "$key" </dev/null >/dev/null; then
+      echo "openbao — unsealed"
+    else
+      echo "openbao — unseal FAILED (check BAO_UNSEAL_KEY)"
+      exit 1
+    fi
 
 # ---- Keys & accounting -------------------------------------------------------
 # `owner` is REQUIRED: the org unit that answers for the spend (class/lab slug,

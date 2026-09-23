@@ -419,7 +419,7 @@ While you are on that endpoint, check `models.default` lists every model you act
 just bao-init
 ```
 
-Initializes OpenBao, mounts the `almanac/` kv2 store, turns on the audit device, and provisions the registrar's AppRole.  It writes the unseal key and role credentials into `.env` and prints the **root token exactly once** — password manager, not a sticky note.  After any restart, `just up` re-unseals automatically.
+Initializes OpenBao, mounts the `almanac/` kv2 store, turns on the audit device, and provisions the registrar's AppRole.  It writes the unseal key and role credentials into `.env` and prints the **root token exactly once** — password manager, not a sticky note.  It comes back **sealed** from every restart.  `just up` and `just deploy` re-unseal it, and so does a reboot on a box with the fleet watcher installed (below) — nothing else does.  A sealed escrow is quiet: chat still answers, and every key path (enrollment, `my_key`, rotation, approving a course) fails until it's open.  `just smoke` prints a warning line when it's sealed.
 
 ### Per course: one command
 
@@ -468,7 +468,7 @@ Tickets move without anyone being told unless you set this up, and every piece o
 
 After setting any of it, `just deploy` (the registrar reads these at start), then `just notify-test` — it prints what's configured without printing a secret, sends a test email to the `admins:` list (or `just notify-test you@example.edu`), and posts once to the webhook.
 
-### The fleet watcher
+### The fleet watcher, and unsealing after a reboot
 
 The registrar never holds the docker socket, so a course created from chat is provisioned and rendered but not started.  Once per box:
 
@@ -476,7 +476,11 @@ The registrar never holds the docker socket, so a course created from chat is pr
 just fleet-watch-install
 ```
 
-That installs a systemd `--user` path unit on `fleet/fleet.yml`; every provision rewrites that file last, and the unit runs `just course-up`, which starts new instances and reloads the edge.  It runs as whoever installs it, which should be the repo owner — the uid the registrar renders as.  It needs lingering on (`sudo loginctl enable-linger <user>`) or it stops when that user logs out; the recipe warns if it's off.  `journalctl --user -u almanac-fleet` shows each run.  The reasoning, and why it isn't the socket, is a wall: [design-walls.md](design-walls.md), "A course made in chat is rendered, not running."
+That installs a systemd `--user` path unit on `fleet/fleet.yml`; every provision rewrites that file last, and the unit runs `just course-up`, which starts new instances and reloads the edge.  It runs as whoever installs it, which should be the repo owner — the uid the registrar renders as.  It needs lingering on (`sudo loginctl enable-linger <user>`) or it stops when that user logs out; the recipe warns if it's off.  `journalctl --user -u almanac-fleet` shows each run.
+
+The same recipe installs `almanac-unseal.service`, a boot-time oneshot that runs `just bao-unseal 120` — up to ten minutes for docker and OpenBao to answer on a cold start.  Every container comes back on its own after a reboot (`restart: unless-stopped`), but the escrow doesn't unseal itself, and before this unit a rebooted box served chat and refused every key until someone deployed.  Lingering is what makes it run at boot at all.  `journalctl --user -u almanac-unseal` after a reboot shows `openbao — unsealed` or why not.
+
+The reasoning for the watcher, and why it isn't the socket, is a wall: [design-walls.md](design-walls.md), "A course made in chat is rendered, not running."
 
 ### The roster is a chat message now
 

@@ -582,7 +582,7 @@ Out of scope, permanently unless vetoed: a separate admin website (the entire po
 
 *Phase-1 rig (2026-07-22, this box, exact pins): two courses provisioned end-to-end — teams at $1000, service + student keys minted into teams and escrowed (kv2 + AppRole + audit live), instances up behind the edge with OIDC registered ("configured successfully"), vhosts serving, roster render live-reloaded by usage-mcp, smoke + fleet-smoke all green.  Items below marked ✓ closed there.*
 
-- ~~OpenBao static-seal~~ **RESOLVED**: skipped static seal; `just bao-unseal` rides `just up` (rig-verified).  Raft snapshot round-trip still owed in Phase 2's backup work.
+- ~~OpenBao static-seal~~ **RESOLVED**: skipped static seal; `just bao-unseal` rides `just up` (rig-verified), and since 2026-09-23 a boot-time user unit from `just fleet-watch-install` (reboot-verified on xdocker03).  Raft snapshot round-trip still owed in Phase 2's backup work.
 - `/key/update` live budget changes on our LiteLLM pin (else: budgets apply at next mint/rotation).
 - **Team budget enforcement at exhaustion** — pool-drain blocking still owed (needs live inference spend); team create/update + membership ✓ rig-verified.
 - ~~Team/key model-list semantics~~ ✓ **rig-verified**: a team-minted student key lists exactly the course models and gets **403** on anything else — refusal is gateway-side, which is what college-endpoint scoping needs.

@@ -170,6 +170,6 @@ After editing anything under `site/`, bring the box up with **`just up`** — ne
 | `render-check` FAILs on the registrar not matching the tree | `just deploy` first; the check is refusing to guess |
 | `agents-check` warns on knowledge or prompt | `just agents-seed` |
 | `agents-check` reports an orphan spec | A `modelSpecs` entry points at an agent id that no longer exists — re-seed, then paste the reprinted block ([Admin Guide](admin-guide.md)) |
-| `smoke` red on openbao | Sealed is a boot state, not an outage — `just bao-unseal` |
+| `smoke` warns openbao is SEALED | Never red — sealed is a boot state, and chat still works on the keys already rendered.  But nothing can mint or fetch a key until `just bao-unseal`.  On a box with `just fleet-watch-install`, a reboot unseals itself; `journalctl --user -u almanac-unseal` says why it didn't |
 | `fleet-smoke` red on one host | The instance, not the edge.  `just ps`, then `just logs chat-<slug>` |
 | A guide got worse deep in a long thread | Not the prompt.  The window trimmed it — see instance 2 above |
