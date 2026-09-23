@@ -55,6 +55,19 @@
         respond 401
     }
 
+    # The help site — `just docs-build` output, which every box builds and
+    # mounts at /srv/docs.  Tracked, not a site override: there is no box
+    # where serving it is wrong, and while the route lived only in one box's
+    # site/ every other install built the pages, mounted them, and handed
+    # /help/ to LibreChat, which answers any path with a blank chat shell.
+    # mkdocs is built for this prefix (site_url in mkdocs.yml), so its
+    # 404.html and assets already say /help/.
+    redir /help /help/ 308
+    handle_path /help/* {
+        root * /srv/docs
+        file_server
+    }
+
     reverse_proxy librechat:3080 {
         header_up -X-Tenant-Id
     }

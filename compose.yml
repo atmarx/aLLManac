@@ -528,8 +528,8 @@ services:
       # tracked placeholder — an invisible dependency one tidy-up away from
       # breaking the edge.  A sibling path needs nothing to exist.
       - ./fleet/caddy:/etc/caddy-fleet:ro
-      # Static output from `just docs-build`. A site Caddyfile can expose this
-      # at any safe path (for example /help/) without running another daemon.
+      # Static output from `just docs-build`, served at /help/ on the chat
+      # host by the tracked Caddyfile.
       - ./site-dist:/srv/docs:ro
       # The SBOM `just build` leaves behind, served at /sbom/ on the chat
       # host behind SBOM_TOKEN.  The PARENT is mounted: latest/ is replaced
