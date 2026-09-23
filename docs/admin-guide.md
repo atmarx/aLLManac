@@ -448,7 +448,11 @@ The guides now *do* things, and a guide that applied a roster nobody agreed to r
 just evals --case E1,E2,E3,E4,Q1,Q2,Q3,D1,D2,W3,W4
 ```
 
-Run it after `just agents-seed`, on the model the guides actually use, and read `site/evals/<stamp>.md` against each case's *passes when*.  Nothing scores itself.
+Run it after `just agents-seed`, on the model the guides actually use, and read `site/evals/<stamp>.md` against each case's *passes when*.
+
+**The calls score themselves; the prose doesn't.**  Each tool case says which calls each turn must, may and must never make, and the transcript marks it **PASS**, **FAIL** or **UNSCORED** (tool blocks the runner couldn't read — red, never a pass).  Whether the guide asked for a budget in words, or put the front-door question as written, is still your read.
+
+**Every night, if you turn it on.**  `just evals-check` runs only the self-scoring cases and exits 1 on anything but a pass; `.woodpecker/evals.yml` runs it on a Woodpecker cron named `guide-evals` against what's deployed, without syncing.  The model under the guides can change without a commit, which is the reason to ask every night rather than every deploy.  Cheap on a small hosted model — about two dozen turns — and the spend lands in the ledger under the `evals-*@almanac.invalid` personas, so it's easy to tell apart.  Schedule it away from deploys: a deploy recreates the flagship mid-run.
 
 **What it adds to the box, so it doesn't surprise you.**  The run resets a fixture first: an `evals-sandbox` course in `courses.yaml` (a record only — never provisioned, so no team, key, client or instance; `render` skips it), four personas on `@almanac.invalid`, one of them on `admins:`, and two request tickets, `rq-eval01` and `rq-eval02`.  Nobody can sign in as an `.invalid` address, and **the registrar rehearses every write those identities attempt**: every gate and refusal runs for real, and the change itself is replaced with a message saying what would have happened.  No roster, key, course, ticket, email or Teams post comes out of an eval run.  The admin persona can *read* what an admin reads — the queue, the fleet — so transcripts in `site/evals/` carry the same data `courses.yaml` does, and stay on the box for the same reason.
 

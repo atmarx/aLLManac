@@ -86,6 +86,10 @@ Secrets don't reach pull requests from forks, which doesn't matter for a `branch
 
 The pipeline above deploys one box, and that box should be the `stable` one.  The dev playground — `ALMANAC_CHANNEL=latest` in its `.env`, see the admin guide's *Channels* — is hand-deployed for now: `just sync && just deploy` over ssh, the same two commands the pipeline runs.  When it earns its own pipeline, it is a second workflow file with its own `deploy_*` secrets, not a second branch: both boxes deploy `main`, and the channel file is the only thing that differs.
 
+## A nightly pipeline: the guide evals
+
+[`.woodpecker/evals.yml`](../.woodpecker/evals.yml) is the same wrapper with a different verb and one deliberate omission: it runs `just evals-check` on a Woodpecker cron named `guide-evals`, and it **does not sync** — it asks how the deployed box behaves, and a `git reset` there would put a commit live without a deploy.  Red means a guide called the wrong tool; the transcript is in `site/evals/` on the box.  Turn it on under the repo's Settings → Crons, and schedule it away from deploys.  Why it exists and why it's safe on a live box: [admin-guide.md](admin-guide.md#before-you-show-it-to-anyone-the-tool-evals).  On GitLab or GitHub it's the deploy job with `just evals-check` in place of the sync and deploy, on a `schedule` trigger.
+
 ## GitLab CI
 
 ```yaml

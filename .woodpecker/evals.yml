@@ -1,0 +1,60 @@
+# The aLLManac — nightly guide evals, on a cron.
+# =============================================================================
+# The guides call tools now (enrollment, room requests, the operator's desk),
+# and the model under them can change without a commit — a provider update,
+# a new deployment of the same name.  So the tool cases run every night
+# against what is LIVE, and this pipeline goes red when a guide calls the
+# wrong thing.  `just evals-check` owns the logic; this file is the wrapper,
+# the same shape as deploy.yml (docs/ci.md).
+#
+# It does NOT sync.  Deploy moves the box; this only asks how the box is
+# behaving.  A `git reset` here would put an unreviewed commit live without
+# a deploy — the opposite of what a nightly check is for.
+#
+# Safe to run any time: the eval personas are on @almanac.invalid and the
+# registrar rehearses every write they attempt, so a failing guide changes
+# nothing (docs/agent-contract.md, "The tool cases").  The transcript lands
+# in site/evals/ on the box; red means read it.
+#
+# Turn it on: Woodpecker -> this repo -> Settings -> Crons -> add one named
+# `guide-evals` on the schedule you want (nightly, away from deploy hours —
+# a deploy recreates the flagship mid-run and every case in flight fails).
+# Same three secrets as deploy.yml.
+# =============================================================================
+
+labels:
+  platform: build
+
+when:
+  - event: cron
+    cron: guide-evals
+
+steps:
+  - name: guide-evals
+    image: alpine
+    environment:
+      SSH_KEY:
+        from_secret: deploy_ssh_key
+      DEPLOY_HOST:
+        from_secret: deploy_host
+      DEPLOY_USER:
+        from_secret: deploy_user
+    commands:
+      - apk add --no-cache openssh-client
+      - 'test -n "$DEPLOY_HOST" || { echo "ERROR: deploy_host secret is not set"; exit 1; }'
+      - 'test -n "$DEPLOY_USER" || { echo "ERROR: deploy_user secret is not set"; exit 1; }'
+      - mkdir -p ~/.ssh
+      - echo "$SSH_KEY" > ~/.ssh/id_ed25519
+      - chmod 600 ~/.ssh/id_ed25519
+      - ssh-keyscan -p 22 "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+      - |
+        ssh -o StrictHostKeyChecking=no "$DEPLOY_USER@$DEPLOY_HOST" << 'ENDSSH'
+        set -e
+        cd /opt/almanac
+        if ! just --list >/dev/null 2>&1; then
+          echo "ERROR: justfile does not parse on the box — fix that before the evals mean anything"
+          exit 1
+        fi
+        echo "evaluating $(git rev-parse --short HEAD) as deployed"
+        just evals-check
+        ENDSSH

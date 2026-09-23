@@ -1046,6 +1046,14 @@ agents-check:
 evals *flags="":
     @python3 scripts/run_evals.py {{flags}}
 
+# The tool cases that score themselves (`expect:` in docs/agent-contract.md),
+# red on any wrong call — what the nightly Woodpecker cron runs
+# (.woodpecker/evals.yml).  Safe on a live box: the personas' writes are
+# rehearsed.  The transcript is still in site/evals/ for the prose.
+# Run the self-scoring tool cases; exit 1 if a guide calls the wrong thing
+evals-check *flags="":
+    @python3 scripts/run_evals.py --check {{flags}}
+
 # OpenBao audits the read, and this must never run from CI, a health check, or
 # anything a model can reach.
 #

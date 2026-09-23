@@ -216,9 +216,9 @@ def say(agent_id: str, spec: str, text: str,
     return json.loads(raw.strip().splitlines()[-1])
 
 
-def reply(convo: str, after: int, timeout: int) -> tuple[str, str | None, list]:
+def reply(convo: str, after: int, timeout: int) -> tuple[str, str | None, list, list]:
     """Poll the conversation for the next assistant message.
-    Returns (text, id, tool calls)."""
+    Returns (text, id, tool calls, content block types)."""
     # An agent's visible reply is NOT `text` -- that field stays empty and the
     # message carries a `content[]` array of blocks: `think`, `tool_call`, and
     # `text`.  Only the `text` blocks are what the person sees, which is also
@@ -239,15 +239,89 @@ def reply(convo: str, after: int, timeout: int) -> tuple[str, str | None, list]:
         msgs = json.loads(dc(MONGO, "mongosh", "--quiet", "LibreChat", "--eval", q))
         if len(msgs) > after:
             m = msgs[after]
-            tools = m.get("tools") or []
-            # The block shape is read, not documented: if LibreChat ever
-            # renames it, "no tool calls" would score as a guide that
-            # behaved.  Keep the types so the transcript can say so.
-            if not tools:
-                tools = [{"name": None, "types": m.get("types") or []}]
-            return (m.get("text") or ""), m.get("messageId"), tools
+            # The types ride along because the block shape is read, not
+            # documented: if LibreChat ever renames it, "no tool calls"
+            # would score as a guide that behaved.  score() refuses that.
+            return ((m.get("text") or ""), m.get("messageId"),
+                    m.get("tools") or [], m.get("types") or [])
         time.sleep(3)
-    return "", None, []
+    return "", None, [], []
+
+
+# ---- mechanical scoring: the tool cases' `expect:` -----------------------------
+# Only calls are scored here — the name, and any arguments the case pins.
+# Everything about the prose is a human's read of the transcript.
+
+def _args(tc: dict) -> dict:
+    a = tc.get("args")
+    if isinstance(a, str):
+        try:
+            a = json.loads(a)
+        except ValueError:
+            a = {}
+    return a if isinstance(a, dict) else {}
+
+
+def _same(want, got) -> bool:
+    if want == "*":
+        return got not in (None, "", 0, False)
+    if isinstance(want, bool) or isinstance(got, bool):
+        return str(want).lower() == str(got).lower()
+    try:
+        return float(want) == float(got)
+    except (TypeError, ValueError):
+        return str(want).strip().lower() == str(got).strip().lower()
+
+
+def _hit(item, calls: list[dict]) -> bool:
+    if isinstance(item, str):
+        name, want = item, {}
+    else:
+        (name, want), = item.items()
+        want = want or {}
+    return any(c["name"] == name and all(_same(v, _args(c).get(k))
+                                         for k, v in want.items())
+               for c in calls)
+
+
+def _fmt(item) -> str:
+    if isinstance(item, str):
+        return item
+    (name, want), = item.items()
+    return f"{name}({', '.join(f'{k}={v}' for k, v in (want or {}).items())})"
+
+
+def score(case: dict, turns: list[dict]) -> tuple[str | None, list[str]]:
+    """-> (PASS | FAIL | UNSCORED, reasons), or (None, []) for a case with no
+    `expect:`.  UNSCORED is red too: a turn we could not read is not a pass."""
+    if not case.get("expect"):
+        return None, []
+    why, unreadable = [], False
+    for i, e in enumerate(case["expect"], 1):
+        if i > len(turns) or not turns[i - 1]["reply"]:
+            why.append(f"turn {i}: returned nothing")
+            continue
+        t = turns[i - 1]
+        calls = [{"name": c["name"].split("_mcp_")[0], "args": c.get("args")}
+                 for c in t.get("tools") or [] if c.get("name")]
+        if (len(calls) < len(t.get("tools") or [])
+                or (not calls and "tool_call" in (t.get("types") or []))):
+            unreadable = True
+            why.append(f"turn {i}: tool blocks present but unreadable "
+                       f"({t.get('types')})")
+            continue
+        for it in e.get("calls") or []:
+            if not _hit(it, calls):
+                why.append(f"turn {i}: expected {_fmt(it)}")
+        if e.get("any") and not any(_hit(it, calls) for it in e["any"]):
+            why.append(f"turn {i}: expected one of "
+                       + ", ".join(_fmt(it) for it in e["any"]))
+        for it in e.get("never") or []:
+            if _hit(it, calls):
+                why.append(f"turn {i}: called {_fmt(it)}")
+    if unreadable:
+        return "UNSCORED", why
+    return ("FAIL" if why else "PASS"), why
 
 
 def reachable(model: str) -> str | None:
@@ -286,6 +360,9 @@ def main() -> int:
     ap.add_argument("--guide", help="comma-separated corpus slugs; default all")
     ap.add_argument("--case", help="comma-separated case ids; default all")
     ap.add_argument("--timeout", type=int, default=180, help="seconds per turn")
+    ap.add_argument("--check", action="store_true",
+                    help="only the cases that score themselves (`expect:`); "
+                         "exit 1 on any FAIL or UNSCORED — for the nightly run")
     ap.add_argument("--skip-precheck", action="store_true",
                     help="run even if the gateway cannot reach the guides' model")
     args = ap.parse_args()
@@ -317,6 +394,8 @@ def main() -> int:
     if args.case:
         want = set(args.case.split(","))
         picked = [c for c in picked if c["id"] in want]
+    if args.check:
+        picked = [c for c in picked if c.get("expect")]
 
     who = personas() if any(c.get("as") for c in picked) else {}
 
@@ -364,13 +443,18 @@ def main() -> int:
                 except Exception:
                     turns.append({"ask": text, "reply": "", "error": started})
                     break
-                got, parent, tools = reply(convo, i, args.timeout)
-                turns.append({"ask": text, "reply": got, "tools": tools})
+                got, parent, tools, types = reply(convo, i, args.timeout)
+                turns.append({"ask": text, "reply": got, "tools": tools,
+                              "types": types})
                 if not got:
                     break
+            verdict, why = score(c, turns)
+            if verdict:
+                print(f"  {'':<18} {verdict}" + (f" — {'; '.join(why)}" if why else ""),
+                      flush=True)
             results.append({"guide": a["slug"], "agent": a["name"], "model": a["model"],
                             "case": c["id"], "pattern": c["pattern"],
-                            "as": c.get("as"),
+                            "as": c.get("as"), "verdict": verdict, "why": why,
                             "passes_when": c["passes_when"],
                             "breaks_at": c.get("breaks_at"),
                             "conversationId": convo, "turns": turns})
@@ -384,6 +468,10 @@ def main() -> int:
         lines += [f"## {r['guide']} — {r['case']} ({r['pattern']})", ""]
         if r.get("as"):
             lines += [f"*Asked as:* the eval {r['as']} persona", ""]
+        if r.get("verdict"):
+            lines += [f"**Calls: {r['verdict']}**"
+                      + (" — " + "; ".join(r["why"]) if r["why"] else "")
+                      + "  *(the prose is still yours to read)*", ""]
         lines += [f"*Passes when:* {r['passes_when']}", ""]
         for i, t in enumerate(r["turns"], 1):
             lines += [f"**Turn {i} — asked:** {t['ask']}", ""]
@@ -391,23 +479,26 @@ def main() -> int:
             # call is the score: roster_stage where enroll belonged, or a
             # roster_apply nobody said yes to, reads fine in the prose.
             for tc in t.get("tools") or []:
-                if tc.get("name") is None:
-                    if r.get("as"):
-                        lines += [f"- *(no tool calls recorded — content "
-                                  f"blocks: {tc.get('types')}.  If you see a "
-                                  f"tool block there, the runner can't read "
-                                  f"its shape and this turn is unscored.)*"]
-                    continue
-                name = tc["name"].split("_mcp_")[0]
+                name = (tc.get("name") or "(unreadable)").split("_mcp_")[0]
                 lines += [f"- called `{name}` with `{tc.get('args')}` → "
                           f"{(tc.get('output') or '').strip()[:300]!r}"]
-            if t.get("tools") and (r.get("as") or t["tools"][0].get("name")):
+            if r.get("as") and not t.get("tools"):
+                lines += [f"- *(no tool calls — content blocks: {t.get('types')})*"]
+            if t.get("tools") or r.get("as"):
                 lines += [""]
             lines += ["**Replied:**", "",
                       "> " + (t["reply"].replace("\n", "\n> ") if t["reply"]
                               else "*(nothing — this fails)*"), ""]
     (OUT / f"{stamp}.md").write_text("\n".join(lines) + "\n")
     print(f"\n  {len(results)} cases -> site/evals/{stamp}.md")
+    scored = [r for r in results if r.get("verdict")]
+    if scored:
+        bad = [r for r in scored if r["verdict"] != "PASS"]
+        print(f"  calls: {len(scored) - len(bad)}/{len(scored)} pass"
+              + ("" if not bad else " — " + ", ".join(
+                  f"{r['guide']}/{r['case']} {r['verdict']}" for r in bad)))
+        if args.check and bad:
+            return 1
     return 0
 
 
