@@ -9,6 +9,7 @@ tags: [sso, access-control, rbac, secrets-management, key-rotation, attribution,
 tethered_to:
   - docs/design-walls.md
   - registrar/render.py
+  - registrar/server.py
   - registrar/planes/gateway.py
   - usage-mcp/server.py
   - justfile
@@ -103,11 +104,14 @@ The agent has one body — edits overwrite, last save wins, and there's no merge
 
 Chat needs no key — sign in and go; the ledger already knows who you are.  The API key is for **code**: your own scripts, notebooks, and the coding harness in Part 4.
 
-- Keys are minted by your instructor or the admin, and every key belongs to an **owner** — your course or lab.  That's who the usage rolls up to.
-- Each key carries a **budget**.  Campus models mean nobody's charging your card — the budget is there so a runaway loop gets caught and so the course can see what things *would* cost on commercial AI.  Visibility, not a paywall.
-- **Treat the key like a password.**  It arrives via your instructor (LMS message, not a group chat).  Don't commit it to a repo, don't paste it into a shared doc.  If it leaks or you lose it, say so — the old one is retired and a new one minted in about a minute, no ceremony.
-- If you hit your budget, requests start failing with a budget-exceeded error.  That's a conversation, not a punishment — ask for a bump.
-- **Where do I stand?**  Ask the chat.  The **Almanac Usage** agent answers "how much have I used this week?" with your real numbers — chat and API keys combined, tokens and requests (campus models don't bill dollars).  Only ever yours; nobody else's.
+- **You fetch it yourself.**  In your course's chat — the course address, not the front desk — ask for your key.  It is minted when your instructor enrolls you, so if the chat says you're not on the roster yet, that's the person to ask.  Nobody emails it to you, and nobody else can fetch it for you.
+- **One key per course, and it carries your name.**  In two courses you have two keys, each spending against its own course, and every request made with one is recorded against you.
+- Each key carries a **budget** of its own — a small one, there to catch a runaway loop before it catches your course.  Visibility, not a paywall.
+- **Treat the key like a password.**  Don't commit it to a repo, don't paste it into a shared doc.  If it leaks or you lose it, ask your course's chat to **rotate** it — you get a new key, the old one dies, and whatever was left on its budget carries over.  Seconds, and nobody's permission.
+- If you hit your budget, requests start failing with a budget-exceeded error.  That's a conversation, not a punishment — ask your instructor.
+- **Where do I stand?**  Ask the chat.  The **Almanac Usage** agent answers "how much have I used this week?" with your real numbers — chat and API keys combined.  Only ever yours; nobody else's.
+
+The whole story — what the budget counts, why a model added later may not show up on your key, and how to keep it out of a repo — is on [Your API key](building-with-code/your-key.md).
 
 The key works with **any OpenAI-compatible tool** pointed at the campus gateway URL.  Which brings us to —
 
@@ -115,55 +119,7 @@ The key works with **any OpenAI-compatible tool** pointed at the campus gateway 
 
 [opencode](https://opencode.ai) is an open-source coding agent that lives in your terminal: it reads your project, edits files, runs commands — the agentic-coding loop, on campus models, metered to your key.
 
-**Install** (pick one):
-
-```bash
-curl -fsSL https://opencode.ai/install | bash    # the easy way
-npm install -g opencode-ai                       # if you live in npm
-brew install anomalyco/tap/opencode              # macOS
-```
-
-**Configure.**  Create `~/.config/opencode/opencode.json` (applies everywhere) or `opencode.json` in a project folder (that project only):
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "almanac": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Almanac (campus gateway)",
-      "options": {
-        "baseURL": "https://GATEWAY-URL-FROM-YOUR-INSTRUCTOR/v1",
-        "apiKey": "{env:ALMANAC_API_KEY}"
-      },
-      "models": {
-        "almanac-chat": {
-          "name": "Almanac Chat",
-          "tool_call": true,
-          "limit": { "context": 16384, "output": 4096 }
-        }
-      }
-    }
-  },
-  "model": "almanac/almanac-chat"
-}
-```
-
-**Give it your key** — either as an environment variable (matches the config above):
-
-```bash
-export ALMANAC_API_KEY=sk-...     # add to your shell profile to keep it
-```
-
-or store it once with `opencode auth login` → **Other** → provider ID `almanac` → paste the key (then drop the `apiKey` line from the config).
-
-**Prove it works:**
-
-```bash
-opencode run -m almanac/almanac-chat "Say hello and name your model."
-```
-
-Then `cd` into a project and run `opencode` for the full TUI.
+Install, configure and test it from [Coding harnesses](building-with-code/harnesses.md#opencode) — the config lives there, in one copy, so it can't drift out from under you here.  You'll need two things from your course: the **gateway address**, and the **context size** its model is served with.  Ask your instructor for both.
 
 **Honest expectations.**  A 7B-class campus model runs the coding loop and teaches you the workflow, but it is not a frontier model: expect occasional stumbles — a mis-named tool, a premature "done."  That's part of the lesson — you're learning to supervise an agent, not to trust one.  When the campus gateway grows bigger models, your same config gets better for free.
 

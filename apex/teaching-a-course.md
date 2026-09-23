@@ -9,6 +9,7 @@ tethered_to:
   - apex/user-guide.md
   - apex/your-data/how-long-we-keep-it.md
   - usage-mcp/server.py
+  - registrar/server.py
   - registrar/planes/gateway.py
   - docs/admin-guide.md#backups
 ---
@@ -19,14 +20,20 @@ tethered_to:
 
 Your students' own walkthrough is the [course guide](user-guide.md) — worth reading, because it is what they will be working from.
 
+## Getting a course
+
+**Ask for one at the front door.**  Tell the Instructor Guide you would like a course for your class.  It puts one question to you about the coursework first, then files your request as a ticket.  An admin approves it, sends it back with questions — you answer on the same ticket — or turns it down with a reason, and you are notified whichever way it goes.  Ask the guide where your requests stand (`my_requests`) any time.
+
+You will not be asked for a budget.  The admins set it, which is also why the pool advice below is something to raise with them rather than a form to fill in.
+
 ## Day-zero checklist
 
 1. **Everyone logs in once.**  Your students' accounts already exist — the roster creates them — so the first sign-in just links each person to theirs.  Make it the first five minutes of the first lab anyway: it is how you learn who is missing.
 2. **Groups** (admin panel → Groups): one course-wide group (`engr301-all`), one per team (`engr301-team-gust`, ...).  These are groups in the chat platform's admin panel — the same SSO button, not the campus directory.  Membership edits propagate immediately, so late adds are painless; a student who cannot be found in the people picker has almost always not logged in yet.
-3. **Keys**: hand the admin your roster; keys are minted with `owner=<your course>` and a per-student budget (the default is modest and adjustable).  Distribute via individual LMS messages.
+3. **Keys**: nothing to hand out.  Enrolling a student mints their key, and they fetch it themselves by asking for it in your course's chat — see [Your API key](building-with-code/your-key.md).  Each one carries a modest budget of its own and the student's name.
 4. **Verify one student end to end** — login, open a shared agent, paste a key into opencode — before the assignment goes out.
 
-**If you want a key of your own, just ask for one in the chat.**  Ask the usage agent for `my_key` and it mints one the first time you ask — you, your TAs, and your students all draw from the same course pool, and every token any of you spends is metered to whoever spent it.  Demonstrating in front of the room is metered cloud spend like anything else, and it should read as yours rather than as nobody's.
+**If you want a key of your own, just ask for one in the chat.**  Ask your course's chat for your key (`my_key`) and it mints one the first time you ask — you, your TAs, and your students all draw from the same course pool, and every token any of you spends is metered to whoever spent it.  Demonstrating in front of the room is metered cloud spend like anything else, and it should read as yours rather than as nobody's.
 
 **Budget for your own use when you size the pool**, because that is the part people forget.  Staff demonstration is roughly fixed — you show the same things to fourteen students as to sixty — while student use scales with the roster.  A pool sized only for the students starves the teaching.
 
@@ -44,17 +51,21 @@ You do not need to reformat anything, and there is no file to upload.  Export th
 
 The two steps are `roster_stage` (show me what this would do) and `roster_apply` (do it).  Staff addresses in the paste are skipped rather than enrolled as students — you will not accidentally make yourself your own student by pasting a list you are on.
 
+**A pasted list is the whole list.**  Anyone enrolled who isn't in the paste is on the removal side of the stage — which is right at the start of term and wrong for "add Pat."  For one or two people, ask to **enroll** or **unenroll** them by email instead: same stage, same confirmation, and nobody else is touched.
+
+**You don't have to be in the course to do this.**  The Instructor Guide at the front door can enroll people too — name the course and it works the same way.  Ask it "what am I teaching?" (`my_courses`) and it lists your courses with each one's chat address.
+
 **Paste a big section in chunks of about forty.**  Each student is several operations behind the scenes, and a very large single paste can run long enough to look like nothing is happening.  It is safe either way — every step can be repeated without doing anything twice — but a paste that appears to hang is not a good first experience.  Re-pasting the same list is always safe: what is already enrolled stays enrolled.
 
 ## Adding a student to your class after it starts
 
 Someone joins your section in week three, or switches in from another class.  Nothing about that is unusual and none of it is enrolment — the university admitted them long ago.  What they need is **access to your course**, and that is a roster change.
 
-1. **Add them to your roster.**  That creates their account and opens the door to your course in the same step — they do not have to have signed in first.  (They will not appear in the people picker until their first sign-in, which is the one place you might still notice the difference.)
+1. **Enroll them.**  In your course's chat, ask to enroll their sign-in email, read the stage, and confirm.  That creates their account, opens the door to your course, and mints their key in the same step — they do not have to have signed in first.  (They will not appear in the people picker until their first sign-in, which is the one place you might still notice the difference.)
 2. **Add them to your course group** in the admin panel (admin panel → Groups → `engr301-all`, plus their team group if they have one).  Membership changes take effect immediately — there is no overnight sync to wait for.
-3. **Ask your admin for a key** if your course uses API keys for coding work.  Send them the student's sign-in email and your course name; the key comes back minted against your course with the same per-student budget everyone else has.
+3. **Tell them to fetch their key** if your course uses API keys for coding work.  It already exists — enrolling minted it — and they get it by asking your course's chat.  Nobody has to send it to them.
 
-Removing someone who drops works the same way in reverse — take them out of the group, and ask your admin to retire the key.
+Removing someone who drops works the same way in reverse — ask to **unenroll** them, which closes their access and revokes their key in one step, then take them out of the group in the admin panel.
 
 What you never do is send them to the Registrar's Office, and there is no LMS involved.  This is not the university's enrolment system; it is your course's access list, and it is yours to change.
 
