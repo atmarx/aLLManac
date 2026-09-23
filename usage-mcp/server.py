@@ -311,7 +311,7 @@ async def course_usage(course: str, days: int = 30) -> str:
     )
     if folded:
         out += ["", "| who | requests | tokens | last active |", "|---|---:|---:|---|"]
-        for who, f in sorted(folded.items(), key=lambda kv: -kv[1]["toks"]):
+        for who, f in sorted(folded.items()):  # by who, never by how much — no rankings
             out.append(
                 f"| {who} | {_n(f['reqs'])} | {_n(f['toks'])} | {_ts(f['last_seen'])} |"
             )
