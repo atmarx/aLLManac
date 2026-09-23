@@ -10,6 +10,8 @@ tethered_to:
   - openbao/
   - compose.yml
   - docs/design-walls.md
+  - docs/registrar-spec.md
+  - justfile
 ---
 
 # Why is there a vault?
@@ -67,8 +69,15 @@ tethered_to:
 
      The bill, stated without flinching:
      - another stateful service to run, back up, and unseal
-     - unseal is an operational event, which means a reboot is not
-       self-healing
+     - unseal is an operational event.  Every restart comes back SEALED, by
+       design, and until 772eb02 (2026-09-23) only `just up`/`deploy`
+       unsealed it.  The first unattended reboot (xdocker03, same day) came
+       back looking healthy: all 24 containers up, chat answering on the keys
+       already rendered, smoke green — and every key path shut: enrollment,
+       my_key, rotation, approving a course.  The fix is a boot-time user
+       unit that unseals from .env.  The beat: a vault that fails closed
+       fails QUIETLY for everything that doesn't need a new secret.  Nothing
+       looked down.  (Geordi, board >>01M37APDBC2FSFZSVPW711523D)
      - one more thing that can be the reason the platform is down
      - the operator has to understand a second security model -->
 
@@ -76,7 +85,18 @@ tethered_to:
 
 <!-- TETHERED — update in the same commit that fixes any of it.
      Draft from current state; verify before publishing:
-     - unseal handling and what happens on unattended reboot
+     - the unseal key sits in .env on the same disk (registrar-spec.md,
+       "Honesty box" under Unattended restarts), and the boot unit reads it
+       from there.  The question an IT reader asks first: then what does
+       the seal protect?  A copy of the vault's storage that leaves the box
+       WITHOUT .env — a stolen backup, a detached volume, a shared snapshot
+       — is ciphertext.  Someone who owns the running box gets everything.
+       That holds only while .env is backed up separately from bao-data,
+       which admin-guide.md#backups tells operators to do; verify before
+       publishing.  "Reboots without a human" was chosen over "a human holds
+       the key", on purpose.  Moving the key off the box is the upgrade
+       path, and its price is that every reboot waits for a person.  Write
+       the vault as a decision with a price, not a feature.
      - master key custody in the current phase
      - snapshot cadence for bao-data -->
 

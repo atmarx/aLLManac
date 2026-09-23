@@ -80,7 +80,7 @@ Two things it counts that people do not expect:
 
 **Whether a question was worth asking.**  We have the price and nobody has the value.  This is a permanent limit rather than a feature waiting to be built.
 
-**How you compare to anyone else.**  There is no ranking, and course-level views show faculty a *distribution* — how the class as a whole is spread — rather than a list of names.  That answers the question an instructor actually has, which is whether the budget was sized correctly, without answering one that has no honest answer.
+**How you compare to anyone else.**  There is no ranking.  Your instructor's view of the course does list each student — requests, tokens, and when each was last active — because "who hasn't started yet?" is a question only names can answer.  But the list runs alphabetically, never by who used the most, dollars appear only as a course total, and it shows counts, not content; what your instructor can read is a separate question, answered in [Who can see it](../your-data/who-can-see-it.md).  Nobody is scored on the number, because it answers whether the budget was sized right and nothing about whether the work was any good.
 
 ## Two data notes
 
