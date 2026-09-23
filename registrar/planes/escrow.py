@@ -15,6 +15,29 @@ from .config import BAO_ADDR, BAO_MOUNT, BAO_ROLE_ID, BAO_SECRET_ID
 _bao_tok: dict = {"token": None, "exp": 0.0}
 
 
+class EscrowUnavailable(RuntimeError):
+    """OpenBao is sealed, down, or not answering.  Not a fault in the
+    request: after a reboot the vault comes back sealed by design, and
+    every key path waits on the unseal.  The tool plane turns this into
+    words a student can read instead of a masked stack trace."""
+
+
+# 503 is what a sealed (or standby) OpenBao answers on every path; 501 is
+# one that was never initialized.  Both mean "not you, not now."
+_UNAVAILABLE = (501, 503)
+
+
+async def _send(cx: httpx.AsyncClient, method: str, url: str,
+                **kw) -> httpx.Response:
+    try:
+        r = await cx.request(method, url, **kw)
+    except httpx.TransportError as e:
+        raise EscrowUnavailable(f"not answering ({type(e).__name__})") from e
+    if r.status_code in _UNAVAILABLE:
+        raise EscrowUnavailable(f"answered {r.status_code} — sealed?")
+    return r
+
+
 def bao_configured() -> bool:
     return bool(BAO_ROLE_ID and BAO_SECRET_ID)
 
@@ -24,8 +47,8 @@ async def _bao_token(cx: httpx.AsyncClient) -> str:
         raise RuntimeError("OpenBao is not configured — run: just bao-init")
     if _bao_tok["token"] and time.monotonic() < _bao_tok["exp"]:
         return _bao_tok["token"]
-    r = await cx.post(f"{BAO_ADDR}/v1/auth/approle/login",
-                      json={"role_id": BAO_ROLE_ID, "secret_id": BAO_SECRET_ID})
+    r = await _send(cx, "POST", f"{BAO_ADDR}/v1/auth/approle/login",
+                    json={"role_id": BAO_ROLE_ID, "secret_id": BAO_SECRET_ID})
     r.raise_for_status()
     auth = r.json()["auth"]
     _bao_tok.update(token=auth["client_token"],
@@ -35,14 +58,24 @@ async def _bao_token(cx: httpx.AsyncClient) -> str:
 
 async def _bao(cx: httpx.AsyncClient, method: str, path: str, **kw) -> httpx.Response:
     tok = await _bao_token(cx)
-    r = await cx.request(method, f"{BAO_ADDR}/v1/{path}",
-                         headers={"X-Vault-Token": tok}, **kw)
+    r = await _send(cx, method, f"{BAO_ADDR}/v1/{path}",
+                    headers={"X-Vault-Token": tok}, **kw)
     if r.status_code == 403:  # lease expired mid-batch — one relogin, one retry
         _bao_tok["token"] = None
         tok = await _bao_token(cx)
-        r = await cx.request(method, f"{BAO_ADDR}/v1/{path}",
-                             headers={"X-Vault-Token": tok}, **kw)
+        r = await _send(cx, method, f"{BAO_ADDR}/v1/{path}",
+                        headers={"X-Vault-Token": tok}, **kw)
     return r
+
+
+async def escrow_ready() -> None:
+    """Raise EscrowUnavailable unless the vault is up and unsealed.  For
+    batch verbs to call BEFORE they change anything, so a sealed vault
+    stops a roster apply at the start instead of half-way down the list."""
+    if not bao_configured():
+        return
+    async with httpx.AsyncClient(timeout=10) as cx:
+        await _send(cx, "GET", f"{BAO_ADDR}/v1/sys/health")
 
 
 def _student_path(slug: str, email: str) -> str:

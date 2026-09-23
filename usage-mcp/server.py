@@ -167,6 +167,13 @@ def _my_ids(email: str) -> list[str]:
 def _course_or_refuse(email: str, role: str, course: str) -> tuple[str, dict]:
     r = _load_roster()
     slug = course.strip().lower()
+    if slug not in r["courses"]:
+        # By display name too — the registrar's my_courses shows both, and
+        # a model passes whichever column it read.
+        hits = [s for s, x in r["courses"].items()
+                if str(x.get("name", "")).strip().casefold()
+                == course.strip().casefold()]
+        slug = hits[0] if len(hits) == 1 else slug
     c = r["courses"].get(slug)
     if c is None:
         known = ", ".join(sorted(r["courses"])) or "none on file yet"

@@ -25,7 +25,7 @@ from .config import (
     MIN_FUSE,
 )
 from .courses import course_models, load_courses, save_courses
-from .escrow import escrow_delete, escrow_read, escrow_write
+from .escrow import escrow_delete, escrow_read, escrow_ready, escrow_write
 from .gateway import (
     ll_delete_key,
     ll_ensure_team,
@@ -173,6 +173,7 @@ async def apply_roster(slug: str, adds: list[str], removes: list[str]) -> list[d
     Updates courses.yaml (file-backend truth) and re-renders usage-mcp's
     roster view when done."""
     import render  # late import — render has no credentials, but keep planes tidy
+    await escrow_ready()  # sealed: stop before the first door opens
     courses = load_courses()
     course = courses["courses"][slug]
     results: list[dict] = []
@@ -751,6 +752,10 @@ def evals_fixture() -> dict:
     if EVAL_PERSONAS["admin"] not in data["admins"]:
         data["admins"].append(EVAL_PERSONAS["admin"])
     save_courses(data)
+    # usage-mcp's roster carries admins: and every course, so a fixture that
+    # skipped this left the next deploy's render-check red (CI #169).
+    import render
+    render.render_roster(data)
     who = EVAL_PERSONAS["instructor"]
     stamp = _now()
     base = {"by": who, "filed": stamp, "instructors": [who], "parent": None,

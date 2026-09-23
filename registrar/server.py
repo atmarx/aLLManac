@@ -28,6 +28,7 @@ import time
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from fastmcp.server.dependencies import get_http_headers
+from fastmcp.server.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -42,6 +43,34 @@ TOKEN = os.environ.get("REGISTRAR_MCP_TOKEN", "")
 # costs us nothing and stops `asyncpg.InvalidPasswordError: ... usage_ro`
 # and friends from being answers.
 mcp = FastMCP("almanac-registrar", mask_error_details=True)
+
+
+class _EscrowWords(Middleware):
+    """A sealed vault is the one unhandled failure with a normal cause —
+    every reboot seals it until the unseal unit runs — and masking turns
+    it into a bare "Error calling tool" that the guide then explains by
+    guessing.  So it gets words, once, for every tool that touches keys.
+    Wording by @piper (2026-09-23); the student is the likeliest reader."""
+
+    async def on_call_tool(self, context, call_next):
+        try:
+            return await call_next(context)
+        except Exception as e:
+            # By the time it reaches here fastmcp has already masked it into
+            # a ToolError("Error calling tool …"); the vault is the cause.
+            if not isinstance(e, reconcile.EscrowUnavailable) and \
+                    not isinstance(e.__cause__, reconcile.EscrowUnavailable):
+                raise
+            raise ToolError(
+                "Keys can't be handed out for the moment.  The part of the "
+                "platform that holds them is locked, which usually means "
+                "the server has just restarted.  Your key is fine and "
+                "nothing is lost.  Try again in a few minutes; if it still "
+                "says this in an hour, tell your instructor (instructors: "
+                "tell the platform admins).") from None
+
+
+mcp.add_middleware(_EscrowWords())
 
 
 # ---- rehearsal: evaluation identities never write ------------------------------
@@ -197,7 +226,8 @@ def _staff_scope(course_arg: str = "") -> tuple[str, str, dict]:
     course gets the same refusal a student in that course's chat does.
     """
     email, _role, header = _ident_open()
-    named = (course_arg or "").strip().lower()
+    courses = _courses_or_refuse()["courses"]
+    named = _course_slug(course_arg, courses)
     if header:
         if named and named != header:
             raise ToolError(
@@ -208,7 +238,6 @@ def _staff_scope(course_arg: str = "") -> tuple[str, str, dict]:
         course = _course_or_refuse(slug)
         _staff_or_refuse(email, course, slug)
         return email, slug, course
-    courses = _courses_or_refuse()["courses"]
     teaching = sorted(s for s, c in courses.items() if _is_staff(email, c))
     if not named:
         if len(teaching) == 1:
@@ -232,6 +261,24 @@ def _staff_scope(course_arg: str = "") -> tuple[str, str, dict]:
         raise ToolError(f"There's no course called '{named}'.{mine}")
     _staff_or_refuse(email, course, named, front_door=True)
     return email, named, course
+
+
+def _course_slug(arg: str, courses: dict) -> str:
+    """A course as a person (or a model) names it -> its slug.
+
+    The slug if it is one; else the course whose display name matches,
+    ignoring case.  my_courses shows both, and a model will pass whichever
+    column it read — the eval run caught the Instructor Guide passing the
+    name first every time (2026-09-23, @geordi).  Only ever chooses WHICH
+    course: authority is still _staff_or_refuse, so resolving a name opens
+    nothing a slug wouldn't.  No match, or two courses sharing a name,
+    comes back as-is and fails as an unknown slug downstream."""
+    named = (arg or "").strip()
+    if not named or named.lower() in courses:
+        return named.lower()
+    hits = [s for s, c in courses.items()
+            if str(c.get("name", "")).strip().casefold() == named.casefold()]
+    return hits[0] if len(hits) == 1 else named.lower()
 
 
 def _is_staff(email: str, course: dict) -> bool:
@@ -435,7 +482,7 @@ async def my_courses() -> str:
         c = courses[slug]
         role = ("instructor" if email in c.get("instructors", []) else
                 "TA" if email in c.get("tas", []) else "student")
-        rows.append(f"| {c.get('name', slug)} | {role} | "
+        rows.append(f"| {c.get('name', slug)} | {slug} | {role} | "
                     f"https://{slug}.{reconcile.ALMANAC_DOMAIN} |")
     if not rows:
         return (
@@ -445,7 +492,9 @@ async def my_courses() -> str:
             "front door is yours either way."
         )
     return "\n".join([f"Courses {email} is on:", "",
-                      "| course | you are | chat |", "|---|---|---|", *rows])
+                      "| course | id | you are | chat |", "|---|---|---|---|",
+                      *rows, "",
+                      "The course tools take either the name or the id."])
 
 
 # ---- tools: teaching staff ----------------------------------------------------
@@ -662,7 +711,7 @@ _UP_NOTE = ("Its chat comes up when the box next runs `just course-up` — "
 
 
 def _slug_or_refuse(slug: str, courses: dict, *, new: bool) -> str:
-    slug = (slug or "").strip().lower()
+    slug = (slug or "").strip().lower() if new else _course_slug(slug, courses)
     if not reconcile.SLUG_RE.match(slug):
         raise ToolError(
             f"'{slug}' won't work as a course id — lowercase letters, digits "
@@ -744,7 +793,7 @@ async def course_request(kind: str, name: str, purpose: str,
     if not (name or "").strip() or not (purpose or "").strip():
         raise ToolError("A request needs a name and a sentence on what it's "
                         "for — the person approving it has only this to go on.")
-    parent = (parent_course or "").strip().lower() or None
+    parent = _course_slug(parent_course, courses) or None
     if kind == "project":
         if not parent:
             raise ToolError("A project room hangs off an existing course — "
@@ -1205,7 +1254,7 @@ async def fleet_access(course: str) -> str:
     Platform admins only."""
     email, _role, _slug = _ident()
     _admin_or_refuse(email)
-    slug = course.strip().lower()
+    slug = _course_slug(course, _courses_or_refuse()["courses"])
     _course_or_refuse(slug)
     a = await reconcile.fleet_access(slug)
     out = [f"Access — {a['name']} ({slug})", "",
@@ -1238,7 +1287,7 @@ async def fleet_exposure(course: str) -> str:
     Platform admins only.  Names and sizes — never contents."""
     email, _role, _slug = _ident()
     _admin_or_refuse(email)
-    slug = course.strip().lower()
+    slug = _course_slug(course, _courses_or_refuse()["courses"])
     _course_or_refuse(slug)
     x = await reconcile.fleet_exposure(slug)
     t = x["totals"]

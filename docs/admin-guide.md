@@ -419,7 +419,7 @@ While you are on that endpoint, check `models.default` lists every model you act
 just bao-init
 ```
 
-Initializes OpenBao, mounts the `almanac/` kv2 store, turns on the audit device, and provisions the registrar's AppRole.  It writes the unseal key and role credentials into `.env` and prints the **root token exactly once** — password manager, not a sticky note.  It comes back **sealed** from every restart.  `just up` and `just deploy` re-unseal it, and so does a reboot on a box with the fleet watcher installed (below) — nothing else does.  A sealed escrow is quiet: chat still answers, and every key path (enrollment, `my_key`, rotation, approving a course) fails until it's open.  `just smoke` prints a warning line when it's sealed.
+Initializes OpenBao, mounts the `almanac/` kv2 store, turns on the audit device, and provisions the registrar's AppRole.  It writes the unseal key and role credentials into `.env` and prints the **root token exactly once** — password manager, not a sticky note.  It comes back **sealed** from every restart.  `just up` and `just deploy` re-unseal it, and so does a reboot on a box with the fleet watcher installed (below) — nothing else does.  A sealed escrow is quiet: chat still answers, and every key path (enrollment, `my_key`, rotation, approving a course) fails until it's open.  It fails in words, not a stack trace — whoever asked is told keys are locked for the moment, that it usually means a restart, and that nothing is lost — and a roster apply checks the vault before its first change, so a sealed escrow never leaves half a class enrolled.  `just smoke` prints a warning line when it's sealed.
 
 ### Per course: one command
 
