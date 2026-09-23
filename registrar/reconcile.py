@@ -94,6 +94,7 @@ from planes.verbs import (
     decide_request,
     decline_nomination,
     ensure_course,
+    evals_fixture,
     export_nomination,
     file_report,
     file_request,

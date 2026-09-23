@@ -184,3 +184,13 @@ def reply_request(rid: str, by: str, text: str) -> dict | None:
             _save(rows)
             return r
     return None
+
+
+def reset_rehearsal(domain: str, fixture: list[dict]) -> None:
+    """Drop every request filed by an identity on `domain` and put the
+    fixture back.  Only the eval runner's personas live there, so this can
+    never touch a real person's ticket."""
+    rows = [r for r in load_requests()
+            if not str(r.get("by", "")).endswith(domain)]
+    _save(rows + fixture)
+

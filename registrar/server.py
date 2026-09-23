@@ -44,6 +44,30 @@ TOKEN = os.environ.get("REGISTRAR_MCP_TOKEN", "")
 mcp = FastMCP("almanac-registrar", mask_error_details=True)
 
 
+# ---- rehearsal: evaluation identities never write ------------------------------
+# The eval runner (scripts/run_evals.py) drives the guides as personas whose
+# addresses sit on the reserved .invalid TLD — the same trick that keeps the
+# guides' own service account from ever signing in.  No IdP can assert such
+# an address and self-registration is off, so the only way to BE one is a
+# JWT minted with the flagship's own secret, on the box.
+#
+# Those callers get every check this file makes — the roster, the staff
+# gate, the admin gate, the "no instructor left" refusal — because those are
+# what the evals test.  What they never get is the side effect.  The case
+# that matters most is "never stage and apply in one turn," and a model that
+# fails it would otherwise apply for real.  So at the moment of each write,
+# a rehearsal says what would have happened and changes nothing — no roster,
+# no key, no course, no ticket, and no Teams post announcing a test.
+REHEARSAL_DOMAIN = "@almanac.invalid"
+
+
+def _rehearse(email: str, would: str) -> str | None:
+    if not email.endswith(REHEARSAL_DOMAIN):
+        return None
+    return (f"REHEARSAL — {email} is an evaluation identity, so nothing was "
+            f"executed.  For a real person this call would have {would}.")
+
+
 # ---- identity: from the headers LibreChat injects, never from arguments ------
 
 def _ident() -> tuple[str, str, str]:
@@ -316,6 +340,8 @@ async def my_key() -> str:
             f"You're not on the roster for {slug} yet — your instructor "
             "uploads it here in chat, so ask them first."
         )
+    if (r := _rehearse(email, "handed back your key for this course")):
+        return r
     rec = await reconcile.escrow_read(slug, email)
     if rec is None and _is_staff(email, course):
         # Staff mint on first ask.  This used to refuse and point at `just
@@ -364,6 +390,8 @@ async def rotate_my_key() -> str:
     if not _on_roster(email, course):
         raise ToolError(f"No key to rotate — you're not on the {slug} roster.")
     try:
+        if (r := _rehearse(email, "revoked your key and minted a fresh one")):
+            return r
         new = await reconcile.rotate_student_key(slug, email)
     except reconcile.MeterUnreadable:
         # Refusing leaves the caller exactly as they were, still holding a
@@ -578,6 +606,8 @@ async def roster_apply(stage_id: str) -> str:
     # applying teaches it, whoever staged it.  In a course's chat, a stage
     # from another course is refused there as a disagreeing course.
     email, slug, _c = _staff_scope(st["course"])
+    if (r := _rehearse(email, f"applied the stage to {slug}: added {len(st['adds'])}, removed {len(st['removes'])}")):
+        return r
     del _stages[stage_id.strip()]
     results = await reconcile.apply_roster(slug, st["adds"], st["removes"])
     ok = sum(1 for r in results if r["ok"])
@@ -738,6 +768,8 @@ async def course_request(kind: str, name: str, purpose: str,
                 "Only if they say yes, call course_request again with the same "
                 "details and coursework_confirmed=true.  If they say no, don't "
                 "file it — the text above says where that work belongs.")
+    if (r := _rehearse(email, f"filed a {kind} request for {name.strip()!r} and told the admins")):
+        return r
     rec = reconcile.file_request(
         by=email, kind=kind, name=name, purpose=purpose, details=details,
         instructors=runs, term=term, headcount=headcount, parent=parent,
@@ -800,6 +832,8 @@ async def course_request_reply(request_id: str, message: str) -> str:
                         "new, file a new request.")
     if not (message or "").strip():
         raise ToolError("Say what you'd like to add.")
+    if (r := _rehearse(email, f"added your reply to {rid} and sent it back to the admins")):
+        return r
     reconcile.answer_request(rid, email, message)
     await reconcile.notify_desk(
         _admins(), f"Request {rid} answered — back in the queue",
@@ -891,6 +925,8 @@ async def course_approve(request_id: str, budget: float, slug: str = "",
         return "\n".join(plan + ["", "Nothing has changed.  If that's right, "
                                   "call course_approve again with "
                                   "confirm=true."])
+    if (r := _rehearse(email, f"created {new} from {rid} with a ${pool:g} pool and emailed {rec['by']}")):
+        return r
     reconcile.upsert_course(new, rec["name"], rec["instructors"], tas=ta,
                             budget=pool)
     summary = await _provision(new)
@@ -927,6 +963,8 @@ async def course_return(request_id: str, note: str) -> str:
         raise ToolError("Say what you need from them — they'll read it.")
     rid = request_id.strip()
     rec = _open_ticket_or_refuse(rid)
+    if (r := _rehearse(email, f"returned {rid} to {rec['by']} with your note and emailed them")):
+        return r
     reconcile.decide_request(rid, "returned", email, note=note.strip())
     told = await reconcile.notify_person(
         [rec["by"]], f"Your request {rid} needs a little more",
@@ -953,6 +991,8 @@ async def course_reject(request_id: str, note: str) -> str:
         raise ToolError("Say why — the person who asked will read it.")
     rid = request_id.strip()
     rec = _open_ticket_or_refuse(rid)
+    if (r := _rehearse(email, f"rejected {rid} and emailed {rec['by']} your note")):
+        return r
     reconcile.decide_request(rid, "rejected", email, note=note.strip())
     told = await reconcile.notify_person(
         [rec["by"]], f"Your request {rid} wasn't approved",
@@ -993,6 +1033,8 @@ async def course_create(slug: str, name: str, instructors: str, tas: str = "",
         return "\n".join(plan + ["", "Nothing has changed.  If that's right, "
                                   "call course_create again with "
                                   "confirm=true."])
+    if (r := _rehearse(email, f"created and provisioned {new}")):
+        return r
     reconcile.upsert_course(new, name.strip(), ins, tas=ta, budget=pool)
     summary = await _provision(new)
     return "\n".join([f"Created {new}.",
@@ -1037,6 +1079,8 @@ async def course_staff(course: str, add_instructors: str = "",
     if not confirm:
         return "\n".join(plan + ["", "Nothing has changed.  If that's right, "
                                   "call course_staff again with confirm=true."])
+    if (r := _rehearse(email, f"changed the staff of {slug} as described")):
+        return r
     try:
         reconcile.set_staff(slug, ai, at, rm)
     except ValueError as e:
@@ -1071,6 +1115,8 @@ async def course_budget_set(course: str, amount: float,
         return (f"Would set the {slug} pool from ${was:g} to ${amount:g} per "
                 "term.  Nothing has changed.  If that's right, call "
                 "course_budget_set again with confirm=true.")
+    if (r := _rehearse(email, f"set the {slug} pool to ${amount:g}")):
+        return r
     reconcile.set_course_budget(slug, amount)
     await _provision(slug)
     return (f"{slug} pool is now ${amount:g} per term (was ${was:g}).  The "
@@ -1241,6 +1287,8 @@ async def nominate_agent(agent_id: str, note: str = "") -> str:
     course = _course_or_refuse(slug)
     staff = email in course.get("instructors", []) or email in course.get("tas", [])
     try:
+        if (r := _rehearse(email, "nominated that agent as a template")):
+            return r
         r = await reconcile.nominate_agent(slug, agent_id.strip(), email, note, staff)
     except KeyError:
         raise ToolError(f"No agent {agent_id!r} in {slug} — the id is on the agent's "
@@ -1331,6 +1379,8 @@ async def report_problem(what: str, course: str = "", asked: str = "",
     if not what:
         raise ToolError("Say what went wrong — a report with no description "
                         "is a ticket nobody can action.")
+    if (r := _rehearse(email, "filed a problem report for the platform team")):
+        return r
     try:
         rec = reconcile.file_report(
             by=email, role=role, from_room=slug or "vestibule",
@@ -1429,6 +1479,8 @@ async def report_triage(report_id: str, status: str = "triaged",
             "Closing a report needs a note — it's the only thing the person "
             "who filed it ever sees.  One sentence about what happened."
         )
+    if (r := _rehearse(email, f"marked {report_id.strip()} {want}")):
+        return r
     r = reconcile.close_report(report_id.strip(), email, note, status=want)
     if r is None:
         raise ToolError(f"No report {report_id!r}.  `reports all` lists them.")

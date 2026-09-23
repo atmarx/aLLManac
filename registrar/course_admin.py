@@ -150,6 +150,8 @@ def main() -> int:
     t = sub.add_parser("template", help="export a nomination as fleet/templates/<id>-<name>.yaml")
     t.add_argument("nomination_id")
 
+    sub.add_parser("evals-fixture",
+                   help="reset the eval personas, sandbox course and requests")
     nt = sub.add_parser("notify-test",
                         help="send one test message through the configured channels")
     nt.add_argument("email", nargs="?", default="",
@@ -288,6 +290,10 @@ def main() -> int:
             print(f"ERROR: {e.args[0]}", file=sys.stderr)
             return 1
         print(r["path"])
+        return 0
+
+    if args.cmd == "evals-fixture":
+        print(json.dumps(reconcile.evals_fixture()))
         return 0
 
     if args.cmd == "notify-test":

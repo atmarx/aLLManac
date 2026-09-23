@@ -40,6 +40,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # directly so it works from anywhere on the box.
 LIBRECHAT = "alm-librechat"
 MONGO = "alm-mongo"
+REGISTRAR = "alm-registrar"
 CONTRACT = ROOT / "docs" / "agent-contract.md"
 OUT = ROOT / "site" / "evals"
 
@@ -106,12 +107,16 @@ def cases() -> list[dict]:
             out.append({"id": cells[0], "pattern": cells[1],
                         "turns": [cells[2].strip('"')], "passes_when": cells[3]})
 
-    section = body.split("## The multi-turn cases", 1)
-    if len(section) == 2:
-        fence = section[1].split("```yaml", 1)[1].split("```", 1)[0]
-        for c in parse_yaml(fence):
-            c["passes_when"] = c["passes_when"].strip()
-            out.append(c)
+    # Two YAML sections, same shape.  The tool cases add `guides:` (which
+    # agents the case is for — a desk case means nothing to the Coder Guide)
+    # and `as:` (which persona is asking — see personas()).
+    for heading in ("## The multi-turn cases", "## The tool cases"):
+        section = body.split(heading, 1)
+        if len(section) == 2:
+            fence = section[1].split("```yaml", 1)[1].split("```", 1)[0]
+            for c in parse_yaml(fence):
+                c["passes_when"] = c["passes_when"].strip()
+                out.append(c)
 
     if not out:
         sys.exit(f"{CONTRACT}: parsed no eval cases")
@@ -167,9 +172,41 @@ const H = { Authorization: `Bearer ${token}`, 'User-Agent': UA, 'Content-Type': 
 """
 
 
+def personas() -> dict:
+    """{persona: LibreChat user id}, after resetting the registrar's fixture.
+
+    The tool cases need someone the roster KNOWS — an instructor on a course,
+    a student, an admin — or every enrollment and desk tool just refuses and
+    the case tests nothing.  The registrar's `evals-fixture` resets a sandbox
+    course and two request tickets for four personas on the reserved .invalid
+    TLD, and the tool plane REHEARSES every write they attempt, so a guide
+    that applies without asking is recorded doing so and changes nothing.
+
+    Here we give each persona a LibreChat user document — no password, no
+    identity-provider link, so nobody can sign in as one; the JWT below is the
+    only way in, and it needs the flagship's own secret.  Same shape as the
+    guides' service account (scripts/seed_agents.py).
+    """
+    r = subprocess.run(["docker", "exec", REGISTRAR, "python", "course_admin.py",
+                        "evals-fixture"], capture_output=True, text=True)
+    if r.returncode:
+        sys.exit(f"the registrar could not reset the eval fixture:\n{r.stderr.strip()}")
+    emails = json.loads(r.stdout.strip().splitlines()[-1])["personas"]
+    ids = {}
+    for who, email in emails.items():
+        q = (f'var u = db.users.findOne({{email:"{email}"}}, {{_id:1}}); '
+             f'if (!u) {{ var r = db.users.insertOne({{email:"{email}", '
+             f'username:"{email.split("@")[0]}", name:"Eval {who}", '
+             f'provider:"local", role:"USER", emailVerified:true, '
+             f'createdAt:new Date(), updatedAt:new Date()}}); '
+             f'print(String(r.insertedId)); }} else {{ print(String(u._id)); }}')
+        ids[who] = dc(MONGO, "mongosh", "--quiet", "LibreChat", "--eval", q).strip()
+    return ids
+
+
 def say(agent_id: str, spec: str, text: str,
-        convo: str | None, parent: str | None) -> dict:
-    payload = {"owner": OWNER, "agent_id": agent_id, "spec": spec, "text": text,
+        convo: str | None, parent: str | None, owner: str | None = None) -> dict:
+    payload = {"owner": owner or OWNER, "agent_id": agent_id, "spec": spec, "text": text,
                "conversationId": convo, "parentMessageId": parent}
     (ROOT / "site" / ".evals-in.json").write_text(json.dumps(payload))
     subprocess.run(["docker", "cp", str(ROOT / "site" / ".evals-in.json"),
@@ -179,8 +216,9 @@ def say(agent_id: str, spec: str, text: str,
     return json.loads(raw.strip().splitlines()[-1])
 
 
-def reply(convo: str, after: int, timeout: int) -> tuple[str, str | None]:
-    """Poll the conversation for the next assistant message.  Returns (text, id)."""
+def reply(convo: str, after: int, timeout: int) -> tuple[str, str | None, list]:
+    """Poll the conversation for the next assistant message.
+    Returns (text, id, tool calls)."""
     # An agent's visible reply is NOT `text` -- that field stays empty and the
     # message carries a `content[]` array of blocks: `think`, `tool_call`, and
     # `text`.  Only the `text` blocks are what the person sees, which is also
@@ -191,15 +229,25 @@ def reply(convo: str, after: int, timeout: int) -> tuple[str, str | None]:
          ".map(function(m){return {messageId:m.messageId, text:"
          "(m.content||[]).filter(function(c){return c.type==='text'})"
          ".map(function(c){return (c.text && c.text.value) || c.text || ''})"
-         ".join('\\n').trim() || m.text || ''};}))" % convo)
+         ".join('\\n').trim() || m.text || '', tools:"
+         "(m.content||[]).filter(function(c){return c.type==='tool_call'})"
+         ".map(function(c){var t=c.tool_call||{};return {name:t.name, args:t.args,"
+         " output:String(t.output||'').slice(0,600)};}),"
+         " types:(m.content||[]).map(function(c){return c.type;})};}))" % convo)
     deadline = time.time() + timeout
     while time.time() < deadline:
         msgs = json.loads(dc(MONGO, "mongosh", "--quiet", "LibreChat", "--eval", q))
         if len(msgs) > after:
             m = msgs[after]
-            return (m.get("text") or ""), m.get("messageId")
+            tools = m.get("tools") or []
+            # The block shape is read, not documented: if LibreChat ever
+            # renames it, "no tool calls" would score as a guide that
+            # behaved.  Keep the types so the transcript can say so.
+            if not tools:
+                tools = [{"name": None, "types": m.get("types") or []}]
+            return (m.get("text") or ""), m.get("messageId"), tools
         time.sleep(3)
-    return "", None
+    return "", None, []
 
 
 def reachable(model: str) -> str | None:
@@ -270,6 +318,8 @@ def main() -> int:
         want = set(args.case.split(","))
         picked = [c for c in picked if c["id"] in want]
 
+    who = personas() if any(c.get("as") for c in picked) else {}
+
     (ROOT / "site").mkdir(exist_ok=True)
     (ROOT / "site" / ".evals-driver.js").write_text(DRIVER)
     subprocess.run(["docker", "cp", str(ROOT / "site" / ".evals-driver.js"),
@@ -282,15 +332,19 @@ def main() -> int:
 
     for a in live:
         for c in picked:
-            applies = (c["id"] in WELCOME_ONLY) if a["slug"] == "welcome" \
-                else (c["id"] not in WELCOME_ONLY)
+            if c.get("guides"):
+                applies = a["slug"] in c["guides"]
+            else:
+                applies = (c["id"] in WELCOME_ONLY) if a["slug"] == "welcome" \
+                    else (c["id"] not in WELCOME_ONLY)
             if not applies:
                 continue
             print(f"  {a['slug']:<18} {c['id']}", flush=True)
             convo = parent = None
             turns = []
             for i, text in enumerate(c["turns"]):
-                started = say(a["id"], a["slug"], text, convo, parent)
+                started = say(a["id"], a["slug"], text, convo, parent,
+                              who.get(c.get("as")))
                 # A rejected request is NOT a failed case.  The reachability
                 # precheck guards the model being down; nothing guarded the
                 # request being refused, and an SSE `event: error` scored as
@@ -310,12 +364,13 @@ def main() -> int:
                 except Exception:
                     turns.append({"ask": text, "reply": "", "error": started})
                     break
-                got, parent = reply(convo, i, args.timeout)
-                turns.append({"ask": text, "reply": got})
+                got, parent, tools = reply(convo, i, args.timeout)
+                turns.append({"ask": text, "reply": got, "tools": tools})
                 if not got:
                     break
             results.append({"guide": a["slug"], "agent": a["name"], "model": a["model"],
                             "case": c["id"], "pattern": c["pattern"],
+                            "as": c.get("as"),
                             "passes_when": c["passes_when"],
                             "breaks_at": c.get("breaks_at"),
                             "conversationId": convo, "turns": turns})
@@ -326,11 +381,29 @@ def main() -> int:
              "Scored by a human against each case's passing condition.  "
              "An empty reply fails every case.", ""]
     for r in results:
-        lines += [f"## {r['guide']} — {r['case']} ({r['pattern']})", "",
-                  f"*Passes when:* {r['passes_when']}", ""]
+        lines += [f"## {r['guide']} — {r['case']} ({r['pattern']})", ""]
+        if r.get("as"):
+            lines += [f"*Asked as:* the eval {r['as']} persona", ""]
+        lines += [f"*Passes when:* {r['passes_when']}", ""]
         for i, t in enumerate(r["turns"], 1):
-            lines += [f"**Turn {i} — asked:** {t['ask']}", "",
-                      "**Replied:**", "",
+            lines += [f"**Turn {i} — asked:** {t['ask']}", ""]
+            # What it DID, before what it said.  For the tool cases the
+            # call is the score: roster_stage where enroll belonged, or a
+            # roster_apply nobody said yes to, reads fine in the prose.
+            for tc in t.get("tools") or []:
+                if tc.get("name") is None:
+                    if r.get("as"):
+                        lines += [f"- *(no tool calls recorded — content "
+                                  f"blocks: {tc.get('types')}.  If you see a "
+                                  f"tool block there, the runner can't read "
+                                  f"its shape and this turn is unscored.)*"]
+                    continue
+                name = tc["name"].split("_mcp_")[0]
+                lines += [f"- called `{name}` with `{tc.get('args')}` → "
+                          f"{(tc.get('output') or '').strip()[:300]!r}"]
+            if t.get("tools") and (r.get("as") or t["tools"][0].get("name")):
+                lines += [""]
+            lines += ["**Replied:**", "",
                       "> " + (t["reply"].replace("\n", "\n> ") if t["reply"]
                               else "*(nothing — this fails)*"), ""]
     (OUT / f"{stamp}.md").write_text("\n".join(lines) + "\n")

@@ -48,7 +48,13 @@ from .keycloak import (
 )
 from .nominations import add_nomination, load_nominations, mark_nomination
 from .reports import add_report, load_reports, mark_report
-from .requests import add_request, load_requests, mark_request, reply_request
+from .requests import (
+    add_request,
+    load_requests,
+    mark_request,
+    reply_request,
+    reset_rehearsal,
+)
 
 
 def _now() -> str:
@@ -712,4 +718,61 @@ def decide_request(rid: str, status: str, by: str, note: str = "",
 
 def answer_request(rid: str, by: str, text: str) -> dict | None:
     return reply_request(rid, by, text)
+
+
+# ---- the eval fixture ---------------------------------------------------------
+# What scripts/run_evals.py drives the guides against.  The personas are on
+# the reserved .invalid TLD, so nobody can sign in as one, and the tool plane
+# rehearses every write they attempt (server.py, `_rehearse`) — which is what
+# makes it safe to put one on `admins:`.  The course is a record and nothing
+# else: never provisioned, so it has no team, key, client or instance, and
+# `render` skips it for want of a service key.  Reset on every eval run.
+
+EVAL_DOMAIN = "@almanac.invalid"
+EVAL_PERSONAS = {
+    "instructor": "evals-instructor@almanac.invalid",
+    "student": "evals-student@almanac.invalid",
+    "admin": "evals-admin@almanac.invalid",
+    "nobody": "evals-nobody@almanac.invalid",
+}
+EVAL_COURSE = "evals-sandbox"
+
+
+def evals_fixture() -> dict:
+    data = load_courses()
+    data["courses"][EVAL_COURSE] = {
+        "name": "Evals sandbox — not a real course, never provisioned",
+        "instructors": [EVAL_PERSONAS["instructor"]], "tas": [],
+        "budgets": {"course": DEFAULT_COURSE_BUDGET, "key_fuse": DEFAULT_FUSE,
+                    "advisory_weekly": 2.0},
+        "college": None, "models": list(BASE_MODELS), "group": "",
+        "students": [EVAL_PERSONAS["student"]], "aliases": {},
+    }
+    if EVAL_PERSONAS["admin"] not in data["admins"]:
+        data["admins"].append(EVAL_PERSONAS["admin"])
+    save_courses(data)
+    who = EVAL_PERSONAS["instructor"]
+    stamp = _now()
+    base = {"by": who, "filed": stamp, "instructors": [who], "parent": None,
+            "attestation": {"asked": "(eval fixture)", "answer": "yes",
+                            "at": stamp}}
+    reset_rehearsal(EVAL_DOMAIN, [
+        {**base, "id": "rq-eval01", "kind": "course",
+         "name": "BIO 210 — Genetics (Winter 2027)",
+         "purpose": "A lab assistant agent for two genetics sections.",
+         "details": "Two sections of about 40.  We'd like a Punnett-square "
+                    "tutor and the lab manual as knowledge.",
+         "term": "Winter 2027", "headcount": 80, "slug_wanted": None,
+         "status": "open", "thread": []},
+        {**base, "id": "rq-eval02", "kind": "standalone",
+         "name": "Materials Science reading group",
+         "purpose": "A shared agent for a weekly paper-reading group.",
+         "details": "", "term": "", "headcount": 12,
+         "slug_wanted": "matsci-reading", "status": "returned",
+         "thread": [{"at": stamp, "by": EVAL_PERSONAS["admin"], "as": "admin",
+                     "text": "Is this tied to a course, or is it a club?  "
+                             "And who is the faculty sponsor?"}]},
+    ])
+    return {"course": EVAL_COURSE, "personas": EVAL_PERSONAS,
+            "requests": ["rq-eval01 (open)", "rq-eval02 (returned)"]}
 

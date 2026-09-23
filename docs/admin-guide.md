@@ -440,6 +440,18 @@ Everything `just course` does, a platform admin can do from the **Dev Guide** at
 - **The wording is yours.**  The front-door question comes from `registrar/front-door.md` if you write one, and the tracked `front-door.example.md` if you don't.  Edit it on the box; it's read on every request, no restart and no reseed.
 - **A new course isn't running until the host starts it** — see the next section.  Without the watcher, `just course-up` after an approval finishes the job.
 
+### Before you show it to anyone: the tool evals
+
+The guides now *do* things, and a guide that applied a roster nobody agreed to reads exactly like one that didn't.  So the tool cases in [agent-contract.md](agent-contract.md#the-tool-cases) score what each guide **called**, and the transcript shows every call above every reply:
+
+```
+just evals --case E1,E2,E3,E4,Q1,Q2,Q3,D1,D2,W3,W4
+```
+
+Run it after `just agents-seed`, on the model the guides actually use, and read `site/evals/<stamp>.md` against each case's *passes when*.  Nothing scores itself.
+
+**What it adds to the box, so it doesn't surprise you.**  The run resets a fixture first: an `evals-sandbox` course in `courses.yaml` (a record only — never provisioned, so no team, key, client or instance; `render` skips it), four personas on `@almanac.invalid`, one of them on `admins:`, and two request tickets, `rq-eval01` and `rq-eval02`.  Nobody can sign in as an `.invalid` address, and **the registrar rehearses every write those identities attempt**: every gate and refusal runs for real, and the change itself is replaced with a message saying what would have happened.  No roster, key, course, ticket, email or Teams post comes out of an eval run.  The admin persona can *read* what an admin reads — the queue, the fleet — so transcripts in `site/evals/` carry the same data `courses.yaml` does, and stay on the box for the same reason.
+
 ### Who hears about it: notifications
 
 Tickets move without anyone being told unless you set this up, and every piece of it is optional.
