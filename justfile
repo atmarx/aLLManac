@@ -897,7 +897,7 @@ template id:
 reports status="open":
     {{compose}} exec -T registrar python course_admin.py reports --status "{{status}}" </dev/null
 
-report-close id note="":
+report-close id note:
     {{compose}} exec -T registrar python course_admin.py report-close "{{id}}" --note "{{note}}" </dev/null
 
 # Prove the notification channels from the box: prints what's configured

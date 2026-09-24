@@ -349,6 +349,7 @@ services:
       BAO_REGISTRAR_SECRET_ID: "${BAO_REGISTRAR_SECRET_ID:-}"
       ALMANAC_DOMAIN: "${ALMANAC_DOMAIN:-localhost}"
       CHAT_HOST: "${CHAT_HOST:-chat.localhost}"
+      GATEWAY_HOST: "${GATEWAY_HOST:-}"
       AUTH_HOST: "${AUTH_HOST:-auth.localhost}"
       EDGE_TLS: "${EDGE_TLS:-internal}"
       OPENID_BUTTON_LABEL: "${OPENID_BUTTON_LABEL:-Sign in with Campus SSO}"

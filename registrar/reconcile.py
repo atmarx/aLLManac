@@ -22,6 +22,8 @@ worth auditing, and one import surface means one list to read.
     planes/chatdb    the chat databases, envelope only (no credential)
     planes/nominations  registrar/nominations.yaml — no network, no secrets
     planes/reports   registrar/reports.yaml — no network, no secrets
+    planes/requests  registrar/requests.yaml — no network, no secrets
+    planes/notify    SMTP_PASSWORD and the desk webhook URL (a credential)
     planes/verbs     composition — the only place the planes meet
 
 Everything in the verbs is IDEMPOTENT on purpose — a failed half-apply is
@@ -33,47 +35,26 @@ boring.
 
 from planes.config import (
     ALMANAC_DOMAIN,
-    BASE_MODELS,
-    BAO_MOUNT,
     CHAT_HOST,
-    DEFAULT_CAPABILITIES,
     DEFAULT_COURSE_BUDGET,
-    DEFAULT_FUSE,
-    KC_REALM,
-    KNOWN_CAPABILITIES,
-    MAX_FUSE,
-    MIN_FUSE,
+    GATEWAY_HOST,
+    REHEARSAL_DOMAIN,
     SLUG_RE,
 )
 from planes.courses import (
     CoursesError,
-    course_models,
     load_courses,
-    load_raw_courses,
-    save_courses,
+    slug_error,
     validate_courses,
 )
 from planes.escrow import (
     EscrowUnavailable,
     bao_configured,
-    escrow_delete,
-    escrow_ready,
     escrow_read,
     escrow_status,
-    escrow_write,
-)
-from planes.gateway import (
-    ll_delete_key,
-    ll_ensure_team,
-    ll_key_spend,
-    ll_mint_key,
-    ll_team_remaining,
 )
 from planes.keycloak import (
     kc_ensure_client,
-    kc_ensure_client_roles,
-    kc_set_client_role,
-    kc_user_id,
 )
 from planes.notify import (
     configured as notify_configured,
@@ -83,6 +64,7 @@ from planes.notify import (
 from planes.requests import (
     KINDS as REQUEST_KINDS,
     MAX_OPEN_PER_PERSON,
+    claim_course as claim_request_course,
     front_door_text,
     open_count,
 )

@@ -84,7 +84,9 @@ def _load_roster() -> dict:
         }
         _roster_cache.update(mtime=mtime, data=data, error=None)
     except Exception as e:  # bad YAML must degrade, not crash the tools
-        _roster_cache.update(mtime=mtime, data=_EMPTY, error=f"{type(e).__name__}: {e}")
+        # The class only — a YAML parse error quotes the offending line,
+        # which in a roster is a student's email, and /health is public.
+        _roster_cache.update(mtime=mtime, data=_EMPTY, error=type(e).__name__)
     return _roster_cache["data"]
 
 
@@ -176,8 +178,17 @@ def _course_or_refuse(email: str, role: str, course: str) -> tuple[str, dict]:
         slug = hits[0] if len(hits) == 1 else slug
     c = r["courses"].get(slug)
     if c is None:
-        known = ", ".join(sorted(r["courses"])) or "none on file yet"
-        raise ToolError(f"No course '{course}' in the roster (I know: {known}).")
+        if _roster_cache["error"]:
+            raise ToolError(
+                "The course roster can't be read right now, so I can't answer "
+                "for any course.  This is a platform fault — tell the "
+                "platform admins.")
+        # Only the courses this caller could ask about — a student gets the
+        # same answer for a real course as for a typo, and never the list.
+        mine = sorted(s for s, x in r["courses"].items()
+                      if email in r["admins"] or email in x["faculty"])
+        raise ToolError(f"No course '{course}' that you teach."
+                        + (f"  Yours: {', '.join(mine)}." if mine else ""))
     # The roster decides, not the instance's ADMIN role.  The role used to be
     # required too, and at the front door ADMIN comes only from the realm's
     # `faculty` role — which instructors don't need for anything else, and
@@ -252,8 +263,8 @@ async def my_usage(days: int = 7) -> str:
 @mcp.tool
 async def course_usage(course: str, days: int = 30) -> str:
     """Course-wide usage — a faculty view: totals, per-student activity, who
-    hasn't started yet, and the model mix.  `course` is a roster slug (call
-    list_courses when unsure).  Covers chat activity by enrolled students
+    hasn't started yet, and the model mix.  `course` is the course's id or its
+    name (my_courses or list_courses when unsure).  Covers chat activity by enrolled students
     AND any API keys minted under the course's owner tag."""
     email, role = _ident()
     days = _clamp_days(days)

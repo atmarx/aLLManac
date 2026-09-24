@@ -6,6 +6,7 @@ this process, that file, and a schema opinion.
 """
 
 import os
+import re
 import tempfile
 
 import yaml
@@ -39,7 +40,54 @@ class CoursesError(Exception):
 # Writes are atomic (tmp + rename) — courses.yaml is bind-mounted as a
 # directory-relative path precisely so renames are visible.
 
-_EMPTY = {"courses": {}, "colleges": {}, "admins": [], "devs": []}
+_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def clean_name(s) -> str:
+    """A course name as every render may safely carry it: one line, no
+    control characters.  Names now arrive from chat — a requester types
+    one, an admin approves it — and the name lands in the instance's .env
+    (APP_TITLE, COURSE_NAME) and its librechat.yaml.  A newline there is a
+    line of config nobody wrote on purpose (2026-09-23 sweep)."""
+    return " ".join(_CONTROL.sub(" ", str(s)).split())
+
+
+def slug_error(slug: str) -> str | None:
+    """Why `slug` can't be a course id, or None.  One check for both the
+    file validator and every path that creates a course — chat included,
+    which used to check the pattern and nothing else."""
+    if not SLUG_RE.match(slug):
+        return (f"'{slug}' must be lowercase letters, digits and hyphens, "
+                "starting and ending with a letter or digit (it becomes the "
+                f"hostname {slug}.{ALMANAC_DOMAIN}, the container names, and "
+                "the Keycloak clientId)")
+    if slug.endswith("-admin"):
+        # Every course renders TWO vhosts: <slug> and <slug>-admin (the
+        # panel).  So a course actually named "<x>-admin" claims the
+        # hostname x's panel already answers on — two site blocks, one
+        # name, in two different generated files.  Cheap to refuse, and
+        # expensive to find once it is baked into a SAN certificate.
+        return (f"a slug ending in '-admin' collides with the panel hostname "
+                f"of course {slug[:-6]!r} — both render {slug}.{ALMANAC_DOMAIN}")
+    return None
+
+
+def deployment_error() -> str | None:
+    """Deployment, not roster — but every mutating verb must pass it.
+    `just deploy` append-migrates a NAMED list of .env vars, and
+    ALMANAC_DOMAIN isn't on it (it has no sane universal default), so an
+    older box can be serving a real CHAT_HOST while the fleet domain
+    silently fell back to localhost: every course would render at
+    <slug>.localhost, the OIDC client would get a localhost redirect URI,
+    and the registrar would report success.  Refuse instead."""
+    if ALMANAC_DOMAIN == "localhost" and not (
+            CHAT_HOST == "localhost" or CHAT_HOST.endswith(".localhost")):
+        return (f"ALMANAC_DOMAIN is unset (defaulting to localhost) but "
+                f"CHAT_HOST is {CHAT_HOST!r} — courses would render at "
+                "<slug>.localhost on a box that isn't one.  Set ALMANAC_DOMAIN "
+                "in .env (usually the part of CHAT_HOST after 'chat.') and "
+                "restart the registrar.")
+    return None
 
 
 def load_raw_courses() -> dict:
@@ -123,7 +171,10 @@ def _money_or_zero(v, default: float) -> float:
 def load_courses() -> dict:
     raw = load_raw_courses()
     out = {
-        "courses": {}, "colleges": raw.get("colleges") or {},
+        # Keys lowercased like each course's `college:` is below — else
+        # `colleges: {CCI: …}` passes validate and the pack never applies.
+        "courses": {}, "colleges": {str(k).strip().lower(): v for k, v in
+                                    (raw.get("colleges") or {}).items()},
         "admins": [str(e).strip().lower() for e in (raw.get("admins") or [])],
         # Platform devs — the report queue, and nothing else.  Deliberately
         # NOT admins: a report is something a person CHOSE to send you; the
@@ -135,7 +186,7 @@ def load_courses() -> dict:
         c = c or {}
         budgets = c.get("budgets") or {}
         out["courses"][str(slug).strip().lower()] = {
-            "name": str(c.get("name") or slug),
+            "name": clean_name(c.get("name") or slug),
             "instructors": [str(e).strip().lower() for e in (c.get("instructors") or [])],
             "tas": [str(e).strip().lower() for e in (c.get("tas") or [])],
             # Bare float() here turned a typo in ANY course's budget into a
@@ -226,20 +277,8 @@ def validate_courses() -> tuple[list[str], list[str]]:
     colleges = raw.get("colleges") or {}
     courses = raw.get("courses") or {}
 
-    # Deployment, not roster — but this is the one checkpoint every mutating
-    # verb passes through.  `just deploy` append-migrates a NAMED list of
-    # .env vars, and ALMANAC_DOMAIN isn't on it (it has no sane universal
-    # default), so an older box can be serving a real CHAT_HOST while the
-    # fleet domain silently fell back to localhost: every course would render
-    # at <slug>.localhost, the OIDC client would get a localhost redirect URI,
-    # and the registrar would report success.  Refuse instead.
-    if ALMANAC_DOMAIN == "localhost" and not (
-            CHAT_HOST == "localhost" or CHAT_HOST.endswith(".localhost")):
-        errors.append(
-            f"ALMANAC_DOMAIN is unset (defaulting to localhost) but CHAT_HOST is "
-            f"{CHAT_HOST!r} — courses would render at <slug>.localhost on a box "
-            f"that isn't one.  Set ALMANAC_DOMAIN in .env (usually the part of "
-            f"CHAT_HOST after 'chat.') and restart the registrar.")
+    if (e := deployment_error()):
+        errors.append(e)
 
     for e in (raw.get("admins") or []):
         if not EMAILISH_RE.match(str(e).strip()):
@@ -260,21 +299,8 @@ def validate_courses() -> tuple[list[str], list[str]]:
     for slug, c in courses.items():
         slug = str(slug)
         where = f"courses.{slug}"
-        if not SLUG_RE.match(slug):
-            errors.append(
-                f"{where}: slug must be lowercase letters, digits and hyphens "
-                f"(it becomes the hostname {slug}.{ALMANAC_DOMAIN}, the "
-                f"container names, and the Keycloak clientId)")
-        if slug.endswith("-admin"):
-            # Every course renders TWO vhosts: <slug> and <slug>-admin (the
-            # panel).  So a course actually named "<x>-admin" claims the
-            # hostname x's panel already answers on — two site blocks, one
-            # name, in two different generated files.  Cheap to refuse, and
-            # expensive to find once it is baked into a SAN certificate.
-            errors.append(
-                f"{where}: a slug ending in '-admin' collides with the panel "
-                f"hostname of course {slug[:-6]!r} — both render "
-                f"{slug}.{ALMANAC_DOMAIN}")
+        if (e := slug_error(slug)):
+            errors.append(f"{where}: {e}")
         if c is None:
             errors.append(f"{where}: empty record — needs at least name + instructors")
             continue

@@ -99,7 +99,10 @@ async def kc_ensure_client_roles(cx: httpx.AsyncClient, uuid: str) -> dict:
 async def kc_user_id(cx: httpx.AsyncClient, email: str) -> str | None:
     """None = no realm user yet.  Read-only lookup; the roster path uses
     kc_ensure_user so the door can be granted before first sign-in."""
-    r = await _kc(cx, "GET", f"/users?email={email}&exact=true")
+    # params=, not an f-string: a `+` in an address (which the roster
+    # accepts) arrives at Keycloak as a space, the lookup misses, and the
+    # create that follows 409s on the user that was there all along.
+    r = await _kc(cx, "GET", "/users", params={"email": email, "exact": "true"})
     r.raise_for_status()
     users = r.json()
     return users[0]["id"] if users else None

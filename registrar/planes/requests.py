@@ -25,6 +25,7 @@ gitignored, because it names people.  No network, no credential.
 """
 
 import os
+import re
 import secrets as pysecrets
 import tempfile
 from datetime import datetime, timezone
@@ -54,6 +55,13 @@ def _now() -> str:
 def _clip(s: str | None, n: int) -> str:
     s = (s or "").strip()
     return s if len(s) <= n else s[: n - 1].rstrip() + "…"
+
+
+def _line(s: str | None, n: int) -> str:
+    """A one-line field (the name, the term): control characters and
+    newlines fold to spaces.  The name becomes a course's name on approval,
+    and a newline hidden in it would read as nothing in the queue."""
+    return _clip(" ".join(re.sub(r"[\x00-\x1f\x7f]", " ", s or "").split()), n)
 
 
 def front_door_text() -> str:
@@ -123,11 +131,11 @@ def add_request(*, by: str, kind: str, name: str, purpose: str,
         "filed": _now(),
         "by": by,
         "kind": kind,
-        "name": _clip(name, LIMITS["name"]),
+        "name": _line(name, LIMITS["name"]),
         "purpose": _clip(purpose, LIMITS["purpose"]),
         "details": _clip(details, LIMITS["details"]),
         "instructors": instructors,
-        "term": _clip(term, LIMITS["term"]),
+        "term": _line(term, LIMITS["term"]),
         "headcount": max(0, int(headcount or 0)),
         "parent": parent,
         "slug_wanted": slug,
@@ -171,6 +179,18 @@ def mark_request(rid: str, status: str, by: str, note: str = "",
             _save(rows)
             return r
     return None
+
+
+def claim_course(rid: str, slug: str) -> None:
+    """Record the course an approval is creating BEFORE it provisions, so
+    an approval that stops half-way can be approved again: the retry
+    recognises its own course instead of refusing it as taken."""
+    rows = load_requests()
+    for r in rows:
+        if r.get("id") == rid:
+            r["course"] = slug
+            _save(rows)
+            return
 
 
 def reply_request(rid: str, by: str, text: str) -> dict | None:

@@ -165,10 +165,12 @@ GUIDES = [
     # The one guide that needs an instrument rather than only a shelf: it
     # explains what a number means, so it has to be able to read the number.
     # The prompt forbids it doing arithmetic on what comes back — a figure it
-    # computed is a figure the reader has no way to check.
+    # computed is a figure the reader has no way to check.  my_courses
+    # because course_usage needs a course and nothing else here could name
+    # one — the docstring's "call list_courses" pointed at a tool it lacked.
     ("usage-guide", "Usage Guide",
      "What the numbers mean — tokens, context, what actually moves a bill, and how to read your own usage.",
-     REPORT_TOOLS + USAGE_TOOLS),
+     REPORT_TOOLS + WHERE_TOOLS + USAGE_TOOLS),
     # my_usage and not course_usage: the question this guide gets is "what
     # did my script just cost," and the answer is the person's own ledger.
     # NOT my_key / rotate_my_key — the vestibule renders no X-Course, so they

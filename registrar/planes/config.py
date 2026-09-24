@@ -78,9 +78,17 @@ ALMANAC_DOMAIN = os.environ.get("ALMANAC_DOMAIN", "localhost")
 # usually still wants a From in a domain it recognises — set it if so.
 SMTP_FROM = (os.environ.get("SMTP_FROM", "").strip()
              or f"aLLManac <noreply@{ALMANAC_DOMAIN}>")
-# The flagship's hostname — read here ONLY so validate_courses can refuse
-# to mint courses at <slug>.localhost on a box that clearly isn't one.
+# The flagship's hostname — the front door every notification links to,
+# and what validate_courses checks to refuse minting courses at
+# <slug>.localhost on a box that clearly isn't one.
 CHAT_HOST = os.environ.get("CHAT_HOST", "chat.localhost")
+# The gateway's public name — what a student points opencode at.  my_key
+# says it, so nobody has to find it on a page.
+GATEWAY_HOST = os.environ.get("GATEWAY_HOST", "").strip()
+# Evaluation identities (scripts/run_evals.py) live on the reserved .invalid
+# TLD, which no IdP can assert.  The tool plane rehearses their writes, the
+# fixture resets their tickets, and notifications never go to them.
+REHEARSAL_DOMAIN = "@almanac.invalid"
 
 DEFAULT_FUSE = float(os.environ.get("REGISTRAR_DEFAULT_FUSE", "5"))
 MAX_FUSE = float(os.environ.get("REGISTRAR_MAX_FUSE", "25"))

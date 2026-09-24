@@ -6,12 +6,17 @@ directories now.  Nothing about the trust model changed in the split:
 
     config    env + constants.  No credentials USED, only named.
     courses   registrar/courses.yaml — read, normalize, validate, write.
-              The only plane with no network calls at all.
+              No network calls.
     keycloak  course OIDC clients and the admin/member door roles.
     gateway   LiteLLM teams (the course pool) and keys (the fuses).
     escrow    OpenBao — custody of every minted key.
     chatdb    the chat databases, read as a census — envelope only, never
               a message, a title, or (outside a nomination) an instruction.
+    nominations, reports, requests
+              the registrar's own ticket files on the state volume — no
+              network, no credential.
+    notify    mail and the desk webhook.  Holds SMTP_PASSWORD and the
+              webhook URL, which is a credential (anyone holding it posts).
     verbs     the reconcile verbs, which are the ONLY things that compose
               the planes above.  If a plane imports a sibling plane, that
               is the bug: composition happens here or not at all.

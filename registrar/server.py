@@ -31,6 +31,7 @@ from fastmcp.server.dependencies import get_http_headers
 from fastmcp.server.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+import yaml
 
 import reconcile
 
@@ -45,21 +46,29 @@ TOKEN = os.environ.get("REGISTRAR_MCP_TOKEN", "")
 mcp = FastMCP("almanac-registrar", mask_error_details=True)
 
 
-class _EscrowWords(Middleware):
-    """A sealed vault is the one unhandled failure with a normal cause —
-    every reboot seals it until the unseal unit runs — and masking turns
-    it into a bare "Error calling tool" that the guide then explains by
-    guessing.  So it gets words, once, for every tool that touches keys.
-    Wording by @piper (2026-09-23); the student is the likeliest reader."""
+class _FailureWords(Middleware):
+    """Failures with a normal cause get words instead of a bare "Error
+    calling tool" that the guide then explains by guessing.
+
+    A sealed vault — every reboot seals it until the unseal unit runs.
+    Wording by @piper (2026-09-23); the student is the likeliest reader.
+    And an unreadable ticket file (requests / reports / nominations .yaml),
+    which courses.yaml already gets words for in _courses_or_refuse."""
 
     async def on_call_tool(self, context, call_next):
         try:
             return await call_next(context)
         except Exception as e:
             # By the time it reaches here fastmcp has already masked it into
-            # a ToolError("Error calling tool …"); the vault is the cause.
-            if not isinstance(e, reconcile.EscrowUnavailable) and \
-                    not isinstance(e.__cause__, reconcile.EscrowUnavailable):
+            # a ToolError("Error calling tool …"); what we match is the cause.
+            cause = e if not isinstance(e, ToolError) else e.__cause__
+            if isinstance(cause, yaml.YAMLError):
+                raise ToolError(
+                    "One of the registrar's record files can't be read right "
+                    "now, so I can't answer that safely.  This is a platform "
+                    "fault, not something you did — tell the platform "
+                    "admins.") from None
+            if not isinstance(cause, reconcile.EscrowUnavailable):
                 raise
             raise ToolError(
                 "Keys can't be handed out for the moment.  The part of the "
@@ -70,7 +79,7 @@ class _EscrowWords(Middleware):
                 "tell the platform admins).") from None
 
 
-mcp.add_middleware(_EscrowWords())
+mcp.add_middleware(_FailureWords())
 
 
 # ---- rehearsal: evaluation identities never write ------------------------------
@@ -87,7 +96,7 @@ mcp.add_middleware(_EscrowWords())
 # fails it would otherwise apply for real.  So at the moment of each write,
 # a rehearsal says what would have happened and changes nothing — no roster,
 # no key, no course, no ticket, and no Teams post announcing a test.
-REHEARSAL_DOMAIN = "@almanac.invalid"
+REHEARSAL_DOMAIN = reconcile.REHEARSAL_DOMAIN
 
 
 def _rehearse(email: str, would: str) -> str | None:
@@ -129,12 +138,15 @@ def _ident_open() -> tuple[str, str, str]:
     """(email, role, course-or-empty) — for the tools that also serve the
     vestibule.
 
-    Every other tool in this file calls `_ident()`, which refuses without an
-    X-Course header.  That refusal is why wiring this service into the
-    flagship costs nothing: the vestibule renders no X-Course, so thirteen
-    course tools go on refusing there without a line of policy — the shape
-    already says it.  A tool that opts out of that has to say so in its own
-    name, which is what this function is for.
+    `_ident()` refuses without an X-Course header, and that refusal is why
+    wiring this service into the flagship costs nothing for the tools that
+    are about the room you're standing in — my_key, rotate_my_key,
+    nominate_agent: the vestibule renders no X-Course, so they go on
+    refusing there without a line of policy.  A tool that opts out of that
+    has to say so in its own name, which is what this function is for.  The
+    test for opting out (docs/design-walls.md, "the front door"): is the
+    header CHOOSING which course, or DECIDING who may act?  Only the first
+    can move to an argument.
 
     The token check and the who-is-asking check are unchanged; only the
     course becomes optional, and the caller must then work out the course
@@ -421,7 +433,9 @@ async def my_key() -> str:
         f"Your {course.get('name', slug)} API key (course: {slug}):\n\n"
         f"    {rec['key']}\n\n"
         f"Budget fuse: ${rec.get('budget', '?')} · minted {rec.get('minted_at', '?')}\n"
-        "Point opencode (or any OpenAI-compatible client) at the gateway "
+        + (f"Gateway: https://{reconcile.GATEWAY_HOST}/v1\n"
+           if reconcile.GATEWAY_HOST else "")
+        + "Point opencode (or any OpenAI-compatible client) at the gateway "
         "with this key — the user guide has the provider block.  This key is "
         "YOURS: it spends your course's pool under your name."
     )
@@ -657,8 +671,10 @@ async def roster_apply(stage_id: str) -> str:
     email, slug, _c = _staff_scope(st["course"])
     if (r := _rehearse(email, f"applied the stage to {slug}: added {len(st['adds'])}, removed {len(st['removes'])}")):
         return r
-    del _stages[stage_id.strip()]
     results = await reconcile.apply_roster(slug, st["adds"], st["removes"])
+    # Only now: a sealed vault or a Keycloak outage raises out of the line
+    # above, and the instructor's stage should still be there to retry.
+    _stages.pop(stage_id.strip(), None)
     ok = sum(1 for r in results if r["ok"])
     out = [f"Applied to {slug}: {ok}/{len(results)} operations clean.", ""]
     for r in results:
@@ -700,8 +716,9 @@ async def course_keys(course: str = "") -> str:
 # approves it and sets its budget.
 # The desk — everything else here — answers the `admins:` list only, takes
 # the course as an argument (admins span courses), and never acts on the
-# first call: without confirm=true every desk tool describes what it WOULD
-# do, and that description is what the admin says yes to.  Same shape as
+# first call: without confirm=true every desk tool that changes something
+# or tells someone describes what it WOULD do, and that description is what
+# the admin says yes to.  Same shape as
 # roster_stage/roster_apply, without a stage id, because the arguments are
 # short enough to repeat.
 
@@ -712,12 +729,11 @@ _UP_NOTE = ("Its chat comes up when the box next runs `just course-up` — "
 
 def _slug_or_refuse(slug: str, courses: dict, *, new: bool) -> str:
     slug = (slug or "").strip().lower() if new else _course_slug(slug, courses)
-    if not reconcile.SLUG_RE.match(slug):
-        raise ToolError(
-            f"'{slug}' won't work as a course id — lowercase letters, digits "
-            "and hyphens, starting and ending with a letter or digit.  It "
-            "becomes the chat's address, so something like "
-            "engr301-2026fall.")
+    if new and (why := reconcile.slug_error(slug)):
+        raise ToolError(f"That won't work as a course id: {why}.  Something "
+                        "like engr301-2026fall.")
+    if not new and not reconcile.SLUG_RE.match(slug):
+        raise ToolError(f"There's no course called '{slug}'.")
     if new and slug in courses:
         raise ToolError(
             f"{slug} already exists.  course_staff changes who teaches it; "
@@ -739,7 +755,9 @@ async def _provision(slug: str) -> dict:
             f"The record for {slug} is saved, but provisioning stopped "
             f"({type(e).__name__}: {str(e)[:200]}).  It's safe to run again — "
             "every step is idempotent — and `just course` on the box shows "
-            "the whole error.") from None
+            "the whole error.  An approval that stopped here can be "
+            "approved again: the ticket stays open until the course is up."
+            ) from None
 
 
 def _url(slug: str) -> str:
@@ -751,8 +769,11 @@ def _front_door() -> str:
 
 
 def _admins() -> list[str]:
+    """Who desk mail goes to.  The eval admin persona sits on `admins:`
+    after any eval run; a .invalid address is not a mailbox."""
     try:
-        return reconcile.load_courses()["admins"]
+        return [a for a in reconcile.load_courses()["admins"]
+                if not a.endswith(REHEARSAL_DOMAIN)]
     except reconcile.CoursesError:
         return []
 
@@ -960,9 +981,14 @@ async def course_approve(request_id: str, budget: float, slug: str = "",
     if not (slug or rec.get("slug_wanted")):
         raise ToolError("This request didn't suggest an id — pick one "
                         "(it becomes the chat's address) and pass it as slug.")
-    new = _slug_or_refuse(slug or rec["slug_wanted"], courses, new=True)
+    wanted = (slug or rec.get("course") or rec["slug_wanted"]).strip().lower()
+    # An approval that stopped in _provision left its course on file and
+    # the ticket open.  Approving again finishes it; anything else that
+    # already holds the slug is still refused.
+    retry = bool(rec.get("course")) and wanted == rec["course"] and wanted in courses
+    new = wanted if retry else _slug_or_refuse(wanted, courses, new=True)
     ta = [e for e in _people(tas) if e not in rec["instructors"]]
-    plan = [f"Would create **{new}** — {rec['name']}",
+    plan = [f"Would {'finish provisioning' if retry else 'create'} **{new}** — {rec['name']}",
             f"- instructors: {', '.join(rec['instructors'])}"]
     if ta:
         plan.append(f"- TAs: {', '.join(ta)}")
@@ -976,6 +1002,7 @@ async def course_approve(request_id: str, budget: float, slug: str = "",
                                   "confirm=true."])
     if (r := _rehearse(email, f"created {new} from {rid} with a ${pool:g} pool and emailed {rec['by']}")):
         return r
+    reconcile.claim_request_course(rid, new)
     reconcile.upsert_course(new, rec["name"], rec["instructors"], tas=ta,
                             budget=pool)
     summary = await _provision(new)
@@ -1002,16 +1029,24 @@ async def course_approve(request_id: str, budget: float, slug: str = "",
 
 
 @mcp.tool
-async def course_return(request_id: str, note: str) -> str:
+async def course_return(request_id: str, note: str,
+                        confirm: bool = False) -> str:
     """Send a request back to the person who filed it, with what you need
     from them.  They answer with course_request_reply and it comes back to
-    the queue.  Platform admins only."""
+    the queue.  The note is emailed to them word for word, so without
+    confirm=true this only shows what would be sent.  Platform admins
+    only."""
     email, _role, _here = _ident_open()
     _admin_or_refuse(email)
     if not (note or "").strip():
         raise ToolError("Say what you need from them — they'll read it.")
     rid = request_id.strip()
     rec = _open_ticket_or_refuse(rid)
+    if not confirm:
+        return (f"Would return {rid} ({rec['name']}) to {rec['by']} and "
+                f"email them this note, word for word:\n\n> {note.strip()}\n\n"
+                "Nothing has been sent.  If that's right, call course_return "
+                "again with confirm=true.")
     if (r := _rehearse(email, f"returned {rid} to {rec['by']} with your note and emailed them")):
         return r
     reconcile.decide_request(rid, "returned", email, note=note.strip())
@@ -1030,16 +1065,23 @@ async def course_return(request_id: str, note: str) -> str:
 
 
 @mcp.tool
-async def course_reject(request_id: str, note: str) -> str:
+async def course_reject(request_id: str, note: str,
+                        confirm: bool = False) -> str:
     """Turn a request down, with the reason — the person who asked reads it
-    in my_requests.  A rejected request is closed; they can file a new one.
-    Platform admins only."""
+    in my_requests and gets it by email.  A rejected request is closed;
+    they can file a new one.  Without confirm=true this only shows what
+    would be sent.  Platform admins only."""
     email, _role, _here = _ident_open()
     _admin_or_refuse(email)
     if not (note or "").strip():
         raise ToolError("Say why — the person who asked will read it.")
     rid = request_id.strip()
     rec = _open_ticket_or_refuse(rid)
+    if not confirm:
+        return (f"Would reject {rid} ({rec['name']}) — closed for good — and "
+                f"email {rec['by']} this note, word for word:\n\n> "
+                f"{note.strip()}\n\nNothing has been sent.  If that's right, "
+                "call course_reject again with confirm=true.")
     if (r := _rehearse(email, f"rejected {rid} and emailed {rec['by']} your note")):
         return r
     reconcile.decide_request(rid, "rejected", email, note=note.strip())
@@ -1194,7 +1236,10 @@ async def fleet_inventory() -> str:
     the course pool has spent against its cap, and how the roster compares
     to the door.  Also rewrites fleet/inventory.md + .json on the box.
     Platform admins only.  Metadata only — no conversation content."""
-    email, _role, _slug = _ident()
+    # _ident_open: the desk is at the front door, and the header never
+    # decided anything here — the admins: list does.  Same for every admin
+    # tool below.
+    email, _role, _here = _ident_open()
     _admin_or_refuse(email)
     rep = await reconcile.fleet_inventory()
     fl, ft = rep["flagship"], rep["flagship"]["census"].get("totals", {})
@@ -1252,10 +1297,9 @@ async def fleet_access(course: str) -> str:
     signed in right now — and the three diffs a review asks for: rostered
     but never seen, seen but not rostered, at the door but not rostered.
     Platform admins only."""
-    email, _role, _slug = _ident()
+    email, _role, _here = _ident_open()
     _admin_or_refuse(email)
-    slug = _course_slug(course, _courses_or_refuse()["courses"])
-    _course_or_refuse(slug)
+    slug = _slug_or_refuse(course, _courses_or_refuse()["courses"], new=False)
     a = await reconcile.fleet_access(slug)
     out = [f"Access — {a['name']} ({slug})", "",
            f"Rostered: {len(a['roster'])} ({len(a['staff'])} staff) · door: {len(a['door'])} may sign in, "
@@ -1285,10 +1329,9 @@ async def fleet_exposure(course: str) -> str:
     its tools and knowledge count; every file by size and owner; the
     capabilities and Actions allowlist the course record grants; the pool.
     Platform admins only.  Names and sizes — never contents."""
-    email, _role, _slug = _ident()
+    email, _role, _here = _ident_open()
     _admin_or_refuse(email)
-    slug = _course_slug(course, _courses_or_refuse()["courses"])
-    _course_or_refuse(slug)
+    slug = _slug_or_refuse(course, _courses_or_refuse()["courses"], new=False)
     x = await reconcile.fleet_exposure(slug)
     t = x["totals"]
     out = [f"Exposure — {x['name']} ({slug})", "",
@@ -1364,10 +1407,13 @@ async def nominations() -> str:
     """Nominations on file: teaching staff see their own course's; platform
     admins see every course's, with the ids `nomination_export` and
     `nomination_decline` take."""
-    email, _role, slug = _ident()
+    email, _role, slug = _ident_open()
     courses = _courses_or_refuse()
     if email in courses["admins"]:
         rows = reconcile.nominations()
+    elif not slug:
+        raise ToolError("Staff see their course's nominations from inside "
+                        "that course's chat.")
     else:
         course = _course_or_refuse(slug)
         _staff_or_refuse(email, course, slug)
@@ -1386,8 +1432,10 @@ async def nomination_export(nomination_id: str) -> str:
     (fleet/templates/<id>-<name>.yaml) and mark the nomination.  Platform
     admins only.  The operator seeds it where it belongs; the file is the
     handoff."""
-    email, _role, _slug = _ident()
+    email, _role, _here = _ident_open()
     _admin_or_refuse(email)
+    if (r := _rehearse(email, f"exported {nomination_id.strip()} as a template and marked it")):
+        return r
     try:
         r = await reconcile.export_nomination(nomination_id.strip(), email)
     except KeyError as e:
@@ -1402,8 +1450,10 @@ async def nomination_export(nomination_id: str) -> str:
 @mcp.tool
 async def nomination_decline(nomination_id: str) -> str:
     """Decline a nomination (kept on file as declined).  Platform admins only."""
-    email, _role, _slug = _ident()
+    email, _role, _here = _ident_open()
     _admin_or_refuse(email)
+    if (r := _rehearse(email, f"declined {nomination_id.strip()}")):
+        return r
     r = reconcile.decline_nomination(nomination_id.strip(), email)
     if r is None:
         raise ToolError(f"No nomination {nomination_id!r}.")
@@ -1581,8 +1631,12 @@ async def health(request: Request) -> JSONResponse:
         # genuine fault, so it must never read as "ok": the fleet renders
         # from this file, and `courses: 0` alone looks exactly like a fresh
         # box.  503 would also hide the reason behind a health-check flap.
+        # The class, not the message: a YAML parse error quotes the line
+        # it choked on, and in this file that line is a student's email.
+        # This endpoint answers anyone who can reach it.
         return JSONResponse({"status": "degraded", "courses": None,
-                             "courses_error": str(e), "bao": bao})
+                             "courses_error": type(e.__cause__ or e).__name__,
+                             "bao": bao})
     return JSONResponse({"status": "ok", "courses": len(data["courses"]), "bao": bao})
 
 

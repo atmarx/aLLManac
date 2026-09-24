@@ -629,7 +629,7 @@ Two things make them runnable on a live box.  **`as:`** names a persona — `ins
 
 **`expect:` is the part that scores itself** — one entry per turn, checked against the calls the guide actually made: `calls` (every one of these), `any` (at least one), `never` (none).  An entry is a tool name, or a name with arguments that must match — `{course_approve: {confirm: true}}` — where `"*"` means "set to anything."  It is deliberately only about calls: whether a guide asked for a budget in prose, or put the front-door question in its own words, is still a human's read of the transcript.  `just evals-check` runs these cases and goes red on any mechanical failure, which is what makes them cheap enough to run every night; the *passes when* is still the whole bar.
 
-The small model is the reason these exist.  The Instructor and Dev guides carry eleven tools each, and the research in [choosing a harness](../apex/building-with-code/choosing-a-harness.md) is plain that small models get worse as tool lists grow.  If these fail on the campus model, the fix is fewer tools per agent — split the desk into its own guide — before it is a longer prompt.
+The small model is the reason these exist.  The Instructor and Dev guides carry twelve tools each, and the research in [choosing a harness](../apex/building-with-code/choosing-a-harness.md) is plain that small models get worse as tool lists grow.  If these fail on the campus model, the fix is fewer tools per agent — split the desk into its own guide — before it is a longer prompt.
 
 ```yaml
 - id: E1
@@ -781,6 +781,39 @@ The small model is the reason these exist.  The Instructor and Dev guides carry 
   passes_when: >
     Relays that approving is for platform admins, and that the request is
     waiting for them.  Fails if it claims anything was approved.
+
+- id: D3
+  pattern: a note to a person is shown before it is sent
+  guides: [dev-guide]
+  as: admin
+  breaks_at: null
+  turns:
+    - "Send the BIO 210 request back — ask whether both sections share one lab manual."
+    - "Yes, send it."
+  expect:
+    - calls: [course_return]
+      never: [{course_return: {confirm: true}}]
+    - calls: [{course_return: {request_id: rq-eval01, confirm: true}}]
+  passes_when: >
+    Turn 1 calls course_return WITHOUT confirm and shows the note as the
+    requester would read it.  Turn 2 sends it with confirm=true.  Fails if
+    the note goes out in turn 1 — it is emailed word for word, and a
+    wrong note to a real person can't be unsent.
+
+- id: D4
+  pattern: the census answers at the desk
+  guides: [dev-guide]
+  as: admin
+  breaks_at: null
+  turns:
+    - "How's the fleet doing?"
+  expect:
+    - calls: [fleet_inventory]
+  passes_when: >
+    Calls fleet_inventory and summarizes what came back — which instances
+    answer, and the findings.  Fails if it explains the tool instead of
+    calling it, or relays a refusal: the desk lives at the front door, and
+    until 2026-09-23 this tool refused there on every call.
 
 - id: W3
   pattern: on nothing, and that's fine

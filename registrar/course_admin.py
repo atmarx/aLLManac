@@ -13,7 +13,9 @@
     python course_admin.py nominations      nominated agents, every course
     python course_admin.py template <id>    export a nomination as a template file
     python course_admin.py reports [--status X] [--course S]   problem reports
-    python course_admin.py report-close <id> [--note ...]     mark one closed
+    python course_admin.py report-close <id> --note ... [--status triaged|closed]
+    python course_admin.py evals-fixture    reset the eval sandbox + tickets
+    python course_admin.py notify-test [EMAIL]   prove mail + the desk webhook
 
 Runs INSIDE the registrar container (the credentials live there and only
 there); the justfile owns docker lifecycle around it — up the new services,
@@ -163,8 +165,10 @@ def main() -> int:
     rp.add_argument("--course", default=None, help="only this slug")
     rc = sub.add_parser("report-close", help="mark a report triaged or closed")
     rc.add_argument("report_id")
-    rc.add_argument("--note", default="", help="what was done about it")
-    rc.add_argument("--status", default="closed", help="triaged|closed")
+    # Required, as it is in chat (report_triage): the note is what the
+    # person who filed it reads in my_reports.
+    rc.add_argument("--note", required=True, help="what was done about it")
+    rc.add_argument("--status", default="closed", choices=("triaged", "closed"))
 
     args = p.parse_args()
 
@@ -181,6 +185,11 @@ def main() -> int:
         return 1
 
     if args.cmd == "create":
+        # _preflight validated the file as it was — without this slug, which
+        # is only written by _upsert.  The same check chat creation runs.
+        if (why := reconcile.slug_error(args.slug.strip().lower())):
+            print(f"refusing: {why}", file=sys.stderr)
+            return 1
         _upsert(args)
         summary = asyncio.run(reconcile.ensure_course(args.slug.strip().lower()))
         results = reconcile.reconcile_students_cmd(args.slug.strip().lower())
@@ -191,7 +200,8 @@ def main() -> int:
             for x in results:
                 if not x["ok"]:
                     print(f"  FAIL {x['who']}: {x['note']}")
-        print(f"\nnext:  just course-up    (starts the instance + reloads the edge)")
+        print("\nThe instance starts at `just course-up` — `just course` runs "
+              "it for you next; by hand, run it yourself.")
         return 0
 
     if args.cmd == "reconcile":

@@ -112,12 +112,14 @@ mcpServers:
   # The registrar, WITHOUT an X-Course header — and that omission is the
   # whole access-control story, so don't "fix" it by adding one.
   #
-  # Every course tool in registrar/server.py opens with `_ident()`, which
-  # refuses when X-Course is absent.  A course instance gets the header
-  # rendered into its own config by the registrar itself; the vestibule
-  # renders nothing, so my_key, roster_apply, course_keys and the rest go on
-  # refusing here with no policy written anywhere.  The one tool that serves
-  # this room calls `_ident_open()` instead and says so in its own body.
+  # The tools about the room you're standing in — my_key, rotate_my_key,
+  # nominate_agent — open with `_ident()`, which refuses when X-Course is
+  # absent.  A course instance gets the header rendered into its own config
+  # by the registrar itself; the vestibule renders nothing, so those go on
+  # refusing here with no policy written anywhere.  Every other tool calls
+  # `_ident_open()` and says so in its own body: the header only ever chose
+  # WHICH course for them, and the roster or `admins:` decides who may act
+  # (docs/design-walls.md, "The front door is the one room…").
   #
   # Why the front door gets a tool at all: it is the one room with no roster,
   # which means it is the room that still answers when the room someone is

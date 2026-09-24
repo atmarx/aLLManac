@@ -20,11 +20,19 @@ from .chatdb import agent_template, census, db_name, list_databases
 from .config import (
     ALMANAC_DOMAIN,
     BASE_MODELS,
+    CHAT_HOST,
     DEFAULT_COURSE_BUDGET,
     DEFAULT_FUSE,
     MIN_FUSE,
+    REHEARSAL_DOMAIN,
 )
-from .courses import course_models, load_courses, save_courses
+from .courses import (
+    clean_name,
+    course_models,
+    deployment_error,
+    load_courses,
+    save_courses,
+)
 from .escrow import escrow_delete, escrow_read, escrow_ready, escrow_write
 from .gateway import (
     ll_delete_key,
@@ -155,8 +163,14 @@ async def _unenroll_one(cx: httpx.AsyncClient, slug: str, email: str,
                         roles: dict, client_uuid: str) -> dict:
     try:
         rec = await escrow_read(slug, email)
-        if rec and rec.get("key"):
-            await ll_delete_key(cx, rec["key"])
+        if rec and rec.get("key") and not await ll_delete_key(cx, rec["key"]):
+            # The escrow record is the only handle on a live key.  Deleting
+            # it after a failed revoke would leave a key spending the pool
+            # that nobody can find again — the orphan the mint path goes
+            # out of its way never to make.  Keep it; retry revokes it.
+            return {"op": "remove", "who": email, "ok": False,
+                    "note": "the gateway didn't confirm the key revoke — "
+                            "nothing changed; safe to retry"}
         await escrow_delete(slug, email)
         uid = await kc_user_id(cx, email)
         if uid:
@@ -185,13 +199,20 @@ async def apply_roster(slug: str, adds: list[str], removes: list[str]) -> list[d
                                              roles, client_uuid))
         for email in removes:
             results.append(await _unenroll_one(cx, slug, email, roles, client_uuid))
-    # File-backend truth: successful ops land in courses.yaml
+    # File-backend truth: successful ops land in courses.yaml — onto the
+    # file as it is NOW.  The loop above awaited Keycloak, the gateway and
+    # the escrow once per student; saving the snapshot from before it would
+    # silently undo anything written meanwhile (an approval, a staff change,
+    # another apply).  Only this course's students move.
     ok_adds = {r["who"] for r in results if r["op"] == "add" and r["ok"]}
     ok_rm = {r["who"] for r in results if r["op"] == "remove" and r["ok"]}
-    students = [e for e in course["students"] if e not in ok_rm]
-    students += [e for e in ok_adds if e not in students]
-    course["students"] = students
-    save_courses(courses)
+    courses = load_courses()
+    course = courses["courses"].get(slug)
+    if course is not None:
+        students = [e for e in course["students"] if e not in ok_rm]
+        students += [e for e in ok_adds if e not in students]
+        course["students"] = students
+        save_courses(courses)
     render.render_roster(courses)
     return results
 
@@ -305,6 +326,8 @@ async def ensure_course(slug: str) -> dict:
     """The `just course` engine: team + service key + OIDC client + door
     roles + staff grants + renders.  Run it until it's boring."""
     import render
+    if (e := deployment_error()):
+        raise RuntimeError(e)
     courses = load_courses()
     course = courses["courses"][slug]
     models = course_models(course, courses)
@@ -361,6 +384,10 @@ async def ensure_course(slug: str) -> dict:
             revoked.append(holder)
         summary["staff"] = {"granted": granted, "precreated": precreated,
                             "revoked": revoked}
+    # Render from the file as it is now, not as it was before the awaits
+    # above — the fleet and roster renders carry every course, not just
+    # this one.
+    courses = load_courses()
     render.render_course(courses, slug,
                          oidc_secret=client_secret, service_key=svc["key"])
     render.render_fleet(courses)
@@ -445,7 +472,7 @@ async def fleet_inventory() -> dict:
             flag = await census(None)
         except Exception as e:
             flag = {"db": db_name(None), "exists": False, "error": f"mongo: {e.__class__.__name__}"}
-        report["flagship"] = {"host": f"chat.{ALMANAC_DOMAIN}", "db": db_name(None),
+        report["flagship"] = {"host": CHAT_HOST, "db": db_name(None),
                               "reachable": await _reachable(cx, "librechat"),
                               "census": flag}
         for slug in sorted(courses["courses"]):
@@ -636,14 +663,14 @@ def upsert_course(slug: str, name: str, instructors: list[str],
     removal is set_staff, on purpose, so a create can't demote anyone."""
     data = load_courses()
     c = data["courses"].get(slug) or {
-        "name": name, "instructors": [], "tas": [],
+        "name": clean_name(name), "instructors": [], "tas": [],
         "budgets": {"course": DEFAULT_COURSE_BUDGET,
                     "key_fuse": DEFAULT_FUSE,
                     "advisory_weekly": 2.0},
         "college": None, "models": list(BASE_MODELS),
         "group": "", "students": [], "aliases": {},
     }
-    c["name"] = name
+    c["name"] = clean_name(name)
     for i in [e.strip().lower() for e in instructors]:
         if i and i not in c["instructors"]:
             c["instructors"].append(i)
@@ -729,7 +756,7 @@ def answer_request(rid: str, by: str, text: str) -> dict | None:
 # else: never provisioned, so it has no team, key, client or instance, and
 # `render` skips it for want of a service key.  Reset on every eval run.
 
-EVAL_DOMAIN = "@almanac.invalid"
+EVAL_DOMAIN = REHEARSAL_DOMAIN
 EVAL_PERSONAS = {
     "instructor": "evals-instructor@almanac.invalid",
     "student": "evals-student@almanac.invalid",
