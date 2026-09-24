@@ -242,7 +242,7 @@ build: _fleet && sbom
 # outage.  Without the re-unseal, an openbao config change deploys green and
 # leaves the escrow sealed until a human notices the registrar can't mint.
 #
-# render-check runs DEAD LAST, after egress-check, and it can fail the deploy.
+# render-check runs after egress-check, and it can fail the deploy.
 # It is config-refresh one level up: config-refresh catches a changed FILE that
 # a running process never re-read; render-check catches a changed TEMPLATE that
 # never reached the file.  `deploy` builds the registrar image, so a new
@@ -263,12 +263,22 @@ build: _fleet && sbom
 # xdocker03 were weeks stale while `agents-check` itself was green
 # (2026-09-21).  `docs-corpus` renders first so the comparison is against the
 # tree you just shipped, not against whatever corpus/ happened to hold; it
-# writes only the gitignored render, never the box.  Red means
-# `just agents-seed` — this reports and never repairs, for render-check's
-# reasons: re-seeding six agents mid-deploy is the bigger surprise.
+# writes only the gitignored render, never the box.
+#
+# And then the deploy REPAIRS it, which render-check deliberately does not.
+# This used to report and stop, on the theory that re-seeding six agents
+# mid-deploy was the bigger surprise.  It wasn't: most pushes here are docs,
+# every docs push turned CI red until someone ran the seeder by hand, and
+# three deploys on 2026-09-24 alone went red for nothing else.  A red that
+# fires on every ordinary change teaches people to ignore red.  The seed is
+# cheap after the first one — content-hashed, so a page edit is one upload —
+# and it updates in place, so no agent id moves.  agents-refresh does the
+# seed; agents-check stays after it as the proof it landed.  What the deploy
+# still never does is the FIRST seed on a box: that one mints the ids you
+# paste into librechat.yaml, which is an operator's act (agents-refresh).
 #
 # What CI runs on the box: images, build, .env, restart, re-read config, verify
-deploy: channel pull build secrets up config-refresh bao-unseal smoke egress-check render-check docs-corpus agents-check
+deploy: channel pull build secrets up config-refresh bao-unseal smoke egress-check render-check docs-corpus agents-refresh agents-check
 
 # The gap this closes: `docker compose up` recreates on a changed DEFINITION,
 # never on changed bind-mount CONTENTS.  Directory mounts got the new file into
@@ -1042,8 +1052,9 @@ key slug email budget="0":
 # Prompts AND knowledge, in one pass: instructions from corpus/<slug>/
 # SYSTEM-PROMPT.md, knowledge from that guide's corpus (replaced wholesale —
 # corpus/ is a render, so what is attached has no authority worth keeping).
-# Ends by printing this box's modelSpecs block, which is hand-written once per
-# instance into site/ — see docs/admin-guide.md, "The vestibule".
+# Ends by printing this box's modelSpecs block when any id is new — it is
+# hand-written once per instance into site/ (docs/admin-guide.md, "The
+# vestibule").
 #
 # Idempotent, and UPDATE-IN-PLACE on purpose: modelSpecs entries reference
 # agent_id, so recreating an agent mints a new id and silently orphans every
@@ -1051,10 +1062,11 @@ key slug email budget="0":
 # The guides are owned by a SERVICE ACCOUNT the seeder creates in Mongo
 # (guides@almanac.invalid — no credentials, cannot sign in).  Never a person:
 # whoever owns the guides can delete their knowledge files from "Manage
-# files," and a faculty owner did exactly that (2026-09-15).  The seeder
-# opens AGENTS.CREATE on the ADMIN role for the run, because the vestibule
-# seeds it false for everyone.  Never edit an agent's instructions in the UI — the next
-# run overwrites them; the version that matters is docs/agent-contract.md.
+# files," and a faculty owner did exactly that (2026-09-15).  The account has
+# its own role, ALMANAC_GUIDES, because the vestibule seeds its lockdown into
+# ADMIN and USER at every boot and never visits a third.  Never edit an agent's
+# instructions in the UI — every deploy now re-runs this and overwrites them;
+# the version that matters is docs/agent-contract.md.
 #
 # --skip-files refreshes only the prompts (seconds, not minutes).
 #
@@ -1062,6 +1074,24 @@ key slug email budget="0":
 agents-seed *flags="":
     @{{just_executable()}} docs-corpus
     python3 scripts/seed_agents.py {{flags}}
+
+# The deploy's seed: a REFRESH, never a first seed.  site/agents-state.json is
+# the seeder's own record that this box has guides and which ids they are; a
+# box without one has never been seeded, and seeding it here would mint agents
+# that no modelSpecs block points at yet.  So it says so and steps aside, and
+# agents-check after it reports the empty vestibule in its own words.  Delete
+# the state file and the deploy stops refreshing until the next hand seed.
+# No docs-corpus here: deploy has just run it.
+#
+# Refresh the guides if this box has any (deploy runs this)
+agents-refresh:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -f site/agents-state.json ]; then
+      echo "agents-refresh — no guides seeded on this box yet; the first seed is by hand (just agents-seed), because it mints the ids you paste into librechat.yaml"
+      exit 0
+    fi
+    python3 scripts/seed_agents.py
 
 # Read-only, and safe to run any time.  The four ways the vestibule goes
 # wrong, in the order it goes wrong: no modelSpecs block on this box, enforce

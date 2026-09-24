@@ -261,7 +261,7 @@ The flagship at `chat.<ALMANAC_DOMAIN>` is the room everyone can reach — the o
 
 **Working the queue without a shell.**  `devs:` in `courses.yaml` is the platform team's bug queue — `reports` and `report_triage` from the vestibule, and nothing else: no fleet view, no roster, no key.  That separation is the point, so the queue is safe to hand to a student worker; the reasoning is in [registrar-spec.md](registrar-spec.md), "Reports."  Admins triage implicitly, and `just course-check` warns if you list someone who's already an admin.  `just devs` shows both lists.  Closing a report needs a note, because `my_reports` shows that note back to whoever filed it.
 
-### The guide agents (once per box, and again whenever the docs change)
+### The guide agents (once per box — every deploy after that refreshes them)
 
 ```
 just agents-seed
@@ -272,13 +272,15 @@ The guides are owned by a **service account** the seeder creates on first run �
 1. renders `corpus/` from front matter (`just docs-corpus`),
 2. creates or **updates in place** the five agents, with instructions from `corpus/<slug>/SYSTEM-PROMPT.md`,
 3. syncs each agent's knowledge to that guide's corpus — by content hash, uploading what changed before retiring what it replaces,
-4. prints the `modelSpecs` block for this box.
+4. prints the `modelSpecs` block for this box — only when an id is new, which after the first seed is almost never.
 
 **Update-in-place is the whole reason this is a script.**  `modelSpecs` entries reference `agent_id`; recreating an agent mints a new id and silently orphans every spec pointing at the old one, which presents as a vestibule whose guides have vanished.  Agent ids are a published interface.  Never edit an agent's instructions in the UI either — the next run overwrites them, and the version that matters is the one in `docs/agent-contract.md`.
 
 **Knowledge syncs by hash, and the first seed is close to a limit.**  LibreChat rate-limits uploads to **50 per user and 100 per IP per 15 minutes**, and the corpus is fifty files — so the first run on a fresh box spends the owner's whole budget, and a second full run inside that window will be refused.  After that first seed it's cheap: a doc edit costs one or two uploads, because only changed pages are re-embedded.  If you do get rate-limited, the run stops at the first 429 and leaves the previous knowledge attached — wait out the window and run it again.  (Raise `FILE_UPLOAD_USER_MAX` in `.env` if a box genuinely needs a bigger corpus in one pass; it's an abuse control, so raise it deliberately.)
 
-The hashes live in `site/agents-state.json` — per box, gitignored, and a cache rather than a record.  Delete it and the next run re-uploads everything, which is correct, just slower.
+The hashes live in `site/agents-state.json` — per box, gitignored.  Delete it and the next hand run re-uploads everything, which is correct, just slower.
+
+**After the first seed, every `just deploy` re-runs it** (`agents-refresh`), so a docs push reaches the guides with no one at the keyboard.  The deploy only refreshes a box that already has `site/agents-state.json`; it never makes the first seed, because that one mints the ids you paste below.  So deleting the state file costs more than a slow run now — the deploy stops refreshing until you seed by hand again.
 
 While iterating on the prompts, `just agents-seed --skip-files` refreshes only the instructions and touches no files at all.
 

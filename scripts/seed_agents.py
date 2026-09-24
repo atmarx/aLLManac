@@ -784,7 +784,14 @@ def main() -> int:
         except OSError as e:
             print(f"could not write {STATE}: {e} — next run re-uploads everything")
 
-    if rows:
+    # The paste-me block only when there is something to paste.  Every deploy
+    # runs this now (`just agents-refresh`), and a block printed on every run
+    # reads as an instruction on every run — to someone who already pasted it.
+    # `a["id"]` is what the state file held BEFORE this run.
+    before = {a["slug"]: a["id"] for a in agents}
+    if rows and all(before.get(row["slug"]) == row["id"] for row in rows):
+        print("\nagent ids unchanged — nothing to paste into librechat.yaml")
+    elif rows:
         print("\n--- paste into this box's librechat.yaml "
               "(docs/admin-guide.md, \"The guide agents\") ---\n")
         print(model_specs(rows, model))

@@ -26,20 +26,19 @@ Everything here assumes you are on the deploy box, in the checkout, and `just` r
 ```bash
 just sync && just deploy      # what CI runs
 just render                   # ONLY if deploy's render-check went red
-just agents-seed              # ONLY if anything under apex/ or the contract changed
 just fleet-smoke              # prove the courses answer, not just the control plane
 ```
 
-Three of those four are conditional, and **the conditions are printed by the deploy itself.**  If you ran a green deploy and changed no documentation, you are done — the rest of this page is why.
+One of those three is conditional, and **the condition is printed by the deploy itself.**  The guides re-seed themselves inside the deploy now, so a docs push needs nothing from you.  If you ran a green deploy, you are done — the rest of this page is why.
 
 ## What `just deploy` already did
 
 ```
 channel  pull  build  secrets  up  config-refresh  bao-unseal
-smoke  egress-check  render-check  docs-corpus  agents-check
+smoke  egress-check  render-check  docs-corpus  agents-refresh  agents-check
 ```
 
-Read that as two halves.  The first seven **change the box**: resolve the image pins from `channels/<name>.env`, pull them, build what's local, fill in any secret still reading `change-me`, bring the stack up, restart containers whose mounted config changed since they booted, and unseal the escrow.  The last five **ask the box questions** and change nothing.
+Read that as two halves.  The first seven **change the box**: resolve the image pins from `channels/<name>.env`, pull them, build what's local, fill in any secret still reading `change-me`, bring the stack up, restart containers whose mounted config changed since they booted, and unseal the escrow.  Of the last six, five **ask the box questions** and change nothing; `agents-refresh` is the exception — it re-seeds the guides from the docs you just shipped, on any box that has been seeded before.
 
 Two of those are worth knowing by name because people re-run them by hand and get confused:
 
@@ -56,7 +55,7 @@ Every one of these is an **inert change**: the deploy shipped the new code and s
 
 `just deploy` ships `registrar/render.py`.  It does not re-render the fleet, so a change to a template is sitting in the image doing nothing until you run the verb.
 
-`render-check` is the guard that tells you that you owe it a run, and it runs **after** `build`, `up` and `config-refresh` for a reason: everything before it has to have happened for its answer to mean anything.  (`docs-corpus` and `agents-check` run after it now; it is no longer the very last step.)  Red looks like this:
+`render-check` is the guard that tells you that you owe it a run, and it runs **after** `build`, `up` and `config-refresh` for a reason: everything before it has to have happened for its answer to mean anything.  (`docs-corpus`, `agents-refresh` and `agents-check` run after it now; it is no longer the very last step.)  Red looks like this:
 
 ```
   differs     /out/usage-mcp/roster.yaml
@@ -74,18 +73,20 @@ That re-renders every course from `courses.yaml` using the templates in the regi
 
 An **unrendered** line is not red.  A course record with no `fleet/<slug>.env` has never been provisioned on this box; that's `just course`, not `just render`.
 
-### 2.  `just agents-seed` — when the documentation changed
+### 2.  `just agents-seed` — the first time, and when the deploy couldn't
 
-The guide agents on the flagship carry the docs as knowledge and the contract as their prompt.  Neither is re-uploaded by a deploy.  `agents-check` runs last and **fails the deploy** when a guide's knowledge or prompt is older than the tree — so a push that touches `apex/` or the contract turns CI red until someone seeds.  That red is the reminder, not a breakage:
+The guide agents on the flagship carry the docs as knowledge and the contract as their prompt.  **The deploy refreshes them itself**: `agents-refresh` re-runs the seeder on any box that has been seeded before, and `agents-check` then **fails the deploy** if a guide's knowledge or prompt is still older than the tree.  The refresh is content-hashed, so a page edit costs one upload, and it updates in place, so no agent id moves.
+
+What the deploy never does is the *first* seed.  That run mints the agent ids you paste into `librechat.yaml`, so it's yours ([Admin Guide](admin-guide.md), "The guide agents"):
 
 ```bash
 just agents-seed                 # corpus + prompts + knowledge files
 just agents-seed --skip-files    # prompts only — seconds, not minutes
 ```
 
-`agents-seed` runs `docs-corpus` itself, so you never have to sequence those two.
+`agents-refresh` knows a box has guides by `site/agents-state.json`, the seeder's own record of their ids.  No file, no refresh — the deploy says so and steps aside.  Delete that file and the deploy stops refreshing until the next hand seed.
 
-**The trigger is any change under `apex/`, `docs/agent-contract.md`, or a page's front matter** — front matter included, because `audience:` and `status:` decide which corpus a page lands in, and moving a page between guides is invisible in a diff of prose.  Two of `agents-check`'s questions compare content rather than counts precisely because a page edited in place used to walk straight past.
+**So `agents-check` red after a deploy means the refresh didn't land**, not that you owe one.  The two usual causes: the box was never seeded (the deploy said so, just above the check), or the upload rate limit — 50 per user per 15 minutes — stopped the refresh partway.  The second clears itself; wait out the window and `just agents-seed`.
 
 ### 3.  `just fleet-smoke` — prove the courses answer
 
@@ -128,10 +129,10 @@ Andrew's actual list, in order.  Steps 1–3 are commands; steps 4 and 5 are not
 
 ```bash
 just sync && just deploy      # 1.  green, top to bottom
-just agents-seed              # 2.  the guides carry today's docs
-just agents-check             # 3a. eight specs, enforce: true, knowledge matches
-just fleet-smoke              # 3b. every course answers through the edge
-just courses                  # 3c. the roster is who you think it is
+just agents-check             # 2.  eight specs, enforce: true, knowledge matches
+                              #     (red on a never-seeded box: just agents-seed, paste the block)
+just fleet-smoke              # 3a. every course answers through the edge
+just courses                  # 3b. the roster is who you think it is
 ```
 
 4. **Sign in as a person.**  Browser, through Keycloak, into the flagship.  A probe proves the endpoint answers; it does not prove a human can get in.
@@ -168,7 +169,7 @@ After editing anything under `site/`, bring the box up with **`just up`** — ne
 |---|---|
 | `render-check` red | [`just render`](#1--just-render--when-a-render-template-changed) — above |
 | `render-check` FAILs on the registrar not matching the tree | `just deploy` first; the check is refusing to guess |
-| `agents-check` red on knowledge or prompt (STALE) | `just agents-seed` — expected after any push that touches `apex/` or the contract |
+| `agents-check` red on knowledge or prompt (STALE) | The deploy's refresh didn't land — read the `agents-refresh` output above it.  Never seeded: `just agents-seed`.  RATE LIMITED: wait fifteen minutes, then `just agents-seed` |
 | `agents-check` reports an orphan spec | A `modelSpecs` entry points at an agent id that no longer exists — re-seed, then paste the reprinted block ([Admin Guide](admin-guide.md)) |
 | `smoke` warns openbao is SEALED | Never red — sealed is a boot state, and chat still works on the keys already rendered.  But nothing can mint or fetch a key until `just bao-unseal`.  On a box with `just fleet-watch-install`, a reboot unseals itself; `journalctl --user -u almanac-unseal` says why it didn't |
 | `fleet-smoke` red on one host | The instance, not the edge.  `just ps`, then `just logs chat-<slug>` |
