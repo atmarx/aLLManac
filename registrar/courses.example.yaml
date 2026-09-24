@@ -4,6 +4,10 @@
 # roster tools write `students:` back here (file backend), and `just course`
 # is the front door for new records.  Full story: docs/registrar-spec.md.
 #
+# The registrar REWRITES this file, normalized, on every change it makes —
+# comments (these included) and keys it doesn't recognize are discarded at
+# its first write.  Keep notes somewhere else.
+#
 # budgets, the three layers (one pool, decided 2026-07-22):
 #   course           THE cap — per term, HARD, chat + vAPI keys drain it together
 #                    (enforced as the course's LiteLLM team budget)

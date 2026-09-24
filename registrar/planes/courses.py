@@ -244,9 +244,15 @@ def save_courses(data: dict) -> None:
     fd, tmp = tempfile.mkstemp(dir=d, prefix=".courses.")
     try:
         with os.fdopen(fd, "w") as f:
+            # The file is written NORMALIZED — ruled 2026-09-23 (@xram): a
+            # round-trip that preserved comments and unknown keys isn't worth
+            # its code, as long as the file says so where the operator looks.
             f.write("# The registrar's course records — see docs/registrar-spec.md.\n"
-                    "# Operator-edited AND registrar-maintained (students, group ids).\n"
-                    "# Gitignored: real rosters are student emails.\n")
+                    "# REWRITTEN BY THE REGISTRAR on every change it makes (enroll,\n"
+                    "# approve, staff, budget), in normalized form.  Hand edits to\n"
+                    "# known keys are kept; COMMENTS AND UNRECOGNIZED KEYS ARE\n"
+                    "# DISCARDED at the next write.  Check a hand edit with\n"
+                    "# `just course-check`.  Gitignored: real rosters are student emails.\n")
             yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
         os.chmod(tmp, 0o644)
         os.replace(tmp, COURSES_PATH)
