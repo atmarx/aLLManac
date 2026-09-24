@@ -43,7 +43,7 @@ Read that as two halves.  The first seven **change the box**: resolve the image 
 
 Two of those are worth knowing by name because people re-run them by hand and get confused:
 
-- **`docs-build` rides on `up`**, so a deploy always rebuilds `site-dist/` from `apex/`.  The help site is built and mounted on every box; whether it is *served* is a route, and the route is not universally tracked yet.
+- **`docs-build` rides on `up`**, so a deploy always rebuilds `site-dist/` from `apex/`.  The help site is built, mounted, and served at `/help/` on the chat host on every box — the route is in the tracked Caddyfile since `471e4f4`.
 - **`secrets` never touches a value that is already set.**  It is safe on every deploy and it is not a rotation.
 
 **A green deploy is a green control plane, not a green fleet.**  `smoke` proves LibreChat, Keycloak, LiteLLM and the escrow are answering.  It says nothing about whether `engr301-2026fall.<domain>` resolves, holds a cert, and returns a login page — that's `fleet-smoke`, and it is deliberately not in the deploy.
@@ -56,7 +56,7 @@ Every one of these is an **inert change**: the deploy shipped the new code and s
 
 `just deploy` ships `registrar/render.py`.  It does not re-render the fleet, so a change to a template is sitting in the image doing nothing until you run the verb.
 
-`render-check` is the guard that tells you that you owe it a run, and it is the **last** step of the deploy for a reason: everything before it has to have happened for its answer to mean anything.  Red looks like this:
+`render-check` is the guard that tells you that you owe it a run, and it runs **after** `build`, `up` and `config-refresh` for a reason: everything before it has to have happened for its answer to mean anything.  (`docs-corpus` and `agents-check` run after it now; it is no longer the very last step.)  Red looks like this:
 
 ```
   differs     /out/usage-mcp/roster.yaml
@@ -76,7 +76,7 @@ An **unrendered** line is not red.  A course record with no `fleet/<slug>.env` h
 
 ### 2.  `just agents-seed` — when the documentation changed
 
-The guide agents on the flagship carry the docs as knowledge and the contract as their prompt.  Neither is re-uploaded by a deploy.  `agents-check` runs last and *warns*, but a warning in a wall of green scrolls past:
+The guide agents on the flagship carry the docs as knowledge and the contract as their prompt.  Neither is re-uploaded by a deploy.  `agents-check` runs last and **fails the deploy** when a guide's knowledge or prompt is older than the tree — so a push that touches `apex/` or the contract turns CI red until someone seeds.  That red is the reminder, not a breakage:
 
 ```bash
 just agents-seed                 # corpus + prompts + knowledge files
@@ -104,7 +104,7 @@ just evals
 just evals --guide student-guide --case F1,M1
 ```
 
-Asks every guide every case in `docs/agent-contract.md` and writes the transcript to `site/evals/` (per box, gitignored).  It **scores nothing** — a human reads it, because "answers from the roster documentation" is not a string match.
+Asks every guide every case in `docs/agent-contract.md` and writes the transcript to `site/evals/` (per box, gitignored).  The prose cases **score nothing** — a human reads them, because "answers from the roster documentation" is not a string match.  The tool cases (`expect:` in the contract) score themselves: `just evals-check` runs only those and exits 1 on any wrong call, and it's what the nightly `guide-evals` cron runs ([ci.md](ci.md)).
 
 Results are per *model*, not per prompt.  A smaller local model fails these more often than a frontier one, so a run against a box pointed at a different `INFERENCE_MODEL` is not comparable to the last one.
 
@@ -129,7 +129,7 @@ Andrew's actual list, in order.  Steps 1–3 are commands; steps 4 and 5 are not
 ```bash
 just sync && just deploy      # 1.  green, top to bottom
 just agents-seed              # 2.  the guides carry today's docs
-just agents-check             # 3a. six specs, enforce: true, knowledge matches
+just agents-check             # 3a. eight specs, enforce: true, knowledge matches
 just fleet-smoke              # 3b. every course answers through the edge
 just courses                  # 3c. the roster is who you think it is
 ```
@@ -166,9 +166,9 @@ After editing anything under `site/`, bring the box up with **`just up`** — ne
 
 | Symptom | Read this |
 |---|---|
-| `render-check` red | [`just render`](#1-just-render--when-a-render-template-changed) — above |
+| `render-check` red | [`just render`](#1--just-render--when-a-render-template-changed) — above |
 | `render-check` FAILs on the registrar not matching the tree | `just deploy` first; the check is refusing to guess |
-| `agents-check` warns on knowledge or prompt | `just agents-seed` |
+| `agents-check` red on knowledge or prompt (STALE) | `just agents-seed` — expected after any push that touches `apex/` or the contract |
 | `agents-check` reports an orphan spec | A `modelSpecs` entry points at an agent id that no longer exists — re-seed, then paste the reprinted block ([Admin Guide](admin-guide.md)) |
 | `smoke` warns openbao is SEALED | Never red — sealed is a boot state, and chat still works on the keys already rendered.  But nothing can mint or fetch a key until `just bao-unseal`.  On a box with `just fleet-watch-install`, a reboot unseals itself; `journalctl --user -u almanac-unseal` says why it didn't |
 | `fleet-smoke` red on one host | The instance, not the edge.  `just ps`, then `just logs chat-<slug>` |

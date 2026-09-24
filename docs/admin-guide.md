@@ -555,13 +555,15 @@ The named volumes are the state.  What each holds, and how much it would hurt:
 | Volume | Contents | Hurt level |
 |---|---|---|
 | `mongo-data` | LibreChat: users, conversations, **agents**, ACLs | High — the class's work |
-| `vector-data` | pgvector: agent knowledge-file embeddings | Medium — rebuildable by re-uploading files |
+| `vector-data` | pgvector: the flagship's agent knowledge-file embeddings | Medium — rebuildable by re-uploading files (`just agents-seed` for the guides) |
+| `vector-<slug>-data` | pgvector: that course's agent knowledge-file embeddings — one volume per course | Medium — rebuildable only by every author re-uploading their files |
 | `litellm-db` | Keys, budgets, **spend history** | High — the ledger |
 | `keycloak-db` | Users, roles, the Globus broker config | High — identity |
 | `meili-data` | Search index | Low — rebuilds itself |
 | `bao-data` | **The escrow** — every minted key, versioned | High — but online-snapshotable (`bao operator raft snapshot save`) |
 | `chat-<slug>-*` / `meili-<slug>-*` | each course instance's images/logs/search | Mongo holds the real data (one DB per course inside `mongo-data`) |
-| `hf-cache` (vllm stack) | Model weights | Low — re-downloads |
+| `hf-cache` (core) | The embedding model the rag service runs on CPU | Low online — re-downloads.  **High air-gapped**: nothing embeds without it, and nothing says why |
+| `hf-cache` (vllm stack, `almanac-vllm_hf-cache`) | LLM weights | Low — re-downloads, but it's gigabytes |
 
 Consistent dumps without stopping anything:
 
@@ -572,7 +574,16 @@ docker exec alm-vectordb    pg_dump -U rag      vectordb > vectordb.sql
 docker exec alm-mongo       mongodump --archive           > mongo.archive
 ```
 
-And the facts that outrank everything: **`.env` is not in git** (it holds every secret — back it up separately, permissions tight, and `usage-mcp/roster.yaml` deserves the same ride: also gitignored, also on-disk), and **`CREDS_KEY`/`CREDS_IV` are pinned for life** — restore a Mongo backup with a different pair and every stored key decrypts to garbage.
+And the facts that outrank everything: **the volumes are not the whole state.**  These files are on disk, gitignored, and in no volume — back them up with `.env`, separately from `bao-data`, permissions tight:
+
+| File | Why it can't be regenerated |
+|---|---|
+| `.env` | Every secret, and the unseal key.  Kept apart from `bao-data` so a stolen backup of one is useless without the other |
+| `registrar/courses.yaml` | **The source** — every course, who teaches it, who's enrolled, what it may spend.  Everything in `fleet/` is rendered from it |
+| `registrar/reports.yaml`, `requests.yaml`, `nominations.yaml` | The problem-report queue, room-request tickets, and nominated agents — the only copy |
+| `fleet/<slug>.env` | Each course's `CREDS_KEY`/`CREDS_IV`/`JWT_SECRET`.  A render, but one that *keeps* existing values — lose the file and the next render mints a new pair |
+
+`usage-mcp/roster.yaml` and the rest of `fleet/` are renders: `just render` rebuilds them from `courses.yaml`.  And **`CREDS_KEY`/`CREDS_IV` are pinned for life** — the flagship's in `.env`, each course's in its `fleet/<slug>.env` — so restore a Mongo backup with a different pair and every stored key decrypts to garbage.
 
 ---
 

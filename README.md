@@ -160,7 +160,7 @@ Then in `.env`: `OPENID_ISSUER=https://auth-aiclassroom.example.edu/realms/class
 - **`CREDS_KEY`/`CREDS_IV` are pinned for life.** They encrypt every user's saved API key at rest; rotating them orphans every stored key ("invalid key provided"). `just secrets` will never touch a value that's already set — that's a feature, learned the hard way.
 - The bundled realm is a **mock**: demo passwords, `sslRequired: none`, Keycloak in `start-dev`. Fine on a LAN behind a firewall; put real identity and `start` mode in front before real users.
 - Images are **pinned** (compose defaults + `.env.example`). Bump deliberately: edit the pin, deploy, verify, commit. The LiteLLM and RAG API pins are digests because their channels are moving tags.
-- Backups are yours: the named volumes (`mongo-data`, `litellm-db`, `keycloak-db`, `vector-data`) are the state.
+- Backups are yours: the named volumes (`mongo-data`, `litellm-db`, `keycloak-db`, `vector-data`, each course's `vector-<slug>-data`, and `bao-data` — the escrow) plus a handful of gitignored files (`.env`, `registrar/courses.yaml`, the registrar's queues, `fleet/<slug>.env`).  The list and why each matters: [docs/admin-guide.md](docs/admin-guide.md#backups).
 
 ## Honest ledger: real vs. not
 

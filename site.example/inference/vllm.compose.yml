@@ -20,7 +20,11 @@
 #
 # NOTE for boxes that ran the old `gpu` profile: this project has its own
 # HF cache volume (almanac-vllm_hf-cache), so the first boot re-downloads the
-# model once.  Reclaim the old cache afterwards: docker volume rm almanac_hf-cache
+# model once.  Do NOT reclaim the old one: `almanac_hf-cache` is the core
+# stack's embedding cache now (compose.yml, the rag service), and on an
+# air-gapped box deleting it means no knowledge file ever embeds again, with
+# nothing in any log saying why.  If it holds an old LLM's weights you want
+# back, prune those directories inside it — never the volume.
 name: almanac-vllm
 
 services:

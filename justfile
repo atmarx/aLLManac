@@ -1005,7 +1005,12 @@ bao-unseal tries="12":
         [ $rc -eq 2 ] && break           # sealed and answering — unseal it
         sleep 5
     done
-    [ ${rc:-1} -eq 2 ] || exit 0         # not answering (no openbao yet) — leave it
+    # Not answering (no openbao yet) — leave it, but SAY so: from the boot
+    # unit this line is the journal's only account of a box left sealed.
+    if [ ${rc:-1} -ne 2 ]; then
+      echo "openbao — not answering after {{tries}} tries; left as it is (sealed until: just bao-unseal)"
+      exit 0
+    fi
     if {{compose}} exec -T openbao bao operator unseal "$key" </dev/null >/dev/null; then
       echo "openbao — unsealed"
     else

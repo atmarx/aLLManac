@@ -67,6 +67,18 @@
         root * /srv/docs
         file_server
     }
+    # A missing help page gets mkdocs' own 404.html, still with status 404.
+    # file_server alone answers a bare 404; the page only shows up through an
+    # error route.  Scoped to /help/ — everything else here is LibreChat's,
+    # and its 404s are its own responses, not Caddy errors.
+    handle_errors 404 {
+        @help path /help/*
+        handle @help {
+            root * /srv/docs
+            rewrite * /404.html
+            file_server
+        }
+    }
 
     reverse_proxy librechat:3080 {
         header_up -X-Tenant-Id
