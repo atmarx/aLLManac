@@ -540,9 +540,16 @@ Provision **8 vCPU / 32 GB / 256 GB** and forget about it until ~20 courses; it'
 
 **Backups — the whole point of one VM:**
 
-*Not built yet — this is the design, and Phase 2 owes it.*  `just backup` (nightly via cron/systemd timer) produces one timestamped tarball: `mongodump --archive` (every course DB in one pass) · `pg_dump` litellm (**the ledger**) + keycloak · `bao operator raft snapshot save` (**the escrow**, online, consistent) · `.env` + `registrar/courses.yaml` + the fleet renders + caddy data (certs — cheap to keep, annoying to reissue).  **Meili is excluded on purpose** — it's derived from Mongo and rebuilds on boot.  Ship the tarball off-box with restic to Azure Blob (the hedge rides again); the VM is the working copy, never the only copy.
+*Not built yet — this is the design, and Phase 2 owes it; the build is in flight as of 2026-09-24.*  `just backup` (nightly, a lingering user timer installed the way `fleet-watch-install` installs its units) produces **two bundles, never one**:
 
-`just restore <tarball>` is the mirror image on a fresh VM: compose up, load dumps, restore the raft snapshot, unseal, smoke.  **The restore drill is scheduled work, not documentation theater** — see Phase 2.  A backup that's never been restored is a rumor.
+- **The data bundle** — `mongodump --archive` (every course DB in one pass) · `pg_dump` of litellm (**the ledger**), keycloak, the flagship `vectordb` and every course's `vectordb-<slug>` (rebuildable only by every author re-uploading, so it rides) · `bao operator raft snapshot save` (**the escrow**, online, consistent) · `registrar/courses.yaml` and the registrar's queues (`reports`, `requests`, `nominations`) · caddy data (certs — cheap to keep, annoying to reissue).
+- **The secrets bundle** — `.env` (every secret, and the unseal key) and every `fleet/<slug>.env` (the course's pinned `CREDS_KEY`/`CREDS_IV`).
+
+They are separate on purpose, which is the correction this paragraph owed: it used to say *one tarball*, while the [admin guide](admin-guide.md#backups) says `.env` is kept apart from `bao-data` so a stolen copy of one is useless without the other.  One tarball would have been the stolen copy of both.  So they go to **two restic repositories under two passwords**, and neither password lives on the box — a restic password kept in `.env` dies with the box it was meant to outlive.  The target is a per-box setting in `site/`, not a tracked constant, because the campus box and the lab boxes don't share a cloud.  restic runs from its container image, so the box installs nothing.  **Meili is excluded on purpose** — it's derived from Mongo and rebuilds on boot — and so are the hf-caches, which re-download (an air-gapped box names that as its own risk).
+
+**A backup that stops must say so.**  A failed run pings the desk the way `notify` does; a timer that fails quietly is how a box ends up with six months of confidence and no copies.  Retention is 7 daily · 4 weekly · 6 monthly, which is also a **privacy number**: a deleted chat lives in the backups until the last copy holding it ages out, and the reader pages owe students that number the day this ships ([how-long-we-keep-it](../apex/your-data/how-long-we-keep-it.md)).
+
+`just restore <snapshot>` is the mirror image on a fresh VM: pull both bundles, compose up, load dumps, restore the raft snapshot, unseal, smoke.  **Built means the drill passed, not that the recipe exists:** on a scratch VM, a rehearsal persona logs in, sees its chat history, `my_key` returns the *same* key it had before, and `just evals-check` goes green.  **The restore drill is scheduled work, not documentation theater** — see Phase 2.  A backup that's never been restored is a rumor.
 
 ---
 
