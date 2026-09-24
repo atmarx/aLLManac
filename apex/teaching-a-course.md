@@ -11,6 +11,7 @@ tethered_to:
   - usage-mcp/server.py
   - registrar/server.py
   - registrar/planes/gateway.py
+  - registrar/render.py
   - docs/admin-guide.md#backups
 ---
 
@@ -44,6 +45,8 @@ One thing the roster does *not* decide is seniority.  It answers two separate qu
 ## Giving the platform your class list
 
 **Paste it into your course chat.  Any format.**
+
+First put the roster tools in reach — the same two clicks as [fetching a key](building-with-code/your-key.md): the course's own model from the picker, then **MCP Servers → almanac-registrar** in the message bar.  A course chat opens waiting for you to pick an agent, and without the registrar switched on it is only a chat.
 
 You do not need to reformat anything, and there is no file to upload.  Export the roster from wherever you keep it — a CSV with eight columns, a list of addresses, an email you sent the section — paste the whole thing, and ask to stage a roster.  What matters is that the **sign-in email addresses** are somewhere in the text; headers, names, student numbers and junk columns are ignored, and you are told how many lines were skipped so you can tell "ignored the header" from "pasted the wrong column."
 

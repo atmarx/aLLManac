@@ -104,7 +104,7 @@ The agent has one body — edits overwrite, last save wins, and there's no merge
 
 Chat needs no key — sign in and go; the ledger already knows who you are.  The API key is for **code**: your own scripts, notebooks, and the coding harness in Part 4.
 
-- **You fetch it yourself.**  In your course's chat — the course address, not the front desk — ask for your key.  It is minted when your instructor enrolls you, so if the chat says you're not on the roster yet, that's the person to ask.  Nobody emails it to you, and nobody else can fetch it for you.
+- **You fetch it yourself.**  In your course's chat — the course address, not the front desk — pick the course's model, switch on **almanac-registrar** under **MCP Servers** in the message bar, and ask for your key ([the two clicks, step by step](building-with-code/your-key.md)).  It is minted when your instructor enrolls you, so if the chat says you're not on the roster yet, that's the person to ask.  Nobody emails it to you, and nobody else can fetch it for you.
 - **One key per course, and it carries your name.**  In two courses you have two keys, each spending against its own course, and every request made with one is recorded against you.
 - Each key carries a **budget** of its own — a small one, there to catch a runaway loop before it catches your course.  Visibility, not a paywall.
 - **Treat the key like a password.**  Don't commit it to a repo, don't paste it into a shared doc.  If it leaks or you lose it, ask your course's chat to **rotate** it — you get a new key, the old one dies, and whatever was left on its budget carries over.  Seconds, and nobody's permission.

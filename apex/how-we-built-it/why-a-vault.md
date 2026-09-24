@@ -91,9 +91,11 @@ tethered_to:
        the seal protect?  A copy of the vault's storage that leaves the box
        WITHOUT .env — a stolen backup, a detached volume, a shared snapshot
        — is ciphertext.  Someone who owns the running box gets everything.
-       That holds only while .env is backed up separately from bao-data,
-       which admin-guide.md#backups tells operators to do; verify before
-       publishing.  "Reboots without a human" was chosen over "a human holds
+       That holds only while .env is backed up separately from bao-data.
+       Checking it caught the spec's backup design putting both in ONE
+       tarball — the stolen copy of both.  bd18ee4 split them: two restic
+       repositories, two passwords, neither password on the box
+       (registrar-spec.md, backups).  That correction is itself a beat.  "Reboots without a human" was chosen over "a human holds
        the key", on purpose.  Moving the key off the box is the upgrade
        path, and its price is that every reboot waits for a person.  Write
        the vault as a decision with a price, not a feature.

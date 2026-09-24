@@ -11,13 +11,19 @@ tethered_to:
   - registrar/planes/verbs.py
   - registrar/planes/gateway.py
   - registrar/planes/config.py
+  - registrar/render.py
 ---
 
 # Your API key
 
 ## Getting it
 
-Open **your course's chat** — the course address, not the front desk — and ask for your key.  The assistant calls a tool named `my_key` and hands it back to you in the conversation.  Nobody emails it to you and nobody else can fetch it for you, because the tool answers the person who is signed in and nobody else.
+Open **your course's chat** — the course address, not the front desk.  It opens waiting for you to pick an agent, and the tool that hands out keys is not switched on yet, so two clicks come first:
+
+1. In the model picker at the top, choose the course's own model — under **Almanac**, unless your campus has renamed it.
+2. In the message bar, open **MCP Servers** and tick **almanac-registrar**.
+
+Now ask for your key.  The assistant calls a tool named `my_key` and hands it back to you in the conversation.  Nobody emails it to you and nobody else can fetch it for you, because the tool answers the person who is signed in and nobody else.
 
 If it says you are not on the roster yet, your instructor hasn't added you — the key is minted when you are enrolled, so there is nothing to fetch until then.  Teaching staff get theirs minted the first time they ask.
 
