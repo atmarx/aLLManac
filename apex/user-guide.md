@@ -109,7 +109,7 @@ Chat needs no key — sign in and go; the ledger already knows who you are.  The
 - Each key carries a **budget** of its own — a small one, there to catch a runaway loop before it catches your course.  Visibility, not a paywall.
 - **Treat the key like a password.**  Don't commit it to a repo, don't paste it into a shared doc.  If it leaks or you lose it, ask your course's chat to **rotate** it — you get a new key, the old one dies, and whatever was left on its budget carries over.  Seconds, and nobody's permission.
 - If you hit your budget, requests start failing with a budget-exceeded error.  That's a conversation, not a punishment — ask your instructor.
-- **Where do I stand?**  Ask the chat.  The **Almanac Usage** agent answers "how much have I used this week?" with your real numbers — chat and API keys combined.  Only ever yours; nobody else's.
+- **Where do I stand?**  Ask.  Switch on **almanac-usage** under **MCP Servers** in your course's chat, or ask the **Usage Guide** at the front door, "how much have I used this week?" — either answers with your real numbers — chat and API keys combined.  Only ever yours; nobody else's.
 
 The whole story — what the budget counts, why a model added later may not show up on your key, and how to keep it out of a repo — is on [Your API key](building-with-code/your-key.md).
 
