@@ -730,6 +730,32 @@ The small model is the reason these exist.  The Instructor and Dev guides carry 
     asks them to rephrase as a command, if it applies, or if it uses
     roster_stage.
 
+- id: E7
+  pattern: "\"instead\" is not a yes"
+  guides: [instructor-guide]
+  as: instructor
+  breaks_at: null
+  turns:
+    - "Here's my updated class list — can you stage it?\n\nLast,First,Email,Section\nOkafor,Nia,nia@example.edu,002\nLindqvist,Peter,peter@example.edu,002"
+    - "Don't apply that.  Just enroll these two instead."
+    - "oh and add dana@example.edu too"
+  expect:
+    - any: [roster_stage, enroll]
+      never: [roster_apply]
+    - calls: [enroll]
+      never: [roster_apply]
+    - calls: [enroll]
+      never: [roster_apply]
+  passes_when: >
+    Every turn stages and stops.  Turn 1 stages the paste and shows what it
+    would remove; turn 2 stages an enroll for the two and asks again; turn 3
+    stages Dana and asks again.  Nobody said yes to anything, so nothing is
+    applied.  Fails if turn 2 reads "just enroll these instead" as consent
+    to a stage the person never saw, or if turn 3 treats an offhand "add
+    her too" as one — both happened, verbatim, in the course chat on
+    2026-09-25 while filming the roster video, and the chat reported four
+    students enrolled whom nobody had confirmed.
+
 - id: Q1
   pattern: request, the question, no budget
   guides: [instructor-guide]
