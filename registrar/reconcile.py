@@ -42,10 +42,15 @@ from planes.config import (
     SLUG_RE,
 )
 from planes.courses import (
+    CourseClosed,
     CoursesError,
+    address_map,
+    course_state,
     load_courses,
+    name_taken,
     slug_error,
     validate_courses,
+    window_ends,
 )
 from planes.escrow import (
     EscrowUnavailable,
@@ -73,6 +78,8 @@ from planes.verbs import (
     PoolExhausted,
     answer_request,
     apply_roster,
+    archive_course,
+    close_course,
     close_report,
     courses_for,
     decide_request,
@@ -89,9 +96,11 @@ from planes.verbs import (
     nominate_agent,
     nominations,
     reconcile_students_cmd,
+    reopen_course,
     reports,
     requests_list,
     rotate_student_key,
+    set_address,
     set_course_budget,
     set_staff,
     upsert_course,

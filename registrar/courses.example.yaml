@@ -64,6 +64,10 @@ courses:
       - amaya@example.edu
       - bram@example.edu
     aliases: {}
+    # The stable address: engr301.<domain> 302s to whichever term claims it,
+    # so a syllabus link survives next fall's engr301-2027fall.  A course is
+    # one term and its id is never reused (docs/registrar-spec.md, "The term").
+    address: engr301
 
   chem101-2026fall:
     name: "CHEM 101 — General Chemistry (Fall 2026)"

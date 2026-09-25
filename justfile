@@ -930,6 +930,41 @@ devs:
 course-check:
     {{compose}} exec -T registrar python course_admin.py validate </dev/null
 
+# ---- The term: close, reopen, archive (docs/registrar-spec.md, "The term") ----
+# A course is one term (engr301-2026fall); `address:` is the stable name that
+# redirects to whichever term claims it.  Closing is two steps and only the
+# second is irreversible — neither deletes anything.
+
+# Its team is blocked (no key spends, chat included); sign-in, history and
+# agents stay up for the 14-day export window.  Undo: course-reopen.
+#
+# Freeze a course at the end of its term (the export window opens)
+course-close slug:
+    {{compose}} exec -T registrar python course_admin.py close "{{slug}}" </dev/null
+    @{{just_executable()}} course-up
+
+# Undo a course-close (not an archive): unblock the team, clear the date
+course-reopen slug:
+    {{compose}} exec -T registrar python course_admin.py reopen "{{slug}}" </dev/null
+    @{{just_executable()}} course-up
+
+# Every key revoked, sign-in disabled, the instance and its vhost gone — data
+# and volumes stay.  Refused inside the export window without --force:
+#   just course-archive engr301-2026fall --force
+#
+# End a closed course: keys revoked, sign-in shut, instance down
+course-archive slug *flags:
+    {{compose}} exec -T registrar python course_admin.py archive "{{slug}}" {{flags}} </dev/null
+    @{{just_executable()}} course-up
+
+# The new term takes its predecessor's address; '-' drops one:
+#   just course-address engr301-2027fall engr301
+#
+# Point a stable address (engr301) at a course's current term
+course-address slug address:
+    {{compose}} exec -T registrar python course_admin.py address "{{slug}}" "{{address}}" </dev/null
+    @{{just_executable()}} course-up
+
 # ---- OpenBao: the escrow ------------------------------------------------------
 
 # The once-per-box ritual: init, unseal, audit device, kv2 mount, policy,

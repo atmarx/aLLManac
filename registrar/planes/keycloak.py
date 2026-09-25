@@ -219,6 +219,22 @@ async def kc_client_uuid(cx: httpx.AsyncClient, slug: str) -> str | None:
     return found[0]["id"] if found else None
 
 
+async def kc_set_client_enabled(cx: httpx.AsyncClient, client_uuid: str,
+                                enabled: bool) -> None:
+    """Open or shut a course's sign-in.  A disabled client refuses every new
+    login and token refresh; its roles and role holders stay, so archive
+    keeps the record of who had the door.  Round-trips the whole client
+    representation — PUT replaces what it is given."""
+    r = await _kc(cx, "GET", f"/clients/{client_uuid}")
+    r.raise_for_status()
+    rep = r.json()
+    if rep.get("enabled", True) == enabled:
+        return
+    rep["enabled"] = enabled
+    r = await _kc(cx, "PUT", f"/clients/{client_uuid}", json=rep)
+    r.raise_for_status()
+
+
 async def kc_role_holders(cx: httpx.AsyncClient, client_uuid: str, role: str) -> list[str]:
     """Emails holding a client role — the door as Keycloak actually has it,
     as opposed to the roster as the registrar wishes it."""

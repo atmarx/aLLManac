@@ -62,6 +62,10 @@ class _FailureWords(Middleware):
             # By the time it reaches here fastmcp has already masked it into
             # a ToolError("Error calling tool …"); what we match is the cause.
             cause = e if not isinstance(e, ToolError) else e.__cause__
+            if isinstance(cause, reconcile.CourseClosed):
+                # Already written for the person asking (open_or_raise):
+                # which state, since when, and until when they can export.
+                raise ToolError(str(cause)) from None
             if isinstance(cause, yaml.YAMLError):
                 raise ToolError(
                     "One of the registrar's record files can't be read right "
@@ -283,11 +287,17 @@ def _course_slug(arg: str, courses: dict) -> str:
     column it read — the eval run caught the Instructor Guide passing the
     name first every time (2026-09-23, @geordi).  Only ever chooses WHICH
     course: authority is still _staff_or_refuse, so resolving a name opens
-    nothing a slug wouldn't.  No match, or two courses sharing a name,
+    nothing a slug wouldn't.  A stable `address:` resolves to its current
+    term.  No match, or two courses sharing a name,
     comes back as-is and fails as an unknown slug downstream."""
     named = (arg or "").strip()
     if not named or named.lower() in courses:
         return named.lower()
+    # A stable address names whichever term claims it today — the same
+    # answer the edge's redirect gives, so "engr301" means one course here
+    # and in the browser.
+    if (term := reconcile.address_map({"courses": courses}).get(named.lower())):
+        return term
     hits = [s for s, c in courses.items()
             if str(c.get("name", "")).strip().casefold() == named.casefold()]
     return hits[0] if len(hits) == 1 else named.lower()
@@ -401,6 +411,17 @@ async def my_key() -> str:
         )
     if (r := _rehearse(email, "handed back your key for this course")):
         return r
+    if reconcile.course_state(course) != "open":
+        # The escrow still holds a key here during the export window, and
+        # handing it over would give someone a credential the gateway
+        # already refuses — the "my key stopped working" loop, started by us.
+        ends = reconcile.window_ends(course)
+        until = (f"  Your conversations are still here until {ends.isoformat()} "
+                 "— export anything you want to keep before then (each "
+                 "conversation's menu has Export)." if ends else "")
+        raise ToolError(
+            f"{course.get('name', slug)} closed on {course['closed']}, and its "
+            f"keys stopped working then — the term's budget is shut.{until}")
     rec = await reconcile.escrow_read(slug, email)
     if rec is None and _is_staff(email, course):
         # Staff mint on first ask.  This used to refuse and point at `just
@@ -496,8 +517,16 @@ async def my_courses() -> str:
         c = courses[slug]
         role = ("instructor" if email in c.get("instructors", []) else
                 "TA" if email in c.get("tas", []) else "student")
-        rows.append(f"| {c.get('name', slug)} | {slug} | {role} | "
-                    f"https://{slug}.{reconcile.ALMANAC_DOMAIN} |")
+        state = reconcile.course_state(c)
+        if state == "archived":
+            where = f"archived {c['archived']} — no longer online"
+        else:
+            where = f"https://{slug}.{reconcile.ALMANAC_DOMAIN}"
+            if state == "closed":
+                ends = reconcile.window_ends(c)
+                where += (f" (closed {c['closed']}; export your conversations by "
+                          f"{ends.isoformat()})" if ends else f" (closed {c['closed']})")
+        rows.append(f"| {c.get('name', slug)} | {slug} | {role} | {where} |")
     if not rows:
         return (
             f"I don't see {email} on any course's roster.  If you expected "
@@ -734,10 +763,12 @@ def _slug_or_refuse(slug: str, courses: dict, *, new: bool) -> str:
                         "like engr301-2026fall.")
     if not new and not reconcile.SLUG_RE.match(slug):
         raise ToolError(f"There's no course called '{slug}'.")
-    if new and slug in courses:
+    if new and slug in courses and reconcile.course_state(courses[slug]) == "open":
         raise ToolError(
             f"{slug} already exists.  course_staff changes who teaches it; "
             "course_budget_set changes its pool.")
+    if new and (why := reconcile.name_taken(slug, {"courses": courses})):
+        raise ToolError(f"That id is taken: {why}.")
     if not new and slug not in courses:
         raise ToolError(f"There's no course called '{slug}'.")
     return slug

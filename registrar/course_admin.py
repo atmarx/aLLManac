@@ -1,7 +1,7 @@
 """Operator CLI for the registrar — what `just course` execs in-container.
 
     python course_admin.py create <slug> <name> <instructor...> [--budget N]
-                                  [--college X] [--ta EMAIL]...
+                                  [--college X] [--ta EMAIL]... [--address A]
     python course_admin.py reconcile <slug>     re-run everything, idempotent
     python course_admin.py render               re-render all files (template bumps)
     python course_admin.py render --check       report render drift, change nothing
@@ -9,6 +9,10 @@
     python course_admin.py mint <slug> <email> [--budget N]   mint + escrow, prints no key
     python course_admin.py show-key <slug> <email>   break-glass escrow read (audited)
     python course_admin.py list
+    python course_admin.py close <slug>     freeze: team blocked, export window opens
+    python course_admin.py reopen <slug>    undo a close
+    python course_admin.py archive <slug> [--force]   keys revoked, sign-in shut, instance down
+    python course_admin.py address <slug> <address|->   move (or drop) a stable address
     python course_admin.py inventory        the census: fleet/inventory.md + .json
     python course_admin.py nominations      nominated agents, every course
     python course_admin.py template <id>    export a nomination as a template file
@@ -33,9 +37,12 @@ import render
 
 
 def _upsert(args) -> None:
+    slug = args.slug.strip().lower()
     reconcile.upsert_course(
-        args.slug.strip().lower(), args.name, args.instructors,
+        slug, args.name, args.instructors,
         tas=args.ta, budget=args.budget, college=args.college)
+    if args.address:
+        reconcile.set_address(slug, args.address)
 
 
 def _report(errors: list, warnings: list) -> None:
@@ -81,7 +88,7 @@ def _render_check(courses: dict) -> int:
     unrendered = []
     render.begin_dry_run()
     try:
-        for slug in sorted(courses["courses"]):
+        for slug in render.live_slugs(courses):
             secret, key = render.rendered_credentials(slug)
             if not secret or not key:
                 # No render yet — that's a course awaiting `just course`, not
@@ -124,6 +131,20 @@ def main() -> int:
                    help=f"course pool, USD/term (default {reconcile.DEFAULT_COURSE_BUDGET:g})")
     c.add_argument("--college", default=None, help="model-pack key in colleges:")
     c.add_argument("--ta", action="append", help="TA email (repeatable)")
+    c.add_argument("--address", default=None,
+                   help="stable address that redirects here (e.g. engr301 for engr301-2026fall)")
+
+    for verb, text in (("close", "freeze a course: team blocked, export window opens"),
+                       ("reopen", "undo a close (not an archive)"),
+                       ("archive", "revoke every key, shut sign-in, take the instance down")):
+        v = sub.add_parser(verb, help=text)
+        v.add_argument("slug")
+        if verb == "archive":
+            v.add_argument("--force", action="store_true",
+                           help="archive inside the export window")
+    ad = sub.add_parser("address", help="point a stable address at a course ('-' drops it)")
+    ad.add_argument("slug")
+    ad.add_argument("address")
 
     r = sub.add_parser("reconcile", help="re-run provisioning + enroll listed students")
     r.add_argument("slug")
@@ -187,7 +208,13 @@ def main() -> int:
     if args.cmd == "create":
         # _preflight validated the file as it was — without this slug, which
         # is only written by _upsert.  The same check chat creation runs.
-        if (why := reconcile.slug_error(args.slug.strip().lower())):
+        slug = args.slug.strip().lower()
+        data = reconcile.load_courses()
+        why = reconcile.slug_error(slug) or reconcile.name_taken(slug, data)
+        if why and not (slug in data["courses"]
+                        and reconcile.course_state(data["courses"][slug]) == "open"):
+            # An open course of this id is an UPDATE — `just course` has always
+            # been create-or-add.  Anything else taken is a refusal.
             print(f"refusing: {why}", file=sys.stderr)
             return 1
         _upsert(args)
@@ -221,7 +248,7 @@ def main() -> int:
         async def _rerender():
             import httpx
             async with httpx.AsyncClient(timeout=30) as cx:
-                for slug in courses["courses"]:
+                for slug in render.live_slugs(courses):
                     svc = await reconcile.escrow_read(slug, "service")
                     if svc is None:
                         print(f"skip {slug}: no service key escrowed (run: create/reconcile)")
@@ -364,11 +391,43 @@ def main() -> int:
         print(f"{r['id']} -> {r['status']}")
         return 0
 
+    if args.cmd in ("close", "reopen", "archive", "address"):
+        slug = args.slug.strip().lower()
+        if slug not in reconcile.load_courses()["courses"]:
+            print(f"no course {slug}", file=sys.stderr)
+            return 1
+        if args.cmd == "close":
+            out = asyncio.run(reconcile.close_course(slug))
+            print(json.dumps(out, indent=2))
+            print(f"\n{slug} is frozen: nothing on its team can spend, and sign-in, "
+                  f"history and agents stay up until {out['export_until']} for "
+                  f"exports.  Undo with `just course-reopen {slug}`; end it with "
+                  f"`just course-archive {slug}` after the window.")
+        elif args.cmd == "reopen":
+            print(json.dumps(asyncio.run(reconcile.reopen_course(slug)), indent=2))
+        elif args.cmd == "archive":
+            out = asyncio.run(reconcile.archive_course(slug, force=args.force))
+            print(json.dumps(out, indent=2))
+            if out["failed"]:
+                print(f"\nNOT archived: the gateway didn't confirm {len(out['failed'])} "
+                      "revoke(s).  Their records are kept (the only handle on those "
+                      "keys) and the team is still blocked, so nothing can spend.  "
+                      "Run it again.", file=sys.stderr)
+                return 1
+        else:
+            addr = None if args.address.strip() in ("-", "") else args.address
+            print(json.dumps(reconcile.set_address(slug, addr), indent=2))
+        return 0
+
     if args.cmd == "list":
         data = reconcile.load_courses()
         for slug, c in sorted(data["courses"].items()):
+            state = reconcile.course_state(c)
+            tag = "" if state == "open" else f"  [{state} {c[state]}]"
+            addr = f"  address={c['address']}" if c.get("address") else ""
             print(f"{slug}  {c['name']}  staff={len(c['instructors']) + len(c['tas'])}"
-                  f"  students={len(c['students'])}  pool=${c['budgets']['course']:g}")
+                  f"  students={len(c['students'])}  pool=${c['budgets']['course']:g}"
+                  f"{addr}{tag}")
         if not data["courses"]:
             print("(no courses — just course <slug> \"<name>\" <instructor@email>)")
         return 0
@@ -379,6 +438,11 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
+    except (reconcile.CourseClosed, ValueError) as e:
+        # A refusal with a reason — a closed course, an open window, a taken
+        # name.  Words, not a traceback.
+        print(f"refusing: {e}", file=sys.stderr)
+        sys.exit(1)
     except reconcile.CoursesError as e:
         # The roster file itself is unreadable — an operator needs the reason,
         # not a traceback, and nothing downstream should have run.

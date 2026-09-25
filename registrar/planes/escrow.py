@@ -113,6 +113,21 @@ async def escrow_delete(slug: str, email: str) -> None:
             r.raise_for_status()
 
 
+async def escrow_holders(slug: str) -> list[str]:
+    """Every email with a custody record under the course.  Soft-deleted
+    records are listed too — kv-v2 keeps their metadata, which is the point
+    — so a caller that wants LIVE keys reads each one (escrow_read returns
+    None for a deleted record).  The roster can't answer this: staff mint
+    through my_key without ever being on `students:`."""
+    async with httpx.AsyncClient(timeout=20) as cx:
+        r = await _bao(cx, "GET", f"{BAO_MOUNT}/metadata/courses/{slug}/students",
+                       params={"list": "true"})
+        if r.status_code == 404:
+            return []
+        r.raise_for_status()
+        return sorted(k for k in r.json()["data"]["keys"] if not k.endswith("/"))
+
+
 async def escrow_status(slug: str, emails: list[str]) -> dict:
     """{email: escrow record or None} — status for staff views (never keys)."""
     out: dict = {}

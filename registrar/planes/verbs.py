@@ -27,14 +27,25 @@ from .config import (
     REHEARSAL_DOMAIN,
 )
 from .courses import (
+    address_map,
     clean_name,
     course_models,
+    course_state,
     deployment_error,
     load_courses,
+    open_or_raise,
     save_courses,
+    window_ends,
 )
-from .escrow import escrow_delete, escrow_read, escrow_ready, escrow_write
+from .escrow import (
+    escrow_delete,
+    escrow_holders,
+    escrow_read,
+    escrow_ready,
+    escrow_write,
+)
 from .gateway import (
+    ll_block_team,
     ll_delete_key,
     ll_ensure_team,
     ll_key_spend,
@@ -51,6 +62,7 @@ from .keycloak import (
     kc_ensure_client_roles,
     kc_ensure_user,
     kc_role_holders,
+    kc_set_client_enabled,
     kc_set_client_role,
     kc_user_id,
 )
@@ -187,9 +199,10 @@ async def apply_roster(slug: str, adds: list[str], removes: list[str]) -> list[d
     Updates courses.yaml (file-backend truth) and re-renders usage-mcp's
     roster view when done."""
     import render  # late import — render has no credentials, but keep planes tidy
-    await escrow_ready()  # sealed: stop before the first door opens
     courses = load_courses()
     course = courses["courses"][slug]
+    open_or_raise(slug, course)
+    await escrow_ready()  # sealed: stop before the first door opens
     results: list[dict] = []
     async with httpx.AsyncClient(timeout=30) as cx:
         client_uuid, _secret = await kc_ensure_client(cx, slug)
@@ -247,6 +260,7 @@ async def rotate_student_key(slug: str, email: str) -> dict:
     """
     courses = load_courses()
     course = courses["courses"][slug]
+    open_or_raise(slug, course)
     async with httpx.AsyncClient(timeout=30) as cx:
         old = await escrow_read(slug, email) or {}
 
@@ -310,6 +324,7 @@ async def mint_key(slug: str, email: str, budget: float | None = None) -> dict:
     course = courses["courses"].get(slug)
     if course is None:
         raise KeyError(f"no such course: {slug}")
+    open_or_raise(slug, course)
     existing = await escrow_read(slug, email)
     if existing is not None:
         return {**existing, "already": True}
@@ -330,6 +345,7 @@ async def ensure_course(slug: str) -> dict:
         raise RuntimeError(e)
     courses = load_courses()
     course = courses["courses"][slug]
+    open_or_raise(slug, course)
     models = course_models(course, courses)
     summary: dict = {"slug": slug}
     async with httpx.AsyncClient(timeout=30) as cx:
@@ -402,6 +418,140 @@ def reconcile_students_cmd(slug: str) -> list[dict]:
     courses = load_courses()
     course = courses["courses"][slug]
     return asyncio.run(apply_roster(slug, list(course["students"]), []))
+
+
+# ---- the term: close, reopen, archive ----------------------------------------
+# registrar-spec.md, "The term".  Two steps on purpose: close is a freeze a
+# sentence can undo, archive is the part that can't be — and neither deletes
+# a byte.  Each verb re-reads courses.yaml after its network calls and
+# stamps onto the file as it is then, like apply_roster.
+
+def _today() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+async def close_course(slug: str) -> dict:
+    """Freeze a course.  Its team is blocked at the gateway — every key on
+    it, the service key included, so chat can't spend either — and the
+    record gains `closed:`.  Sign-in, history and agents stay up for the
+    export window.  Blocks first and stamps second, so a failure between
+    the two leaves an open-looking course that a second close finishes;
+    the other order would leave a "closed" course still spending."""
+    import render
+    courses = load_courses()
+    open_or_raise(slug, courses["courses"][slug])
+    async with httpx.AsyncClient(timeout=30) as cx:
+        await ll_block_team(cx, slug, True)
+    courses = load_courses()
+    c = courses["courses"][slug]
+    c["closed"] = _today()
+    save_courses(courses)
+    # The address may move now: an open course claiming it outranks this one.
+    render.render_fleet(courses)
+    return {"slug": slug, "closed": c["closed"],
+            "export_until": window_ends(c).isoformat(),
+            "address": ({a: t for a, t in address_map(courses).items()
+                         if a == c.get("address")} or None)}
+
+
+async def reopen_course(slug: str) -> dict:
+    """Undo a close: unblock the team, clear the date.  Refuses an archived
+    course — its keys are gone and its sign-in is shut, and pretending a
+    reopen restores that would hand people a course that doesn't work."""
+    import render
+    courses = load_courses()
+    c = courses["courses"][slug]
+    state = course_state(c)
+    if state == "archived":
+        open_or_raise(slug, c)
+    if state == "open":
+        raise ValueError(f"{slug} isn't closed — nothing to reopen")
+    svc = await escrow_read(slug, "service")
+    if svc and svc.get("revoked_at"):
+        # An archive that stopped part-way already killed the key chat
+        # spends on; a reopened course would sign people in to a chat that
+        # can't answer.  Finish the archive — the next term is a new course.
+        raise ValueError(f"{slug}'s keys were revoked by an archive on "
+                         f"{svc['revoked_at']} that didn't finish — it can't be "
+                         f"reopened.  `just course-archive {slug} --force` "
+                         f"finishes it")
+    async with httpx.AsyncClient(timeout=30) as cx:
+        await ll_block_team(cx, slug, False)
+    courses = load_courses()
+    courses["courses"][slug]["closed"] = None
+    save_courses(courses)
+    render.render_fleet(courses)
+    return {"slug": slug, "reopened": _today()}
+
+
+async def archive_course(slug: str, force: bool = False) -> dict:
+    """End a closed course.  Every escrowed key is revoked at the gateway
+    and its record soft-deleted (kv-v2 keeps the versions — custody
+    survives, as it does for un-enrollment), the OIDC client is disabled,
+    and the course leaves the fleet render and the edge.  The database, the
+    vector volume and fleet/<slug>.env stay.
+
+    Stamps `archived:` only when every revoke landed.  A key the gateway
+    wouldn't confirm keeps its record — the only handle anyone has on it —
+    and the course stays closed-not-archived, so running this again picks
+    up exactly what's left.  The team stays blocked throughout, so a key
+    that survives a failed pass still can't spend."""
+    import render
+    courses = load_courses()
+    c = courses["courses"][slug]
+    state = course_state(c)
+    if state == "archived":
+        open_or_raise(slug, c)
+    if state == "open":
+        raise ValueError(f"{slug} is open — close it first (`just course-close "
+                         f"{slug}`); archiving skips no one's export window")
+    ends = window_ends(c)
+    today = datetime.now(timezone.utc).date()
+    if not force and (ends is None or today <= ends):
+        until = (f"runs to {ends.isoformat()}" if ends else
+                 f"can't be read from closed: {c['closed']!r}")
+        raise ValueError(f"{slug}'s export window {until} — students may still be "
+                         f"taking their work out.  --force archives it anyway")
+    await escrow_ready()
+    revoked, failed = [], []
+    async with httpx.AsyncClient(timeout=30) as cx:
+        for who in await escrow_holders(slug) + ["service"]:
+            rec = await escrow_read(slug, who)
+            if not rec or rec.get("revoked_at"):
+                continue                      # already revoked, or never minted
+            keys = [k for k in [rec.get("key"), *_pending(rec)] if k]
+            dead = [k for k in keys if await ll_delete_key(cx, k)]
+            if len(dead) < len(keys):
+                failed.append(who)
+                continue
+            if who == "service":
+                # Kept readable and marked, not soft-deleted: escrow_delete
+                # is shaped for student paths, and the service record is the
+                # course's own custody line.  The mark is what makes a
+                # re-run skip a key the gateway already killed.
+                await escrow_write(slug, "service", {**rec, "revoked_at": _today()})
+            else:
+                await escrow_delete(slug, who)
+            revoked.append(who)
+        summary = {"slug": slug, "revoked": len(revoked), "failed": failed}
+        if failed:
+            # Sign-in stays as it was: a pass that didn't finish changes
+            # nothing a person can see, and the blocked team already stops
+            # the surviving keys from spending.
+            summary["archived"] = None
+            return summary
+        uuid = await kc_client_uuid(cx, slug)
+        if uuid:
+            await kc_set_client_enabled(cx, uuid, False)
+        summary["sign_in"] = "disabled" if uuid else "no client (never provisioned)"
+    courses = load_courses()
+    courses["courses"][slug]["archived"] = _today()
+    save_courses(courses)
+    render.remove_course_vhost(slug)
+    render.render_fleet(courses)       # leaves the fleet; --remove-orphans stops it
+    render.render_roster(courses)
+    summary["archived"] = courses["courses"][slug]["archived"]
+    return summary
 
 
 # ---- the census: the fleet from above ----------------------------------------
@@ -662,6 +812,8 @@ def upsert_course(slug: str, name: str, instructors: list[str],
     """Create the record, or add to it.  Appends staff, never removes —
     removal is set_staff, on purpose, so a create can't demote anyone."""
     data = load_courses()
+    if slug in data["courses"]:
+        open_or_raise(slug, data["courses"][slug])
     c = data["courses"].get(slug) or {
         "name": clean_name(name), "instructors": [], "tas": [],
         "budgets": {"course": DEFAULT_COURSE_BUDGET,
@@ -695,6 +847,7 @@ def set_staff(slug: str, add_instructors: list[str], add_tas: list[str],
     course with no instructor: every course has someone who answers for it."""
     data = load_courses()
     c = data["courses"][slug]
+    open_or_raise(slug, c)
     ins, tas = list(c["instructors"]), list(c["tas"])
     for e in add_instructors:
         if e in tas:
@@ -717,9 +870,36 @@ def set_staff(slug: str, add_instructors: list[str], add_tas: list[str],
     return c
 
 
+def set_address(slug: str, address: str | None) -> dict:
+    """Point a stable address at this course, or take it off (None).  The
+    new term claims the address its predecessor had; while both are open
+    that is a conflict `validate` names, so the usual order is: create the
+    new term, close the old one, then move the address — or move it first,
+    since the old term keeps it only while no open course claims it."""
+    import render
+    from .courses import name_taken, slug_error
+    data = load_courses()
+    c = data["courses"][slug]
+    if course_state(c) == "archived":
+        open_or_raise(slug, c)
+    if address:
+        address = address.strip().lower()
+        if (why := slug_error(address)):
+            raise ValueError(why.replace("slug", "address"))
+        if address in data["courses"] or f"{address}-admin" in data["courses"]:
+            raise ValueError(f"{address!r} is a course id — an address can't also "
+                             "be one, since both are hostnames")
+    c["address"] = address or None
+    save_courses(data)
+    render.render_fleet(data)
+    return {"slug": slug, "address": c["address"],
+            "points_to": address_map(data).get(address) if address else None}
+
+
 def set_course_budget(slug: str, amount: float) -> dict:
     data = load_courses()
     c = data["courses"][slug]
+    open_or_raise(slug, c)
     c["budgets"]["course"] = float(amount)
     save_courses(data)
     return c

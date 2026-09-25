@@ -99,6 +99,11 @@ MAX_FUSE = float(os.environ.get("REGISTRAR_MAX_FUSE", "25"))
 MIN_FUSE = float(os.environ.get("REGISTRAR_MIN_FUSE", "1"))
 DEFAULT_COURSE_BUDGET = float(os.environ.get("REGISTRAR_DEFAULT_COURSE_BUDGET", "1000"))
 
+# Days between course-close (team blocked, instance still up) and the first
+# day course-archive runs without --force: the students' window to export
+# their own conversations.  Ruled 2026-09-24 (registrar-spec.md, "The term").
+EXPORT_WINDOW_DAYS = int(os.environ.get("REGISTRAR_EXPORT_DAYS", "14"))
+
 # The context window rendered into every course instance.  Without it
 # LibreChat falls back to its own default for a model it does not recognise
 # — measured at ~28k against a model that actually serves 922k

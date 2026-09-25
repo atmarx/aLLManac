@@ -358,6 +358,7 @@ services:
       REGISTRAR_MAX_FUSE: "${REGISTRAR_MAX_FUSE:-25}"
       REGISTRAR_MIN_FUSE: "${REGISTRAR_MIN_FUSE:-1}"
       REGISTRAR_DEFAULT_COURSE_BUDGET: "${REGISTRAR_DEFAULT_COURSE_BUDGET:-1000}"
+      REGISTRAR_EXPORT_DAYS: "${REGISTRAR_EXPORT_DAYS:-14}"
       # Notifications (registrar/planes/notify.py) — all optional.  Unset,
       # mail lands in registrar/outbox.log on the host and nothing leaves.
       SMTP_HOST: "${SMTP_HOST:-}"

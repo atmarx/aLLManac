@@ -433,6 +433,22 @@ That single act provisions everything the spec promises: the LiteLLM **team** (t
 
 DNS: point `*.<ALMANAC_DOMAIN>` at the box once and every future course is covered (wildcard cert via the DNS-01 block in `caddy/Caddyfile` for real deployments; `*.localhost` needs nothing at all).
 
+### End of term: close, then archive
+
+A course is one term, and its slug is never reused — next fall's ENGR 301 is `engr301-2027fall`, a new course.  What stays the same across terms is its **address**: `--address engr301` on `just course` (or `just course-address <slug> engr301` later) makes `engr301.<ALMANAC_DOMAIN>` a 302 to whichever term claims it, so a syllabus link written once keeps working.  The rules, and why it's a 302, are in [registrar-spec.md](registrar-spec.md), "The term."
+
+```
+just course engr301-2027fall "ENGR 301 (Fall 2027)" prof.vex@example.edu --address engr301
+just course-close engr301-2026fall        # the address moves to the open term now
+# ...14 days later...
+just course-archive engr301-2026fall
+```
+
+- **`course-close`** freezes the course: its team is blocked at the gateway, so nothing on it can spend — student keys and chat alike — while sign-in, history and agents stay up for a **14-day export window** (`REGISTRAR_EXPORT_DAYS`).  Every write refuses with the dates, and `my_key` tells a student their key stopped and until when they can export.  **`course-reopen`** undoes it.
+- **`course-archive`** revokes every escrowed key, disables the course's sign-in, and takes the instance and its vhost down; the old hostname lands on the no-course page.  It refuses inside the window unless you pass `--force`.  If the gateway doesn't confirm a revoke, nothing about the course changes that anyone can see — the record is kept and the team stays blocked — so run it again.
+- **Nothing is deleted.**  The course's Mongo database, its `vector-<slug>-data` volume and `fleet/<slug>.env` all stay — keep backing up that `.env`, since it's the only CREDS pair that decrypts the database.  Retention is a policy decision, and there is no purge verb until someone sets one.
+- `just course-check` warns when a closed course has passed its window unarchived, and `just courses` shows each course's state and address.
+
 ### From chat: the front office
 
 Everything `just course` does, a platform admin can do from the **Dev Guide** at the front door — and anyone at all can *ask* for a room.  [registrar-spec.md](registrar-spec.md), "Phase 2a — the front office," is the design; this is the operating view.

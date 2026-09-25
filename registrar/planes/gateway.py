@@ -77,6 +77,17 @@ async def ll_delete_key(cx: httpx.AsyncClient, key: str) -> bool:
     return r.status_code == 200
 
 
+async def ll_block_team(cx: httpx.AsyncClient, slug: str, blocked: bool) -> None:
+    """Freeze or thaw every key on the course team at once — student keys
+    and the service key chat spends on.  `/team/block` and `/team/unblock`
+    are free-tier on our pin (read on xtower 2026-09-24: no premium check,
+    and auth_checks refuses any key whose team is blocked).  Reversible,
+    which is why course-close uses it and course-archive deletes keys."""
+    r = await cx.post(f"{LITELLM_URL}/team/{'block' if blocked else 'unblock'}",
+                      headers=_ll_headers(), json={"team_id": slug})
+    r.raise_for_status()
+
+
 async def ll_team_remaining(cx: httpx.AsyncClient, slug: str) -> float | None:
     """What is actually left in the course pool — `max_budget - spend`.
 

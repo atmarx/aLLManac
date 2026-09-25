@@ -82,7 +82,7 @@ Authority is layered on top of identity:
 | retrieve / rotate a key | its owner only | header email == escrow path |
 | stage / apply a roster | instructor or TA of THAT course | `instructors:`/`tas:` (file) or group **manager** role (globus) — ADMIN role alone is not enough |
 | create a course | platform admins, or the operator | `course_approve` / `course_create` at the desk (`admins:`), or `just course` on the box |
-| close a course | operator | `just course-close` — Phase 3, not built |
+| close / reopen / archive a course | operator | `just course-close` · `course-reopen` · `course-archive` — see "The term," below |
 
 **Nobody but the owner ever sees a key — including faculty.**  Instructors get custody *status* (minted / rotated-at / fetched-at), never secrets.
 
@@ -126,6 +126,9 @@ courses:
     group: ""                       # globus backend: group UUID (course-create fills)
     students: []                    # file backend only; globus derives from the group
     aliases: {}                     # legacy non-email user_ids, passthrough to render
+    address: engr301                # optional — the stable name that 302s to
+                                    # whichever term claims it (see The term)
+    closed: 2026-12-18              # set by course-close; archived: by course-archive
 
 colleges:                           # a college is a MODEL PACK, not an org chart —
   cci:                              # the registrar needs their models, not their deans
@@ -512,6 +515,22 @@ The quiet payoff is semester rollover: `course-close` (Phase 3) removes the vhos
 
 ---
 
+## The term — close, archive, and the address that outlives it *(2026-09-24)*
+
+**A course is one term** — decision 15 made slugs term-qualified (`engr301-2026fall`) in July, and this section is what that implies.  ENGR 301 next fall is `engr301-2027fall`, a new instance beside the old one: its own database (`LibreChat_engr301-2027fall`), its own team, its own pool.  The budget model already assumed it — the team budget *is* the semester cap — and a slug reused across terms would carry last term's spend into the new pool and hand returning students and TAs last term's chats.  So a slug is **never reused**, and a closed course stays in `courses.yaml` to hold its slug.
+
+**The address is what students remember** (Andrew, 2026-09-24).  `address: engr301` on a course record renders `engr301.<domain>` — and `engr301-admin.` beside it — as a redirect to that course, whichever term currently claims it.  A syllabus link written once works every year.  It is a **302**, not a 301, on purpose: browsers cache a 301 indefinitely, and this one moves every term.  One address, one live claimant: an **open** course wins it; a **closed** course keeps it through its export window only if no open course claims it; an **archived** course's claim is history.  Two open courses claiming one address is a `course-check` error, and the render leaves that address out rather than guess.  An address lives in the slug namespace, so it can never also be a course slug.
+
+**Closing is two steps, and only the second is irreversible** (ruled 2026-09-24).
+
+- **`just course-close <slug>`** freezes the course.  Its LiteLLM team is **blocked** (`/team/block`, free on our pin — probed on xtower): every key on the team stops, the service key included, so chat can't spend either.  The record gains `closed:`.  Everything else stays — sign-in, history, agents — for a **14-day export window**, in which students take their own conversations out with LibreChat's export.  `just course-reopen <slug>` unblocks the team and clears the date, because a wrong close should cost a sentence, not a restore.
+- **`just course-archive <slug>`** ends it.  Every escrowed key is revoked at the gateway (the escrow records stay — custody survives, as it does for un-enrollment), the course's OIDC client is **disabled** so nobody signs in, and the course leaves the fleet render and the edge.  The fleet watcher's `course-up --remove-orphans` stops its containers, and the old hostname falls to the no-course page.  Refused on a course that isn't closed, and refused inside the window without `--force`.
+- **Nothing is deleted.**  The Mongo database, the `vector-<slug>-data` volume and `fleet/<slug>.env` — the CREDS pair that decrypts it — all stay.  How long they stay is an institutional retention policy, and there is no `course-purge` until there is a policy for it to enforce (ruled 2026-09-24).  `course-check` warns when a closed course has passed its window unarchived.
+
+**What a closed course still answers.**  usage-mcp keeps its roster entry — an instructor reading final spend after the term is the normal case, not an edge.  The registrar refuses every write on a closed or archived course (roster, staff, budget, keys, re-provision) and says why, with the dates.  An archived course's vector store is in the last backup taken before the archive: its volume persists, but nothing dumps a stopped container.
+
+---
+
 ## The venue — one VM on Azure Local
 
 *Decided 2026-07-22: the research compute facility is off the table; the almanac lands on Azure Local as a standalone Linux VM (Debian) with Docker, running everything **except inference**.*
@@ -563,7 +582,7 @@ A standby that has been restored stays **quiet** until the flip — no timers th
 
 **Phase 2 — Globus + the drill:** the registrar's confidential client, managed-group create/invite/reconcile, manager-role authority, `--adopt` mode.  Flip `GROUPS_BACKEND=globus`; the login side already has the broker runbook in the admin guide.  Plus `just backup`/`just restore` and the **restore drill on a scratch VM** — proven once before fall's five courses enroll, not promised.
 
-**Phase 3 — lifecycle & hardening:** ~~rotation with budget carryover~~ *(shipped — `rotate_my_key`, remainder carried, `MeterUnreadable` refuses rather than guessing)* · `key_fuse_set` live updates · `just course-close` (revoke all, final render, archive group) · master key moves into bao · ~~chat-side `course_create` for platform admins~~ *(shipped with the desk, 2026-09-22)* · redteam pass.
+**Phase 3 — lifecycle & hardening:** ~~rotation with budget carryover~~ *(shipped — `rotate_my_key`, remainder carried, `MeterUnreadable` refuses rather than guessing)* · `key_fuse_set` live updates · ~~`just course-close` (revoke all, final render, archive group)~~ *(shipped 2026-09-24 as close → archive, with a 14-day export window between them and a stable `address:` — see The term)* · master key moves into bao · ~~chat-side `course_create` for platform admins~~ *(shipped with the desk, 2026-09-22)* · redteam pass.
 
 **Root Cellar docking (deferred, by design):** the cellar's project groups and these course groups are the same primitive.  When docking day comes, either side can consume the other's groups — the interface is a group id and member emails, nothing almanac-internal.
 
@@ -624,3 +643,4 @@ Out of scope, permanently unless vetoed: a separate admin website (the entire po
 25. *(2026-09-22, Marco)* **Enrollment works from the front door, because the header was choosing, not deciding.**  The staff tools (`roster_show`, `enroll`, `unenroll`, `roster_stage`, `roster_apply`, `course_keys`) take `course` as an argument when there is no `X-Course`, infer it when the caller teaches exactly one, and check `_staff_or_refuse` against the roster exactly as before; inside a course the header still wins and a disagreeing argument is refused.  `enroll`/`unenroll` stage adds or removes only — `roster_stage` replaces the whole list, which is right for a class export and wrong for "add Pat."  Every path still ends in `roster_apply` on a stage the person has read.  `my_courses` answers anyone, about themselves, and "no courses" is an ordinary answer because the front door is open to the whole realm.  Who is *staff* stays operator-set (`instructors:`/`tas:`), and the realm `faculty` role no longer gates anything an instructor does — `course_usage` reads the roster instead.
 26. *(2026-09-22, Andrew + Marco)* **The front office opens: anyone may ask, admins decide, and the host starts what the registrar renders.**  Phase 2a's thin slice — request tickets with a recorded front-door attestation, worked like problem reports (approve with a budget the admin sets, return with notes, reject with notes), the admin desk with describe-then-confirm writes, and `course_staff` so who-teaches-what needs no shell.  `courses.yaml` stays the store for now; it is live state on the registrar's volume, not deployed config, so a new term needs no redeploy — only these verbs.  A database becomes worth it when we need edit history or a second registrar, and `planes/courses.py` is the one seam that changes then.
 27. *(2026-09-23, Marco, from @xram's repo sweep)* **Every admin tool answers at the desk, and every desk write that reaches a person is shown first.**  The census (`fleet_inventory`, `fleet_access`, `fleet_exposure`) and the nomination queue (`nominations`, `nomination_export`, `nomination_decline`) take `_ident_open` — the `admins:` list decides and the header never did; `fleet_inventory` sat on the Dev Guide's desk refusing every call, and no eval covered it.  `course_return` and `course_reject` gained `confirm`, because a note emailed word for word is the one write that can't be undone by a second call.  And a course created from chat now passes the same slug and deployment checks as `just course` (`slug_error`, `deployment_error` in `planes/courses.py`) — before, chat checked the pattern and nothing else.
+28. *(2026-09-24, Andrew + Marco)* **A course is a term; its address is not.**  Slugs were already per term (decision 15); now they are also never reused, because the team budget is the semester cap and a reused database is last term's chats; the stable `address:` redirects to whichever term claims it, so students and syllabi only ever learn `engr301`.  Closing is two steps — a reversible freeze (team blocked, 14-day export window) and an irreversible archive (keys revoked, client disabled, instance down) — and neither deletes anything: retention is the institution's policy to set, and `course-purge` waits for one.  The name `address` and not `alias`, because `aliases:` already means usage attribution for legacy `user_id`s.
