@@ -193,6 +193,10 @@ services:
       # docs/design-walls.md, "Container & mount scars".
       - ./librechat:/app/conf:ro
       - librechat-images:/app/client/public/images
+      # Non-image uploads (agent knowledge files, attachments).  Not a
+      # volume before 2026-09-25, so every recreate discarded them — see
+      # design-walls.md, "Container & mount scars".
+      - librechat-uploads:/app/uploads
       - librechat-logs:/app/api/logs
       # Read-only view of the edge's PKI so Node can trust Caddy's internal CA
       # (set NODE_EXTRA_CA_CERTS in .env — see "LAN HTTPS" in .env.example):
@@ -561,6 +565,7 @@ volumes:
   meili-data:
   vector-data:
   librechat-images:
+  librechat-uploads:
   librechat-logs:
   keycloak-db:
   caddy-data:

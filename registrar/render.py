@@ -414,6 +414,13 @@ def render_fleet(courses: dict) -> None:
       # the fleet's secrets.
       - ./conf/{slug}:/app/conf:ro
       - chat-{slug}-images:/app/client/public/images
+      # Every non-image upload — agent knowledge files, attachments — lands
+      # here, and until 2026-09-25 it was the container's writable layer:
+      # gone at every recreate, which every image bump and `just render`
+      # is.  The embeddings survived in vectordb-{slug}; the originals did
+      # not.  The image ships /app/uploads owned by node, so a fresh named
+      # volume inherits the right owner.
+      - chat-{slug}-uploads:/app/uploads
       - chat-{slug}-logs:/app/api/logs
       - caddy-data:/caddy-data:ro
     depends_on:
@@ -495,7 +502,8 @@ def render_fleet(courses: dict) -> None:
     if ready:
         parts.append("\nvolumes:")
         for slug in ready:
-            parts += [f"  chat-{slug}-images:", f"  chat-{slug}-logs:",
+            parts += [f"  chat-{slug}-images:", f"  chat-{slug}-uploads:",
+                      f"  chat-{slug}-logs:",
                       f"  meili-{slug}-data:", f"  vector-{slug}-data:"]
     _atomic_write(f"{OUT_FLEET}/fleet.yml", "\n".join(parts) + "\n")
 

@@ -579,7 +579,8 @@ The named volumes are the state.  What each holds, and how much it would hurt:
 | `keycloak-db` | Users, roles, the Globus broker config | High — identity |
 | `meili-data` | Search index | Low — rebuilds itself |
 | `bao-data` | **The escrow** — every minted key, versioned | High — but online-snapshotable (`bao operator raft snapshot save`) |
-| `chat-<slug>-*` / `meili-<slug>-*` | each course instance's images/logs/search | Mongo holds the real data (one DB per course inside `mongo-data`) |
+| `librechat-uploads` / `chat-<slug>-uploads` | Every non-image upload — agent knowledge files, attachments — as the original file | High — the embeddings survive elsewhere, the originals don't.  Only a volume since 2026-09-25; before that, every recreate discarded them |
+| `chat-<slug>-images/-logs` / `meili-<slug>-*` | each course instance's images/logs/search | Mongo holds the real data (one DB per course inside `mongo-data`) |
 | `hf-cache` (core) | The embedding model the rag service runs on CPU | Low online — re-downloads.  **High air-gapped**: nothing embeds without it, and nothing says why |
 | `hf-cache` (vllm stack, `almanac-vllm_hf-cache`) | LLM weights | Low — re-downloads, but it's gigabytes |
 
