@@ -697,6 +697,39 @@ The small model is the reason these exist.  The Instructor and Dev guides carry 
     Fails if it enrolls ta.lee as a student and calls that done — the one
     tool it has would do the wrong thing quietly.
 
+- id: E5
+  pattern: however they say it — a casual list
+  guides: [instructor-guide]
+  as: instructor
+  breaks_at: null
+  turns:
+    - "add these students: nia@example.edu, peter@example.edu, and carmen@example.edu"
+  expect:
+    - calls: [enroll]
+      never: [roster_apply, roster_stage]
+  passes_when: >
+    One enroll stage carrying all three, shown, and a question before
+    anything is applied.  E1's tidy one-liner is not how people type; this
+    is.  A list is still an ADD, not a roster — fails if it reaches for
+    roster_stage (which would stage removing everyone else), if it applies,
+    or if it says any of the three are enrolled.
+
+- id: E6
+  pattern: however they say it — a sentence with a name in it
+  guides: [instructor-guide]
+  as: instructor
+  breaks_at: null
+  turns:
+    - "can you put Nia Okafor in my class? her email is nia@example.edu"
+  expect:
+    - calls: [enroll]
+      never: [roster_apply, roster_stage]
+  passes_when: >
+    Finds the email in the sentence, stages enroll for it, and asks.  The
+    name is for the humans; the email is what the tool takes.  Fails if it
+    asks them to rephrase as a command, if it applies, or if it uses
+    roster_stage.
+
 - id: Q1
   pattern: request, the question, no budget
   guides: [instructor-guide]

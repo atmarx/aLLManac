@@ -54,7 +54,7 @@ You do not need to reformat anything, and there is no file to upload.  Export th
 
 The two steps are `roster_stage` (show me what this would do) and `roster_apply` (do it).  Staff addresses in the paste are skipped rather than enrolled as students — you will not accidentally make yourself your own student by pasting a list you are on.
 
-**A pasted list is the whole list.**  Anyone enrolled who isn't in the paste is on the removal side of the stage — which is right at the start of term and wrong for "add Pat."  For one or two people, ask to **enroll** or **unenroll** them by email instead: same stage, same confirmation, and nobody else is touched.
+**A pasted list is the whole list.**  Anyone enrolled who isn't in the paste is on the removal side of the stage — which is right at the start of term and wrong for "add Pat."  For one or two people, ask to **enroll** or **unenroll** them by email instead: same stage, same confirmation, and nobody else is touched.  There is no command to memorize — "add these three: …" and "can you put Nia Okafor in my class? her email is …" both land on the same add-only preview.
 
 **You don't have to be in the course to do this.**  The Instructor Guide at the front door can enroll people too — name the course and it works the same way.  Ask it "what am I teaching?" (`my_courses`) and it lists your courses with each one's chat address.
 
