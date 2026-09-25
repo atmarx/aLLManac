@@ -15,6 +15,8 @@ directories now.  Nothing about the trust model changed in the split:
     nominations, reports, requests
               the registrar's own ticket files on the state volume — no
               network, no credential.
+    exports   an owner's export of their own data — zips on the state
+              volume behind 24-hour tokens.  No network, no credential.
     notify    mail and the desk webhook.  Holds SMTP_PASSWORD and the
               webhook URL, which is a credential (anyone holding it posts).
     verbs     the reconcile verbs, which are the ONLY things that compose
