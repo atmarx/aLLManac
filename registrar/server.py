@@ -30,7 +30,7 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server.dependencies import get_http_headers
 from fastmcp.server.middleware import Middleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import FileResponse, JSONResponse, PlainTextResponse
 import yaml
 
 import reconcile
@@ -538,6 +538,84 @@ async def my_courses() -> str:
                       "| course | id | you are | chat |", "|---|---|---|---|",
                       *rows, "",
                       "The course tools take either the name or the id."])
+
+
+# ---- tools: your own data ------------------------------------------------------
+# The owner's export (registrar-spec.md, "Your own data").  Anyone, any room,
+# any course state — and only ever the person asking: the email is the
+# trusted header, and no argument can name anyone else.
+
+def _export_link(token: str) -> str:
+    return f"https://{reconcile.CHAT_HOST}/exports/{token}"
+
+
+@mcp.tool
+async def export_my_data(course: str = "") -> str:
+    """Package the caller's OWN data from one course — every conversation
+    they had there (both sides) and every agent they own — as a zip, and
+    return a download link that works for 24 hours.  Only ever the person
+    asking; there is no way to export anyone else.  Works for closed and
+    archived courses too.  `course` is its name or id (my_courses lists
+    them); in a course's own chat it defaults to that course.  Afterwards,
+    offer email_my_export if they'd like the link mailed to themselves."""
+    email, _role, here = _ident_open()
+    courses = _courses_or_refuse()["courses"]
+    slug = _course_slug(course, courses) if course.strip() else here
+    if not slug:
+        mine = reconcile.courses_for(email)
+        raise ToolError(
+            "Which course?  " + (", ".join(mine) + "." if mine else
+                                 "my_courses lists the ones you're on — or "
+                                 "name the course, even one you've left."))
+    if slug not in courses:
+        raise ToolError(f"There's no course called '{course or slug}'.")
+    name = courses[slug].get("name", slug)
+    if (r := _rehearse(email, f"packaged your conversations and agents from {name}")):
+        return r
+    try:
+        rec = await reconcile.export_owner_data(slug, email)
+    except reconcile.NothingToExport:
+        return (f"I don't find anything of yours in {name} — no conversations "
+                "and no agents you own — so there's nothing to export.")
+    files = (f"  {rec['files_listed']} file(s) you uploaded are listed in the "
+             "README but not included — download those from the course chat."
+             if rec["files_listed"] else "")
+    return (f"Your data from {name} is ready: {rec['conversations']} "
+            f"conversation(s) and {rec['agents']} agent(s).{files}\n\n"
+            f"    {_export_link(rec['token'])}\n\n"
+            f"The link works until {rec['expires_at']} and only for this "
+            "export — treat it like a password; anyone holding it can download "
+            "the file.  Want it emailed to you too, for later?  "
+            "(email_my_export)")
+
+
+@mcp.tool
+async def email_my_export(link: str) -> str:
+    """Email the caller a link to an export of THEIR OWN data that they
+    just made with export_my_data — to their own address, the only one it
+    can go to.  `link` is the download link (or its last part).  Use only
+    after they say yes to having it mailed."""
+    email = _ident_open()[0]
+    rec = reconcile.export_meta(link.strip().rstrip("/").rsplit("/", 1)[-1])
+    if rec is None or rec["email"] != email:
+        # Same words for "expired" and "not yours": the difference is none of
+        # the asker's business, and a probe learns nothing from it.
+        raise ToolError("I can't find a live export of yours at that link — "
+                        "they last 24 hours.  export_my_data makes a fresh one.")
+    if (r := _rehearse(email, f"emailed you the link to your {rec['course']} export")):
+        return r
+    if reconcile.notify_configured()["smtp"].startswith("none"):
+        return ("Mail isn't set up on this platform yet, so I can't send it.  "
+                f"The link above works until {rec['expires_at']} — save it "
+                "somewhere you'll find it.")
+    await reconcile.notify_person(
+        [email], f"Your {rec['course']} export",
+        "You asked for a copy of your data from this course.  Download it "
+        f"here until {rec['expires_at']}:\n\n{_export_link(rec['token'])}\n\n"
+        "Anyone holding this link can download the file, so don't forward "
+        "it.  If you didn't ask for this, ignore it — the link expires on "
+        "its own.")
+    return f"Sent to {email}.  The link works until {rec['expires_at']}."
 
 
 # ---- tools: teaching staff ----------------------------------------------------
@@ -1682,6 +1760,29 @@ async def my_reports() -> str:
 # Unauthenticated on purpose (serves no user data) — what `just smoke` curls.
 # 200 even before bao-init so a fresh box's first deploy isn't "down"; the
 # body says what's actually wired.
+
+_EXPORT_HEADERS = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer",
+                   "X-Robots-Tag": "noindex", "X-Content-Type-Options": "nosniff"}
+
+
+@mcp.custom_route("/exports/{token}", methods=["GET"])
+async def download_export(request: Request):
+    """The one registrar path the edge exposes (caddy/Caddyfile, chat host):
+    an owner's export, by the token that IS its access control.  Everything
+    about a miss — unknown, expired, malformed — is the same 404."""
+    try:
+        reconcile.purge_exports()
+    except OSError:
+        pass
+    rec = reconcile.export_meta(request.path_params.get("token", ""))
+    if rec is None:
+        return PlainTextResponse(
+            "This export link has expired or doesn't exist.  Ask for a new "
+            "one in the chat (export_my_data).\n", status_code=404,
+            headers=_EXPORT_HEADERS)
+    return FileResponse(rec["path"], media_type="application/zip",
+                        filename=rec["filename"], headers=_EXPORT_HEADERS)
+
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:

@@ -52,3 +52,5 @@ registrar/requests.yaml
 registrar/front-door.md
 # Notification mail when no SMTP server is set (names people).
 registrar/outbox.log
+# Owner exports — one person's conversations each, 24h, 0600 (registrar/planes/exports.py)
+registrar/exports/

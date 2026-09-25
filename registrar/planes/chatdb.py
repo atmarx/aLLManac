@@ -10,9 +10,13 @@ message text, no conversation titles, no agent instructions.  Titles are
 excluded deliberately even though they look like metadata: LibreChat
 generates them from the first exchange, so a title is the content, shorter.
 
-The one read that crosses the line is `agent_template`, and it crosses it
-on the author's own request: a nomination is the author saying "copy this,"
-and a template without the instructions would be a name and a colour.
+Two reads cross the line, and each crosses it on the owner's own request.
+`agent_template`: a nomination is the author saying "copy this," and a
+template without the instructions would be a name and a colour.
+`owner_export` (2026-09-25): a person asking for their own conversations
+and agents back — keyed on the email from the trusted headers, so the only
+data it can ever select is the asker's.  Nobody else's content, and no
+content for anyone but its owner.
 
 Sync pymongo behind `asyncio.to_thread` — the registrar is an async
 process, the driver's async flavour is another dependency to pin, and every
@@ -20,6 +24,7 @@ call here is a handful of aggregations against small collections.
 """
 
 import asyncio
+import re
 from datetime import datetime
 
 from pymongo import MongoClient
@@ -216,3 +221,64 @@ async def agent_template(slug: str | None, agent_id: str) -> dict | None:
     """The portable shape of one agent — instructions included, because the
     author asked for it to be copied.  None if there is no such agent."""
     return await asyncio.to_thread(_agent_template_sync, slug, agent_id)
+
+
+# ---- the owner's export: the other read past the envelope ---------------------
+
+_OWNER = 15      # LibreChat's agent_owner permBits (view|edit|delete|share)
+
+
+def _owner_export_sync(slug: str, email: str) -> dict:
+    db = _db(slug)
+    if db.name not in db.client.list_database_names():
+        return {"found": False}
+    u = db.users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}},
+                          {"_id": 1})
+    if u is None:
+        return {"found": False}
+    uid, suid = u["_id"], str(u["_id"])
+    convos = []
+    for c in db.conversations.find({"user": suid},
+                                   {"_id": 0, "conversationId": 1, "title": 1, "createdAt": 1,
+                                    "updatedAt": 1, "model": 1, "endpoint": 1,
+                                    "agent_id": 1}).sort("createdAt", 1):
+        # `user` on the message as well as the conversation: belt and braces,
+        # so a conversation id can never pull in anyone else's turn.
+        c["messages"] = list(db.messages.find(
+            {"conversationId": c["conversationId"], "user": suid},
+            {"_id": 0, "messageId": 1, "parentMessageId": 1, "sender": 1,
+             "isCreatedByUser": 1, "model": 1, "createdAt": 1, "text": 1,
+             "content": 1, "error": 1}).sort("createdAt", 1))
+        convos.append(c)
+    # Owned = authored, or granted the owner role.  An agent can have several
+    # owners (@xram, 2026-09-25); each gets a copy, and the copy names them all.
+    owned = {a["_id"] for a in db.agents.find({"author": uid}, {"_id": 1})}
+    owned |= {e["resourceId"] for e in db.aclentries.find(
+        {"resourceType": "agent", "principalType": "user", "principalId": uid,
+         "permBits": {"$bitsAllSet": _OWNER}}, {"resourceId": 1})}
+    agents = []
+    for a in db.agents.find({"_id": {"$in": list(owned)}}, {"id": 1}):
+        tpl = _agent_template_sync(slug, a["id"])
+        if tpl is None:
+            continue
+        ids = [e["principalId"] for e in db.aclentries.find(
+            {"resourceType": "agent", "resourceId": a["_id"], "principalType": "user",
+             "permBits": {"$bitsAllSet": _OWNER}}, {"principalId": 1})]
+        tpl["owners"] = sorted({(x.get("email") or "").lower() for x in
+                                db.users.find({"_id": {"$in": ids}}, {"email": 1})}
+                               | ({tpl["owner"]} if tpl["owner"] else set()))
+        agents.append(tpl)
+    files = [{"filename": f.get("filename"), "bytes": int(f.get("bytes") or 0),
+              "type": f.get("type"), "created": _iso(f.get("createdAt"))}
+             for f in db.files.find({"user": {"$in": [suid, uid]}},
+                                    {"filename": 1, "bytes": 1, "type": 1, "createdAt": 1})]
+    return {"found": True, "conversations": convos, "agents": agents, "files": files}
+
+
+async def owner_export(slug: str, email: str) -> dict:
+    """Everything of `email`'s in one course: conversations with every
+    message, agents they own (as templates, owners named), and the list of
+    files they uploaded.  {"found": False} when they never used it.  The
+    caller must have taken `email` from the trusted headers — this function
+    is the wall's one door, and it trusts its argument."""
+    return await asyncio.to_thread(_owner_export_sync, slug, email)

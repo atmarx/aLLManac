@@ -106,6 +106,11 @@ ENROLL_TOOLS = [_M(t) for t in ("roster_show", "enroll", "unenroll",
 # provisions until an admin says so (docs/registrar-spec.md, "Phase 2a").
 REQUEST_TOOLS = [_M("course_request"), _M("my_requests"),
                  _M("course_request_reply")]
+# Your own data back (registrar-spec.md, "Your own data").  Scoped to the
+# caller from the trusted headers, so it grants nothing — every person can
+# only ever export themselves — and it goes wherever people ask "can I get my
+# chats out?", which is the student and instructor guides.
+EXPORT_TOOLS = [_M("export_my_data"), _M("email_my_export")]
 # The operator's desk.  Gated on `admins:` server-side, same reasoning as
 # TRIAGE_TOOLS — on the Dev Guide because that is who reads it, and because
 # its corpus is the admin guide and the spec, which is what an operator
@@ -151,10 +156,10 @@ GUIDES = [
      WHERE_TOOLS),
     ("student-guide", "Student Guide",
      "Using the Almanac in your courses — agents, knowledge files, API keys, and what the budget numbers mean.",
-     REPORT_TOOLS + WHERE_TOOLS + REQUEST_TOOLS),
+     REPORT_TOOLS + WHERE_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS),
     ("instructor-guide", "Instructor Guide",
      "Running a course on the Almanac — enrollment, class configuration, shared agents, and asking for a new course.",
-     REPORT_TOOLS + WHERE_TOOLS + ENROLL_TOOLS + REQUEST_TOOLS),
+     REPORT_TOOLS + WHERE_TOOLS + ENROLL_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS),
     ("platform-guide", "Platform Guide",
      "How the Almanac is built and why — the architecture, the decisions, and what they cost."),
     ("dev-guide", "Dev Guide",

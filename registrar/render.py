@@ -612,15 +612,10 @@ def render_inventory(report: dict) -> None:
 
 # ---- fleet/templates/<id>-<slug>.yaml — a nominated agent, as a file ------------
 
-def render_template(rec: dict, tpl: dict) -> str:
-    """The portable shape of an agent.  YAML rather than LibreChat's export
-    JSON because a person is meant to read and fork it; the knowledge list
-    names files without carrying them — the files stay in the course that
-    made them, and re-attaching is a deliberate act."""
-    import yaml
-    slug = "".join(ch if ch.isalnum() else "-" for ch in (tpl.get("name") or "agent").lower()).strip("-")
-    path = f"{OUT_FLEET}/templates/{rec['id']}-{slug}.yaml"
-    body = {
+def template_doc(tpl: dict, provenance: dict) -> dict:
+    """An agent's portable shape — one layout for a nomination's template
+    and an owner's export, so a file from either reads the same."""
+    return {
         "template": {
             "name": tpl["name"], "description": tpl["description"],
             "provider": tpl["provider"], "model": tpl["model"],
@@ -630,12 +625,22 @@ def render_template(rec: dict, tpl: dict) -> str:
                           for k in tpl["knowledge"]],
             "instructions": tpl["instructions"],
         },
-        "provenance": {
-            "course": rec["course"], "agent_id": rec["agent_id"], "author": tpl["owner"],
-            "nominated_by": rec["by"], "nominated_at": rec["at"], "note": rec["note"],
-            "actions_on_source": tpl["actions"],
-        },
+        "provenance": provenance,
     }
+
+
+def render_template(rec: dict, tpl: dict) -> str:
+    """The portable shape of an agent.  YAML rather than LibreChat's export
+    JSON because a person is meant to read and fork it; the knowledge list
+    names files without carrying them — the files stay in the course that
+    made them, and re-attaching is a deliberate act."""
+    import yaml
+    slug = "".join(ch if ch.isalnum() else "-" for ch in (tpl.get("name") or "agent").lower()).strip("-")
+    path = f"{OUT_FLEET}/templates/{rec['id']}-{slug}.yaml"
+    body = template_doc(tpl, {
+        "course": rec["course"], "agent_id": rec["agent_id"], "author": tpl["owner"],
+        "nominated_by": rec["by"], "nominated_at": rec["at"], "note": rec["note"],
+        "actions_on_source": tpl["actions"]})
     head = ("# EXPORTED by the registrar from a nomination — a student's or\n"
             "# instructor's agent, as a file anyone can read, fork, and seed.\n"
             "# Knowledge is listed by name only; attach the files on purpose.\n")

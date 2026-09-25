@@ -80,6 +80,14 @@
         }
     }
 
+    # An owner's export of their own data (registrar-spec.md, "Your own
+    # data") — the ONE registrar path the edge exposes.  The token in the
+    # path is the access control and dies in 24h; /mcp and /health stay
+    # loopback-only because nothing else here routes to the registrar.
+    handle /exports/* {
+        reverse_proxy registrar:8080
+    }
+
     reverse_proxy librechat:3080 {
         header_up -X-Tenant-Id
     }

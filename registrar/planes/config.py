@@ -45,6 +45,13 @@ SMTP_USER = os.environ.get("SMTP_USER", "").strip()
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SMTP_TLS = (os.environ.get("SMTP_TLS", "").strip().lower()
             or ("starttls" if SMTP_USER else "none"))
+# Owner exports (registrar-spec.md, "Your own data"): zips of one person's
+# conversations and agents, on the state volume, gone after EXPORT_TTL_HOURS.
+# Gitignored and 0600 — each file is somebody's whole semester of chat.
+EXPORTS_PATH = os.environ.get(
+    "REGISTRAR_EXPORTS",
+    os.path.join(os.path.dirname(COURSES_PATH), "exports"))
+EXPORT_TTL_HOURS = 24
 OUTBOX_PATH = os.environ.get(
     "REGISTRAR_OUTBOX",
     os.path.join(os.path.dirname(COURSES_PATH), "outbox.log"))

@@ -16,7 +16,8 @@ import httpx
 
 import os
 
-from .chatdb import agent_template, census, db_name, list_databases
+from . import exports
+from .chatdb import agent_template, census, db_name, list_databases, owner_export
 from .config import (
     ALMANAC_DOMAIN,
     BASE_MODELS,
@@ -713,6 +714,37 @@ async def export_nomination(nid: str, by: str) -> dict:
     return {"nomination": rec, "path": path, "template": tpl}
 
 
+class NothingToExport(LookupError):
+    """The person never used this course — no user, or nothing they own."""
+
+
+async def export_owner_data(slug: str, email: str) -> dict:
+    """One person's data from one course, packaged: their conversations and
+    the agents they own, as a zip behind a 24-hour link.  `email` MUST come
+    from the trusted headers — it is the only thing that picks whose data
+    this is.  Any course state, archived included: the database outlives
+    the course, and so does the right to what's in it.  A second ask
+    inside ten minutes gets the same link back."""
+    import render
+    if (rec := exports.recent(email, slug)):
+        return {**rec, "reused": True}
+    course = load_courses()["courses"][slug]
+    data = await owner_export(slug, email)
+    if not data.get("found") or not (data["conversations"] or data["agents"]):
+        raise NothingToExport(slug)
+    docs = [render.template_doc(t, {
+                "course": slug, "agent_id": t["agent_id"], "author": t["owner"],
+                "owners": t["owners"], "exported_for": email,
+                "exported_at": _now(), "actions_on_source": t["actions"]})
+            for t in data["agents"]]
+    return {**exports.write({"slug": slug, "name": course["name"]}, email, data, docs),
+            "reused": False}
+
+
+def export_meta(token: str) -> dict | None:
+    return exports.meta(token)
+
+
 def decline_nomination(nid: str, by: str) -> dict | None:
     return mark_nomination(nid, "declined", by)
 
@@ -877,7 +909,7 @@ def set_address(slug: str, address: str | None) -> dict:
     new term, close the old one, then move the address — or move it first,
     since the old term keeps it only while no open course claims it."""
     import render
-    from .courses import name_taken, slug_error
+    from .courses import slug_error
     data = load_courses()
     c = data["courses"][slug]
     if course_state(c) == "archived":
