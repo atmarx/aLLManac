@@ -240,6 +240,7 @@ A typo in `endpoints.agents.capabilities` (`file_serach`) is accepted by the sch
 - **Private hosts need `mcpSettings.allowedAddresses`** — LibreChat's SSRF guard blocks internal addresses by default.
 - **The MCP URL is `/mcp` with NO trailing slash.**  A trailing slash gets a 307, and the Node client won't follow it.
 - **"0 tools" at boot for user-scoped servers is BY DESIGN.**  Tools are listed per-user at login, so an empty list at container start is correct, not broken.  The registry inspector's 406 in the same situation is cosmetic.  Do not debug either one.
+- **`{{LIBRECHAT_BODY_*}}` in an MCP header is resolved per tool call — and a missing field THROWS** *(read in the source on 0.8.7 and 0.8.8-rc4, 2026-09-25; not yet exercised)*.  The allowed fields are `conversationId`, `parentMessageId` and `messageId`.  A server whose headers use one becomes an **ephemeral** connection: connect and initialize on every call, never cached, because the value changes per request.  If the request body lacks a field the headers name, `getUserConnection` raises `McpError InvalidRequest` — the tool call fails outright — and discovery only logs a warning.  So a body placeholder can't be added blind: probe it on a box first (tools still listed? first message of a new conversation? agent builder?).  This is what the roster's stage → apply gate waits on (registrar-spec.md, "Roster upload").
 
 ---
 

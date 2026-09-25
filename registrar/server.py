@@ -579,6 +579,21 @@ async def roster_show(course: str = "") -> str:
     return "\n".join(out)
 
 
+def _turn() -> str:
+    """Which chat turn this call belongs to, or "" when we can't tell.
+
+    LibreChat resolves `{{LIBRECHAT_BODY_PARENTMESSAGEID}}` in an MCP header
+    per tool call (0.8.7 and the rc4 pin both — read 2026-09-25), and the
+    value is fixed for every call inside one turn and new with each message
+    the person sends.  That is the one fact the model can't supply for
+    itself, which is why the stage → apply gate is built on it and not on
+    a flag the model passes (`confirm=true` has the same hole as none).
+    "" — header absent, or the placeholder left unresolved — means the gate
+    stands aside and the model's judgment is all there is, as before."""
+    v = get_http_headers(include={"authorization"}).get("x-chat-turn", "").strip()
+    return "" if not v or "{{" in v else v
+
+
 def _stage(email: str, slug: str, course: dict, emails: list[str],
            mode: str, ignored: list[str] | None = None) -> str:
     """Build a stage and describe it.  NOTHING changes here — the stage is
@@ -604,7 +619,8 @@ def _stage(email: str, slug: str, course: dict, emails: list[str],
     _purge_stages()
     sid = pysecrets.token_hex(4)
     _stages[sid] = {"course": slug, "by": email, "adds": adds,
-                    "removes": removes, "created": time.monotonic()}
+                    "removes": removes, "created": time.monotonic(),
+                    "turn": _turn()}
     out = [f"Staged for {slug} — NOTHING has changed yet.", ""]
     if mode == "replace":
         out.append(f"Parsed {len(emails)} email(s); {len(already)} already "
@@ -629,8 +645,15 @@ def _stage(email: str, slug: str, course: dict, emails: list[str],
                    "who teaches a course is the operator's to change): "
                    + ", ".join(sorted(staff & set(emails))))
     if adds or removes:
-        out += ["", f"If that's exactly right: roster_apply(\"{sid}\") "
-                    f"(stage expires in {_STAGE_TTL // 60} minutes)."]
+        # Addressed to the model, because the model is who reads it next.
+        # "If that's exactly right: roster_apply(...)" read as a next step,
+        # and a course chat with no agent prompt around it took it — twice,
+        # on camera (2026-09-25, @piper).
+        out += ["", "Show the instructor this plan and STOP — do not call "
+                    "roster_apply in this turn; the registrar refuses an apply "
+                    "made in the same turn as its stage.  After they reply "
+                    f"and approve it: roster_apply(\"{sid}\") (the stage "
+                    f"expires in {_STAGE_TTL // 60} minutes)."]
     return "\n".join(out)
 
 
@@ -684,7 +707,10 @@ async def roster_apply(stage_id: str) -> str:
     """Execute a staged enrollment change — and only that change: enroll
     the adds (sign-in access + key minted + escrowed), un-enroll the
     removes (key revoked).  Only after the person has read the stage and
-    said yes to it.  Teaching staff only."""
+    said yes to it, in a later message — never in the same turn as the
+    stage that produced the id; the registrar refuses that.  "Instead",
+    "also" or a new list is not a yes: stage again and show it.  Teaching
+    staff only."""
     _purge_stages()
     st = _stages.get(stage_id.strip())
     if st is None:
@@ -698,6 +724,13 @@ async def roster_apply(stage_id: str) -> str:
     # applying teaches it, whoever staged it.  In a course's chat, a stage
     # from another course is refused there as a disagreeing course.
     email, slug, _c = _staff_scope(st["course"])
+    if st.get("turn") and st["turn"] == _turn():
+        # Before the rehearsal short-circuit: this is a check, not a side
+        # effect, and it is exactly what the evals should see refused.
+        raise ToolError(
+            "Not applied — this stage was made in this same turn, so nobody "
+            "has said yes to it yet.  Show the instructor what it will do "
+            "and stop here; apply it only after they reply and approve it.")
     if (r := _rehearse(email, f"applied the stage to {slug}: added {len(st['adds'])}, removed {len(st['removes'])}")):
         return r
     results = await reconcile.apply_roster(slug, st["adds"], st["removes"])
