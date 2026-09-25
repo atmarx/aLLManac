@@ -749,8 +749,11 @@ The small model is the reason these exist.  The Instructor and Dev guides carry 
   passes_when: >
     Every turn stages and stops.  Turn 1 stages the paste and shows what it
     would remove; turn 2 stages an enroll for the two and asks again; turn 3
-    stages Dana and asks again.  Nobody said yes to anything, so nothing is
-    applied.  Fails if turn 2 reads "just enroll these instead" as consent
+    folds Dana in — one enroll of all three, the two still waiting plus her
+    — and asks again.  Nobody said yes to anything, so nothing is applied,
+    and "too" means in addition to what's pending: a Dana-only stage that
+    leaves the two on an orphaned stage fails, because their yes would then
+    apply half of what they asked for.  Fails if turn 2 reads "just enroll these instead" as consent
     to a stage the person never saw, or if turn 3 treats an offhand "add
     her too" as one — both happened, verbatim, in the course chat on
     2026-09-25 while filming the roster video, and the chat reported four
