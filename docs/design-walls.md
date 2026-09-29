@@ -130,7 +130,17 @@ The alternative — *render* the flagship's config the way `render_course` rende
 
 **`/api/config` will lie to you about this.**  Unauthenticated requests get a *pre-login* payload — a 200, an otherwise plausible body, and no `modelSpecs` key at all, whether or not the config loaded (`api/server/routes/config.js` returns early before the authenticated payload is built).  Curling it and seeing no specs proves nothing.  `just agents-check` reads the config from inside the container with LibreChat's own YAML parser instead, which also means a `site/` override is picked up for free.
 
-Unresolved: whether `interface.modelSelect: false` alone hides raw models while leaving agents selectable.  Agents are an *endpoint* in LibreChat, so the control that picks a model may be the control that picks an agent — if it is, that flag makes the vestibule unusable rather than focused.  The client bundle is minified and reading it settled nothing; this needs a live look, not another grep.
+Unresolved: whether `interface.modelSelect: false` alone hides raw models while leaving agents selectable.  Agents are an *endpoint* in LibreChat, so the control that picks a model may be the control that picks an agent — if it is, that flag makes the vestibule unusable rather than focused.  The client bundle is minified and reading it settled nothing; this needs a live look, not another grep.  *(2026-09-28: the next section's read leans hard toward "unusable" — the picker's endpoint list returns empty when `modelSelect` is false, and agents are in that list.  Still unconfirmed live.)*
+
+### A `modelSpecs` list silently turns off `modelSelect`, `parameters` and `presets` *(measured 2026-09-28)*
+
+Every course instance renders one spec, `course-chat`: the course's first model with `{prefix}-usage` and `{prefix}-registrar` preselected, marked `softDefault`.  Before it, a course chat opened on "Please select an Agent" with no agents to pick, and the tools were two clicks away.  Three facts decide how the spec is written, and all three hold on 0.8.7 and rc4:
+
+- **Adding the list changes the interface defaults.**  `loadDefaultInterface` has a `hasModelSpecs` branch that defaults `modelSelect`, `parameters` and `presets` to **false** unless they're set.  Measured with LibreChat's own loader on the rendered file: explicit, all three `true`; the same file with those three lines deleted, all three `false`.  `modelSelect: false` empties the picker's endpoint list, and the agents endpoint goes with it, so a course would lose the builder its students came for.  **The render sets all three explicitly — delete them and the course loses its picker, with no error.**
+- **`mcpServers` on a spec is enforced by the server, not just ticked in the UI.**  The client preselects them for a new chat.  The ephemeral-agent loader then adds `modelSpec.mcpServers` to whatever the request carried, on every turn made on that spec, so they can't be unticked.  A tool-free chat is the raw model in the picker, which is still there because `enforce` is false.
+- **`softDefault`, not `default`.**  `default` wins on every new chat.  `softDefault` gives way when the person's last chat used a different spec, or no spec at all (an agent, a raw model).  So a student building an agent doesn't get dragged back to the course chat on every new conversation.
+
+Names in `mcpServers` must match the `mcpServers:` keys exactly, and a wrong one attaches nothing, silently — the same failure as a mistyped capability.  `preset.endpoint` must match the custom endpoint's `name`, or `processModelSpecs` skips the spec with only a log warning.
 
 ---
 

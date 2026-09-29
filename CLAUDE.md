@@ -15,6 +15,7 @@ That file is a list of **walls** — questions already answered the expensive wa
 - **The LibreChat admin panel** — why its port isn't 3081, and why its session cookie is `Secure` by default with no `trust proxy` trap
 - **The classroom posture** — sharing is off by default; what turns it on
 - **MCP wiring** — the trailing-slash 307, the SSRF allowlist, and why "0 tools" at boot is correct
+- **A course's `modelSpecs`** — any spec list silently defaults `modelSelect`, `parameters` and `presets` to false, which empties the picker, agents included; the render sets all three explicitly
 - **`actions.allowedDomains`** — it is top-level, not under `endpoints`; an empty list is *no allowlist*, not deny-all; capability names are never validated by LibreChat and typos fail closed and silent
 - **LiteLLM free vs. Enterprise** — especially **UI SSO dies past 5 total DB users**, and rotation is delete+mint because `/key/regenerate` is paid
 - **Key attribution** — `user_id` must be the email, and why

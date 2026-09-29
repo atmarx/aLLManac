@@ -239,6 +239,33 @@ interface:
     roles: false
   marketplace:
     use: true
+  # EXPLICIT on purpose.  The moment modelSpecs (below) has a list, 0.8.7
+  # and rc4 both default these three to FALSE (loadDefaultInterface's
+  # hasModelSpecs branch) — and modelSelect false takes the picker away,
+  # agents included.  Set, they stay what they were before the spec existed.
+  modelSelect: true
+  parameters: true
+  presets: true
+
+# A course chat opens with the course's own tools in reach — before this it
+# opened on "Please select an Agent" and the tools were two clicks away.
+# softDefault, not default: a new chat starts here unless the person's last
+# one was somewhere else (an agent they built, a raw model), and then that
+# wins.  mcpServers is not just a UI tick — the server adds it on every turn
+# made on this spec (ephemeral-agent loader, 0.8.7 + rc4), so it can't come
+# unticked.  Names must match the mcpServers keys below; a wrong one attaches
+# nothing, silently.  A tool-free chat is still the raw model in the picker.
+modelSpecs:
+  enforce: false
+  list:
+    - name: "course-chat"
+      label: "Course chat"
+      description: "The course model, with this course's tools already on — ask for your key, or what you've spent."
+      softDefault: true
+      mcpServers: ["{MCP_SERVER_PREFIX}-usage", "{MCP_SERVER_PREFIX}-registrar"]
+      preset:
+        endpoint: "{MODEL_PROVIDER_NAME}"
+        model: "{models[0]}"
 
 fileConfig:
   endpoints:
