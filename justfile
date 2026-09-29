@@ -1135,6 +1135,266 @@ oidc-settle tries="60":
     done
     exit $fail
 
+# ---- Backups (docs/registrar-spec.md, "Backups") -----------------------------
+# Two bundles, never one: `.env` is kept apart from the escrow so that a stolen
+# copy of either is useless without the other, so they go to two restic
+# repositories under two passwords.  Where they go is this box's business —
+# site/backup.env (template: site.example/backup.env).  restic runs from its
+# image, so the box installs nothing.
+restic := "restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510"
+
+# The escrow's backup credential: a policy that can read a raft snapshot and
+# nothing else, and an AppRole the nightly run logs in with.  Nothing else on
+# the box can take a snapshot — the registrar's role can't, and the root token
+# is shown once and never kept — so this runs once per box, with the root
+# token from the password manager:
+#   BAO_ROOT_TOKEN=... just bao-backup-role
+#
+# Mint the escrow's snapshot-only backup credential (once per box, root token)
+bao-backup-role:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    : "${BAO_ROOT_TOKEN:?the root token, once:  BAO_ROOT_TOKEN=... just bao-backup-role}"
+    export BAO_TOKEN="$BAO_ROOT_TOKEN"
+    # docker exec -e NAME passes the value from this environment, so the token
+    # never sits in an argv where `ps` can read it.
+    b() { docker exec -i -e BAO_TOKEN alm-openbao bao "$@"; }
+    b policy write backup - >/dev/null <<'POL'
+    path "sys/storage/raft/snapshot" { capabilities = ["read"] }
+    POL
+    b write auth/approle/role/backup token_policies=backup token_ttl=15m token_max_ttl=30m </dev/null >/dev/null
+    ROLE_ID=$(b read -field=role_id auth/approle/role/backup/role-id </dev/null)
+    SECRET_ID=$(b write -f -field=secret_id auth/approle/role/backup/secret-id </dev/null)
+    fill() {  # same contract as `just secrets`: append if missing, never touch set values
+        if ! grep -q "^${1}=" .env; then echo "${1}=${2}" >> .env; echo "  ${1}  — written"
+        elif grep -q "^${1}=$" .env; then sed -i "s|^${1}=$|${1}=${2}|" .env; echo "  ${1}  — written"
+        else echo "  ${1}  — already set, left alone"; fi
+    }
+    fill BAO_BACKUP_ROLE_ID "$ROLE_ID"
+    fill BAO_BACKUP_SECRET_ID "$SECRET_ID"
+    echo "the backup role can read a raft snapshot, and nothing else"
+
+# Creates both repositories.  Deliberately NOT part of `backup`: a share that
+# failed to mount is an empty directory, and a backup that initialised
+# whatever it found would write the box's only copy onto its own disk and
+# report success.  `backup` refuses a repository that isn't one.
+#
+# Create the two restic repositories named in site/backup.env (once)
+backup-init: (_backup "init")
+
+# Nightly (see backup-install), or by hand before anything risky.  Takes what
+# it can when one part fails — a snapshot without the escrow still holds the
+# class's work — but tags it `partial`, skips the prune, pings the desk and
+# exits 1, so a quiet week can never age the last complete copy out.
+#
+# Back up this box: data bundle + secrets bundle, then prune to 7d/4w/6m
+backup: (_backup "backup")
+
+# What's in the repositories — every snapshot, newest last
+backup-list: (_backup "list")
+
+_backup mode:
+    #!/usr/bin/env bash
+    # No -E: an ERR trap inherited into $(...) fires inside the substitution
+    # and its output becomes the loop's word list.  A function that fails
+    # still trips the trap where it's called.
+    set -euo pipefail
+    [ -f site/backup.env ] || { echo "no site/backup.env — copy site.example/backup.env and fill it in"; exit 1; }
+    set -a; . site/backup.env; set +a
+    : "${BACKUP_DATA_REPO:?site/backup.env sets no BACKUP_DATA_REPO}"
+    : "${BACKUP_SECRETS_REPO:?site/backup.env sets no BACKUP_SECRETS_REPO}"
+    [ "$BACKUP_DATA_REPO" != "$BACKUP_SECRETS_REPO" ] || { echo "the two repositories must differ — that is the point of two"; exit 1; }
+    host=$(hostname -s)
+
+    password() {  # password DATA|SECRETS — from a command or a file, never from site/backup.env itself
+        local c="BACKUP_${1}_PASSWORD_COMMAND" f="BACKUP_${1}_PASSWORD_FILE"
+        if [ -n "${!c:-}" ]; then bash -c "${!c}"
+        elif [ -n "${!f:-}" ]; then cat "${!f}"
+        else echo "site/backup.env sets neither $c nor $f" >&2; return 1; fi
+    }
+    DATA_PW=$(password DATA); SECRETS_PW=$(password SECRETS)
+    [ -n "$DATA_PW" ] && [ -n "$SECRETS_PW" ] || { echo "a backup password came back empty"; exit 1; }
+    [ "$DATA_PW" != "$SECRETS_PW" ] || { echo "the two passwords must differ — one password is one bundle"; exit 1; }
+
+    # rs REPO PASSWORD [docker-args...] -- restic-args...
+    # A repo that is a path is bind-mounted; anything else (s3:, azure:,
+    # sftp:, rest:) goes to restic as written, with site/backup.env as the
+    # container's environment for its credentials.
+    rs() {
+        local repo=$1 pw=$2; shift 2
+        local args=()
+        while [ "$1" != -- ]; do args+=("$1"); shift; done; shift
+        local target=$repo
+        # --mount, not -v: -v creates a missing path on the local disk, which
+        # is the unmounted-share trap all over again.
+        case "$repo" in /*) args+=(--mount "type=bind,src=$repo,dst=/repo"); target=/repo ;; esac
+        RESTIC_PASSWORD="$pw" docker run --rm -e RESTIC_PASSWORD -e RESTIC_REPOSITORY="$target" \
+            --env-file site/backup.env -v almanac-restic-cache:/root/.cache/restic \
+            "${args[@]}" {{restic}} "$@"
+    }
+    is_repo() { rs "$1" "$2" -- cat config >/dev/null 2>&1; }
+
+    case "{{mode}}" in
+    init)
+        for pair in "DATA $BACKUP_DATA_REPO" "SECRETS $BACKUP_SECRETS_REPO"; do
+            set -- $pair; pw=$([ "$1" = DATA ] && echo "$DATA_PW" || echo "$SECRETS_PW")
+            if is_repo "$2" "$pw"; then echo "  $1  $2 — already a repository"; continue; fi
+            case "$2" in /*) mkdir -p "$2" ;; esac
+            rs "$2" "$pw" -- init >/dev/null && echo "  $1  $2 — created"
+        done
+        echo "Both passwords are needed to restore this box, and neither may live only here."
+        exit 0 ;;
+    list)
+        echo "== data";    rs "$BACKUP_DATA_REPO" "$DATA_PW" -- snapshots --compact
+        echo "== secrets"; rs "$BACKUP_SECRETS_REPO" "$SECRETS_PW" -- snapshots --compact
+        exit 0 ;;
+    esac
+
+    # ---- backup ----
+    step="start"; missing=()
+    ping_desk() {  # the registrar holds the mail + webhook settings; if it's the thing that's down, the unit's failure is the record
+        {{compose}} exec -T registrar python -c 'import asyncio, sys, reconcile as R
+    host, title = sys.argv[1], sys.argv[2]
+    print(asyncio.run(R.notify_desk(R.load_courses()["admins"], f"Backup {title} on {host}", sys.argv[3:])))' \
+            "$host" "$@" </dev/null || echo "  and the desk could not be told — the registrar did not answer" >&2
+    }
+    trap 'rc=$?; echo "backup FAILED at: $step" >&2; ping_desk FAILED "\`just backup\` stopped at: $step (exit $rc)." "Whatever finished before that step was kept; nothing after it ran, and nothing was pruned." "On the box: journalctl --user -u almanac-backup"; exit $rc' ERR
+
+    step="checking the repositories"
+    for r in "$BACKUP_DATA_REPO:$DATA_PW" "$BACKUP_SECRETS_REPO:$SECRETS_PW"; do
+        is_repo "${r%%:*}" "${r#*:}" || { echo "${r%%:*} is not a restic repository (unmounted share?  first run: just backup-init)"; false; }
+    done
+
+    # A fresh directory every run — never a glob against a variable that
+    # might be empty (the rm-rf-slash wall).
+    stage=$(mktemp -d "${BACKUP_STAGE_DIR:-/var/tmp}/almanac-backup.XXXXXX")
+    trap 'rm -rf "${stage:?}"' EXIT
+    chmod 700 "$stage"; mkdir -p "$stage/data/dumps" "$stage/data/state" "$stage/secrets"
+
+    soft() {  # soft LABEL command... — a part that fails is named, not fatal
+        local label=$1; shift
+        if "$@"; then echo "  ok    $label"; else echo "  MISS  $label"; missing+=("$label"); fi
+    }
+    running() { docker ps --format '{{{{.Names}}' | grep -qx "$1"; }
+    pgdump() {  # pgdump CONTAINER USER DB — -Fc, so a restore can --clean into a live database
+        running "$1" && docker exec "$1" pg_dump -Fc -U "$2" "$3" > "$stage/data/dumps/$1.pgdump"
+    }
+    baosnap() {
+        local rid sid tok
+        rid=$(grep '^BAO_BACKUP_ROLE_ID=' .env | cut -d= -f2-); sid=$(grep '^BAO_BACKUP_SECRET_ID=' .env | cut -d= -f2-)
+        [ -n "$rid" ] && [ -n "$sid" ] || { echo "        no backup role on this box — BAO_ROOT_TOKEN=... just bao-backup-role" >&2; return 1; }
+        tok=$(printf '%s' "$sid" | docker exec -i alm-openbao bao write -field=token auth/approle/login role_id="$rid" secret_id=-) || return 1
+        BAO_TOKEN="$tok" docker exec -e BAO_TOKEN alm-openbao bao operator raft snapshot save /tmp/almanac-backup.snap >/dev/null || return 1
+        docker cp alm-openbao:/tmp/almanac-backup.snap "$stage/data/dumps/bao.snap" >/dev/null
+        docker exec alm-openbao rm -f /tmp/almanac-backup.snap
+    }
+
+    step="dumping the databases"
+    soft "mongo (every instance's chats and agents)" bash -c "docker exec alm-mongo mongodump --archive --quiet > '$stage/data/dumps/mongo.archive'"
+    soft "litellm (keys, budgets, the ledger)"       pgdump alm-litellm-db  litellm  litellm
+    soft "keycloak (identity)"                       pgdump alm-keycloak-db keycloak keycloak
+    soft "vectordb (the flagship's embeddings)"      pgdump alm-vectordb    rag      vectordb
+    for c in $(docker ps --format '{{{{.Names}}' | { grep -E '^alm-vectordb-.+' || true; } | sort); do
+        soft "${c#alm-} (embeddings)" pgdump "$c" rag vectordb
+    done
+    soft "openbao (the escrow, raft snapshot)" baosnap
+
+    step="copying the operator's files"
+    # The registrar's source and queues, and the guides' id map — not in any
+    # volume, and the only copies.
+    for f in registrar/courses.yaml registrar/reports.yaml registrar/requests.yaml \
+             registrar/nominations.yaml registrar/front-door.md site/agents-state.json; do
+        if [ -f "$f" ]; then install -D -m 600 "$f" "$stage/data/state/$f"; fi
+    done
+    # Secrets bundle: every credential, and site/ (this box's own config) —
+    # minus the backup passwords themselves, if they live under site/.
+    install -m 600 .env "$stage/secrets/.env"
+    mkdir -p "$stage/secrets/fleet"; for f in fleet/*.env; do if [ -f "$f" ]; then install -m 600 "$f" "$stage/secrets/$f"; fi; done
+    cp -a site "$stage/secrets/site"
+    for f in "${BACKUP_DATA_PASSWORD_FILE:-}" "${BACKUP_SECRETS_PASSWORD_FILE:-}"; do
+        [ -n "$f" ] || continue
+        rel=$(realpath -m --relative-to="$PWD/site" "$f")
+        case "$rel" in ../*|/*) ;; *) rm -f "$stage/secrets/site/$rel" ;; esac
+    done
+
+    # Volumes that are plain files go in as they are — dedup does the rest.
+    project=$(docker inspect alm-mongo --format '{{{{index .Config.Labels "com.docker.compose.project"}}')
+    vols=()
+    for v in caddy-data librechat-uploads; do
+        docker volume inspect "${project}_$v" >/dev/null 2>&1 && vols+=(-v "${project}_$v:/backup/volumes/$v:ro")
+    done
+    for v in $(docker volume ls --format '{{{{.Name}}' | { grep -E "^${project}_chat-.+-uploads$" || true; }); do
+        vols+=(-v "$v:/backup/volumes/${v#${project}_}:ro")
+    done
+
+    tags=(--tag almanac --tag "${ALMANAC_DOMAIN:-unset}")
+    [ ${#missing[@]} -eq 0 ] || tags+=(--tag partial)
+
+    step="writing the data bundle"
+    rs "$BACKUP_DATA_REPO" "$DATA_PW" -v "$stage/data:/backup/data:ro" "${vols[@]}" -- \
+        backup --host "$host" "${tags[@]}" --quiet /backup
+    step="writing the secrets bundle"
+    rs "$BACKUP_SECRETS_REPO" "$SECRETS_PW" -v "$stage/secrets:/backup/secrets:ro" -- \
+        backup --host "$host" "${tags[@]}" --quiet /backup
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        step="the partial run's report"
+        echo "backup PARTIAL — missing: ${missing[*]}.  Nothing pruned." >&2
+        ping_desk PARTIAL "\`just backup\` wrote both bundles without: ${missing[*]}." \
+            "The snapshot is tagged partial and nothing was pruned, so the last complete copy still stands." \
+            "On the box: journalctl --user -u almanac-backup"
+        exit 1
+    fi
+
+    # Retention is a privacy number as well as a storage one: a deleted chat
+    # lives here until the last snapshot holding it ages out (about six
+    # months).  apex/your-data/how-long-we-keep-it.md says so.
+    step="pruning to 7 daily, 4 weekly, 6 monthly"
+    for r in "$BACKUP_DATA_REPO:$DATA_PW" "$BACKUP_SECRETS_REPO:$SECRETS_PW"; do
+        rs "${r%%:*}" "${r#*:}" -- forget --host "$host" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune --quiet
+    done
+    echo "backup — both bundles written, pruned to 7d/4w/6m"
+
+# The nightly run: a lingering user timer, the fleet-watch-install pattern.
+# 04:30 UTC stays clear of the 07:00 UTC guide evals; Persistent catches a
+# night the box was off.  A failure pings the desk from inside `backup`.
+#
+# Install the nightly backup timer (systemd --user) — once per box
+backup-install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ -f site/backup.env ] || { echo "no site/backup.env yet — fill it in and run: just backup-init"; exit 1; }
+    d="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+    mkdir -p "$d"
+    cat > "$d/almanac-backup.service" <<EOF
+    [Unit]
+    Description=aLLManac: nightly backup (data + secrets bundles)
+    [Service]
+    Type=oneshot
+    WorkingDirectory={{justfile_directory()}}
+    ExecStart={{just_executable()}} backup
+    Nice=10
+    IOSchedulingClass=idle
+    TimeoutStartSec=3h
+    EOF
+    cat > "$d/almanac-backup.timer" <<EOF
+    [Unit]
+    Description=aLLManac: nightly backup
+    [Timer]
+    OnCalendar=*-*-* 04:30:00 UTC
+    RandomizedDelaySec=15m
+    Persistent=true
+    [Install]
+    WantedBy=timers.target
+    EOF
+    systemctl --user daemon-reload
+    systemctl --user enable --now almanac-backup.timer
+    systemctl --user list-timers almanac-backup.timer --no-pager --no-legend
+    if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null)" != "yes" ]; then
+      echo "WARN: lingering is off for $USER, so the timer stops when you log out."
+      echo "      sudo loginctl enable-linger $USER"
+    fi
+
 # ---- Keys & accounting -------------------------------------------------------
 # `owner` is REQUIRED: the org unit that answers for the spend (class/lab slug,
 # e.g. engr301 or coe-materials-vexlab).  It's stamped into the key's metadata +

@@ -586,15 +586,6 @@ The named volumes are the state.  What each holds, and how much it would hurt:
 | `hf-cache` (core) | The embedding model the rag service runs on CPU | Low online — re-downloads.  **High air-gapped**: nothing embeds without it, and nothing says why |
 | `hf-cache` (vllm stack, `almanac-vllm_hf-cache`) | LLM weights | Low — re-downloads, but it's gigabytes |
 
-Consistent dumps without stopping anything:
-
-```bash
-docker exec alm-litellm-db  pg_dump -U litellm  litellm  > litellm.sql
-docker exec alm-keycloak-db pg_dump -U keycloak keycloak > keycloak.sql
-docker exec alm-vectordb    pg_dump -U rag      vectordb > vectordb.sql
-docker exec alm-mongo       mongodump --archive           > mongo.archive
-```
-
 And the facts that outrank everything: **the volumes are not the whole state.**  These files are on disk, gitignored, and in no volume — back them up with `.env`, separately from `bao-data`, permissions tight:
 
 | File | Why it can't be regenerated |
@@ -605,6 +596,25 @@ And the facts that outrank everything: **the volumes are not the whole state.** 
 | `fleet/<slug>.env` | Each course's `CREDS_KEY`/`CREDS_IV`/`JWT_SECRET`.  A render, but one that *keeps* existing values — lose the file and the next render mints a new pair |
 
 `usage-mcp/roster.yaml` and the rest of `fleet/` are renders: `just render` rebuilds them from `courses.yaml`.  And **`CREDS_KEY`/`CREDS_IV` are pinned for life** — the flagship's in `.env`, each course's in its `fleet/<slug>.env` — so restore a Mongo backup with a different pair and every stored key decrypts to garbage.
+
+### Running them
+
+`just backup` takes all of it without stopping anything, as **two bundles in two restic repositories under two passwords**: the data bundle (every database dump, the escrow's raft snapshot, the uploads volumes, caddy's certificates, and the files in the table above that aren't secrets) and the secrets bundle (`.env`, every `fleet/<slug>.env`, and `site/`).  Where they go is `site/backup.env`.  Once per box:
+
+```bash
+cp site.example/backup.env site/backup.env    # the two repos, the two password sources
+BAO_ROOT_TOKEN=... just bao-backup-role       # the escrow's snapshot-only credential
+just backup-init                              # create both repositories
+just backup                                   # the first run, by hand, and read it
+just backup-install                           # nightly at 04:30 UTC, a lingering user timer
+```
+
+- **The root token, once.**  A raft snapshot needs a token that can read `sys/storage/raft/snapshot`.  The registrar's AppRole can't, and the root token isn't kept, so `bao-backup-role` mints a `backup` policy that reads that one path and nothing else, plus an AppRole whose ids land in `.env`.
+- **The passwords come from a file or a command** (`BACKUP_*_PASSWORD_FILE` / `_COMMAND`), must differ, and **must have a copy off the box**.  A password that exists only on the box dies with the box it was meant to outlive.  A password file under `site/` is left out of the secrets bundle.
+- **`backup` never creates a repository.**  A share that failed to mount is an empty directory, and a backup that initialised whatever it found would write the box's only copy onto its own disk and call it a success.  So `backup` refuses anything that isn't already a repository, and the first run is `backup-init`, by hand.
+- **When one part fails, the rest still goes.**  A course's vector store that's down, or an escrow with no backup role, doesn't cost the night's chats.  The snapshot is tagged `partial`, **nothing is pruned** (so a bad week can't age the last complete copy out), the desk is pinged, and the run exits 1.  A failure that stops the run pings the desk too, naming the step.  With no webhook set, the ping goes by email to `admins:`.
+- **Retention is 7 daily · 4 weekly · 6 monthly**, which is also how long a deleted chat survives.
+- `just backup-list` shows both repositories.  `just restore` isn't built yet.  It comes with the drill, and until the drill has passed, [the spec's rule](registrar-spec.md) says these are not backups yet.
 
 ---
 
