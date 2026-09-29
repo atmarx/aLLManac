@@ -881,10 +881,19 @@ render-check: _registrar-current
 # wall asks for: `just deploy` ships render.py; `just render` makes it true.
 # `just render-check` is the guard that tells you when you owe it a run.
 #
+# course-up recreates only what changed DEFINITION.  A template change that
+# lands only in a course's librechat.yaml changes the file in a mounted dir
+# and nothing else, so up leaves the instance on its old config — and
+# render-check goes green anyway, because it diffs files, not processes.
+# Measured 2026-09-29: the course-chat spec rendered, render-check green,
+# both chats still booted from the day before.  config-refresh is the step
+# that restarts on changed mount contents; render ends with it.
+#
 # Re-render every course from the deployed templates, then recreate + reload
 render:
     {{compose}} exec -T registrar python course_admin.py render </dev/null
     @{{just_executable()}} course-up
+    @{{just_executable()}} config-refresh
 
 # List the registrar's course records
 courses:
@@ -1097,8 +1106,23 @@ oidc-settle tries="60":
     done
     fail=0
     for c in $(docker ps --format '{{{{.Names}}' | grep -E '^alm-(librechat|chat-.+)$' | sort); do
-        code=$(probe "$c")
+        # 0 is "not listening yet" — on a cold boot that's a container still
+        # starting, not a broken one, so wait for an answer before judging.
+        for i in $(seq 1 24); do
+            code=$(probe "$c")
+            [ "$code" != 0 ] && break
+            sleep 5
+        done
         [ "$code" = 302 ] && { echo "  ok    $c"; continue; }
+        # The route sits behind LibreChat's login limiter (7 per 5 min per IP,
+        # in memory), and the limiter answers BEFORE the strategy does — so a
+        # 429 says nothing about sign-in.  Measured 2026-09-29: forty rounds
+        # of polling this probe turned three 500s into three 429s.  Never
+        # restart on it; a healthy box would bounce for being looked at.
+        if [ "$code" = 429 ]; then
+            echo "  skip  $c — rate-limited (429), can't tell; re-run in five minutes"
+            continue
+        fi
         echo "  $c answered $code — restarting"
         docker restart "$c" >/dev/null
         code=0

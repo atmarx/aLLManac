@@ -69,7 +69,7 @@ The fix is one command and it is not `deploy` again:
 just render
 ```
 
-That re-renders every course from `courses.yaml` using the templates in the registrar you just deployed, then recreates what changed and reloads the edge gracefully.  **`render-check` reports and never repairs** — no course instance is recreated mid-deploy, which is why a red render-check is a note to you rather than an outage.
+That re-renders every course from `courses.yaml` using the templates in the registrar you just deployed, recreates what changed, reloads the edge gracefully, and restarts any instance whose config file changed under it (`config-refresh`).  That last step used to be missing.  A change that lands only in a course's `librechat.yaml` recreates nothing, so the instance kept serving the old config while `render-check` went green: it diffs files, not processes.  **`render-check` reports and never repairs** — no course instance is recreated mid-deploy, which is why a red render-check is a note to you rather than an outage.
 
 An **unrendered** line is not red.  A course record with no `fleet/<slug>.env` has never been provisioned on this box; that's `just course`, not `just render`.
 
