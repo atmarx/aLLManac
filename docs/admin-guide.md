@@ -498,6 +498,8 @@ That installs a systemd `--user` path unit on `fleet/fleet.yml`; every provision
 
 The same recipe installs `almanac-unseal.service`, a boot-time oneshot that runs `just bao-unseal 120` — up to ten minutes for docker and OpenBao to answer on a cold start.  Every container comes back on its own after a reboot (`restart: unless-stopped`), but the escrow doesn't unseal itself, and before this unit a rebooted box served chat and refused every key until someone deployed.  Lingering is what makes it run at boot at all.  `journalctl --user -u almanac-unseal` after a reboot shows `openbao — unsealed` or why not.
 
+The same unit then runs `just oidc-settle 120`, because the escrow isn't the only thing a reboot leaves broken.  Each LibreChat discovers its OpenID issuer once, at boot, and a reboot starts it in the same second as Keycloak.  One that loses that race can't sign anyone in until it's restarted, and it never says so outside its own log.  The settle waits for Keycloak, probes each instance's sign-in route, and restarts only the ones that fail.  **A box installed before 2026-09-29 runs only the unseal line until someone re-runs `just fleet-watch-install`**; the recipe is idempotent.
+
 The reasoning for the watcher, and why it isn't the socket, is a wall: [design-walls.md](design-walls.md), "A course made in chat is rendered, not running."
 
 ### The roster is a chat message now

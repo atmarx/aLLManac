@@ -278,7 +278,7 @@ build: _fleet && sbom
 # paste into librechat.yaml, which is an operator's act (agents-refresh).
 #
 # What CI runs on the box: images, build, .env, restart, re-read config, verify
-deploy: channel pull build secrets up config-refresh bao-unseal smoke egress-check render-check docs-corpus agents-refresh agents-check
+deploy: channel pull build secrets up config-refresh bao-unseal smoke oidc-settle egress-check render-check docs-corpus agents-refresh agents-check
 
 # The gap this closes: `docker compose up` recreates on a changed DEFINITION,
 # never on changed bind-mount CONTENTS.  Directory mounts got the new file into
@@ -804,7 +804,11 @@ fleet-watch-install:
     WorkingDirectory={{justfile_directory()}}
     # Up to ten minutes for docker and openbao to answer on a cold boot.
     ExecStart={{just_executable()}} bao-unseal 120
-    TimeoutStartSec=15min
+    # Then sign-in: every LibreChat raced Keycloak at boot, and one that lost
+    # stays unable to sign anyone in until restarted (see oidc-settle).  The
+    # leading "-" runs it even when the unseal failed.
+    ExecStart=-{{just_executable()}} oidc-settle 120
+    TimeoutStartSec=25min
     [Install]
     WantedBy=default.target
     EOF
@@ -1062,6 +1066,50 @@ bao-unseal tries="12":
       echo "openbao — unseal FAILED (check BAO_UNSEAL_KEY)"
       exit 1
     fi
+
+# ---- Sign-in survives a reboot ------------------------------------------------
+# LibreChat discovers its OpenID issuer ONCE, at boot, and never retries.
+# compose's `depends_on: keycloak: service_healthy` holds that off on `up` —
+# but a reboot brings every container back at once and ignores depends_on.
+# Measured on xdocker03, 2026-09-28: the host came back at 08:27, Keycloak
+# and all three LibreChats started in the same second, each logged "OpenID
+# Connect configuration failed - strategy not registered," and sign-in 500'd
+# on every instance for 26 hours behind a green `smoke` and a green deploy
+# (a deploy recreates only what changed, so it never touched them).
+#
+# The probe is the sign-in route itself, from inside each container: 302 to
+# Keycloak is registered, 500 is not.  /api/config is no help — it goes on
+# saying openidLoginEnabled: true.  Restarts only the instances that fail, so
+# it's safe on every deploy; the boot unit runs it after the unseal.
+# Restart any LibreChat whose sign-in didn't register at boot
+oidc-settle tries="60":
+    #!/usr/bin/env bash
+    set -uo pipefail
+    probe() {  # probe CONTAINER → status of GET /oauth/openid, 0 if no answer
+        docker exec "$1" node -e 'fetch("http://localhost:3080/oauth/openid",{redirect:"manual"}).then(r=>console.log(r.status)).catch(()=>console.log(0))' 2>/dev/null || echo 0
+    }
+    # Keycloak first — restarting a chat before the realm answers only
+    # re-runs the race it lost.
+    for i in $(seq 1 {{tries}}); do
+        curl -fso /dev/null --max-time 5 "http://localhost:${AUTH_PORT:-8080}/realms/${KC_REALM:-classroom}/.well-known/openid-configuration" && break
+        [ "$i" = {{tries}} ] && { echo "oidc-settle: keycloak not answering after {{tries}} tries — nothing restarted"; exit 1; }
+        sleep 5
+    done
+    fail=0
+    for c in $(docker ps --format '{{{{.Names}}' | grep -E '^alm-(librechat|chat-.+)$' | sort); do
+        code=$(probe "$c")
+        [ "$code" = 302 ] && { echo "  ok    $c"; continue; }
+        echo "  $c answered $code — restarting"
+        docker restart "$c" >/dev/null
+        code=0
+        for i in $(seq 1 24); do  # a cold LibreChat takes ~30s to listen
+            sleep 5
+            code=$(probe "$c")
+            [ "$code" = 302 ] && break
+        done
+        if [ "$code" = 302 ]; then echo "  fixed $c"; else echo "  FAIL  $c still answers $code"; fail=1; fi
+    done
+    exit $fail
 
 # ---- Keys & accounting -------------------------------------------------------
 # `owner` is REQUIRED: the org unit that answers for the spend (class/lab slug,

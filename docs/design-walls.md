@@ -721,6 +721,16 @@ The page itself deliberately cannot tell a typo from a finished course, because 
 
 ---
 
+## A reboot leaves every LibreChat unable to sign anyone in — and `smoke` stays green *(measured 2026-09-29)*
+
+LibreChat discovers its OpenID issuer **once, at boot**, and never retries.  If Keycloak isn't answering at that moment, it logs `OpenID Connect configuration failed - strategy not registered`, starts listening anyway, and every sign-in returns 500 from then on.
+
+`compose.yml` already says `depends_on: keycloak: condition: service_healthy`, and that condition is only honored by `docker compose up`.  **A reboot brings every container back at once under `restart: unless-stopped`, and depends_on is ignored.**  xdocker03 rebooted at 08:27 on 2026-09-28.  Keycloak, the flagship and both course chats all started in the same second, all three LibreChats logged the failure, and sign-in was dead on every instance for 26 hours.  The boot unit had unsealed the escrow correctly.  A CI deploy landed in the middle of it and went green, because a deploy recreates only what changed, and `smoke`'s LibreChat line (`/`) and Keycloak line (discovery) both answer 200 while every sign-in fails.  `/api/config` doesn't help either: it goes on reporting `openidLoginEnabled: true`.
+
+**The probe is the sign-in route itself**, from inside each container: `GET /oauth/openid` answers **302** to Keycloak when the strategy is registered and **500** when it isn't.  Measured on the broken box (500 ×3) against xtower (302).  `just oidc-settle` waits for Keycloak, probes each `alm-librechat` / `alm-chat-*`, and restarts only the ones that fail, so it's safe to run anywhere at any time.  `deploy` runs it after `smoke`, and the boot unit runs it after the unseal.  The boot line reaches a box only when `just fleet-watch-install` is re-run there.
+
+The family is "a one-shot at boot with no retry": the escrow's seal was the first one, this is the second.  **Any dependency that is read once at start is a reboot hazard that `up` hides**, because `up` is the only path that respects the ordering.
+
 ## A course made in chat is rendered, not running *(2026-09-22)*
 
 `course_create` and `course_approve` provision everything the registrar can reach — the gateway team and service key, the Keycloak client and roles, the escrow, and the render under `fleet/` — and stop there.  **The containers start when something on the host runs `just course-up`**, and the tool says so in its reply.

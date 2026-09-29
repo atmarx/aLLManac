@@ -35,10 +35,10 @@ One of those three is conditional, and **the condition is printed by the deploy 
 
 ```
 channel  pull  build  secrets  up  config-refresh  bao-unseal
-smoke  egress-check  render-check  docs-corpus  agents-refresh  agents-check
+smoke  oidc-settle  egress-check  render-check  docs-corpus  agents-refresh  agents-check
 ```
 
-Read that as two halves.  The first seven **change the box**: resolve the image pins from `channels/<name>.env`, pull them, build what's local, fill in any secret still reading `change-me`, bring the stack up, restart containers whose mounted config changed since they booted, and unseal the escrow.  Of the last six, five **ask the box questions** and change nothing; `agents-refresh` is the exception — it re-seeds the guides from the docs you just shipped, on any box that has been seeded before.
+Read that as two halves.  The first seven **change the box**: resolve the image pins from `channels/<name>.env`, pull them, build what's local, fill in any secret still reading `change-me`, bring the stack up, restart containers whose mounted config changed since they booted, and unseal the escrow.  Of the last seven, five **ask the box questions** and change nothing.  The two exceptions repair.  `oidc-settle` restarts any LibreChat whose sign-in route answers 500 instead of 302, the state a reboot leaves behind.  `agents-refresh` re-seeds the guides from the docs you just shipped, on any box that has been seeded before.
 
 Two of those are worth knowing by name because people re-run them by hand and get confused:
 
@@ -172,5 +172,7 @@ After editing anything under `site/`, bring the box up with **`just up`** — ne
 | `agents-check` red on knowledge or prompt (STALE) | The deploy's refresh didn't land — read the `agents-refresh` output above it.  Never seeded: `just agents-seed`.  RATE LIMITED: wait fifteen minutes, then `just agents-seed` |
 | `agents-check` reports an orphan spec | A `modelSpecs` entry points at an agent id that no longer exists — re-seed, then paste the reprinted block ([Admin Guide](admin-guide.md)) |
 | `smoke` warns openbao is SEALED | Never red — sealed is a boot state, and chat still works on the keys already rendered.  But nothing can mint or fetch a key until `just bao-unseal`.  On a box with `just fleet-watch-install`, a reboot unseals itself; `journalctl --user -u almanac-unseal` says why it didn't |
+| `oidc-settle` FAILs on an instance | It restarted it and sign-in still isn't registered.  Check `just logs chat-<slug>` (or `librechat`) for `openidStrategy`: an issuer the container can't reach, not a boot race |
+| Nobody can sign in after a reboot, and `smoke` is green | `just oidc-settle`.  `smoke`'s LibreChat and Keycloak lines both pass while every sign-in 500s.  A box whose boot unit predates 2026-09-29 needs `just fleet-watch-install` once to get the boot-time settle |
 | `fleet-smoke` red on one host | The instance, not the edge.  `just ps`, then `just logs chat-<slug>` |
 | A guide got worse deep in a long thread | Not the prompt.  The window trimmed it — see instance 2 above |
