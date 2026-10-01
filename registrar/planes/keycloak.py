@@ -145,21 +145,33 @@ async def kc_ensure_user(cx: httpx.AsyncClient, email: str) -> tuple[str, bool]:
 
 
 AUTOLINK_FLOW = "almanac first broker login"
-_AUTOLINK_STEPS = ("idp-detect-existing-broker-user", "idp-auto-link")
+_AUTOLINK_STEPS = {
+    # ALTERNATIVE + this order is Keycloak's documented open-broker flow:
+    # a genuinely new IdP identity becomes a realm user; an email already
+    # pre-created from a roster falls through and links without a prompt.
+    "idp-create-user-if-unique": "ALTERNATIVE",
+    "idp-auto-link": "ALTERNATIVE",
+}
+_RETIRED_AUTOLINK_STEPS = {"idp-detect-existing-broker-user"}
 
 
 async def kc_ensure_autolink(cx: httpx.AsyncClient) -> str:
-    """A first-broker-login flow that links an IdP login to the existing
-    realm user with the same email — no "account already exists" prompt,
-    no second account — and every identity provider pointed at it.
+    """An open first-broker-login flow that creates a realm user for a new
+    IdP identity, or links it to the existing realm user with the same email
+    — no "account already exists" prompt, no second account — and every
+    identity provider pointed at it.
     Idempotent; run on every ensure_course.  -> flow alias
 
-    Keycloak's stock flow ends in "Confirm link existing account" +
-    "Verify existing account by email", which is right for a public realm
-    and wrong for a roster: we made that account on purpose, from the
-    roster, and the IdP already vouched for the email.  The two steps used
-    instead are Keycloak's own: detect the existing user by email, then
-    set it — both REQUIRED, in that order.
+    Keycloak's documented auto-link flow is Create User If Unique followed
+    by Automatically Set Existing User, both ALTERNATIVE.  The first opens
+    the vestibule to a new identity from the deployment's trusted IdP; the
+    second lands a roster-precreated user on that account.  Auto-linking is
+    only safe when the IdP registration itself restricts who may assert an
+    email (docs/admin-guide.md, "The Globus flip").
+
+    Older deployments used Detect Existing Broker User + Auto Link, both
+    REQUIRED.  That deliberately admitted only pre-created users.  Remove
+    that retired step and migrate the remaining execution in place.
     """
     r = await _kc(cx, "GET", "/authentication/flows")
     r.raise_for_status()
@@ -174,7 +186,14 @@ async def kc_ensure_autolink(cx: httpx.AsyncClient) -> str:
     path = f"/authentication/flows/{AUTOLINK_FLOW.replace(' ', '%20')}/executions"
     r = await _kc(cx, "GET", path)
     r.raise_for_status()
-    have = {e.get("providerId"): e for e in r.json()}
+    executions = r.json()
+    for e in executions:
+        if e.get("providerId") in _RETIRED_AUTOLINK_STEPS:
+            rr = await _kc(cx, "DELETE", f"/authentication/executions/{e['id']}")
+            if rr.status_code != 204:
+                rr.raise_for_status()
+    have = {e.get("providerId"): e for e in executions
+            if e.get("providerId") not in _RETIRED_AUTOLINK_STEPS}
     for provider in _AUTOLINK_STEPS:
         if provider not in have:
             rr = await _kc(cx, "POST", path + "/execution", json={"provider": provider})
@@ -183,10 +202,30 @@ async def kc_ensure_autolink(cx: httpx.AsyncClient) -> str:
     r = await _kc(cx, "GET", path)
     r.raise_for_status()
     for e in r.json():
-        if e.get("providerId") in _AUTOLINK_STEPS and e.get("requirement") != "REQUIRED":
-            rr = await _kc(cx, "PUT", path, json={"id": e["id"], "requirement": "REQUIRED"})
+        requirement = _AUTOLINK_STEPS.get(e.get("providerId"))
+        if requirement and e.get("requirement") != requirement:
+            rr = await _kc(cx, "PUT", path,
+                           json={"id": e["id"], "requirement": requirement})
             if rr.status_code not in (202, 204):
                 rr.raise_for_status()
+    # Existing boxes retain Auto Link at index 0 and append Create User at
+    # index 1.  Raise Create User once so a unique identity is created before
+    # Auto Link gets the chance to look for an existing account.
+    r = await _kc(cx, "GET", path)
+    r.raise_for_status()
+    order = {e.get("providerId"): e for e in r.json()}
+    create = order.get("idp-create-user-if-unique")
+    link = order.get("idp-auto-link")
+    while create and link and create.get("index", 0) > link.get("index", 0):
+        rr = await _kc(cx, "POST",
+                       f"/authentication/executions/{create['id']}/raise-priority")
+        if rr.status_code != 204:
+            rr.raise_for_status()
+        r = await _kc(cx, "GET", path)
+        r.raise_for_status()
+        order = {e.get("providerId"): e for e in r.json()}
+        create = order.get("idp-create-user-if-unique")
+        link = order.get("idp-auto-link")
     r = await _kc(cx, "GET", "/identity-provider/instances")
     r.raise_for_status()
     for idp in r.json():
