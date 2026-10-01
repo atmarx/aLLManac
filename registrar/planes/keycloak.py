@@ -187,15 +187,22 @@ async def kc_ensure_autolink(cx: httpx.AsyncClient) -> str:
     r = await _kc(cx, "GET", path)
     r.raise_for_status()
     executions = r.json()
-    for e in executions:
-        if e.get("providerId") in _RETIRED_AUTOLINK_STEPS:
+    controlled = set(_AUTOLINK_STEPS) | _RETIRED_AUTOLINK_STEPS
+    current = [e.get("providerId") for e in executions
+               if e.get("providerId") in controlled]
+    desired = list(_AUTOLINK_STEPS)
+    # The raise-priority endpoint reports 204 without moving a top-level
+    # execution on Keycloak 26.1.5.  This is our own two-step flow, so rebuild
+    # just the executions we own when their order or legacy shape differs.
+    # Once correct, this branch is a no-op on every later reconcile.
+    if current != desired:
+        for e in executions:
+            if e.get("providerId") not in controlled:
+                continue
             rr = await _kc(cx, "DELETE", f"/authentication/executions/{e['id']}")
             if rr.status_code != 204:
                 rr.raise_for_status()
-    have = {e.get("providerId"): e for e in executions
-            if e.get("providerId") not in _RETIRED_AUTOLINK_STEPS}
-    for provider in _AUTOLINK_STEPS:
-        if provider not in have:
+        for provider in desired:
             rr = await _kc(cx, "POST", path + "/execution", json={"provider": provider})
             if rr.status_code not in (201, 204, 409):
                 rr.raise_for_status()
@@ -208,24 +215,6 @@ async def kc_ensure_autolink(cx: httpx.AsyncClient) -> str:
                            json={"id": e["id"], "requirement": requirement})
             if rr.status_code not in (202, 204):
                 rr.raise_for_status()
-    # Existing boxes retain Auto Link at index 0 and append Create User at
-    # index 1.  Raise Create User once so a unique identity is created before
-    # Auto Link gets the chance to look for an existing account.
-    r = await _kc(cx, "GET", path)
-    r.raise_for_status()
-    order = {e.get("providerId"): e for e in r.json()}
-    create = order.get("idp-create-user-if-unique")
-    link = order.get("idp-auto-link")
-    while create and link and create.get("index", 0) > link.get("index", 0):
-        rr = await _kc(cx, "POST",
-                       f"/authentication/executions/{create['id']}/raise-priority")
-        if rr.status_code != 204:
-            rr.raise_for_status()
-        r = await _kc(cx, "GET", path)
-        r.raise_for_status()
-        order = {e.get("providerId"): e for e in r.json()}
-        create = order.get("idp-create-user-if-unique")
-        link = order.get("idp-auto-link")
     r = await _kc(cx, "GET", "/identity-provider/instances")
     r.raise_for_status()
     for idp in r.json():
