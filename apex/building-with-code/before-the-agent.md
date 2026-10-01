@@ -45,7 +45,7 @@ Most of what follows is for the second and third rows.  Once your work is more t
 
 ## Version control: git, at the minimum that matters
 
-If you've never used git, this is enough to start.  Your institution's hosted version control system (e.g. GitLab, Forgejo, Azure DevOps, etc.) or a free GitHub account will hold your repositories.  Keep coursework private unless your instructor says otherwise, because a public repository of your solutions is also everyone else's.  Run this in your project folder:
+If you've never used git, this is enough to start.  Your institution's hosted version control system (e.g. GitHub, GitLab, Forgejo, Azure DevOps, etc.) or a free personal GitHub account will hold your repositories.  Keep coursework private unless your instructor says otherwise, because a public repository of your solutions is also everyone else's.  Run this in your project folder:
 
 ```bash
 git init                          # once per project
