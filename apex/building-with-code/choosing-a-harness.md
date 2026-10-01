@@ -76,7 +76,7 @@ Start from what you are trying to do, not from the tool.
 - **You want to understand how an agent works.**  Start with the smallest harness, because you can read everything it sends.  pi's instructions are short enough to read in a minute; watching a four-tool agent solve something teaches you more about the loop than a polished one that hides it.
 - **You want to get work done with a frontier model.**  Start with the harness that model's maker tunes for — it is the pairing the vendor tested — and treat that as a default, not a verdict.  The numbers above show it is often beaten.
 - **You are on a campus model.**  The pairing matters most here and is least studied.  What decides it is whether the model calls tools reliably *in that harness* — which you find out by trying, not by reading.  A lighter harness leaves more room in a small context window; a fuller one gives a weaker model more to hold on to.  There is no general answer yet.
-- **The agent will run while you aren't watching.**  Pick where it runs before you pick what runs.  Only one of these three fences itself by default.
+- **The agent will run while you aren't watching.**  Pick where it runs before you pick what runs.  Only one of these three fences itself by default.  → [Supervising an agent](supervising-an-agent.md)
 
 ## Try it yourself
 
