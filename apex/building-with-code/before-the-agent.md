@@ -27,9 +27,25 @@ An agent changes a lot of things quickly, and it will be wrong some of the time.
 
 None of this is new to agents.  It's what software engineering learned to do about *people* changing code quickly and being wrong some of the time.  An agent just makes the cost of skipping it arrive faster.
 
+## Scale it to the work
+
+None of this means homework needs a deployment pipeline.  The principle is the same at every size: **before an agent touches your work, have a way back and a way to check.**  How much machinery that takes depends on what you're building.
+
+| What you're working on | What to have first |
+|---|---|
+| **Homework in a notebook** | A copy you can go back to, and the check cells you were given |
+| **A script or a small project** | Git, and a test for what you're about to change |
+| **Something other people use or run** | Git, tests, one command to deploy, and CI to run it |
+
+**In a notebook, the way back is a copy.**  Before you let an assistant or an agent rewrite cells, duplicate the notebook from the file browser.  Jupyter's own checkpoint is not a substitute: it holds one earlier version, and each save can replace it, so it's an undo for the last few minutes rather than a history.  Notebooks can live in git too, if your hub has a terminal.  Their diffs are noisy (a notebook is JSON, outputs included), so clear the outputs before you commit.
+
+**In a notebook, the way to check is the cells that check you.**  If your course gives you test or autograder cells, those are your tests.  Run them yourself, and treat an agent's edit to one of them the way you'd treat an edit to a test anywhere else ([Supervising an agent](supervising-an-agent.md) has the story).
+
+Most of what follows is for the second and third rows.  Once your work is more than one notebook, it's worth learning, and it's the first thing you'll be asked about on any team that ships software.
+
 ## Version control: git, at the minimum that matters
 
-If you've never used git, this is enough to start.  Run it in your project folder:
+If you've never used git, this is enough to start.  Many institutions run a GitLab for their students, and a GitHub account is free; either will hold your repositories.  Keep coursework private unless your instructor says otherwise, because a public repository of your solutions is also everyone else's.  Run this in your project folder:
 
 ```bash
 git init                          # once per project
@@ -84,7 +100,7 @@ If you're setting up to work with an agent, in this order:
 
 1. **Git**, with a first commit and your key in `.gitignore`.
 2. **A test** for the thing you're about to change.
-3. **One command** that runs the tests, and one that deploys, if you deploy.
+3. **One command** that runs the tests, and one that deploys, if you deploy.  For notebook homework, the first row of the table above is the whole list.
 4. *Then* a [harness](harnesses.md), and a [model](choosing-a-harness.md).
 
 The last item is the one people spend the most time on, and it matters least.  A good model in a bare folder is still a fast way to make changes you can't see or undo.  A modest model in a repository with tests and a pipeline is something you can [supervise](supervising-an-agent.md).
