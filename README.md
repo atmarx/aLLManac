@@ -180,6 +180,12 @@ Then in `.env`: `OPENID_ISSUER=https://auth-aiclassroom.example.edu/realms/class
 | Group *sync* from rosters | **Not here** — share-groups are clicks in the admin panel; roster sync stays the platform's job |
 | FOCUS/OpenChargeback billing export | **Not yet** — the owner tags are the hook it lands on |
 
+## License
+
+Two licenses, split by what a file is.  The code and configuration are [Apache-2.0](LICENSE).  The written material — the guides in `apex/`, the operator docs in `docs/`, and this README — is [CC BY 4.0](LICENSE-docs), so another institution can adapt the pages for its own courses with attribution.  Code blocks inside the docs are Apache-2.0 too, so you can paste them without the attribution terms coming along.  [NOTICE](NOTICE) has the details.  Copyright 2026 Andrew T. Marx.
+
+The images this stack runs — LibreChat, LiteLLM, Keycloak, OpenBao, Caddy and the rest — are pulled, not redistributed, and each carries its own license.
+
 ---
 
 The almanac never claimed to grow the crops. It tells you what was planted, what it cost, and what the people before you learned — and it sits on the shelf where everyone can reach it. 🌾

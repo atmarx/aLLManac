@@ -138,7 +138,7 @@ _sbom-dir:
 docs-build:
     @mkdir -p site-dist
     docker run --rm --user "$(id -u):$(id -g)" \
-      --env DOCS_SITE_NAME --env DOCS_SITE_URL --env DOCS_PRODUCT_NAME \
+      --env DOCS_SITE_NAME --env DOCS_SITE_URL --env DOCS_PRODUCT_NAME --env DOCS_COPYRIGHT \
       --volume "$PWD:/docs" {{mkdocs}} build --clean --strict
 
 # Render the per-audience RAG corpora from front matter.  A guide is a query,

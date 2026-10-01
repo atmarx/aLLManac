@@ -1,0 +1,20 @@
+The aLLManac
+Copyright 2026 Andrew T. Marx
+
+This repository carries two licenses, split by what a file is:
+
+  Written material — the Markdown prose under apex/ and docs/, and
+  README.md — is licensed under the Creative Commons Attribution 4.0
+  International license (CC BY 4.0).  See LICENSE-docs.
+
+  Everything else — the justfile, compose files, registrar, usage-mcp,
+  scripts and configuration — is licensed under the Apache License,
+  Version 2.0.  See LICENSE.
+
+Code blocks and configuration snippets inside the written material are
+licensed under Apache-2.0 as well, so they can be copied into a project
+as code without carrying the CC BY attribution terms.
+
+This repository builds on third-party software it does not redistribute
+(LibreChat, LiteLLM, Keycloak, OpenBao, Caddy, and the other images pinned
+in compose.yml and channels/).  Each is under its own license.
