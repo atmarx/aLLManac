@@ -21,6 +21,7 @@ Three things change the moment you leave the chat window, and they are worth kno
 
 - **You need a key, and it is yours.**  One per person per course.  Everything it spends is recorded under your name, in that course.  → [Your API key](your-key.md)
 - **The limits are different.**  In chat, a long conversation gets trimmed at the course's context window.  Through a key, nothing trims your requests at the gateway — what stops you is the budget on the key.  Anyone who learns the chat rule and assumes it applies to code will predict a limit that does not exist.  → [The gateway](the-gateway.md)
+- **An agent needs version control, tests and a pipeline under it before it needs anything else.**  They matter more than which model or harness you pick, and without them every mistake costs you twice.  → [Before the agent](before-the-agent.md)
 - **A harness spends differently from a person.**  A coding agent re-sends its whole working context on every step of its loop, dozens of times per task, without you watching each one.  → [Coding harnesses](harnesses.md)
 
 Which harness?  The research says that's the wrong question on its own: the same model gains or loses tens of points depending on the harness around it, and which harness wins depends on the model.  → [Choosing a harness](choosing-a-harness.md)
@@ -31,4 +32,4 @@ And the part no config file covers — what it means to hand an agent your repos
 
 ## What this section assumes
 
-That you can open a terminal, set an environment variable, and run a script.  Nothing beyond that.  If you have never used an API before, start with [the gateway](the-gateway.md) — the first example there is four lines long and proves the whole chain works.
+That you can open a terminal, set an environment variable, and run a script.  Nothing beyond that — except that if you're going to hand code to an agent, you'll want git first, and [Before the agent](before-the-agent.md) has the minimum.  If you have never used an API before, start with [the gateway](the-gateway.md) — the first example there is four lines long and proves the whole chain works.

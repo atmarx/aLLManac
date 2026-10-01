@@ -46,6 +46,7 @@ nav:
       - building-with-code/index.md
       - Your API key: building-with-code/your-key.md
       - The gateway: building-with-code/the-gateway.md
+      - Before the agent: building-with-code/before-the-agent.md
       - Coding harnesses: building-with-code/harnesses.md
       - Choosing a harness: building-with-code/choosing-a-harness.md
       - When it breaks: building-with-code/when-it-breaks.md

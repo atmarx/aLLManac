@@ -71,7 +71,9 @@ That "asks before running a command" row matters more than it looks, and [superv
 
 ## How to choose
 
-Start from what you are trying to do, not from the tool.
+First, the part that matters more than any row in the table: an agent needs version control, tests and a way to deploy under it before the choice of harness makes any difference.  → [Before the agent](before-the-agent.md)
+
+Then start from what you are trying to do, not from the tool.
 
 - **You want to understand how an agent works.**  Start with the smallest harness, because you can read everything it sends.  pi's instructions are short enough to read in a minute; watching a four-tool agent solve something teaches you more about the loop than a polished one that hides it.
 - **You want to get work done with a frontier model.**  Start with the harness that model's maker tunes for — it is the pairing the vendor tested — and treat that as a default, not a verdict.  The numbers above show it is often beaten.

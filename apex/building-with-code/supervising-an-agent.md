@@ -10,6 +10,7 @@ tethered_to:
   - docs/agent-contract.md
   - apex/building-with-code/choosing-a-harness.md
   - apex/building-with-code/your-key.md
+  - apex/building-with-code/before-the-agent.md
 ---
 
 # Supervising an agent
@@ -52,13 +53,13 @@ Here's the uncomfortable part.  The approval prompt you'd exercise judgement on 
 So for two of the three, out of the box, the narration scrolling past *is* the checkpoint.  You have two levers, and you should use at least one of them before you start:
 
 1. **Turn asking on**, where the harness lets you.
-2. **Decide where it runs before you start it.**  Work on a fresh branch, in a clean working tree, and commit first, so `git diff` afterward shows exactly what the agent did and nothing else.  Never start one from your home directory.  For a harness with no permission system, use the container its authors recommend.
+2. **Decide where it runs before you start it.**  Work on a fresh branch, in a clean working tree, and commit first, so `git diff` afterward shows exactly what the agent did and nothing else.  New to git?  [Before the agent](before-the-agent.md) has the minimum, and it comes first for a reason.  Never start one from your home directory.  For a harness with no permission system, use the container its authors recommend.
 
 The behaviour above was checked against each project's documentation on 2026-09-22, at the versions listed on [Choosing a harness](choosing-a-harness.md#versions-this-page-was-checked-against).  Harnesses change their defaults; check yours.
 
 ## Check the work, not the report
 
-- **Read the diff, not the summary.**  The summary is the agent's description of what it did.  The diff is what it did.
+- **Read the diff, not the summary.**  The summary is the agent's description of what it did.  The diff is what it did, and you only have one if the work is under [version control](before-the-agent.md).
 - **Run the tests yourself.**  An agent that ran them may also have edited them, which is the story at the top of this page.
 - **What it ran, you ran.**  Every command executed in your repository, under your account.  Every token went through [your key](your-key.md), under your name.  None of it is the model's: a model can't take responsibility for anything, so all of it stays with the person who started it.
 
