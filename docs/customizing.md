@@ -24,7 +24,7 @@ The project is called the aLLManac, and nothing a reader sees has to say so.  An
 
 | Setting | What it names | Default | Change later? |
 |---|---|---|---|
-| `PLATFORM_NAME` | The platform, everywhere a reader meets it: every help-site page, the guides' knowledge files, their prompts and eval cases, each guide's picker description and owner name, and export downloads (`ai-classroom-<course>-<date>.zip`). | `aLLManac` | Yes — `just deploy` rebuilds the site and corpus and refreshes the guides.  The guides' owner name is written once, when the service account is created, so it changes on a fresh box only. |
+| `PLATFORM_NAME` | The platform, everywhere a reader meets it: every help-site page, the guides' knowledge files, their prompts and eval cases, each guide's picker description and owner name, what the tool servers say in their replies and refusals, the subject and sender of the registrar's mail, export downloads (`ai-classroom-<course>-<date>.zip`) and the README inside them, and each course's client name in Keycloak. | `aLLManac` | Yes — `just deploy` rebuilds the site and corpus, refreshes the guides and restarts the tool servers.  Two are written once, at creation, so they change on a fresh box only: the guides' owner name and each course's Keycloak client name. |
 | `CHAT_MODEL` | The chat model's public name: what LiteLLM serves, what the picker shows, what every harness snippet in the help site says, the model new courses and the guides get. | `almanac-chat` | **Fresh box only.**  Every course record and every minted key carries the name in its model list. |
 | `MODEL_PROVIDER_NAME` | The endpoint label in each course chat's picker. | `Almanac` | **Fresh box only.**  Conversations remember the endpoint they were held on, and a renamed endpoint leaves them pointing at nothing. |
 | `MCP_SERVER_PREFIX` | The tool-server names declared in each course's config, which staff can attach to an agent (`<prefix>-usage`, `<prefix>-courses`). | `almanac` | **Fresh box only.**  An agent stores its tools by server name, so every agent that uses them would lose them. |
@@ -56,11 +56,11 @@ The realm's **display name** and the **sign-in page's look** are set in Keycloak
 
 ## What stays named after the project
 
-Readers never see these, and renaming them buys nothing: container names (`alm-*`), database names, the escrow's mount (`BAO_MOUNT`), Keycloak flow names, the guides' service account (`guides@almanac.invalid`), and the operator docs in `docs/`, which document the software by its name.  The Platform, Security and Dev guides draw on some of those docs, so their answers can mention the project — that's attribution, not branding.
+Readers never see these, and renaming them buys nothing: container names (`alm-*`), database names, the escrow's mount (`BAO_MOUNT`), Keycloak flow names, the guides' service account (`guides@almanac.invalid`), and the operator docs in `docs/`, which document the software by its name.  The Platform, Security and Operator Guides draw on some of those docs, so their answers can mention the project — that's attribution, not branding.
 
 ## How the names stay out of the pages
 
-Pages in `apex/`, the guides' prompts and their eval cases never spell out the platform or the model.  They say `{{PLATFORM}}` and `{{MODEL}}`, and the site build and `just docs-corpus` fill them from `PLATFORM_NAME` and `CHAT_MODEL`.  `docs-corpus` refuses to render if any of those sources names either outright, so a slip fails the build on the project's own box instead of reaching another institution's students.  The rule for writers is in [pedagogy-authoring.md](pedagogy-authoring.md#the-corpus-boundary).
+Pages in `apex/`, the guides' prompts and their eval cases never spell out the platform or the model.  They say `{{PLATFORM}}` and `{{MODEL}}`, and the site build and `just docs-corpus` fill them from `PLATFORM_NAME` and `CHAT_MODEL`.  The tool servers name the platform from `PLATFORM_NAME` in code, and `docs-corpus` reads their strings too: every tool description, refusal, export README and mail subject in `registrar/server.py`, `usage-mcp/server.py`, `registrar/planes/exports.py` and `registrar/planes/notify.py`.  `docs-corpus` refuses to render if any of those sources names either outright, so a slip fails the build on the project's own box instead of reaching another institution's students.  The rule for writers is in [pedagogy-authoring.md](pedagogy-authoring.md#the-corpus-boundary).
 
 ## A fresh box, in order
 

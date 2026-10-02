@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 
 import yaml
 
-from .config import EXPORT_TTL_HOURS, EXPORTS_PATH
+from .config import EXPORT_TTL_HOURS, EXPORTS_PATH, PLATFORM
 
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24,64}$")
 # Asking twice in a few minutes is a retry, not a second export — hand back
@@ -31,7 +31,7 @@ REUSE_SECONDS = 10 * 60
 # The download is named for the platform the person knows, not the project
 # underneath it — PLATFORM_NAME, made safe for a filename ("AI Classroom" →
 # ai-classroom-<course>-<date>.zip).
-FILE_PREFIX = (re.sub(r"[^a-z0-9]+", "-", os.environ.get("PLATFORM_NAME", "").lower())
+FILE_PREFIX = (re.sub(r"[^a-z0-9]+", "-", PLATFORM.lower())
                .strip("-") or "export")
 
 
@@ -158,7 +158,7 @@ def _conversation_md(c: dict) -> str:
 
 def _readme(course: dict, email: str, data: dict, created: float) -> str:
     L = [f"# Your data from {course['name']} ({course['slug']})", "",
-         f"Exported for **{email}** on {_ts(created)} by the aLLManac registrar, "
+         f"Exported for **{email}** on {_ts(created)} by {PLATFORM}, "
          "because you asked for it.  Only your own data is here — conversations "
          "you had and agents you own.", "",
          f"- **conversations/** — {len(data['conversations'])} conversation(s), one "
@@ -171,8 +171,7 @@ def _readme(course: dict, email: str, data: dict, created: float) -> str:
          "files are listed by name, not carried.", ""]
     if data["files"]:
         L += ["## Files you uploaded — listed, not included", "",
-              "Download these from the course chat while it's still online; the "
-              "registrar can't reach the copies.", "",
+              "Download these from the course chat while it's still online.", "",
               "| file | size | uploaded |", "|---|---:|---|"]
         L += [f"| {f['filename']} | {f['bytes']:,} bytes | {f['created'] or ''} |"
               for f in data["files"]]
@@ -200,7 +199,7 @@ def write(course: dict, email: str, data: dict, agent_docs: list[dict]) -> dict:
         for doc in agent_docs:
             name = _safe(doc["template"]["name"]) + "-" + _safe(doc["provenance"]["agent_id"], 12)
             z.writestr(f"agents/{name}.yaml",
-                       "# Exported for its owner by the aLLManac registrar.\n"
+                       f"# Exported for its owner by {PLATFORM}.\n"
                        + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=1000))
     zpath, mpath = _paths(token)
     rec = {"email": email, "course": course["slug"], "created": created,

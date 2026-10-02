@@ -27,6 +27,10 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 TOKEN = os.environ.get("USAGE_MCP_TOKEN", "")
+# What readers call this place (PLATFORM_NAME, docs/customizing.md).  A
+# string a person can read says this, never the project's name.
+PLATFORM = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
+            or "aLLManac").strip()
 # quote(): `just secrets` generates hex, but .env.example ships
 # USAGE_DB_PASSWORD as an operator-editable value, and an @ / : or # in it
 # silently builds a DSN pointing somewhere else.
@@ -100,7 +104,7 @@ def _ident() -> tuple[str, str]:
     supplied = auth[7:] if auth[:7].lower() == "bearer " else ""
     if not TOKEN or not hmac.compare_digest(supplied, TOKEN):
         raise ToolError(
-            "This service only answers the aLLManac chat itself "
+            f"This service only answers the {PLATFORM} chat itself "
             "(missing or wrong service token)."
         )
     email = h.get("x-user-email", "").strip().lower()
@@ -108,7 +112,7 @@ def _ident() -> tuple[str, str]:
     if not email or email.startswith("{{"):
         raise ToolError(
             "I couldn't tell who's asking — these stats only work from inside "
-            "the aLLManac chat, where signing in identifies you."
+            f"the {PLATFORM} chat, where signing in identifies you."
         )
     return email, role
 
@@ -208,7 +212,7 @@ def _course_or_refuse(email: str, role: str, course: str) -> tuple[str, dict]:
 
 @mcp.tool
 async def my_usage(days: int = 7) -> str:
-    """The caller's own aLLManac usage: requests, tokens, and models — chat
+    """The caller's own usage: requests, tokens, and models — chat
     and API keys combined.  Always and only the caller's numbers.  Data
     notes: the ledger trails live traffic by ~10 seconds, and campus-hosted
     models carry no dollar price, so token counts are the real measure."""
@@ -266,7 +270,7 @@ async def course_usage(course: str, days: int = 30) -> str:
     hasn't started yet, and the model mix.  `course` is the course's id or its
     name (my_courses or list_courses when unsure).  Covers this course's chat
     and the API keys minted for it — nothing a student did in another course
-    or at the front door."""
+    or in the platform's own chat."""
     email, role = _ident()
     days = _clamp_days(days)
     slug, c = _course_or_refuse(email, role, course)

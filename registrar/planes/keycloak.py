@@ -10,7 +10,7 @@ import time
 
 import httpx
 
-from .config import ALMANAC_DOMAIN, KC_ADMIN, KC_ADMIN_PASSWORD, KC_REALM, KC_URL
+from .config import ALMANAC_DOMAIN, KC_ADMIN, KC_ADMIN_PASSWORD, KC_REALM, KC_URL, PLATFORM
 
 _kc_tok: dict = {"token": None, "exp": 0.0}
 
@@ -53,7 +53,7 @@ async def kc_ensure_client(cx: httpx.AsyncClient, slug: str) -> tuple[str, str]:
     else:
         body = {
             "clientId": slug,
-            "name": f"aLLManac course {slug}",
+            "name": f"{PLATFORM} course {slug}",
             "protocol": "openid-connect",
             "publicClient": False,
             "standardFlowEnabled": True,

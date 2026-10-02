@@ -9,6 +9,7 @@ The vocabulary this reads (`audience`, `also_reaches`, `status`, `tags`,
 `tethered_to`) is declared in docs/pedagogy-authoring.md.  That file is the
 authority; if the two disagree, the schema is right and this script is wrong.
 """
+import ast
 import os
 import pathlib
 import re
@@ -148,6 +149,52 @@ BRAND = re.compile(r"\b(?:aLLManac|[Aa]lmanac)\b(?![-_/]|\.[a-z])"
 TELLS = re.compile(r"\bload-bearing\b|\bhonest(?:ly|y)?\b|\bdoors?\b"
                    r"|\bworth (?:knowing|noting|saying|being clear)\b"
                    r"|\bthe short version\b", re.IGNORECASE)
+
+# The tool servers talk to readers too: a tool's description is what the
+# model reads before it speaks, and a refusal, an export's README or a mail
+# subject is read by the person directly.  Their strings are held to the
+# same two lists as the pages.  Module docstrings, comments and the
+# docstrings of anything that isn't an @mcp.tool are for whoever maintains
+# the code, so they are skipped.
+SPOKEN = ["registrar/server.py", "usage-mcp/server.py",
+          "registrar/planes/exports.py", "registrar/planes/notify.py"]
+
+
+def spoken(rel: str) -> str:
+    """The strings in a service file a reader can meet, each on its own
+    source line and everything else blank — so unbranded() and tells()
+    number their hits with the file's real line numbers.
+
+    The fallback in `PLATFORM = ... or "aLLManac"` is the one place a
+    service may spell the name: it is what PLATFORM_NAME replaces.  A string
+    shaped like an identifier (`c.get("door")`) is a key, not a sentence."""
+    src = (ROOT / rel).read_text()
+    tree = ast.parse(src)
+    docs = {id(n.body[0].value) for n in ast.walk(tree)
+            if isinstance(n, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and n.body and isinstance(n.body[0], ast.Expr)
+            and isinstance(n.body[0].value, ast.Constant)}
+    tools = {id(n.body[0].value) for n in ast.walk(tree)
+             if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+             and any("mcp.tool" in ast.unparse(d) for d in n.decorator_list)}
+    default = {id(c) for n in ast.walk(tree)
+               if isinstance(n, ast.Assign)
+               and any(isinstance(t, ast.Name) and t.id == "PLATFORM" for t in n.targets)
+               for c in ast.walk(n.value)}
+    lines = [""] * (len(src.splitlines()) + 1)
+    for n in ast.walk(tree):
+        if (isinstance(n, ast.Constant) and isinstance(n.value, str)
+                and not re.fullmatch(r"[a-z_][a-z0-9_]*", n.value)
+                and id(n) not in default and (id(n) not in docs or id(n) in tools)):
+            for i, text in enumerate(n.value.splitlines()):
+                if n.lineno + i <= len(lines):
+                    lines[n.lineno - 1 + i] += " " + text
+    return "\n".join(lines)
+
+
+def service_hits(check) -> list[str]:
+    return [hit for rel in SPOKEN for hit in check(rel, spoken(rel))]
+
 
 FALLBACK = os.environ.get(
     "ALMANAC_FALLBACK_ASSISTANT",
@@ -367,9 +414,11 @@ def main() -> int:
     named += unbranded(str(CONTRACT.relative_to(ROOT)), CONTRACT.read_text())
     named += unbranded("docs/corpus.py (SCOPE, DIRECTORY)",
                        "\n".join([*SCOPE.values(), DIRECTORY]))
+    named += service_hits(unbranded)
     if named:
         raise SystemExit("these hard-code a name a deployment chooses — write {{PLATFORM}} "
-                         "or {{MODEL}} (PLATFORM_NAME and CHAT_MODEL fill them):\n  "
+                         "or {{MODEL}} (PLATFORM_NAME and CHAT_MODEL fill them), or "
+                         "PLATFORM in a service's Python:\n  "
                          + "\n  ".join(named))
 
     told = [hit for rel, fm, body in pages if rel.parts[0] == "apex"
@@ -381,6 +430,7 @@ def main() -> int:
     told += tells("docs/agent-contract.md (front desk)", welcome(contract_body))
     told += tells("docs/corpus.py (SCOPE, DIRECTORY)",
                   "\n".join([*SCOPE.values(), DIRECTORY]))
+    told += service_hits(tells)
     if told:
         raise SystemExit("these use a word readers flagged as machine-written "
                          "(docs/pedagogy-authoring.md, \"Voice\"):\n  "

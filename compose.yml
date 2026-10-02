@@ -273,6 +273,7 @@ services:
     environment:
       USAGE_MCP_TOKEN: "${USAGE_MCP_TOKEN}"
       USAGE_DB_PASSWORD: "${USAGE_DB_PASSWORD}"
+      PLATFORM_NAME: "${PLATFORM_NAME:-aLLManac}"   # what its replies call the platform
       USAGE_ROSTER: /app/cfg/roster.yaml
     volumes:
       # DIRECTORY mount, not single-file: the registrar rewrites roster.yaml
@@ -382,7 +383,7 @@ services:
       REGISTRAR_BASE_MODELS: "${REGISTRAR_BASE_MODELS:-${CHAT_MODEL:-almanac-chat}}"
       MODEL_PROVIDER_NAME: "${MODEL_PROVIDER_NAME:-Almanac}"
       MCP_SERVER_PREFIX: "${MCP_SERVER_PREFIX:-almanac}"
-      PLATFORM_NAME: "${PLATFORM_NAME:-aLLManac}"   # names export downloads
+      PLATFORM_NAME: "${PLATFORM_NAME:-aLLManac}"   # tool replies, mail, export downloads
       REGISTRAR_COURSES: /state/courses.yaml
     volumes:
       # DIRECTORY mounts throughout: the registrar writes atomically (tmp +

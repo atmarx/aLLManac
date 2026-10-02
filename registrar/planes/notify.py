@@ -39,6 +39,7 @@ from .config import (
     NOTIFY_WEBHOOK_FORMAT,
     NOTIFY_WEBHOOK_URL,
     OUTBOX_PATH,
+    PLATFORM,
     SMTP_FROM,
     SMTP_HOST,
     SMTP_PASSWORD,
@@ -145,11 +146,11 @@ async def desk(admins: list[str], title: str, lines: list[str],
     if not email_fallback:
         return ""
     body = "\n".join([*lines, "", link]).strip() + "\n"
-    return await asyncio.to_thread(email, admins, f"[aLLManac] {title}", body)
+    return await asyncio.to_thread(email, admins, f"[{PLATFORM}] {title}", body)
 
 
 async def person(to: list[str], subject: str, body: str) -> str:
-    return await asyncio.to_thread(email, to, f"[aLLManac] {subject}", body)
+    return await asyncio.to_thread(email, to, f"[{PLATFORM}] {subject}", body)
 
 
 def configured() -> dict:

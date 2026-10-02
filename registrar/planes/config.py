@@ -81,10 +81,15 @@ BAO_SECRET_ID = os.environ.get("BAO_REGISTRAR_SECRET_ID", "")
 BAO_MOUNT = os.environ.get("BAO_MOUNT", "almanac")
 
 ALMANAC_DOMAIN = os.environ.get("ALMANAC_DOMAIN", "localhost")
+# The platform's name as its readers know it (docs/customizing.md).  Tool
+# replies, mail and export files say this, never the project's own name —
+# docs-corpus fails on a hard-coded one in any string a reader can see.
+PLATFORM = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
+            or "aLLManac").strip()
 # Who notification mail is from.  A campus relay that trusts the box's IP
 # usually still wants a From in a domain it recognises — set it if so.
 SMTP_FROM = (os.environ.get("SMTP_FROM", "").strip()
-             or f"aLLManac <noreply@{ALMANAC_DOMAIN}>")
+             or f"{PLATFORM} <noreply@{ALMANAC_DOMAIN}>")
 # The flagship's hostname — the front door every notification links to,
 # and what validate_courses checks to refuse minting courses at
 # <slug>.localhost on a box that clearly isn't one.

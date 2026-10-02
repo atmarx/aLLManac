@@ -36,6 +36,9 @@ import yaml
 import reconcile
 
 TOKEN = os.environ.get("REGISTRAR_MCP_TOKEN", "")
+# What readers call this place (PLATFORM_NAME).  Every string here that a
+# person can read says this, never the project's name — docs-corpus checks.
+PLATFORM = reconcile.PLATFORM
 
 # mask_error_details: fastmcp defaults it to False, which puts the text of
 # any UNHANDLED exception into the tool response — and a tool response is
@@ -68,7 +71,7 @@ class _FailureWords(Middleware):
                 raise ToolError(str(cause)) from None
             if isinstance(cause, yaml.YAMLError):
                 raise ToolError(
-                    "One of the registrar's record files can't be read right "
+                    "One of the course service's record files can't be read right "
                     "now, so I can't answer that safely.  This is a platform "
                     "fault, not something you did — tell the platform "
                     "admins.") from None
@@ -119,7 +122,7 @@ def _ident() -> tuple[str, str, str]:
     supplied = auth[7:] if auth[:7].lower() == "bearer " else ""
     if not TOKEN or not hmac.compare_digest(supplied, TOKEN):
         raise ToolError(
-            "This service only answers the aLLManac chat itself "
+            f"This service only answers the {PLATFORM} chat itself "
             "(missing or wrong service token)."
         )
     email = h.get("x-user-email", "").strip().lower()
@@ -133,7 +136,7 @@ def _ident() -> tuple[str, str, str]:
     if not course:
         raise ToolError(
             "This instance didn't say which course it is (no X-Course header) "
-            "— the registrar only serves course instances it rendered itself."
+            "— the course service only answers course chats it set up itself."
         )
     return email, role, course
 
@@ -162,14 +165,14 @@ def _ident_open() -> tuple[str, str, str]:
     supplied = auth[7:] if auth[:7].lower() == "bearer " else ""
     if not TOKEN or not hmac.compare_digest(supplied, TOKEN):
         raise ToolError(
-            "This service only answers the aLLManac chat itself "
+            f"This service only answers the {PLATFORM} chat itself "
             "(missing or wrong service token)."
         )
     email = h.get("x-user-email", "").strip().lower()
     if not email or email.startswith("{{"):
         raise ToolError(
             "I couldn't tell who's asking — this only works from inside the "
-            "aLLManac chat, where signing in identifies you."
+            f"{PLATFORM} chat, where signing in identifies you."
         )
     return email, h.get("x-user-role", "").strip().upper(), \
         h.get("x-course", "").strip().lower()
@@ -191,7 +194,7 @@ def _courses_or_refuse() -> dict:
         # Telling an instructor the first when it's the second sends them
         # re-uploading a roster against a file we can't read.
         raise ToolError(
-            "The registrar can't read its course records right now, so I "
+            "The course service can't read its course records right now, so I "
             "can't safely change anything.  This is a platform fault, not "
             "something you did — tell the operator."
         ) from e
@@ -219,7 +222,7 @@ def _staff_or_refuse(email: str, course: dict, slug: str,
             "the roster doesn't list you as one.  my_courses shows what "
             "you're on." if front_door else
             f"Roster operations are for the teaching staff of {slug}.  Your "
-            "own key and usage are always available in the front office — "
+            f"own key and usage are always available in the {PLATFORM} chat — "
             "the Coder Guide hands out keys and the Usage Guide reads your "
             "numbers."
         )
@@ -248,7 +251,7 @@ def _staff_scope(course_arg: str = "") -> tuple[str, str, dict]:
         if named and named != header:
             raise ToolError(
                 f"This chat belongs to {header}.  To manage {named}, use its "
-                "own chat or the front door."
+                f"own chat or the {PLATFORM} chat."
             )
         slug = header
         course = _course_or_refuse(slug)
@@ -414,8 +417,8 @@ def _my_course(arg: str) -> tuple[str, str, dict]:
     if here:
         if named and named != here:
             raise ToolError(
-                f"This chat belongs to {here}.  For {named}, ask in the front "
-                "office, or in that course's own chat.")
+                f"This chat belongs to {here}.  For {named}, ask in the "
+                f"{PLATFORM} chat, or in that course's own chat.")
         return email, here, _course_or_refuse(here)
     slug = named
     if not slug:
@@ -547,10 +550,10 @@ async def rotate_my_key(course: str = "") -> str:
 @mcp.tool
 async def my_courses() -> str:
     """Which courses the caller is on — as student, TA or instructor — and
-    where each one's chat is.  Works from any room, including the front
-    door, and only ever answers about the person asking.  Not being on any
-    course is a normal answer: the front door and its guides are open to
-    everyone who can sign in."""
+    where each one's chat is.  Works from any chat, the platform's own or a
+    course's, and only ever answers about the person asking.  Not being on
+    any course is a normal answer: the platform's own chat and its guides
+    are open to everyone who can sign in."""
     email, _role, _here = _ident_open()
     courses = _courses_or_refuse()["courses"]
     rows = []
@@ -572,8 +575,8 @@ async def my_courses() -> str:
         return (
             f"I don't see {email} on any course's roster.  If you expected "
             "to be, check with your instructor — they add people, and it "
-            "takes effect the next time you sign in.  Everything at the "
-            "front door is yours either way."
+            "takes effect the next time you sign in.  Everything in the "
+            f"{PLATFORM} chat is yours either way."
         )
     return "\n".join([f"Courses {email} is on:", "",
                       "| course | id | you are | chat |", "|---|---|---|---|",
@@ -670,10 +673,10 @@ async def email_my_export(link: str) -> str:
 
 @mcp.tool
 async def roster_show(course: str = "") -> str:
-    """The current roster for a course you teach, as the registrar holds it:
+    """The current roster for a course you teach, as the course service holds it:
     students, staff, and key-custody status.  Teaching staff only.  In a
-    course's own chat leave `course` empty; at the front door name the
-    course (my_courses lists them)."""
+    course's own chat leave `course` empty; in the platform's own chat name
+    the course (my_courses lists them)."""
     email, slug, c = _staff_scope(course)
     students = c.get("students", [])
     out = [f"{c.get('name', slug)} ({slug})", ""]
@@ -769,7 +772,7 @@ def _stage(email: str, slug: str, course: dict, emails: list[str],
         # and a course chat with no agent prompt around it took it — twice,
         # on camera (2026-09-25, @piper).
         out += ["", "Show the instructor this plan and STOP — do not call "
-                    "roster_apply in this turn; the registrar refuses an apply "
+                    "roster_apply in this turn; the course service refuses an apply "
                     "made in the same turn as its stage.  After they reply "
                     f"and approve it: roster_apply(\"{sid}\") (the stage "
                     f"expires in {_STAGE_TTL // 60} minutes)."]
@@ -792,7 +795,8 @@ async def enroll(emails: str, course: str = "") -> str:
     can sign in to its chat and fetch their own API key.  Adds only; nobody
     already enrolled is touched.  Changes NOTHING until roster_apply.
     `emails`: one or more addresses, any separator.  In a course's own chat
-    leave `course` empty; at the front door name it.  Teaching staff only."""
+    leave `course` empty; in the platform's own chat name it.  Teaching
+    staff only."""
     email, slug, c = _staff_scope(course)
     emails_, ignored = _emails_or_refuse(emails)
     return _stage(email, slug, c, emails_, "add", ignored)
@@ -827,7 +831,7 @@ async def roster_apply(stage_id: str) -> str:
     the adds (sign-in access + key minted + escrowed), un-enroll the
     removes (key revoked).  Only after the person has read the stage and
     said yes to it, in a later message — never in the same turn as the
-    stage that produced the id; the registrar refuses that.  "Instead",
+    stage that produced the id; the course service refuses that.  "Instead",
     "also" or a new list is not a yes: stage again and show it.  Teaching
     staff only."""
     _purge_stages()
@@ -973,8 +977,8 @@ async def course_request(kind: str, name: str, purpose: str,
                          term: str = "", headcount: int = 0,
                          parent_course: str = "", slug: str = "",
                          coursework_confirmed: bool = False) -> str:
-    """Ask for a new room on the aLLManac — anyone can.  It files a ticket
-    for the platform admins, who approve it, return it with questions, or
+    """Ask for a new room (a course's, a project's or a group's chat) —
+    anyone can.  It files a ticket for the platform admins, who approve it, return it with questions, or
     reject it with a reason.  Nothing is created until they approve.
 
     `kind`: "course" (they teach it), "project" (a project room under an
@@ -1034,8 +1038,7 @@ async def course_request(kind: str, name: str, purpose: str,
         [f"{kind}: {rec['name']}" + (f" (under {parent})" if parent else ""),
          f"from {email}" + (f" · {rec['term']}" if rec["term"] else "")
          + (f" · ~{rec['headcount']} people" if rec["headcount"] else ""),
-         "Read it and decide in the Operator Guide at the front door — ask what's "
-         "waiting."],
+         "Read it and decide in the Operator Guide — ask what's waiting."],
         _front_door())
     return (f"Filed — request {rec['id']} ({kind}: {rec['name']}).  The "
             "platform admins review each one: they approve it, return it with "
@@ -1119,7 +1122,7 @@ async def course_requests(status: str = "open") -> str:
                 f"- why: {r['purpose']}"]
         if r.get("details"):
             out.append(f"- details: {r['details']}")
-        out.append(f"- said yes to the front-door question {r['attestation']['at']}")
+        out.append(f"- confirmed it's for coursework {r['attestation']['at']}")
         for m in r.get("thread") or []:
             out.append(f"- {m['at']}, {m['as']} ({m['by']}): {m['text']}")
         if r.get("course"):
@@ -1197,7 +1200,7 @@ async def course_approve(request_id: str, budget: float, slug: str = "",
             + (f"A note from the platform admins:\n{note.strip()}\n\n" if note.strip() else "")
             + "The address should answer within a few minutes.  Sign in with "
               "your campus account; the instructors can add people from the "
-              "Instructor Guide at the front door "
+              f"Instructor Guide in the {PLATFORM} chat "
               f"({_front_door()}) or from the course's own chat.\n")
     told = await reconcile.notify_person(
         [rec["by"], *rec["instructors"], *ta], f"{rec['name']} is approved",
@@ -1237,7 +1240,7 @@ async def course_return(request_id: str, note: str,
         [rec["by"]], f"Your request {rid} needs a little more",
         f"The platform admins looked at your request for {rec['name']} and "
         f"need a bit more before they can decide:\n\n{note.strip()}\n\n"
-        f"To answer, open the aLLManac front door ({_front_door()}), choose "
+        f"To answer, open the {PLATFORM} chat ({_front_door()}), choose "
         f"the Instructor Guide or the Student Guide, and ask it to reply to "
         f"{rid}.  Your answer goes straight back to them.\n")
     await reconcile.notify_desk(
@@ -1273,7 +1276,7 @@ async def course_reject(request_id: str, note: str,
         f"The platform admins looked at your request for {rec['name']} and "
         f"can't approve it:\n\n{note.strip()}\n\n"
         "You're welcome to file a new request if something changes — the "
-        f"guides at the front door ({_front_door()}) can help.\n")
+        f"guides in the {PLATFORM} chat ({_front_door()}) can help.\n")
     await reconcile.notify_desk(
         _admins(), f"Request {rid} rejected",
         [f"by {email}"], email_fallback=False)
@@ -1417,7 +1420,7 @@ async def fleet_inventory() -> str:
     """Every instance in the fleet on one page: is it answering, how many
     people, conversations, agents and files, how big its database is, what
     the course pool has spent against its cap, and how the roster compares
-    to the door.  Also rewrites fleet/inventory.md + .json on the box.
+    to who Keycloak lets sign in.  Also rewrites fleet/inventory.md + .json on the box.
     Platform admins only.  Metadata only — no conversation content."""
     # _ident_open: the desk is at the front door, and the header never
     # decided anything here — the admins: list does.  Same for every admin
@@ -1460,7 +1463,7 @@ async def fleet_inventory() -> str:
             roster = set(_courses_or_refuse()["courses"][c["slug"]]["students"])
             extra = set(d["member"]) - roster - set(d["admin"])
             if extra:
-                findings.append(f"{c['slug']}: {len(extra)} at the door who aren't rostered (fleet_access)")
+                findings.append(f"{c['slug']}: {len(extra)} may sign in but aren't rostered (fleet_access)")
     if rep["orphan_databases"]:
         findings.append("databases with no course record: " + ", ".join(rep["orphan_databases"]))
     for c in rep["courses"]:
@@ -1475,17 +1478,18 @@ async def fleet_inventory() -> str:
 
 @mcp.tool
 async def fleet_access(course: str) -> str:
-    """Who can get into one course and who has: the roster, the Keycloak
-    door, everyone who has actually signed in (with last activity), who is
-    signed in right now — and the three diffs a review asks for: rostered
-    but never seen, seen but not rostered, at the door but not rostered.
+    """Who can get into one course and who has: the roster, who Keycloak
+    lets sign in, everyone who has actually signed in (with last activity),
+    who is signed in right now — and the three diffs a review asks for:
+    rostered but never seen, seen but not rostered, may sign in but not
+    rostered.
     Platform admins only."""
     email, _role, _here = _ident_open()
     _admin_or_refuse(email)
     slug = _slug_or_refuse(course, _courses_or_refuse()["courses"], new=False)
     a = await reconcile.fleet_access(slug)
     out = [f"Access — {a['name']} ({slug})", "",
-           f"Rostered: {len(a['roster'])} ({len(a['staff'])} staff) · door: {len(a['door'])} may sign in, "
+           f"Rostered: {len(a['roster'])} ({len(a['staff'])} staff) · Keycloak: {len(a['door'])} may sign in, "
            f"{len(a['admins'])} admins · signed in ever: {len(a['signed_in'])} · right now: {len(a['sessions'])}"]
     if a["signed_in"]:
         out += ["", "| user | role | convos | msgs | tokens | first seen | last active |",
@@ -1495,9 +1499,9 @@ async def fleet_access(course: str) -> str:
                 for u in a["signed_in"]]
     for label, key, hint in (
             ("Rostered, never signed in", "never_seen", "normal early in a term"),
-            ("Signed in, NOT on the roster", "seen_not_rostered", "how did they get in? check the door"),
-            ("At the door, NOT on the roster", "door_not_rostered", "a stale grant — re-apply the roster"),
-            ("Rostered, no door yet", "rostered_no_door", "roster sync pending — re-apply")):
+            ("Signed in, NOT on the roster", "seen_not_rostered", "how did they get in? check their Keycloak roles"),
+            ("May sign in, NOT on the roster", "door_not_rostered", "a stale grant — re-apply the roster"),
+            ("Rostered, can't sign in yet", "rostered_no_door", "roster sync pending — re-apply")):
         if a[key]:
             out += ["", f"{label} ({len(a[key])}; {hint}): " + ", ".join(a[key])]
     if a["sessions"]:
@@ -1651,9 +1655,9 @@ async def nomination_decline(nomination_id: str) -> str:
 @mcp.tool
 async def report_problem(what: str, course: str = "", asked: str = "",
                          answered: str = "", sources: list[str] | None = None) -> str:
-    """File a problem report about the aLLManac — something that didn't work,
-    a wrong answer, a step that failed.  Works from any room, including the
-    front door.
+    """File a problem report — something that didn't work, a wrong answer,
+    a step that failed.  Works from any chat, a course's or the platform's
+    own.
 
     Fill `asked` and `answered` with the question that went wrong and the
     answer that came back, and `sources` with the knowledge files you cited,
@@ -1675,7 +1679,7 @@ async def report_problem(what: str, course: str = "", asked: str = "",
             asked=asked, answered=answered, sources=sources or [])
     except reconcile.CoursesError:
         raise ToolError(
-            "The registrar can't read its course records right now, so I "
+            "The course service can't read its course records right now, so I "
             "can't file that against the right course.  This is a platform "
             "fault, not something you did — tell the platform admin."
         ) from None
@@ -1687,7 +1691,7 @@ async def report_problem(what: str, course: str = "", asked: str = "",
     await reconcile.notify_desk(
         [], f"Problem report {rec['id']}",
         [f"about {rec['about'] or 'no single course — needs routing'} · "
-         f"filed from {slug or 'the front door'}",
+         f"filed from {slug or f'the {PLATFORM} chat'}",
          "Read it in the Operator Guide (reports) or with `just reports`."],
         _front_door(), email_fallback=False)
     out = [f"Filed — report {rec['id']}."]

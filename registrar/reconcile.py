@@ -39,6 +39,7 @@ from planes.config import (
     CHAT_HOST,
     DEFAULT_COURSE_BUDGET,
     GATEWAY_HOST,
+    PLATFORM,
     REHEARSAL_DOMAIN,
     SLUG_RE,
 )
