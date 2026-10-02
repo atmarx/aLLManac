@@ -138,7 +138,7 @@ _sbom-dir:
 docs-build:
     @mkdir -p site-dist
     docker run --rm --user "$(id -u):$(id -g)" \
-      --env DOCS_SITE_NAME --env DOCS_SITE_URL --env DOCS_PRODUCT_NAME --env DOCS_COPYRIGHT \
+      --env PLATFORM_NAME --env DOCS_SITE_NAME --env DOCS_SITE_URL --env DOCS_PRODUCT_NAME --env DOCS_COPYRIGHT \
       --volume "$PWD:/docs" {{mkdocs}} build --clean --strict
 
 # Render the per-audience RAG corpora from front matter.  A guide is a query,
@@ -147,6 +147,7 @@ docs-build:
 # because it already carries PyYAML; no second dependency to track.
 docs-corpus:
     docker run --rm --user "$(id -u):$(id -g)" \
+      --env PLATFORM_NAME --env DOCS_PRODUCT_NAME --env ALMANAC_FALLBACK_ASSISTANT \
       --volume "$PWD:/docs" --entrypoint python3 {{mkdocs}} /docs/docs/corpus.py
     @echo "corpus/ rendered — read corpus/README.md for what landed where and why"
 

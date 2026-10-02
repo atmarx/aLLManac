@@ -21,11 +21,11 @@ Four groups can reach what you write here: you, your instructor, the people who 
 
 ## Signing in
 
-You reach the aLLManac through your institution's single sign-on.  There is no separate password to create — you authenticate with campus identity.  The platform does keep an account for you, created when you are added to a course's roster: your email and name from the campus sign-in, and which courses its own roster says you are in.
+You reach {{PLATFORM}} through your institution's single sign-on.  There is no separate password to create — you authenticate with campus identity.  The platform does keep an account for you, created when you are added to a course's roster: your email and name from the campus sign-in, and which courses its own roster says you are in.
 
 The identity layer is Keycloak, and it can broker your campus identity provider — including Globus — without any of the chat software knowing the difference.
 
-**One thing worth clearing up if you come from research computing:** Globus here is only a way to log in.  In research settings Globus also moves data around, with collections and group permissions attached to real datasets.  None of that applies here.  No aLLManac data lives in a Globus collection, nothing transfers over Globus, and there are no Globus group permissions on your conversations.  Globus establishes who you are, then steps out of the way.
+**One thing worth clearing up if you come from research computing:** Globus here is only a way to log in.  In research settings Globus also moves data around, with collections and group permissions attached to real datasets.  None of that applies here.  No {{PLATFORM}} data lives in a Globus collection, nothing transfers over Globus, and there are no Globus group permissions on your conversations.  Globus establishes who you are, then steps out of the way.
 
 ## Your course is its own room
 

@@ -26,8 +26,8 @@ Before any text reaches the model, it is chopped into pieces from a fixed list o
 
 The practical consequences are mildly entertaining:
 
-- **`almanac`** is a common enough word to be a piece or two.
-- **`aLLManac`** is not a word at all, so it gets taken apart into something like `a` + `LL` + `Man` + `ac` — **roughly twice the tokens for the same eight letters**, purely because of the capital letters in the middle.
+- **`notebook`** is a common enough word to be a piece or two.
+- **`nOTEbooK`** is not a word at all, so it gets taken apart into something like `n` + `OTE` + `boo` + `K` — **roughly twice the tokens for the same eight letters**, purely because of the capital letters scattered through it.
 - Numbers get split in ways that have nothing to do with how you would say them.  `2026` may be one piece; `20260921` is several.
 - Languages other than English, and code, and anything with unusual spacing, all run token counts up relative to their length.
 

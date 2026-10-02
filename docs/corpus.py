@@ -11,6 +11,7 @@ authority; if the two disagree, the schema is right and this script is wrong.
 """
 import os
 import pathlib
+import re
 import sys
 
 import yaml
@@ -28,7 +29,7 @@ CONTRACT = ROOT / "docs" / "agent-contract.md"
 # nothing else.
 SCOPE = {
     "student-guide":
-        "You are the Student Guide: using the Almanac in your courses — "
+        "You are the Student Guide: using {{PLATFORM}} in your courses — "
         "signing in, building agents, knowledge files, API keys, and what "
         "the budget numbers mean.  Asked which courses they are on, call "
         "my_courses and read back what it says.  A student can ask for a "
@@ -38,7 +39,7 @@ SCOPE = {
         "my_requests shows where a request stands and what the admins wrote "
         "back; if it was returned, course_request_reply answers them.",
     "instructor-guide":
-        "You are the Instructor Guide: running a course on the Almanac — "
+        "You are the Instructor Guide: running a course on {{PLATFORM}} — "
         "enrollment, class configuration, shared agents, what students can "
         "see, and what you are responsible for.  You can manage enrollment "
         "for a course the person teaches: who may sign in to its chat and "
@@ -57,10 +58,10 @@ SCOPE = {
         "and, once approved, the new chat's address.  A returned request is "
         "answered with course_request_reply, not filed again.",
     "platform-guide":
-        "You are the Platform Guide: how the Almanac is built and why — "
+        "You are the Platform Guide: how {{PLATFORM}} is built and why — "
         "the architecture, the decisions, and the trade-offs they cost.",
     "dev-guide":
-        "You are the Dev Guide: operating the Almanac — deployment, "
+        "You are the Dev Guide: operating {{PLATFORM}} — deployment, "
         "runbooks, verification, and what breaks.  You are also the "
         "operator's desk: the request tickets — approve with a budget, "
         "return with questions, or reject with a reason — creating courses, "
@@ -71,7 +72,7 @@ SCOPE = {
         "came back, and call it again with confirm=true only after they say "
         "yes to that description — never in the same turn.",
     "security-guide":
-        "You are the Security Guide: the Almanac's security posture — the "
+        "You are the Security Guide: {{PLATFORM}}'s security posture — the "
         "controls, the boundaries, and the blue-team and purple-team "
         "exercises that test them.",
     "usage-guide":
@@ -99,10 +100,10 @@ SCOPE = {
 # points nowhere, which is the failure the hatch list exists to prevent.
 # Routing lines, not SCOPE's agent-voice lines — the reader is choosing.
 DIRECTORY = """\
-      Student Guide      using the Almanac in a course you are taking
+      Student Guide      using {{PLATFORM}} in a course you are taking
       Instructor Guide   running a course on it — enrollment, class setup,
                          shared agents, and asking for a new course
-      Platform Guide     how the Almanac is built, and why
+      Platform Guide     how {{PLATFORM}} is built, and why
       Dev Guide          deploying and operating it, and the operator's
                          desk for courses and requests
       Security Guide     the security posture, and the exercises that test it
@@ -113,6 +114,19 @@ DIRECTORY = """\
 # Deployment config, not code: a different institution names a different
 # fallback (docs/registrar-spec.md, Decision 18 — boundary verbiage is
 # config).  Generic default so tracked files name no institution.
+# What the readers call this platform.  Every reader-facing source says
+# {{PLATFORM}} rather than a name, and this fills it — the same way for the
+# project's own deployment as for an institution's, so no name is the special
+# case.  DOCS_PRODUCT_NAME is the older, site-only spelling of the same knob.
+PLATFORM = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
+            or "aLLManac").strip()
+
+# A name written into a reader-facing source is a name every deployment's
+# guides recite, so it is a build error, not a style note.  Hyphenated, dotted
+# and slashed forms are identifiers (`almanac-chat`, `almanac/courses`,
+# `almanac.invalid`) — config a reader types, not a brand they hear — and stay.
+BRAND = re.compile(r"\b(?:aLLManac|[Aa]lmanac)\b(?![-_/]|\.[a-z])")
+
 FALLBACK = os.environ.get(
     "ALMANAC_FALLBACK_ASSISTANT",
     "the general-purpose assistant your institution already licenses")
@@ -215,15 +229,25 @@ def contract() -> tuple[str, str]:
     return preamble, evals, body
 
 
+def brand(text: str) -> str:
+    return text.replace("{{PLATFORM}}", PLATFORM)
+
+
+def unbranded(label: str, text: str) -> list[str]:
+    """Every line of a reader-facing source that names the platform outright."""
+    return [f"{label}:{n}: {line.strip()[:80]}"
+            for n, line in enumerate(text.splitlines(), 1) if BRAND.search(line)]
+
+
 def fill(text: str, vocab: str = "") -> str:
     """Deployment + directory + vocabulary substitution.  Loud if a token survives.
 
     VOCABULARY is per-guide, so this runs once per guide rather than once for
     the shared preamble — which is why contract() hands the preamble back raw.
     """
-    text = (text.replace("{{FALLBACK_ASSISTANT}}", FALLBACK)
-                .replace("{{GUIDE_DIRECTORY}}", DIRECTORY)
-                .replace("{{VOCABULARY}}", vocab))
+    text = brand(text.replace("{{FALLBACK_ASSISTANT}}", FALLBACK)
+                     .replace("{{GUIDE_DIRECTORY}}", DIRECTORY)
+                     .replace("{{VOCABULARY}}", vocab))
     if "{{" in text:
         stray = text[text.index("{{"):][:40]
         raise SystemExit(f"{CONTRACT}: unsubstituted template token {stray!r}")
@@ -305,6 +329,19 @@ def main() -> int:
                 continue
             pages.append((rel, fm, body))
 
+    # Every reader-facing source, withheld pages included — a scaffold is a
+    # draft away from the corpus.  docs/ is the operators' shelf and names the
+    # software it documents; apex/, the prompts and the eval cases are what
+    # students and faculty hear, so they say {{PLATFORM}}.
+    named = [hit for rel, _fm, body in pages if rel.parts[0] == "apex"
+             for hit in unbranded(str(rel), body)]
+    named += unbranded(str(CONTRACT.relative_to(ROOT)), CONTRACT.read_text())
+    named += unbranded("docs/corpus.py (SCOPE, DIRECTORY)",
+                       "\n".join([*SCOPE.values(), DIRECTORY]))
+    if named:
+        raise SystemExit("these name the platform instead of saying {{PLATFORM}} "
+                         "(PLATFORM_NAME fills it per deployment):\n  " + "\n  ".join(named))
+
     if OUT.exists():
         for p in sorted(OUT.rglob("*"), reverse=True):
             p.unlink() if p.is_file() else p.rmdir()
@@ -341,7 +378,10 @@ def main() -> int:
             name = flat_name(rel)
             # The description is the chunker's context; keep it with the text.
             head = f"<!-- source: {rel} | audience: {fm.get('audience')} | status: {fm.get('status')} -->\n"
-            (d / name).write_text(head + f"> {fm.get('description', '')}\n\n" + body)
+            # Only apex/ is written with {{PLATFORM}}; a docs/ page that shows
+            # the token is explaining it, and filling it would garble that.
+            text = f"> {fm.get('description', '')}\n\n" + body
+            (d / name).write_text(head + (brand(text) if rel.parts[0] == "apex" else text))
             lines.append(f"| `{name}` | `{rel}` | {fm.get('audience')} | "
                          f"{', '.join(fm.get('also_reaches') or []) or '—'} | {fm.get('status')} |")
             for t in fm.get("tethered_to") or []:
@@ -354,12 +394,12 @@ def main() -> int:
             seen_terms |= found
             (d / "SYSTEM-PROMPT.md").write_text(
                 f"<!-- rendered from docs/agent-contract.md by `just docs-corpus` "
-                f"— edit the source, not this -->\n\n{scope}\n\n"
+                f"— edit the source, not this -->\n\n{brand(scope)}\n\n"
                 f"{fill(preamble, block)}\n")
             (d / "EVALS.md").write_text(
                 f"# {guide} — eval cases\n\n"
                 "<!-- rendered from docs/agent-contract.md — edit the source -->\n\n"
-                f"{evals}\n")
+                f"{brand(evals)}\n")
 
     # The front desk: a prompt and nothing else.  No pages, so no manifest —
     # `corpus/welcome/` having no knowledge in it is the design, not a bug, and
@@ -382,7 +422,7 @@ def main() -> int:
     (d / "EVALS.md").write_text(
         "# welcome — eval cases\n\n"
         "<!-- rendered from docs/agent-contract.md — edit the source -->\n\n"
-        f"{evals}\n")
+        f"{brand(evals)}\n")
 
     report = ["# corpus/ — rendered, not edited", "",
               "Generated by `just docs-corpus` from front matter.  "

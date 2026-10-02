@@ -141,4 +141,4 @@ If any of these matter to how you are planning a course, say so — they are the
 - What happens to this material when the term ends, and did I tell anyone?
 - If a student asks me what is stored about them, where do I send them?
 
-The last one has an answer: [Your data in the aLLManac](index.md), which is written for them and which you are welcome to assign.
+The last one has an answer: [Your data in {{PLATFORM}}](index.md), which is written for them and which you are welcome to assign.

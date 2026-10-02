@@ -115,4 +115,4 @@ And if a rule seems arbitrary, ask what the assignment is assessing.  The answer
 
 A conversation with the model in your course is data, and it lives somewhere.  Before you paste something in — a draft, a personal situation you are explaining for context, someone else's work, anything you would not hand directly to your instructor — it is worth knowing who can see it and how long it stays.
 
-That is a fair question, and it has a real answer, gaps included: [Your data in the aLLManac](../your-data/index.md).
+That is a fair question, and it has a real answer, gaps included: [Your data in {{PLATFORM}}](../your-data/index.md).

@@ -83,6 +83,11 @@ STATE = ROOT / "site" / "agents-state.json"
 # It fails closed and SILENT, exactly like a mistyped capability name
 # (docs/design-walls.md).  `REGISTRAR_MCP` must match the server key in
 # librechat/librechat.yaml under `mcpServers:`.
+# What readers call the platform — the same knob docs/corpus.py fills
+# {{PLATFORM}} with, so a guide's picker card and its prompt agree.
+PLATFORM = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
+            or "aLLManac").strip()
+
 REGISTRAR_MCP = "almanac-registrar"
 _M = lambda t: f"{t}_mcp_{REGISTRAR_MCP}"          # noqa: E731
 # Everyone can file one and check on their own.  Nothing here is privileged:
@@ -155,18 +160,18 @@ GUIDES = [
      "New here?  Start with this and it will point you at the right guide.",
      WHERE_TOOLS),
     ("student-guide", "Student Guide",
-     "Using the Almanac in your courses — agents, knowledge files, API keys, and what the budget numbers mean.",
+     f"Using {PLATFORM} in your courses — agents, knowledge files, API keys, and what the budget numbers mean.",
      REPORT_TOOLS + WHERE_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS),
     ("instructor-guide", "Instructor Guide",
-     "Running a course on the Almanac — enrollment, class configuration, shared agents, and asking for a new course.",
+     f"Running a course on {PLATFORM} — enrollment, class configuration, shared agents, and asking for a new course.",
      REPORT_TOOLS + WHERE_TOOLS + ENROLL_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS),
     ("platform-guide", "Platform Guide",
-     "How the Almanac is built and why — the architecture, the decisions, and what they cost."),
+     f"How {PLATFORM} is built and why — the architecture, the decisions, and what they cost."),
     ("dev-guide", "Dev Guide",
-     "Operating the Almanac — deployment, runbooks, what breaks, and the operator's desk for courses and requests.",
+     f"Operating {PLATFORM} — deployment, runbooks, what breaks, and the operator's desk for courses and requests.",
      REPORT_TOOLS + TRIAGE_TOOLS + DESK_TOOLS),
     ("security-guide", "Security Guide",
-     "The Almanac's security posture — controls, boundaries, and the blue/purple team exercises that test them."),
+     f"{PLATFORM}'s security posture — controls, boundaries, and the blue/purple team exercises that test them."),
     # The one guide that needs an instrument rather than only a shelf: it
     # explains what a number means, so it has to be able to read the number.
     # The prompt forbids it doing arithmetic on what comes back — a figure it
@@ -565,7 +570,7 @@ def _mongo(q: str) -> str:
 # knowledge files under "Manage files," selected two, and deleted them out
 # from under the Security Guide.  LibreChat let it, because they were theirs.
 SERVICE_OWNER = {"email": "guides@almanac.invalid", "username": "almanac-guides",
-                 "name": "Almanac Guides"}
+                 "name": f"{PLATFORM} Guides"}
 # ...and it has its own ROLE.  The vestibule lockdown seeds `interface`
 # switches into ADMIN and USER at every boot — and 0.8.8 gates an agent's
 # knowledge uploads on FILE_SEARCH.USE, which the lockdown turns off, with

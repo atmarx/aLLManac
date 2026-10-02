@@ -41,6 +41,8 @@ There is exactly one file the render excludes by name: [agent-contract.md](agent
 
 **The status field is the gate, so use it as one.**  A page that should not be quoted yet is `scaffold` if it is unfinished and `proposed` if it is finished but unruled — filing it in `docs/` hides it from nobody.  That cuts the other way too: marking a page `published` to tidy up the front matter puts it in front of students, and `docs/registrar-spec.md` reaching three corpora through `also_reaches: [builder]` was a front-matter decision, not a filing accident.  If we want the spec quoted only through `how-we-built-it/`, the fix is its metadata.
 
+**Write `{{PLATFORM}}`, never the platform's name.**  Every institution names its own deployment — ours says aLLManac, another might say AI Classroom — and `PLATFORM_NAME` in `.env` fills the token on the site, in the guides' knowledge, in their prompts and in the eval cases.  Write it where a product name reads without an article: *"Teaching a course on {{PLATFORM}}"*, *"Your data in {{PLATFORM}}"*, and *"the {{PLATFORM}} half"* where the name is an adjective.  `docs/corpus.py` refuses to render if anything in `apex/`, the contract, or the guides' scope lines names the platform outright, so a slip fails the build here rather than reaching another institution's students.  Identifiers a reader types — `almanac-chat`, `almanac/courses/…` — are config, not the name, and stay.  `docs/` is the operators' shelf and names the software it documents.
+
 Curation is still the work.  The show-the-work pages are *written from* the spec rather than being the spec relocated, and that is what lets the boundary stay strict without hiding anything we meant to teach.
 
 ---

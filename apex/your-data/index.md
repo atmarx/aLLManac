@@ -1,5 +1,5 @@
 ---
-title: Your data in the aLLManac
+title: Your data in {{PLATFORM}}
 description: What the platform stores about you, where it lives, who can see it, how long it stays, and what you can ask for.
 audience: student
 also_reaches: [faculty]
@@ -13,7 +13,7 @@ tethered_to:
   - justfile
 ---
 
-# Your data in the aLLManac
+# Your data in {{PLATFORM}}
 
 Coursework generates records about you, and records about students carry obligations.  This section is the plain account of what those records are — we would rather you know the shape of it than assume.
 

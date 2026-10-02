@@ -28,6 +28,7 @@ unreachable, so that is checked once, up front, and refuses to run.
 """
 import argparse
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -97,7 +98,9 @@ def parse_yaml(text: str):
 
 def cases() -> list[dict]:
     """Single-turn cases from the contract's table, multi-turn from its fence."""
-    body = CONTRACT.read_text()
+    platform = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
+                or "aLLManac").strip()
+    body = CONTRACT.read_text().replace("{{PLATFORM}}", platform)
     out = []
 
     table = body.split("## The evals", 1)[1].split("\n---", 1)[0]

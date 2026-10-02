@@ -6,20 +6,15 @@ from mkdocs.plugins import event_priority
 
 
 def _public_brand(value: str) -> str:
-    """Replace the repository name only when a deployment requests it.
+    """Fill {{PLATFORM}} with the deployment's name for the platform.
 
-    The source Markdown remains the generic project corpus used by RAG.  A
-    site can publish the same pages under its own public name without keeping
-    a fork or rewriting the source before every build.
+    Reader-facing pages never name the platform outright (docs/corpus.py
+    refuses them if they do), so one variable names it on the site and in the
+    guides alike.  DOCS_PRODUCT_NAME is the older, site-only spelling.
     """
-    product = os.environ.get("DOCS_PRODUCT_NAME", "").strip()
-    if not product:
-        return value
-    return (
-        value.replace("The aLLManac", product)
-        .replace("the aLLManac", product)
-        .replace("aLLManac", product)
-    )
+    product = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
+               or "aLLManac").strip()
+    return value.replace("{{PLATFORM}}", product)
 
 
 def _brand_page(page) -> None:

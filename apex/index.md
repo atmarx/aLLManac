@@ -1,5 +1,5 @@
 ---
-title: The aLLManac
+title: "{{PLATFORM}}"
 description: An institutional AI sandbox — use large language models in your courses, build with them, and read how the platform underneath was put together.
 audience: student
 also_reaches: [faculty]
@@ -8,7 +8,7 @@ owner: piper
 tags: [librechat, tenancy, ai-literacy, student-right, faculty-duty]
 ---
 
-# The aLLManac
+# {{PLATFORM}}
 
 Sign in with the account you already use for everything else on campus, and in about five minutes you can have an assistant that has read your syllabus and will answer questions about it.
 

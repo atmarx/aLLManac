@@ -16,7 +16,7 @@ tethered_to:
   - docs/admin-guide.md
 ---
 
-# The aLLManac — Course Guide
+# {{PLATFORM}} — Course Guide
 
 *For the people teaching with it, and the students building on it.*
 
@@ -127,4 +127,4 @@ Install, configure and test it from [Coding harnesses](building-with-code/harnes
 
 ---
 
-*Teaching a course on this?  See [Teaching a course on the aLLManac](teaching-a-course.md).*
+*Teaching a course on this?  See [Teaching a course on {{PLATFORM}}](teaching-a-course.md).*

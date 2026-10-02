@@ -1,4 +1,4 @@
-site_name: !ENV [DOCS_SITE_NAME, "The aLLManac"]
+site_name: !ENV [DOCS_SITE_NAME, PLATFORM_NAME, "The aLLManac"]
 site_url: !ENV [DOCS_SITE_URL, "http://localhost/help/"]
 # The written material is CC BY 4.0 (NOTICE, LICENSE-docs); the footer is the
 # attribution.  A deployment that adapts the pages can extend it via env.

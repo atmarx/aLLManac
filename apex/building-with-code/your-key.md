@@ -45,6 +45,6 @@ Leaked it, committed it, lost the laptop?  In your course's chat, ask to **rotat
 
 ## Keeping it
 
-- Put it in an **environment variable**, not in your code.  `export ALMANAC_API_KEY=...` in your shell profile, and read it from there.
+- Put it in an **environment variable**, not in your code.  `export CAMPUS_API_KEY=...` in your shell profile, and read it from there.
 - Never commit it.  If your project has a `.env` file, that file belongs in `.gitignore` before the key goes into it — not after.
 - Don't paste it into a shared document, a group chat, or a screenshot.  If you did, rotate.  Rotating costs you nothing; not rotating costs whatever the finder spends, under your name.

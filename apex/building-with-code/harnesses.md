@@ -52,23 +52,23 @@ brew install anomalyco/tap/opencode              # macOS
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "almanac": {
+    "campus": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "Almanac (campus gateway)",
+      "name": "{{PLATFORM}} (campus gateway)",
       "options": {
         "baseURL": "https://GATEWAY-ADDRESS/v1",
-        "apiKey": "{env:ALMANAC_API_KEY}"
+        "apiKey": "{env:CAMPUS_API_KEY}"
       },
       "models": {
         "almanac-chat": {
-          "name": "Almanac Chat",
+          "name": "{{PLATFORM}} chat",
           "tool_call": true,
           "limit": { "context": 16384, "output": 4096 }
         }
       }
     }
   },
-  "model": "almanac/almanac-chat"
+  "model": "campus/almanac-chat"
 }
 ```
 
@@ -77,13 +77,13 @@ Four things about that config are load-bearing:
 - **`tool_call: true`** on each model.  Without it opencode never offers the model any tools, and you have a chat window in a terminal.
 - **Permissions default to allowed** — opencode runs shell commands and edits files without asking.  Add `"permission": { "bash": "ask" }` at the top level if you want it to ask first, and read [supervising an agent](supervising-an-agent.md) either way.
 - **`limit.context`** is what opencode believes it can send.  Set it to what the model is **served** with — ask your instructor — and never to what the model's documentation says it supports.  Too high and some servers silently drop the front of the prompt, which is where opencode's instructions live.  Too low and it trims your work early.  16384 is the floor, not a recommendation.
-- **`{env:ALMANAC_API_KEY}`** keeps the key out of the file, so the file can be committed and the key can't.
+- **`{env:CAMPUS_API_KEY}`** keeps the key out of the file, so the file can be committed and the key can't.
 
 **Prove it works:**
 
 ```bash
-export ALMANAC_API_KEY=sk-...
-opencode run -m almanac/almanac-chat "Say hello and name your model."
+export CAMPUS_API_KEY=sk-...
+opencode run -m campus/almanac-chat "Say hello and name your model."
 ```
 
 Then `cd` into a project and run `opencode` for the full interface.
@@ -96,12 +96,12 @@ The same two settings — address and key — in each one's own format.  Every c
 
 ```toml
 model = "almanac-chat"
-model_provider = "almanac"
+model_provider = "campus"
 
-[model_providers.almanac]
-name = "Almanac (campus gateway)"
+[model_providers.campus]
+name = "{{PLATFORM}} (campus gateway)"
 base_url = "https://GATEWAY-ADDRESS/v1"
-env_key = "ALMANAC_API_KEY"
+env_key = "CAMPUS_API_KEY"
 wire_api = "responses"
 ```
 
@@ -112,10 +112,10 @@ Codex speaks **only** the Responses API — `wire_api = "chat"` has been an erro
 ```json
 {
   "providers": {
-    "almanac": {
+    "campus": {
       "baseUrl": "https://GATEWAY-ADDRESS/v1",
       "api": "openai-completions",
-      "apiKey": "$ALMANAC_API_KEY",
+      "apiKey": "$CAMPUS_API_KEY",
       "models": [ { "id": "almanac-chat" } ]
     }
   }

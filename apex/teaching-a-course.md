@@ -1,5 +1,5 @@
 ---
-title: How do I teach a course on the aLLManac?
+title: How do I teach a course on {{PLATFORM}}?
 description: The faculty walkthrough — the day-zero checklist, the course patterns that work, and how to watch your course's spend, all from the browser.
 audience: faculty
 status: draft
@@ -15,7 +15,7 @@ tethered_to:
   - docs/admin-guide.md#backups
 ---
 
-# Teaching a course on the aLLManac
+# Teaching a course on {{PLATFORM}}
 
 *Everything here happens in the browser.*  You sign in with the same SSO button your students use, and because you are on your course's staff list, the platform hands you your course's admin panel on top of the sharing controls and people picker everyone in the course has.  (Added to the list after you signed in?  Sign out and back in.)  The panel lives next door to your course's chat: if students chat at `engr301.` followed by your campus domain, the panel is at `engr301-admin.` on the same domain, same SSO button.  Anything that needs a shell on the server is the admin's job, not yours; where that is the case below, it says so and tells you what to ask for.
 
@@ -98,4 +98,4 @@ If something is gone and it matters, **tell your admin the same day**, and name 
 
 An honest note on where this platform actually stands: [How long we keep it](your-data/how-long-we-keep-it.md) is the current account, and today it is half built — a nightly backup copies everything off the machine, but the way back from it — a restore — is not built and has never been exercised.  Until that changes, plan as though recovery is your job, because mostly it is.
 
-The almanac's rule is the farm's rule: everything gets written down, and the book stays on the shelf where the whole class can reach it.
+The rule here is an old one: everything gets written down, and the book stays on the shelf where the whole class can reach it.
