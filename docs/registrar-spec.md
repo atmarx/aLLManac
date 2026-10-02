@@ -345,7 +345,7 @@ The one policy question per college endpoint: **does their metal charge the pool
 
 The question that decides whether the semester cap is real: how does a *LibreChat conversation* get a course?  Injecting each student's per-course key into chat means `user_provided` endpoints — freshmen pasting secrets into settings panels.  Sharing one instance means course context by agent selection plus an endpoint-visibility fence we'd have to verify held.  The actual answer is tenancy: **course = instance.**
 
-**The load-bearing sentence: shared control plane, per-course data plane.**
+**The important sentence: shared control plane, per-course data plane.**
 
 | Plane | Services | Count |
 |---|---|---|

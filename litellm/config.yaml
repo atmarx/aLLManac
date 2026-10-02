@@ -12,7 +12,11 @@
 # openai/qwen3:30b-a3b).  "openai/" just means "OpenAI-compatible endpoint" —
 # it is not OpenAI.  Both come from .env; this file stays generic.
 model_list:
-  - model_name: almanac-chat
+  # The chat model's public name — what students pick and type into a harness.
+  # CHAT_MODEL in .env, so a deployment names it without forking this file;
+  # LiteLLM resolves os.environ/ anywhere in the config, model_name included
+  # (verified on our pin).  Unset, compose passes almanac-chat.
+  - model_name: os.environ/CHAT_MODEL
     litellm_params:
       model: os.environ/INFERENCE_MODEL
       api_base: os.environ/INFERENCE_BASE_URL

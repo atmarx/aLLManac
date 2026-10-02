@@ -14,7 +14,8 @@ def _public_brand(value: str) -> str:
     """
     product = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
                or "aLLManac").strip()
-    return value.replace("{{PLATFORM}}", product)
+    model = os.environ.get("CHAT_MODEL", "almanac-chat").strip()
+    return value.replace("{{PLATFORM}}", product).replace("{{MODEL}}", model)
 
 
 def _brand_page(page) -> None:

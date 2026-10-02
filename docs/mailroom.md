@@ -191,7 +191,7 @@ Kept, despite looking skippable:
 
 - **`just key-audit`.**  The only thing that ever detects the mint↔escrow orphan window, which [design-walls.md](design-walls.md) records as permanently open — no ordering closes it, it can only be found, by joining `/key/list` to the escrow on `key_alias`.  Without it that wall describes a problem with no instrument.
 - **Origin check and POST-only on the secret routes.**  The proxy's `SameSite=Lax` cookie already blocks cross-site POST; five more lines on the one route that emits a secret is cheap.
-- **The `no-store` header set.**  Trivial, and load-bearing.
+- **The `no-store` header set.**  Trivial, and essential.
 
 ## The two lighter designs, and why not
 

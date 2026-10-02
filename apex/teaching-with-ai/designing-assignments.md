@@ -57,7 +57,7 @@ The capability you were assessing has not disappeared.  It has become table stak
 
 **Make the AI use the assignment.**  Require the prompts, the raw output, and the student's critique of it.  This converts an integrity problem into a skills assessment, and their judgment about the output is a better read on their understanding than the essay was.
 
-**Decide the capability no longer needs assessing.**  Sometimes the honest answer, and it deserves to be said out loud rather than arrived at by neglect.  Be deliberate: some capabilities that look obsolete are load-bearing for the ones above them.
+**Decide the capability no longer needs assessing.**  Sometimes the honest answer, and it deserves to be said out loud rather than arrived at by neglect.  Be deliberate: some capabilities that look obsolete are the foundation for the ones above them.
 
 ## The trap
 

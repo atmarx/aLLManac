@@ -121,11 +121,18 @@ DIRECTORY = """\
 PLATFORM = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
             or "aLLManac").strip()
 
+# The chat model's public name, which a student types into a harness config.
+# CHAT_MODEL names it at the gateway (litellm/config.yaml), so the pages say
+# {{MODEL}} and get the name this deployment actually serves.
+MODEL = os.environ.get("CHAT_MODEL", "almanac-chat").strip()
+
 # A name written into a reader-facing source is a name every deployment's
-# guides recite, so it is a build error, not a style note.  Hyphenated, dotted
-# and slashed forms are identifiers (`almanac-chat`, `almanac/courses`,
-# `almanac.invalid`) — config a reader types, not a brand they hear — and stay.
-BRAND = re.compile(r"\b(?:aLLManac|[Aa]lmanac)\b(?![-_/]|\.[a-z])")
+# guides recite, so it is a build error, not a style note.  So is the default
+# model name, and the old ALMANAC_* variable names pages once told students to
+# export.  Other hyphenated, dotted and slashed forms are operator identifiers
+# (`almanac/courses`, `almanac.invalid`, `almanac-declined`) and stay.
+BRAND = re.compile(r"\b(?:aLLManac|[Aa]lmanac)\b(?![-_/]|\.[a-z])"
+                   r"|\balmanac-chat\b|\bALMANAC_[A-Z_]+")
 
 FALLBACK = os.environ.get(
     "ALMANAC_FALLBACK_ASSISTANT",
@@ -230,7 +237,7 @@ def contract() -> tuple[str, str]:
 
 
 def brand(text: str) -> str:
-    return text.replace("{{PLATFORM}}", PLATFORM)
+    return text.replace("{{PLATFORM}}", PLATFORM).replace("{{MODEL}}", MODEL)
 
 
 def unbranded(label: str, text: str) -> list[str]:
@@ -339,8 +346,9 @@ def main() -> int:
     named += unbranded("docs/corpus.py (SCOPE, DIRECTORY)",
                        "\n".join([*SCOPE.values(), DIRECTORY]))
     if named:
-        raise SystemExit("these name the platform instead of saying {{PLATFORM}} "
-                         "(PLATFORM_NAME fills it per deployment):\n  " + "\n  ".join(named))
+        raise SystemExit("these hard-code a name a deployment chooses — write {{PLATFORM}} "
+                         "or {{MODEL}} (PLATFORM_NAME and CHAT_MODEL fill them):\n  "
+                         + "\n  ".join(named))
 
     if OUT.exists():
         for p in sorted(OUT.rglob("*"), reverse=True):

@@ -92,7 +92,7 @@ const ok = (m) => console.log(`  ok    ${m}`);
     ok(`\`actions\` is ON and scoped to ${domains.length} rule(s)`);
   }
 
-  // ---- Layer 3: is the guard load-bearing? ----------------------------------
+  // ---- Layer 3: is the guard actually enforced? -----------------------------
   // Ask the image's own function, not our understanding of it.
   //
   // This layer only ASSERTS when there is something to enforce.  With

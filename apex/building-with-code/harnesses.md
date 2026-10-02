@@ -60,7 +60,7 @@ brew install anomalyco/tap/opencode              # macOS
         "apiKey": "{env:CAMPUS_API_KEY}"
       },
       "models": {
-        "almanac-chat": {
+        "{{MODEL}}": {
           "name": "{{PLATFORM}} chat",
           "tool_call": true,
           "limit": { "context": 16384, "output": 4096 }
@@ -68,11 +68,11 @@ brew install anomalyco/tap/opencode              # macOS
       }
     }
   },
-  "model": "campus/almanac-chat"
+  "model": "campus/{{MODEL}}"
 }
 ```
 
-Four things about that config are load-bearing:
+Four things about that config matter:
 
 - **`tool_call: true`** on each model.  Without it opencode never offers the model any tools, and you have a chat window in a terminal.
 - **Permissions default to allowed** — opencode runs shell commands and edits files without asking.  Add `"permission": { "bash": "ask" }` at the top level if you want it to ask first, and read [supervising an agent](supervising-an-agent.md) either way.
@@ -83,7 +83,7 @@ Four things about that config are load-bearing:
 
 ```bash
 export CAMPUS_API_KEY=sk-...
-opencode run -m campus/almanac-chat "Say hello and name your model."
+opencode run -m campus/{{MODEL}} "Say hello and name your model."
 ```
 
 Then `cd` into a project and run `opencode` for the full interface.
@@ -95,7 +95,7 @@ The same two settings — address and key — in each one's own format.  Every c
 **Codex CLI** (`npm install -g @openai/codex`), in `~/.codex/config.toml`:
 
 ```toml
-model = "almanac-chat"
+model = "{{MODEL}}"
 model_provider = "campus"
 
 [model_providers.campus]
@@ -116,7 +116,7 @@ Codex speaks **only** the Responses API — `wire_api = "chat"` has been an erro
       "baseUrl": "https://GATEWAY-ADDRESS/v1",
       "api": "openai-completions",
       "apiKey": "$CAMPUS_API_KEY",
-      "models": [ { "id": "almanac-chat" } ]
+      "models": [ { "id": "{{MODEL}}" } ]
     }
   }
 }

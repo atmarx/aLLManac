@@ -28,6 +28,12 @@ TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24,64}$")
 # the same link instead of writing the same semester to disk again.
 REUSE_SECONDS = 10 * 60
 
+# The download is named for the platform the person knows, not the project
+# underneath it — PLATFORM_NAME, made safe for a filename ("AI Classroom" →
+# ai-classroom-<course>-<date>.zip).
+FILE_PREFIX = (re.sub(r"[^a-z0-9]+", "-", os.environ.get("PLATFORM_NAME", "").lower())
+               .strip("-") or "export")
+
 
 def _paths(token: str) -> tuple[str, str]:
     return (os.path.join(EXPORTS_PATH, f"{token}.zip"),
@@ -199,7 +205,7 @@ def write(course: dict, email: str, data: dict, agent_docs: list[dict]) -> dict:
     zpath, mpath = _paths(token)
     rec = {"email": email, "course": course["slug"], "created": created,
            "expires": created + EXPORT_TTL_HOURS * 3600,
-           "filename": f"almanac-{course['slug']}-{_ts(created)[:10]}.zip",
+           "filename": f"{FILE_PREFIX}-{course['slug']}-{_ts(created)[:10]}.zip",
            "conversations": len(data["conversations"]),
            "agents": len(agent_docs), "files_listed": len(data["files"]),
            "bytes": buf.tell()}

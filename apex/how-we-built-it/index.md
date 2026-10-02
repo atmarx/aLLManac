@@ -82,7 +82,7 @@ Beat 5 is maintained against the running system.  When we close an open edge, th
        configuration that parses is not configuration that runs, and a
        security control nobody verified is a control nobody has.  Better
        than any invented example, and it comes with a second beat — how to
-       verify a guardrail is actually load-bearing.  Offered by the
+       verify a guardrail is actually doing its job.  Offered by the
        registrar author; get the citable detail from design-walls.md. -->
 
 ## A note on the gaps

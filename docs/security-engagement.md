@@ -82,7 +82,7 @@ Your scope letter names one person, one address, and one out-of-hours path.  If 
 ## What you should be able to do afterwards
 
 1. **Read a system's own claims and turn them into tests.**  Every section below models this; by the end you should be generating the tests yourself from a README you have never seen.
-2. **Tell a boundary from a speed bump.**  Some controls are load-bearing and some are decoration.  You should be able to say which is which and defend it.
+2. **Tell a boundary from a speed bump.**  Some controls do real work and some are decoration.  You should be able to say which is which and defend it.
 3. **Reason about a trust model.**  Who believes what, on whose word, and what happens when that word is wrong.
 4. **Distinguish a vulnerability from a defect.**  Not everything that is broken is exploitable, and not everything exploitable is broken.  Both are worth reporting; conflating them wastes everyone's time.
 5. **Attack an LLM-mediated system specifically** — where the interesting failures are not memory corruption but *authority confusion*: text that arrives as data being acted on as instruction.
@@ -144,7 +144,7 @@ Where a section asks a question rather than stating a fact, that is deliberate: 
 
 **The claim.**  Every request to a model goes through the gateway; every request is attributed to a person and charged to a pool; a key cannot spend past its budget or outside its model list.  Chat spend and API-key spend drain the *same* course pool.
 
-This is the most load-bearing claim on the platform, because the budget model is the only thing standing between a course and an unbounded bill.
+This is the most important claim on the platform, because the budget model is the only thing standing between a course and an unbounded bill.
 
 **What would disprove it.**  Spending that is attributed to nobody.  Spending attributed to somebody else.  Spending past a stated cap.  Reaching a model that was not granted.
 

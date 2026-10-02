@@ -23,6 +23,8 @@ tethered_to:
 
 ## The map (read this first)
 
+*Setting up a new box?  Choose its names first — [customizing.md](customizing.md) lists everything a deployment can rename and which names are fixed once a box has history.*
+
 *Looking for a sequence rather than a reference — what to run after a deploy, and what red means?  That's [post-deploy.md](post-deploy.md).  This page is organised by subsystem, which is the right shape when you know what you're looking for and the wrong shape at 11pm after a push.*
 
 | Surface | Where | Login | What lives there |

@@ -138,7 +138,7 @@ _sbom-dir:
 docs-build:
     @mkdir -p site-dist
     docker run --rm --user "$(id -u):$(id -g)" \
-      --env PLATFORM_NAME --env DOCS_SITE_NAME --env DOCS_SITE_URL --env DOCS_PRODUCT_NAME --env DOCS_COPYRIGHT \
+      --env PLATFORM_NAME --env CHAT_MODEL --env DOCS_SITE_NAME --env DOCS_SITE_URL --env DOCS_PRODUCT_NAME --env DOCS_COPYRIGHT \
       --volume "$PWD:/docs" {{mkdocs}} build --clean --strict
 
 # Render the per-audience RAG corpora from front matter.  A guide is a query,
@@ -147,7 +147,7 @@ docs-build:
 # because it already carries PyYAML; no second dependency to track.
 docs-corpus:
     docker run --rm --user "$(id -u):$(id -g)" \
-      --env PLATFORM_NAME --env DOCS_PRODUCT_NAME --env ALMANAC_FALLBACK_ASSISTANT \
+      --env PLATFORM_NAME --env CHAT_MODEL --env DOCS_PRODUCT_NAME --env ALMANAC_FALLBACK_ASSISTANT \
       --volume "$PWD:/docs" --entrypoint python3 {{mkdocs}} /docs/docs/corpus.py
     @echo "corpus/ rendered — read corpus/README.md for what landed where and why"
 
@@ -236,7 +236,7 @@ build: _fleet && sbom
 # Pipeline #46 failed exactly here, on a comment-only edit, which is the check
 # doing its job: it cannot know a diff is harmless and must not guess.
 #
-# bao-unseal appears TWICE and the second one is load-bearing: `up` ends with
+# bao-unseal appears TWICE and the second one is essential: `up` ends with
 # an unseal, but config-refresh may then RESTART openbao (its config changed),
 # and a restarted bao comes back sealed.  smoke can't catch it — its health
 # probe passes sealedcode=200 because sealed is a normal boot state, not an
@@ -456,7 +456,7 @@ fleet-smoke:
     [ "$found" = 1 ] || echo "  (no course instances rendered yet — just course ...)"
     exit $fail
 
-# ---- Is the egress guardrail load-bearing? -----------------------------------
+# ---- Is the egress guardrail actually enforced? ------------------------------
 # `just smoke` proves the stack is serving.  This proves a SECURITY CONTROL is
 # doing something, which is a different question and a harder one: a control
 # that parses is not a control that runs.
@@ -515,7 +515,7 @@ egress-check slug="":
     done
     echo
     if [ "$fail" = 0 ]; then
-        echo "  every aLLManac instance checked: the allowlist is load-bearing."
+        echo "  every aLLManac instance checked: the allowlist is enforced."
         echo "  (Scope is this stack — containers named alm-librechat / alm-chat-*."
         echo "   A LibreChat on this box that isn't ours is not ours to vouch for.)"
     else
@@ -1538,4 +1538,4 @@ workbench key:
 # One-shot proof a key works (mints nothing; spends a few tokens as that key)
 workbench-smoke key:
     ALMANAC_API_KEY="{{key}}" {{compose}} --profile workbench run --rm workbench \
-      run -m almanac/almanac-chat "Reply with exactly: almanac-ok"
+      run -m "almanac/${CHAT_MODEL:-almanac-chat}" "Reply with exactly: almanac-ok"

@@ -157,7 +157,8 @@ DEFAULT_CONTEXT_TOKENS = int(
     os.environ.get("REGISTRAR_DEFAULT_CONTEXT_TOKENS", "128000"))
 BASE_MODELS = [
     model.strip()
-    for model in os.environ.get("REGISTRAR_BASE_MODELS", "almanac-chat").split(",")
+    for model in (os.environ.get("REGISTRAR_BASE_MODELS")
+                  or os.environ.get("CHAT_MODEL", "almanac-chat")).split(",")
     if model.strip()
 ]
 

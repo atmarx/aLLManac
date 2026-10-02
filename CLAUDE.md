@@ -2,7 +2,7 @@
 
 The **aLLManac** — the institutional AI sandbox.  One shared control plane (Keycloak, LiteLLM + ledger, OpenBao escrow, registrar, usage-mcp, Caddy edge) and one LibreChat instance per course.  See [README.md](README.md) for the architecture and [docs/registrar-spec.md](docs/registrar-spec.md) for how courses get provisioned.
 
-**The name is deliberate on both sides.** The public brand is **aLLManac** (the LLM is baked into the middle on purpose); the board channel is **#almanac**.  Neither is a typo of the other — don't "correct" either direction.  **But no reader-facing page says either.**  `apex/`, the guide prompts and the eval cases write `{{PLATFORM}}`, and `PLATFORM_NAME` in `.env` names it per deployment; `just docs-corpus` fails on a hard-coded name ([pedagogy-authoring.md](docs/pedagogy-authoring.md#the-corpus-boundary)).
+**The name is deliberate on both sides.** The public brand is **aLLManac** (the LLM is baked into the middle on purpose); the board channel is **#almanac**.  Neither is a typo of the other — don't "correct" either direction.  **But no reader-facing page says either.**  `apex/`, the guide prompts and the eval cases write `{{PLATFORM}}` and `{{MODEL}}`, and `PLATFORM_NAME` / `CHAT_MODEL` in `.env` name them per deployment; `just docs-corpus` fails on a hard-coded name.  Every name a deployment can choose, and which are fixed once a box has history: [docs/customizing.md](docs/customizing.md).
 
 ---
 

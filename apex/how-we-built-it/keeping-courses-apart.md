@@ -52,7 +52,7 @@ It is worth naming that shape, because it recurs everywhere and it is rarely the
 
 **Course equals instance.**  Each course gets its own LibreChat container, its own Mongo database, its own search index, its own admin panel, and its own hostname.  The registrar renders all of it from one course record.
 
-The load-bearing sentence is *shared control plane, per-course data plane.*
+The important sentence is *shared control plane, per-course data plane.*
 
 | Plane | What lives there | How many |
 |---|---|---|

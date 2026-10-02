@@ -179,4 +179,4 @@ The commons is the exception that proves it useful: the resolution there is **nu
 
 ## For the walls
 
-Two findings here are trap-shaped and belong in [design-walls.md](design-walls.md) once ruled: **`defaultRate = 6` for unmatched model names**, and **`balance.enabled` is a single boolean with no read-only mode**.  Separately for the plumbing lane, not a wall but an exposure: the image ships **no Content-Security-Policy and no `helmet`**, and mounts a bare `cors()` with no origin restriction — which makes what the Caddy edge is doing in front of it load-bearing.
+Two findings here are trap-shaped and belong in [design-walls.md](design-walls.md) once ruled: **`defaultRate = 6` for unmatched model names**, and **`balance.enabled` is a single boolean with no read-only mode**.  Separately for the plumbing lane, not a wall but an exposure: the image ships **no Content-Security-Policy and no `helmet`**, and mounts a bare `cors()` with no origin restriction — which makes what the Caddy edge is doing in front of it critical.

@@ -24,10 +24,10 @@ The gateway's address comes with your key — [`my_key`](your-key.md) prints it 
 ## Prove the chain works
 
 ```bash
-export ALMANAC_API_KEY=sk-...                    # from my_key
-export ALMANAC_BASE_URL=https://gateway.example.edu/v1
+export CAMPUS_API_KEY=sk-...                    # from my_key
+export CAMPUS_BASE_URL=https://gateway.example.edu/v1
 
-curl -s "$ALMANAC_BASE_URL/models" -H "Authorization: Bearer $ALMANAC_API_KEY"
+curl -s "$CAMPUS_BASE_URL/models" -H "Authorization: Bearer $CAMPUS_API_KEY"
 ```
 
 That lists **the models your key can call** — not every model on the platform, the ones your course allows.  If the list is empty or the call fails, nothing further will work either; see [when it breaks](when-it-breaks.md).
@@ -38,10 +38,10 @@ Then ask one of them something:
 import os
 from openai import OpenAI
 
-client = OpenAI(base_url=os.environ["ALMANAC_BASE_URL"],
-                api_key=os.environ["ALMANAC_API_KEY"])
+client = OpenAI(base_url=os.environ["CAMPUS_BASE_URL"],
+                api_key=os.environ["CAMPUS_API_KEY"])
 r = client.chat.completions.create(
-    model="almanac-chat",        # use a name from the /models list
+    model="{{MODEL}}",        # use a name from the /models list
     messages=[{"role": "user", "content": "Name your model in one line."}],
 )
 print(r.choices[0].message.content)

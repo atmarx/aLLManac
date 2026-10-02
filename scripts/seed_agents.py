@@ -697,7 +697,7 @@ def main() -> int:
         print(f"WARN: seeding under a human owner ({email}) — that account can delete "
               "the guides' knowledge files from its file manager.  Omit the email.")
     model_explicit = "AGENT_MODEL" in os.environ
-    model = os.environ.get("AGENT_MODEL", "almanac-chat")
+    model = os.environ.get("AGENT_MODEL") or os.environ.get("CHAT_MODEL", "almanac-chat")
     provider = os.environ.get("AGENT_PROVIDER", "Almanac")
 
     state = {}

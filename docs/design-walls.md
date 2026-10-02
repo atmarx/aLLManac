@@ -315,7 +315,7 @@ Consequences we already committed to:
 
 ---
 
-## Mint and escrow are one transaction, and the order is load-bearing *(2026-09-11)*
+## Mint and escrow are one transaction, and the order matters *(2026-09-11)*
 
 A virtual key exists in two places — the gateway, where it spends, and OpenBao, where it can be read back.  A key in only one of those is a defect, and which one it's missing from decides how bad:
 
@@ -645,7 +645,7 @@ Also settled with it: **the registrar gets no docker socket.**  It already holds
 
 ## The front door is the one room that can take a complaint *(2026-09-21)*
 
-Problem reports are filed from the **vestibule**, and the registrar is wired into the flagship without an `X-Course` header.  Both halves of that are load-bearing.
+Problem reports are filed from the **vestibule**, and the registrar is wired into the flagship without an `X-Course` header.  Both halves of that matter.
 
 **Why the vestibule and not each course.**  A report tool inside a course is down whenever the course is, which is precisely the hour someone wants it.  The vestibule is the one room in the realm with **no roster** — everyone with a campus login can enter, by the same invariant that means it hands out no keys ([mailroom.md](mailroom.md)) — so it is the room that still answers when the room someone is complaining about doesn't.  That is a fallback-channel property, and it is the argument.  The alternative considered and rejected was a platform-wide instruction telling every agent how to handle errors: there is no such injection point and building one would fight the design, because course agents are **built and owned by faculty** (`interface.agents.create: true` in the course posture) and anything written into an agent someone else owns is theirs to edit.  The only agents whose instructions we control are the eight vestibule guides, seeded update-in-place by the service account.
 

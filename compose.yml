@@ -71,6 +71,7 @@ services:
       INFERENCE_BASE_URL: "${INFERENCE_BASE_URL:-http://host.docker.internal:8000/v1}"
       INFERENCE_API_KEY: "${INFERENCE_API_KEY:-dummy-local-endpoints-ignore-this}"
       INFERENCE_MODEL: "${INFERENCE_MODEL:-openai/qwen2.5}"
+      CHAT_MODEL: "${CHAT_MODEL:-almanac-chat}"   # the public name of that model
       # For the optional almanac-office block in litellm/config.yaml.  Empty
       # by default and harmless while that block stays commented; passed in
       # unconditionally so enabling it is an uncomment, not an uncomment plus
@@ -378,9 +379,10 @@ services:
       # prompts are not reliably refused: Ollama drops the front, which is
       # the agent's instructions (registrar/planes/config.py).
       REGISTRAR_DEFAULT_CONTEXT_TOKENS: "${REGISTRAR_DEFAULT_CONTEXT_TOKENS:-128000}"
-      REGISTRAR_BASE_MODELS: "${REGISTRAR_BASE_MODELS:-almanac-chat}"
+      REGISTRAR_BASE_MODELS: "${REGISTRAR_BASE_MODELS:-${CHAT_MODEL:-almanac-chat}}"
       MODEL_PROVIDER_NAME: "${MODEL_PROVIDER_NAME:-Almanac}"
       MCP_SERVER_PREFIX: "${MCP_SERVER_PREFIX:-almanac}"
+      PLATFORM_NAME: "${PLATFORM_NAME:-aLLManac}"   # names export downloads
       REGISTRAR_COURSES: /state/courses.yaml
     volumes:
       # DIRECTORY mounts throughout: the registrar writes atomically (tmp +
@@ -479,6 +481,7 @@ services:
     environment:
       HOME: /workspace                          # opencode state rides the volume
       ALMANAC_API_KEY: "${ALMANAC_API_KEY:-}"   # injected per run by the recipes
+      CHAT_MODEL: "${CHAT_MODEL:-almanac-chat}"
     volumes:
       - workbench-data:/workspace
       - ./workbench/opencode.json:/workspace/opencode.json:ro
