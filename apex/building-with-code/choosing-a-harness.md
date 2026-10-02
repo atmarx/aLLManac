@@ -1,6 +1,6 @@
 ---
 title: Which coding harness should I use?
-description: The wrong question, and the research that says so — the same model can gain or lose tens of points depending on the harness around it, and which harness wins depends on the model.  How to choose a pairing for what you are actually trying to do, and how to measure it yourself.
+description: The wrong question, and the research that says so — the same model can gain or lose tens of points depending on the harness around it, and which harness wins depends on the model.  How to choose a pairing for what you're trying to do, and how to measure it yourself.
 audience: student
 also_reaches: [faculty, builder]
 status: draft
@@ -13,7 +13,7 @@ tethered_to:
 
 # Which harness should I use?
 
-Here is one model, GPT-5, run through four different harnesses on the same benchmark of terminal tasks:
+One model, GPT-5, run through four different harnesses on the same benchmark of terminal tasks:
 
 | Harness | Score |
 |---|---|
@@ -28,21 +28,21 @@ So "which model should I use?" and "which harness should I use?" are both incomp
 
 ## What the research says
 
-**The harness can move one model a long way.**  The earliest careful result held GPT-4 Turbo fixed and changed only the interface the harness gave it — how files are viewed, how edits are made, whether a linter checks them.  Its bug-fixing score went from 11% to 18%, a 64% relative gain from the harness alone ([SWE-agent, Yang et al., NeurIPS 2024](https://arxiv.org/html/2405.15793v3)).  Since then the gaps have grown: on a benchmark of reproducing scientific results, one 2026 study found Codex CLI outscoring the benchmark's own reference harness by about 44 points with the same model, GPT-5.4 ([Nadgir et al., Jun 2026](https://arxiv.org/pdf/2606.26158)).
+The harness can move one model a long way.  The earliest careful result held GPT-4 Turbo fixed and changed only the interface the harness gave it — how files are viewed, how edits are made, whether a linter checks them.  Its bug-fixing score went from 11% to 18%, a 64% relative gain from the harness alone ([SWE-agent, Yang et al., NeurIPS 2024](https://arxiv.org/html/2405.15793v3)).  Since then the gaps have grown: on a benchmark of reproducing scientific results, one 2026 study found Codex CLI outscoring the benchmark's own reference harness by about 44 points with the same model, GPT-5.4 ([Nadgir et al., Jun 2026](https://arxiv.org/pdf/2606.26158)).
 
-**Which harness wins depends on the model.**  The Holistic Agent Leaderboard ran many models through many harnesses and concluded that "optimal agent design requires carefully matching models to scaffolds" — one family did better with one harness, another with a different one ([HAL, Kapoor et al., Oct 2025](https://arxiv.org/pdf/2510.11977)).  And the maker's own harness is not guaranteed to be the best home for its own model: in the Terminal-Bench table above, Claude Opus 4.5 scored 57.8% in a neutral harness and 52.1% in Claude Code, and Gemini 2.5 Pro scored 32.6% in a neutral harness against 19.6% in Gemini CLI.
+Which harness wins depends on the model.  The Holistic Agent Leaderboard ran many models through many harnesses and concluded that "optimal agent design requires carefully matching models to scaffolds" — one family did better with one harness, another with a different one ([HAL, Kapoor et al., Oct 2025](https://arxiv.org/pdf/2510.11977)).  And the maker's own harness is not guaranteed to be the best home for its own model: in the Terminal-Bench table above, Claude Opus 4.5 scored 57.8% in a neutral harness and 52.1% in Claude Code, and Gemini 2.5 Pro scored 32.6% in a neutral harness against 19.6% in Gemini CLI.
 
-**Models are trained toward particular harnesses.**  This is the mechanism, and the vendors say so.  OpenAI describes GPT-5-Codex as "optimized for agentic coding tasks in Codex or similar environments," and its guide to the Codex models says of the file-editing format that "the model has been trained to excel at this diff format" ([OpenAI](https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide)).  Anthropic's file-editing tool has a schema that is "built into Claude's model and can't be modified" ([Anthropic](https://platform.claude.com/docs/en/agents-and-tools/tool-use/text-editor-tool)).  A harness that asks a model to edit files in a format it wasn't trained on is asking it to work with its off hand.
+Models are trained toward particular harnesses.  This is the mechanism, and the vendors document it.  OpenAI describes GPT-5-Codex as "optimized for agentic coding tasks in Codex or similar environments," and its guide to the Codex models says of the file-editing format that "the model has been trained to excel at this diff format" ([OpenAI](https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide)).  Anthropic's file-editing tool has a schema that is "built into Claude's model and can't be modified" ([Anthropic](https://platform.claude.com/docs/en/agents-and-tools/tool-use/text-editor-tool)).  A harness that asks a model to edit files in a format it wasn't trained on is asking it to work with its off hand.
 
-**Even the tool list changes the result.**  Two studies held the models fixed and changed only the tools on offer: offering fewer improved how well models called them ([Less is More, 2024](https://arxiv.org/abs/2411.15399)), and renaming them gained up to 17% ([Lee et al., ACL 2026](https://arxiv.org/abs/2510.07248)).  Neither was about coding agents specifically, but the lesson carries: a harness is, among other things, a decision about what the model is shown.
+Even the tool list changes the result.  Two studies held the models fixed and changed only the tools on offer: offering fewer improved how well models called them ([Less is More, 2024](https://arxiv.org/abs/2411.15399)), and renaming them gained up to 17% ([Lee et al., ACL 2026](https://arxiv.org/abs/2510.07248)).  Neither was about coding agents specifically, but the lesson applies: a harness is, among other things, a decision about what the model is shown.
 
 ## What it does not say
 
 It does not say the model stops mattering.  The same Terminal-Bench paper that shows the sixteen-point spread concludes that "model selection is usually more important than agent scaffold when optimizing for performance."  METR, measuring how long a task a model can finish, found that "neither Claude Code nor Codex outperform the default scaffolds METR uses" for the models it tested ([METR, Feb 2026](https://metr.org/notes/2026-02-13-measuring-time-horizon-using-claude-code-and-codex/)).
 
-The fair reading: **the model sets the ceiling, and the harness decides how much of it you reach** — and how much you reach can vary by more than the distance between two good models.  That is why the pairing is what you choose, rather than either half.
+A fair reading: **the model sets the ceiling, and the harness decides how much of it you get** — and that share can vary by more than the distance between two good models.  So the pairing is what you choose.
 
-**And a pairing has a version on both sides.**  Harnesses ship weekly, and a release can change the instructions the model sees, the tools it is offered, and the format it edits in — everything the research above says moves the score.  It runs the other way too: when a vendor releases a new model, it can arrive supported only by the newest release of the vendor's own harness, so last month's install can't run this month's model at all.  "opencode with model X" is not quite a pairing.  "opencode 1.18 with model X, served at a 32k context" is.
+A pairing also has a version on both sides.  Harnesses ship weekly, and a release can change the instructions the model sees, the tools it is offered, and the format it edits in — everything the research above says moves the score.  It runs the other way too: when a vendor releases a new model, it can arrive supported only by the newest release of the vendor's own harness, so last month's install can't run this month's model at all.  "opencode with model X" is not quite a pairing.  "opencode 1.18 with model X, served at a 32k context" is.
 
 These are also benchmarks: fixed tasks, frontier models, measured on a date.  Your task is not on any leaderboard, and the numbers will be stale by the time you read them.  What transfers is the shape, not the scores.
 
@@ -53,31 +53,31 @@ Most of that research is about frontier models.  A model small enough to run on 
 - **Harnesses are built for big models.**  Small models "typically fall short when swapped into a harness designed for a frontier LLM" ([Yang et al., Jul 2026](https://arxiv.org/abs/2607.08938)), and they are the ones most likely to invent a tool name that doesn't exist ([Lee et al.](https://arxiv.org/abs/2510.07248)).  A harness's own instructions also take up room in a context window that is smaller to begin with.
 - **But less structure is not automatically better.**  A 2026 study of harness design found that predefined tools help models that are weak with a raw shell, while strong models do fine with the shell alone ([Fan et al., Sep 2026](https://arxiv.org/abs/2609.20804)).  A minimal harness is easier on the context window and harder on a model that needed the help.
 
-And neither rescues a model that is simply too small: a 20-billion-parameter open model scored about 3% on Terminal-Bench in each of two different harnesses.
+And neither rescues a model that's too small: a 20-billion-parameter open model scored about 3% on Terminal-Bench in each of two different harnesses.
 
 ## Three harnesses, one tested here
 
-All three are built to speak an OpenAI-compatible API, so all three should reach the gateway with your key; setup for each is on [coding harnesses](harnesses.md).  **opencode is the one that has actually run against this platform** — it is the harness inside the platform's own workbench.  Codex and pi are documented from their own sources and have not been.  Facts checked against each project's own documentation on 2026-09-22 — these projects move fast, so check again.
+All three are built to speak an OpenAI-compatible API, so all three should work with the gateway and your key; setup for each is on [coding harnesses](harnesses.md).  **Only opencode has run against this platform** — it's the harness inside the platform's own workbench.  Codex and pi are documented from their own sources and have not been.  Facts checked against each project's own documentation on 2026-09-22 — these projects move fast, so check again.
 
 | | opencode | Codex CLI | pi |
 |---|---|---|---|
-| **Philosophy** | Provider-agnostic, full-featured | OpenAI's own harness, tuned alongside its Codex models | Deliberately minimal: four tools (read, write, edit, bash), extend it yourself |
+| **Philosophy** | Provider-agnostic, full-featured | OpenAI's own harness, tuned alongside its Codex models | Minimal by design: four tools (read, write, edit, bash), extend it yourself |
 | **Its own instructions + tools** | Several thousand tokens before you type | Several thousand tokens before you type | Under a thousand, by its author's count (Nov 2025) |
 | **What it needs from the gateway** | Chat Completions (or Responses) | **Responses API only** — Chat Completions support was removed in Feb 2026 | Chat Completions (or Responses) |
 | **Asks before running a command?** | **No** — bash and edits default to allowed; `"permission": {"bash": "ask"}` turns asking on | Only at its sandbox edge — it can write inside your project, and needs approval to go outside it or touch the network | **No** — it has no permission system, and its docs recommend a container or VM |
 | **License** | MIT | Apache-2.0 | MIT |
 
-That "asks before running a command" row matters more than it looks, and [supervising an agent](supervising-an-agent.md) is about why.
+The "asks before running a command" row matters more than it looks; [supervising an agent](supervising-an-agent.md) explains why.
 
 ## How to choose
 
 First, the part that matters more than any row in the table: an agent needs version control, tests and a way to deploy under it before the choice of harness makes any difference.  → [Before the agent](before-the-agent.md)
 
-Then start from what you are trying to do, not from the tool.
+Then start from what you're trying to do.
 
-- **You want to understand how an agent works.**  Start with the smallest harness, because you can read everything it sends.  pi's instructions are short enough to read in a minute; watching a four-tool agent solve something teaches you more about the loop than a polished one that hides it.
+- **You want to understand how an agent works.**  Start with the smallest harness, where you can read everything it sends.  pi's instructions are short enough to read in a minute; watching a four-tool agent solve something teaches you more about the loop than a polished one that hides it.
 - **You want to get work done with a frontier model.**  Start with the harness that model's maker tunes for — it is the pairing the vendor tested — and treat that as a default, not a verdict.  The numbers above show it is often beaten.
-- **You are on a campus model.**  The pairing matters most here and is least studied.  What decides it is whether the model calls tools reliably *in that harness* — which you find out by trying, not by reading.  A lighter harness leaves more room in a small context window; a fuller one gives a weaker model more to hold on to.  There is no general answer yet.
+- **You are on a campus model.**  The pairing matters most here and is least studied.  What decides it is whether the model calls tools reliably *in that harness* — and you find that out by trying it.  A lighter harness leaves more room in a small context window; a fuller one gives a weaker model more to hold on to.  There is no general answer yet.
 - **The agent will run while you aren't watching.**  Pick where it runs before you pick what runs.  Only one of these three fences itself by default.  → [Supervising an agent](supervising-an-agent.md)
 
 ## Try it yourself
@@ -85,7 +85,7 @@ Then start from what you are trying to do, not from the tool.
 The benchmarks can't tell you about your task.  An afternoon can.
 
 1. Pick a small, real task in a project under git — fix a bug, add a test, rename something across files.  Commit first, so the working tree is clean.  **Write down both harnesses' versions** (`opencode --version` and `codex --version`; pi's `--help` lists its flag) and the model name.  A result without them can't be compared with anyone else's, including yours next month.
-2. Ask the Usage Guide at the front door for your usage, and note it.
+2. Ask the Usage Guide in the {{PLATFORM}} chat for your usage, and note it.
 3. Run the task in harness A.  When it says it is done, run your tests yourself and read `git diff`.  Note whether it worked, how many steps it took, and your usage afterwards.
 4. `git stash -u` to put the tree back — the `-u` takes the new files the agent created too, which plain `git stash` and `git checkout .` leave behind.
 5. Same model, same wording, harness B.  Same notes.
@@ -103,10 +103,10 @@ Then try it once with a different model in the same harness.  You will have meas
 | opencode, the platform's workbench | 1.18.2 | — run here, end to end |
 | pi (`@earendil-works/pi-coding-agent`) | 0.87.0 | 2026-09-21 |
 
-Checked 2026-09-22 against each project's own documentation and source.  Only the workbench row has been run against this platform's models.  The research results above used whatever versions each study ran; where a paper names its harness version, it is in the paper, not here.  **If your version is newer than this table, the facts in the comparison table may have moved** — the permission defaults and API requirements especially.
+Checked 2026-09-22 against each project's own documentation and source.  Only the workbench row has been run against this platform's models.  The research results above used whatever versions each study ran; where a paper names its harness version, look there.  **If your version is newer than this table, the facts in the comparison table may have moved** — the permission defaults and API requirements especially.
 
 ## What we don't know yet
 
-- **Nobody has measured these pairings on the models this platform serves.**  The research is about frontier models on benchmark tasks.  If you run the experiment above, your result is data we don't have — tell us through the front door's report tool.
-- **Codex through this gateway is untested.**  Codex speaks only the Responses API, and the gateway has to translate that for models whose servers only speak Chat Completions.  Whether tool calls survive that translation, on our models, is exactly the kind of thing that works on paper and fails in the loop.
-- **The numbers on this page have a date.**  Harness releases land weekly, and every model generation reshuffles the table.  The finding that has survived every reshuffle so far is the one this page is about: it is the pairing that performs.
+- **Nobody has measured these pairings on the models this platform serves.**  The research is about frontier models on benchmark tasks.  If you run the experiment above, your result is data we don't have — tell us through the report tool in the {{PLATFORM}} chat.
+- **Codex through this gateway is untested.**  Codex speaks only the Responses API, and the gateway has to translate that for models whose servers only speak Chat Completions.  Whether tool calls survive that translation, on our models, is the kind of thing that works on paper and fails in the loop.
+- **The numbers on this page have a date.**  Harness releases land weekly, and every model generation reshuffles the table.  So far, every reshuffle has kept one finding intact: what performs is the pairing.

@@ -1,6 +1,6 @@
 ---
 title: Who can see it
-description: Access control from the front door inward — how you sign in, why your course is its own room, who genuinely has reach, and the paths that can send course content off institutional hardware.
+description: Access control from sign-in inward — how you sign in, why your course is its own room, who can get to your work, and the paths that can send course content off institutional hardware.
 audience: student
 also_reaches: [faculty]
 status: draft
@@ -17,7 +17,7 @@ tethered_to:
 
 # Who can see it
 
-Four groups can reach what you write here: you, your instructor, the people who run the servers, and anyone you or your instructor deliberately lets in.  Two more can, in specific cases: the company behind a hosted model, if your course uses one, and — when you file a problem report that quotes your exchange — the course staff and platform maintainers who read reports.  That list is short on purpose, and this page walks it from the front door inward.
+Four groups can see what you write here: you, your instructor, the people who run the servers, and anyone you or your instructor chooses to let in.  Two more can in specific cases: the company behind a hosted model, if your course uses one, and — when you file a problem report that quotes your exchange — the course staff and platform maintainers who read reports.  The sections below take them in order, starting with how you sign in.
 
 ## Signing in
 
@@ -25,76 +25,67 @@ You reach {{PLATFORM}} through your institution's single sign-on.  There is no s
 
 The identity layer is Keycloak, and it can broker your campus identity provider — including Globus — without any of the chat software knowing the difference.
 
-**One thing worth clearing up if you come from research computing:** Globus here is only a way to log in.  In research settings Globus also moves data around, with collections and group permissions attached to real datasets.  None of that applies here.  No {{PLATFORM}} data lives in a Globus collection, nothing transfers over Globus, and there are no Globus group permissions on your conversations.  Globus establishes who you are, then steps out of the way.
+**If you come from research computing:** Globus here is only a way to log in.  In research settings Globus also moves data around, with collections and group permissions attached to real datasets.  None of that applies here.  No {{PLATFORM}} data lives in a Globus collection, nothing transfers over Globus, and there are no Globus group permissions on your conversations.  Globus establishes who you are, then steps out of the way.
 
 ## Your course is its own room
 
 Every course on this platform runs its own copy of the chat, with its own database.  Your course does not share a table with another course, or a filter, or a permission check that has to be written correctly.  There is no shared room to partition.
 
-The practical consequence: someone in another course cannot see your conversations, your agents, or your uploaded files, because there is no query that reaches across.  Instructors of other courses cannot either.
+In practice, someone in another course cannot see your conversations, your agents, or your uploaded files: no query crosses from one course's database to another.  Instructors of other courses cannot either.
 
 The reasoning behind that choice — and what it costs us — is written up in [How do you keep the courses apart?](../how-we-built-it/keeping-courses-apart.md).
 
-## Who has reach, honestly
+## Who can get to it
 
 **You** — everything in your own account.
 
 **Your instructor**, within your course.  They can see the conversations and agents in the course instance they run.  Assume your instructor can read what you write in their course, the same way you would assume it about anything you submit for a grade.
 
-**The people who run the platform.**  Operators hold the infrastructure — the servers, the databases, the backups.  Technical access follows from running the system, and the control on it is institutional policy and professional obligation rather than a barrier in the software.  Any platform you use works this way, including the commercial ones; the difference here is that the people in question work for your institution and are reachable.
+**The people who run the platform.**  Operators hold the infrastructure — the servers, the databases, the backups.  Technical access follows from running the system.  What controls it is institutional policy and professional obligation; nothing in the software stops them.  Any platform you use works this way, including the commercial ones.  Here, the people in question work for your institution and you can find out who they are.
 
 **Nobody in another course.**  See above.
 
-**The model provider.** A model running on institutional hardware adds no
-outside recipient. A hosted model provider receives the prompts and other
-material needed to answer. Which route and provider a course uses should be a
-plain question your instructor or operator can answer.
+**The model provider.**  A model running on institutional hardware adds no outside recipient.  A hosted model provider receives the prompts and other material needed to answer.  Your instructor or operator should be able to tell you which route and provider your course uses.
 
 ## What we do not do with it
 
-The platform does not use your conversations to fine-tune models. That promise
-does not automatically describe a hosted provider: its retention and training
-terms come from the deployment's agreement with that provider and should be
-published alongside the model choice.
+The platform does not use your conversations to fine-tune models.  That promise does not automatically cover a hosted provider: its retention and training terms come from the deployment's agreement with that provider and should be published alongside the model choice.
 
 We also do not collect keystrokes, screen activity, or attention telemetry.  What we record about your usage is [the ledger](what-we-store.md#the-ledger-which-is-the-one-that-surprises-people) — which model, how many tokens, what it cost, when — and nothing about how you sat at the keyboard.
 
 ## Sharing is available, and nothing is shared until you share it
 
-You can share an agent you built with other people in your course, and they can share theirs with you.  Agent sharing is switched on in every course here, deliberately — group work needs it, and the chat software's own default is off, which is the wrong setting for a classroom.
+You can share an agent you built with other people in your course, and they can share theirs with you.  Agent sharing is switched on in every course here.  Group work needs it, and the chat software's own default is off, which is the wrong setting for a classroom.
 
-What that does **not** mean is that anything of yours is visible by default.  An agent you build is yours until you share it, and sharing is an action you take on a specific agent.  There is no setting that quietly exposes your work.
+None of your work is visible by default.  An agent you build is yours until you share it, and sharing is something you do to one specific agent.  No setting exposes your work behind your back.
 
-**A conversation can be shared too, as a link.**  Unless your instructor has turned it off for your course, you can make a link to one of your own conversations and send it to someone — a TA, a classmate reviewing your work.  The link opens only for someone signed in to your course, never for the open web, and a conversation has no link until you make one.
+A conversation can be shared too, as a link.  Unless your instructor has turned it off for your course, you can make a link to one of your own conversations and send it to someone — a TA, a classmate reviewing your work.  The link opens only for someone signed in to your course, never for the open web, and a conversation has no link until you make one.
 
-One thing to know before you share: **an agent carries its knowledge files with it.**  Anyone who can chat with a shared agent can eventually get it to reveal what you attached, so attach things you would be comfortable handing over directly.
+Before you share an agent: **a shared agent shares its knowledge files.**  Anyone who can chat with it can eventually get it to reveal what you attached, so attach things you would be comfortable handing over directly.
 
-The course boundary still holds either way.  Sharing reaches people in *your* course and nowhere else — there is no way to share into another course, because there is no room to share into.
+Either way, you can only share with people in *your* course.  Another course is a separate instance, so there is nothing to share into.
 
-Worth knowing rather than worrying about: the sharing is deliberate on both ends.  Someone chose to make it possible, and you choose each time you use it.
+Someone chose to make sharing possible, and you choose each time you use it.
 
 Sharing an agent, step by step, is in [the course guide](../user-guide.md).
 
 ## Paths that can leave the building
 
-There are two intentional outbound routes to understand: hosted inference and
-agent actions. If the selected model is hosted, the request goes to that
-provider so it can answer. The deployment's model notice should name that
-provider and its data terms.
+There are two intentional outbound routes: hosted inference and agent actions.  If the selected model is hosted, the request goes to that provider so it can answer.  The deployment's model notice should name that provider and its data terms.
 
-Agents can be given **actions** — the ability to call an outside web service as part of answering.  An agent with actions can send whatever it is working with to whatever address it was pointed at.  That is the entire point of the feature, and it is genuinely useful: an agent that looks up live data has to reach something.
+Agents can be given **actions** — the ability to call an outside web service as part of answering.  An agent with actions can send whatever it is working with to whatever address it was pointed at.  That is what the feature is for, and it is useful: an agent that looks up live data has to send its query somewhere.
 
-Actions are **off unless a course turns them on.**  The platform's default capability set gives courses file search, tools, and artifacts, and deliberately leaves actions out.  Turning them on is a per-course setting in the platform's course record — an instructor asks for it, and the operator who runs the platform sets it, along with the list of addresses those actions may reach. A course that leaves actions off has no *additional action route* beyond whichever model route the deployment selected.
+Actions are **off unless a course turns them on.**  The platform's default capability set gives courses file search, tools, and artifacts, and leaves actions out.  Turning them on is a per-course setting in the platform's course record — an instructor asks for it, and the operator who runs the platform sets it, along with the list of addresses those actions may call.  A course that leaves actions off has no *additional action route* beyond whichever model route the deployment selected.
 
-A course that does enable them can also declare a list of domains agents are allowed to reach.  Worth understanding what that list does and does not do:
+A course that does enable them can also declare a list of domains agents are allowed to call.  Know what that list does before you rely on it:
 
 !!! warning "An allowlist narrows; it cannot close"
-    If a course enables actions and declares no domains, agents can reach the entire public internet.  An empty list is not a closed door — it is no list, and there is no way to write "allow nothing."  The switch that actually closes the path is leaving actions off.
+    If a course enables actions and declares no domains, agents can call anything on the public internet.  An empty list is no list at all, and there is no way to write "allow nothing."  The only switch that closes the path is leaving actions off.
 
-Internal university addresses are refused by default, which is the behavior most people assume is permanent.  It is not: **naming an internal address in the list permits it.**  The default is a floor rather than a ceiling, so a list written carelessly can open a door that was closed before anyone wrote a list at all.
+Internal university addresses are refused by default, and most people assume that refusal is permanent.  It is not: **naming an internal address in the list permits it.**  So a carelessly written list can open up an internal address that was blocked before anyone wrote a list at all.
 
 If you are building an agent with actions in a course that allows them, you are the one deciding where course material goes.  Point it at something you would be comfortable naming out loud.
 
 ## If something looks wrong
 
-Access problems, an agent you did not expect to see, a course you should not have: tell your instructor, and they can reach the platform operators.  The uninteresting explanation is usually right, and the interesting one is worth finding quickly.
+Access problems, an agent you did not expect to see, a course you should not have: tell your instructor, and they can contact the platform operators.  The boring explanation is usually right, and if it isn't, the sooner someone looks the better.

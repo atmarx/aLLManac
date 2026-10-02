@@ -1,6 +1,6 @@
 ---
 title: What we store
-description: The actual inventory — conversations, agents, uploaded files, usage records, and identity — listed by the system that holds each one.
+description: The inventory — conversations, agents, uploaded files, usage records, and identity — listed by the system that holds each one.
 audience: student
 also_reaches: [faculty, builder]
 status: draft
@@ -22,7 +22,7 @@ Several systems hold something about you.  Here is each one, what it has, and wh
 | What | Where it lives | Tied to you |
 |---|---|---|
 | Your conversations, and the agents you build | Your course's own database | Yes |
-| Your conversations with the guides at the front door | The front door's own database, shared by everyone who uses it | Yes |
+| Your conversations with the guides in the {{PLATFORM}} chat | The {{PLATFORM}} chat's own database, shared by everyone who uses it | Yes |
 | Files you upload, in a chat or to an agent | Your course's file storage | Yes |
 | The search index built from those files | Your course's own knowledge store | Yes, through the file |
 | Problem reports you file, including the question and answer they quote | The course service's records | Yes |
@@ -33,39 +33,35 @@ Several systems hold something about you.  Here is each one, what it has, and wh
 | Chat search index | Per-course search service | Rebuilt from your conversations; holds nothing original |
 | Backup copies of all of the above | Off-machine storage, about six months | Yes |
 
-Two of those deserve more than a table row.
+Two of those need more than a table row.
 
 ## Your conversations
 
-Everything you type into a course's chat, and everything the model types back, is stored in **your course's own database** — not a shared one with a column marking which course a row belongs to.  Each course runs its own.  The exception is the front door: conversations with the Front Desk and the guides there go into one database shared by everyone who uses the front door.
+Everything you type into a course's chat, and everything the model types back, is stored in **your course's own database**.  Each course runs its own; there is no shared database with a column marking which course a row belongs to.  The exception is the {{PLATFORM}} chat: conversations with the Front Desk and the guides there go into one database shared by everyone who uses it.
 
-The agents you build live there too.  When you upload a document — to an agent, or into a chat — three things are kept: the original file, in the course's file storage; a record of it tied to you, in the database; and, for documents an agent searches, the text broken up and indexed so it can be searched later.  **Deleting an agent does not delete its files.**  They stay until the file itself is deleted.
+The agents you build live in your course's database too.  When you upload a document — to an agent, or into a chat — the platform keeps the original file in the course's file storage and a record of it, tied to you, in the database.  For documents an agent searches, it also breaks the text up and indexes it so it can be searched later.  **Deleting an agent does not delete its files.**  They stay until the file itself is deleted.
 
 ## The ledger, which is the one that surprises people
 
 Every request you make writes a usage record: which model you used, how many tokens it took, what it cost, and when.  Those records are keyed to **your email address**.
 
-Worth being direct about what that adds up to.  The ledger does not contain what you *said* — no prompts, no responses, no content.  It does contain a detailed picture of your behavior: which models you prefer, how much you lean on them, at what hours, across the whole term.  For a lot of people that is a more personal record than they expect a billing system to be.
+The ledger does not contain what you *said* — no prompts, no responses, no content.  It does contain a detailed picture of your behavior: which models you prefer, how much you lean on them, at what hours, across the whole term.  For a lot of people that is a more personal record than they expect a billing system to keep.
 
-The email is deliberate rather than incidental.  Attribution has to land on a real person and survive a roster change, and an opaque internal ID does neither.  The reasoning and what it cost are in [Why the chatbot never asks who you are](../how-we-built-it/identity-is-not-an-argument.md).
+The email was a choice.  Attribution has to point at a real person and survive a roster change, and an opaque internal ID does neither.  The reasoning, and what it cost, are in [Why the chatbot never asks who you are](../how-we-built-it/identity-is-not-an-argument.md).
 
-You can see your own usage by asking the Usage Guide at the front door — it will only ever answer for you.  Your instructor and TAs see a narrower slice of the same ledger for their course: each student's request count, token count and when they were last active, listed by email.  Counts, never content.
+To see your own usage, ask the **Usage Guide** in the {{PLATFORM}} chat.  It only ever answers for you.  Your instructor and TAs see a narrower slice of the same ledger for their course: each student's request count, token count and when they were last active, listed by email.  Counts, never content.
 
 ## What we do not store
 
 - **Conversation content is not in the ledger.**  The two are separate systems and only one of them holds what you wrote.
-- **This platform does not use your conversations to fine-tune its models.** If
-  a deployment uses a hosted model, that provider's retention and training
-  terms are a separate promise the operator should publish.
+- **This platform does not use your conversations to fine-tune its models.**  If a deployment uses a hosted model, that provider's retention and training terms are a separate promise the operator should publish.
 - **No keystroke, screen, or attention telemetry.**  There is no record of how long you paused before sending, what else was on your screen, or whether you were reading.
-- **Content can leave the institution through a hosted model or an agent
-  action.** Both routes are configuration choices your instructor or operator
-  should be able to name. See [Who can see it](who-can-see-it.md#paths-that-can-leave-the-building).
+- **Content can leave the institution through a hosted model or an agent action.**  Both routes are configuration choices your instructor or operator should be able to name.  See [Who can see it](who-can-see-it.md#paths-that-can-leave-the-building).
 
 ## For anyone building something like this
 
-This page is a **data inventory**, and it is the first artifact of every data protection regime — you cannot classify what you have not enumerated, and you cannot answer "what happens to my data" without a list like this one.
+The table above is a **data inventory**, the first artifact of every data protection regime.  You cannot classify what you have not enumerated, and you cannot answer "what happens to my data" without a list like this one.
 
-The useful accident worth stealing: this inventory did not start as a privacy document.  It started as a list of what needs backing up.  Working out what you would lose in a disaster turns out to produce the same list as working out what you are holding about people, and most teams write the first one long before anybody asks for the second.
+This one did not start as a privacy document.  It started as a list of what needs backing up.  Working out what you would lose in a disaster produces the same list as working out what you are holding about people, and most teams write the first one long before anybody asks for the second.
 
 More on that in [How do you protect data you can't delete?](../how-we-built-it/protecting-data-you-cant-delete.md)

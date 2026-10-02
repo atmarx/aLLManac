@@ -169,9 +169,26 @@ The `faculty-duty` tag is important.  It is how a professor pulls everything the
 
 Match the surrounding docs: em dashes, double spaces after periods, concrete opening rather than a thesis statement.  Technical terms are fine when they are the right word; jargon used as a gate is not.
 
-Two habits to avoid, because they read as filler:
+Early readers' main complaint about these pages was that they sound machine-written.  The tells are habits, and most of them were ours.  Counted across `apex/` on 2026-10-02, before the first cleanup:
 
-- The "not X, but Y" reversal as a rhetorical move.  State the thing.
+| Tell | Count | Instead |
+|---|---|---|
+| A reason bolted on — "X, because Y", "which is why", "that is why" | 161 | Keep a reason the reader needs, as its own sentence.  Cut the rest. |
+| Defining by contrast — "rather than", a sentence ending ", not X.", "not a X — a Y" | 168 | State the thing.  Keep a contrast only when readers really do confuse the two. |
+| Vouching words — actually, genuinely, deliberately, on purpose, plainly, quietly | 144 | Delete them.  The sentence either holds up without them or needs a fact. |
+| Throat-clearing — "worth knowing", "worth being clear", "the short version" | 84 | Start with the thing that was worth knowing. |
+| Physical metaphors for software — doors, carries, reaches, holds, lands, posture | 216 | Say what the software does.  Name places by what the reader sees on screen. |
+| Countdown openers — "Two things happen:", "One more:" | 29 | Write the two things. |
+| Bold opening sentences | 168 paragraphs | Bold the one thing a skimmer must not miss — about one per section. |
+| Aphorisms — "a backup nobody has restored from is a rumor" | — | One per page at most.  It should still say something specific. |
+| The page describing itself — "this page", "an earlier draft of this page" | — | Talk about the subject, not about the page. |
+
+**Banned outright** — `just docs-corpus` fails on these in `apex/`, the same way it fails on a hard-coded platform name: *load-bearing*, *honest*/*honestly* (announcing candor makes readers doubt it), *door*/*doors*, *worth knowing*/*worth noting*/*worth saying*/*worth being clear*, *the short version*.
+
+**Naming the two places.**  Readers see two kinds of chat, and each is titled on screen: the platform's own (titled {{PLATFORM}}, where the guides live) and a course's (titled with the course name).  Write "the {{PLATFORM}} chat" and "your course's chat".  Better still, name who to ask — "ask the **Coder Guide** for your key" says where and who in one go.
+
+Also avoid:
+
 - Ending a section by restating what the section just said.
 
 Land sections on something concrete — an example, a number, a consequence.

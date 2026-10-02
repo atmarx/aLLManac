@@ -27,9 +27,9 @@ One step of the loop looks like this:
 3. The harness runs it and appends the result.
 4. Back to 1.
 
-Step 1 is the conversation-is-the-context rule from [Understanding your usage](../understanding-your-usage/context-is-the-conversation.md), running on its own with nobody pressing enter.  A task that takes thirty steps sends the growing transcript thirty times.  A single file read that dumps two thousand lines into the context rides along on every step after it.
+Step 1 is the conversation-is-the-context rule from [Understanding your usage](../understanding-your-usage/context-is-the-conversation.md), running on its own with nobody pressing enter.  A task that takes thirty steps sends the growing transcript thirty times.  A single file read that dumps two thousand lines into the context is re-sent on every step after it.
 
-Two things follow:
+For you, that means:
 
 - **A harness's instructions and tool list cost you on every step before you have said anything.**  For opencode that is roughly eight thousand tokens of its own, which is why it needs a model served with **at least 16k of context** — anything smaller and it spends its whole window on itself.
 - **"In" tokens dwarf "out" tokens.**  Your usage will show a harness reading enormously more than it writes.  That is the loop, not a bug.

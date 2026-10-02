@@ -14,15 +14,15 @@ tags: [accountability, source-verification, academic-integrity, critical-evaluat
 
 **You are fully responsible for what you submit.  A model cannot accept blame; only a person can.**
 
-That is the whole policy, and everything below is just what it looks like in practice.  Whatever helped you produce a piece of work — a language model, a search engine, a colleague, a tutor — the claims in it are yours the moment you put your name on it.  "The AI said so" is not a defense in a course, and it will not be one in a lab, a courtroom, a clinic, or a newsroom.
+That is the whole policy.  Everything below is what it looks like in practice.  Whatever helped you produce a piece of work — a language model, a search engine, a colleague, a tutor — the claims in it are yours the moment you put your name on it.  "The AI said so" is not a defense in a course, and it will not be one in a lab, a courtroom, a clinic, or a newsroom.
 
-Worth stating the honest context alongside it: faculty and staff use these tools daily, to write and to automate.  Pretending students should not is not a standard, it is a fiction, and it teaches them to hide their process rather than own it.  The workable expectation is the one professionals are already held to — use what you like, and answer for the result.
+Faculty and staff use these tools daily, to write and to automate.  Pretending students should not is a fiction, and it teaches them to hide their process.  The workable expectation is the one professionals are already held to — use what you like, and answer for the result.
 
 ## Why verification is the practice that follows
 
 If you are accountable for every claim you make, then checking your claims is not a hoop.  It is the work.
 
-Verification also does something detection cannot: it evaluates **the work** rather than guessing at **the author**.
+Verification also does something detection cannot: it evaluates **the work** and makes no guess about **the author**.
 
 - It requires no assumption about how the text was produced.
 - It cannot be biased against a student's writing style, first language, or sentence rhythm.
@@ -34,19 +34,19 @@ Verification also does something detection cannot: it evaluates **the work** rat
 
 ## How often this bites
 
-A data point rather than the argument — the principle holds whether the numbers are large or small.  They happen to be large.
+The argument doesn't depend on these numbers — the principle stands whether they are large or small.  They happen to be large.
 
 - In one study of LLM-generated mental health literature reviews, **19.9% of all citations were entirely fabricated.**  Across models and elicitation methods, published fabrication rates range from roughly **18% to 95%**.
 - Comparative work on systematic reviews found hallucination rates around **28.6% for GPT-4**, **39.6% for GPT-3.5**, and **91.4% for Bard**.
-- Among citations that pointed at **real** publications, **45.4% carried bibliographic errors** — with the DOI the single least reliable field.
+- Among citations that pointed at **real** publications, **45.4% contained bibliographic errors** — with the DOI the single least reliable field.
 
-Read that last figure again, because it drives the technique below: **most bad citations are not inventions.** They are real papers wearing wrong metadata, or real papers that do not support the claim attached to them.  Checking only for existence catches the smaller half.
+Read that last figure again.  It drives the technique below: **most bad citations are not inventions.**  They are real papers with the wrong metadata, or real papers that do not support the claim attached to them.  Checking only for existence catches the smaller half.
 
 ## This is not a student problem
 
 After NeurIPS 2025, an audit of accepted papers reported **53 with fabricated citations that had passed peer review.**  (The audit was run by a detector vendor, so weigh the source — but the papers are checkable and the finding was widely corroborated.)
 
-Worth saying to a class out loud.  The failure being asked of students is one that professional researchers and a top venue's review process missed at scale.  It reframes verification as a discipline everyone now needs rather than a hoop undergraduates jump through.
+Say this to a class out loud.  The failure being asked of students is one that professional researchers and a top venue's review process missed at scale.  Verification becomes a discipline everyone now needs, researchers included.
 
 ## Three failure modes, in order of how fast they are to catch
 
@@ -58,7 +58,7 @@ Worth saying to a class out loud.  The failure being asked of students is one th
 
 *Check:* resolve the DOI and confirm the title that comes back is the title cited.  This is the highest-yield check available and it takes seconds.  A correctly formatted DOI is not a working DOI, and models are markedly worse at this field than any other.
 
-**3. The publication exists, is cited correctly, and does not say that.**  The hard one, the most common in practice, and the only one that requires actually reading.
+**3. The publication exists, is cited correctly, and does not say that.**  The hard one, the most common in practice, and the only one that requires reading.
 
 *Check:* find the specific claim in the source.  Not the abstract — abstracts routinely overstate relative to the paper's own results.  Ask whether the sample, scope, and conditions match what the citing text implies.
 
@@ -68,17 +68,17 @@ Mode three is also where the interesting human failures live: the telephone-game
 
 Verification is a skill, which means it can be assigned, practiced, and graded.
 
-- **Grade the citations as their own artifact.**  Ask for a source list where each entry carries a resolving DOI or link and one sentence on what that source specifically supports.  Wrong sources become visible without anyone being accused of anything.
+- **Grade the citations as their own artifact.**  Ask for a source list where each entry has a resolving DOI or link and one sentence on what that source specifically supports.  Wrong sources become visible without anyone being accused of anything.
 - **Assign a verification exercise.**  Hand out a short passage with five citations, two of them broken in different ways, and have students find them.  This teaches faster than any warning about hallucination.
-- **Ask for the quotation, not just the reference.**  Requiring the actual sentence that supports a claim collapses failure mode three almost entirely, and it improves human writing regardless of AI.
-- **Spot-check rather than exhaust.**  Verify two or three citations per submission, chosen by you and not announced in advance.  The deterrent comes from the checking being real, not from it being total.
+- **Ask for the quotation as well as the reference.**  Requiring the actual sentence that supports a claim collapses failure mode three almost entirely, and it improves human writing regardless of AI.
+- **Spot-check.**  Verify two or three citations per submission, chosen by you and not announced in advance.  The deterrent is that the checking is real; it doesn't need to be total.
 - **Let them use AI, and hold them to the citations.**  This is the clean version of a permissive policy: use whatever you like, and every claim you make is yours to support.
 
 ## What it costs
 
 More time than running a detector, and less time than an integrity hearing.
 
-Be honest with yourself about scope.  Full verification of every citation in every submission is not realistic in a large course, and pretending otherwise produces a policy nobody follows.  Spot-checking that is genuinely unpredictable does most of the work.
+Be realistic about scope.  Full verification of every citation in every submission is not realistic in a large course, and pretending otherwise produces a policy nobody follows.  Unpredictable spot-checking does most of the work.
 
 For the assignments where it matters most — capstones, theses, anything that will be cited by someone else — full verification earns its cost.
 
@@ -99,7 +99,7 @@ For the assignments where it matters most — capstones, theses, anything that w
 
 ## Why this transfers
 
-The reason to teach this is not that citations are sacred.  It is that "someone is answerable for this output" is a habit, and habits formed under low stakes are the ones people keep when the stakes rise.
+Citations are not sacred.  The reason to teach this is that "someone is answerable for this output" is a habit, and habits formed under low stakes are the ones people keep when the stakes rise.
 
 Automated systems already make consequential decisions about people, and the accountability question there is considerably less settled than it is in scholarship.  Facial recognition misidentification has produced documented wrongful arrests — people held on the strength of a machine's output that nobody was required to verify.  The asymmetry is hard to look at directly: we ask a sophomore to confirm that a cited paper says what they claim it says, while systems that can take someone's liberty have faced no comparable obligation.
 

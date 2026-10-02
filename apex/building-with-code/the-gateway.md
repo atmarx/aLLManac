@@ -60,10 +60,10 @@ This is the one to remember.
 | **What stops spending** | The course's budget | Your key's own fuse, inside the course's budget |
 | **Who is recorded** | You, by your sign-in | You, by your key |
 
-So a rule you learned in the chat window — "long conversations get trimmed, so there's a ceiling" — does not carry over.  Through a key, **your code decides how much context it sends**, and the gateway forwards all of it.
+So a rule you learned in the chat window — "long conversations get trimmed, so there's a ceiling" — does not apply here.  Through a key, **your code decides how much context it sends**, and the gateway forwards all of it.
 
-What happens when you send more than the model's server will take depends on the server.  Some refuse with an error, which is the good case.  **Some quietly drop the front of the prompt and answer anyway** — and the front is where your instructions are.  A script that works on short inputs and goes strange on long ones is showing you this, not a worse model.  Keep your requests inside the context length the model is actually served with; ask your instructor if nobody has told you the number.
+What happens when you send more than the model's server will take depends on the server.  Some refuse with an error, which is the good case.  **Some drop the front of the prompt and answer anyway, with no error** — and the front is where your instructions are.  A script that works on short inputs and goes strange on long ones is usually showing you this; the model is fine.  Keep your requests inside the context length the model is served with; ask your instructor if nobody has told you the number.
 
 ## Everything is attributed
 
-Every request through your key is recorded against you, in your course — tokens in, tokens out, which model, when.  Out of the box the gateway's ledger keeps those counts and not the text of what you sent; that is a setting an operator controls, not a law of nature, and [your data](../your-data/index.md) is where a deployment says what it keeps.  You can see your own numbers any time by asking the chat for your usage.
+Every request through your key is recorded against you, in your course — tokens in, tokens out, which model, when.  Out of the box the gateway's ledger keeps those counts and not the text of what you sent; that is a setting an operator controls, not a law of nature, and [your data](../your-data/index.md) is where a deployment says what it keeps.  You can see your own numbers any time by asking the **Usage Guide** in the {{PLATFORM}} chat for your usage.

@@ -15,9 +15,9 @@ tethered_to:
 
 # Building with code
 
-The chat window is one way in.  Everything else — a Python script, a notebook, a coding agent running in your terminal — comes in through the same door the chat does: the **gateway**, one address that every model on the platform sits behind.  The chat window simply knocks for you.  Code has to knock for itself, and that is what the key is for.
+The chat window is one way in.  Everything else — a Python script, a notebook, a coding agent running in your terminal — goes through the same place the chat does: the **gateway**, one address that every model on the platform sits behind.  The chat window identifies you to it automatically.  Code has to identify itself, and that is what the key is for.
 
-Three things change the moment you leave the chat window, and they are worth knowing before you write a line:
+What changes the moment you leave the chat window:
 
 - **You need a key, and it is yours.**  One per person per course.  Everything it spends is recorded under your name, in that course.  → [Your API key](your-key.md)
 - **The limits are different.**  In chat, a long conversation gets trimmed at the course's context window.  Through a key, nothing trims your requests at the gateway — what stops you is the budget on the key.  Anyone who learns the chat rule and assumes it applies to code will predict a limit that does not exist.  → [The gateway](the-gateway.md)

@@ -1,6 +1,6 @@
 ---
 title: Asking about your data
-description: What FERPA actually gives you, what it does not, and how to ask this platform for what it can currently provide.
+description: What FERPA gives you, what it does not, and how to ask this platform for what it can currently provide.
 audience: student
 also_reaches: [faculty]
 status: draft
@@ -14,57 +14,55 @@ tethered_to:
 
 # Asking about your data
 
-This page describes a law in general terms and describes what this platform can currently do.  It is not advice about your particular situation, and nothing here says the platform is compliant with anything — those are determinations for your institution and its counsel, not for a documentation page.
+What follows describes a law in general terms and what this platform can currently do.  It is not advice about your particular situation, and nothing here says the platform is compliant with anything — those are determinations for your institution and its counsel, not for a help site.
 
-With that said, most of what people want to know is not complicated.
+Most of what people want to know is not complicated.
 
 ## What FERPA gives you
-
-Four things, in plain terms.
 
 - **You can inspect and review your education records.**
 - **You can ask to have a record amended** if you believe it is inaccurate or misleading.
 - **You must generally consent before the school discloses personally identifiable information** from those records — with a list of exceptions, one of which covers school officials with a legitimate educational interest.
 - **You can file a complaint** with the U.S. Department of Education if you believe your rights have been violated.
 
-Now the part that carries this page, because it is the one nearly everybody has backwards:
+What nearly everybody has backwards:
 
 > **There is no right to deletion in FERPA.**
 
 You can look, and you can argue that something is wrong and ask for it to be corrected.  There is no provision that makes the institution erase your records because you would prefer they were gone.
 
-That instinct is not foolish — it is trained.  GDPR has a right to erasure, and several state consumer privacy laws have something like one, and those regimes are genuinely different: different triggers, different obligations, different people covered.  **Knowing which regime grants which right is the actual skill**, and it is worth more than memorising any single one of them.  A right you assume you have is a right you will not ask for correctly.
+The instinct to expect one is learned, and reasonable.  GDPR has a right to erasure, and several state consumer privacy laws have something like one.  Those regimes are different: different triggers, different obligations, different people covered.  Knowing which regime grants which right is the useful skill, more than memorising any single one of them.  A right you assume you have is a right you will not ask for correctly.
 
-Worth adding immediately, because "FERPA does not require it" is not "nobody requires it": state student-privacy statutes frequently *do* address retention and deletion, and there are well over a hundred of them.  Which ones reach a given deployment is a question for the institution running it.
+"FERPA does not require it" is not "nobody requires it," though.  State student-privacy statutes frequently *do* address retention and deletion, and there are well over a hundred of them.  Which ones apply to a given deployment is a question for the institution running it.
 
 ## Are chat conversations an education record?
 
 Records that are directly related to a student and maintained by the institution are education records.  Course conversations tied to your identity look very much like that.
 
 !!! note "Under review"
-    Whether these conversations are formally education records is a determination for university counsel, and it has not been made.  The platform's posture in the meantime is to treat them as though they are.
+    Whether these conversations are formally education records is a determination for university counsel, and it has not been made.  In the meantime, the platform treats them as though they are.
 
-That is a posture, not a legal conclusion, and it is the conservative direction on purpose.  Treating them as records and later learning they are not costs us some care we did not owe.  Guessing the other way and being wrong costs somebody else something they cannot get back.
+That is a working assumption, not a legal conclusion, and it errs in the conservative direction by design.  Treating them as records and later learning they are not costs us some care we did not owe.  Guessing the other way and being wrong costs somebody else something they cannot get back.
 
 ## What you can do today
 
-**See your own usage.**  Ask the Usage Guide at the front door about your own activity and it will tell you which models you used, how many tokens, and when.  It reads the ledger by your email address, so it spans every course you are in.
+**See your own usage.**  Ask the **Usage Guide** in the {{PLATFORM}} chat about your own activity and it will tell you which models you used, how many tokens, and when.  It reads the ledger by your email address, so it covers every course you are in.
 
 **See your own conversations.**  While a course is running — and for 14 days after it closes — they are in your account, in the course's chat.  Nobody has to send them to you.
 
-**Take a copy of your own work.**  Ask the Student Guide at the front door to export your data, naming the course.  You get a zip of every conversation you had in that course, both sides, and every agent you own, behind a link that works for 24 hours — and it works on a course that has closed or been archived, too.  Files you uploaded are listed in it rather than included, and conversations with the guides at the front door are not part of it.
+**Take a copy of your own work.**  Ask the **Student Guide** in the {{PLATFORM}} chat to export your data, naming the course.  You get a zip of every conversation you had in that course, both sides, and every agent you own, behind a link that works for 24 hours.  It works on a course that has closed or been archived, too.  Files you uploaded are listed in it but not included, and conversations with the guides in the {{PLATFORM}} chat are not part of it.
 
 **Ask your instructor** what their course's own practice is.  There is no retention setting for them to change — retention is the institution's policy, and it has not set one — but they may have said something in the syllabus about what they keep and why.
 
 **For a formal records request, go to your university's Registrar's Office** — the campus office that handles student records.  (This platform's course service keeps course rosters, but it is not a records office.  You want the office.)  The formal FERPA process belongs to the institution and runs on paper, not through this software.
 
 !!! warning "Not built yet"
-    The export above is your conversations and agents.  It is not everything the platform holds about you — not your usage records, your identity record, the history of keys issued to you, or your chats with the guides at the front door — and there is no per-student deletion.  A request for those is currently handled by a person, by hand.  [How long we keep it](how-long-we-keep-it.md) is the honest account of why, and what would have to change.
+    The export above is your conversations and agents.  It is not everything the platform holds about you — not your usage records, your identity record, the history of keys issued to you, or your chats with the guides in the {{PLATFORM}} chat — and there is no per-student deletion.  A request for those is currently handled by a person, by hand.  [How long we keep it](how-long-we-keep-it.md) explains why, and what would have to change.
 
 ## If you go on to build systems like this
 
-The mistake to avoid is the one this page opened with, and it is easier to make from the builder's chair than the student's: **assuming that one privacy regime's rights apply to another regime's data.**
+The mistake to avoid is the one at the top of this section on FERPA, and it is easier to make from the builder's chair than the student's: **assuming that one privacy regime's rights apply to another regime's data.**
 
-It produces two opposite failures and both are expensive.  You build an erasure feature nobody required, in a system where erasure is genuinely hard, and it becomes the thing you cannot honestly promise about your backups.  Or you skip one that was required, because the regime you had in mind did not ask for it.
+It produces two opposite failures, and both are expensive.  You build an erasure feature nobody required, in a system where erasure is hard, and it becomes the thing you cannot truthfully promise about your backups.  Or you skip one that was required, because the regime you had in mind did not ask for it.
 
-The engineering version of this problem — what it actually takes to delete something from a system that keeps copies of itself — is [How do you protect data you can't delete?](../how-we-built-it/protecting-data-you-cant-delete.md).
+The engineering version of this problem — what it takes to delete something from a system that keeps copies of itself — is [How do you protect data you can't delete?](../how-we-built-it/protecting-data-you-cant-delete.md).

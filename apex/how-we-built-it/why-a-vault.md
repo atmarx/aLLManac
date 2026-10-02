@@ -1,6 +1,6 @@
 ---
 title: Why is there a vault?
-description: Service credentials still ride in env files.  The vault exists for the credentials we mint — a key per student, per course, that has to be readable again on request, revocable on purpose, and accounted for after the student has gone.
+description: Service credentials still ride in env files.  The vault exists for the credentials we mint — a key per student, per course, that has to be readable again on request, revocable at any time, and accounted for after the student has gone.
 audience: builder
 also_reaches: [student]
 status: draft
@@ -32,7 +32,7 @@ The `.env` file works.  It has worked on every service here since the first comm
 
 Keep everything in environment files.
 
-That deserves a fair hearing, because for most deployments it is the right answer.  Every runtime reads environment variables.  They keep secrets out of the image and out of git.  The file is plain text an operator can read, back up, and diff.  For a single operator running a handful of services whose credentials change once a year, a `.env` with tight permissions is adequate.  A vault in that setting is ceremony.
+That deserves a fair hearing.  For most deployments it is the right answer.  Every runtime reads environment variables.  They keep secrets out of the image and out of git.  The file is plain text an operator can read, back up, and diff.  For a single operator running a handful of services whose credentials change once a year, a `.env` with tight permissions is adequate.  A vault in that setting is ceremony.
 
 If you have shipped things with `.env` files and they were fine, they probably were.  Everything below is about one specific way this platform stopped being that setting.
 
@@ -47,7 +47,7 @@ That last part is what forced the issue.  **A student has to be able to ask for 
 - **It has no receipts.**  Anything that can read the file can read every key in it, and nothing records that it did.
 - **It is one secret, shared.**  A file is readable whole or not at all.  "This tool may read the caller's key and nobody else's" is not a permission a file can express.
 
-There's a subtler failure too, and we learned it the hard way.  A key exists in two places — the gateway, where it spends, and wherever it can be read back.  A key that is live at the gateway but stored nowhere is the worst kind of orphan: it spends the course's budget and **nobody can find it to revoke it on purpose.**  An early helper recipe minted keys straight at the gateway, and every key it ever made was born that way.  The design wall that came out of it is blunt — *mint and escrow are one transaction* (`docs/design-walls.md`) — and there is no longer any path that mints a key without storing it.
+There's a subtler failure too, and we learned it the hard way.  A key exists in two places — the gateway, where it spends, and wherever it can be read back.  A key that is live at the gateway but stored nowhere is the worst kind of orphan: it spends the course's budget and **nobody can find it to revoke it.**  An early helper recipe minted keys straight at the gateway, and every key it ever made was born that way.  The design wall that came out of it is blunt — *mint and escrow are one transaction* (`docs/design-walls.md`) — and there is no longer any path that mints a key without storing it.
 
 ## What we did, and the bill
 
@@ -64,44 +64,44 @@ The storage is versioned (OpenBao's key-value engine, version 2), and that is mo
 
 - **Rotation is a new version, not an overwrite.**  `rotate_my_key` mints the replacement *first*, writes it with a note saying which old key still owes a revoke, kills the old key at the gateway, then writes again with the debt cleared.  An interrupted rotation leaves a visible debt instead of two silently live keys.
 - **Un-enrolling is a soft delete.**  The key is revoked at the gateway, and the record is marked deleted — but its history stays.  Custody survives the student leaving, which is what lets someone answer "who held which key, and when" after the term is over.
-- **Ending a course** happens in two steps.  Closing it blocks every key at the gateway at once, while students still have a window to export their work.  Archiving it at the end of that window revokes each key, soft-deletes the student records, and marks the course's own record revoked rather than removing it.
+- **Ending a course** happens in two steps.  Closing it blocks every key at the gateway at once, while students still have a window to export their work.  Archiving it at the end of that window revokes each key, soft-deletes the student records, and marks the course's own record revoked instead of removing it.
 
 The registrar logs in with its own role, gets a token that lives for an hour, and can touch `almanac/courses/*` and nothing else.  The root token is printed once, at setup, for a password manager — it's never written to disk on the box.
 
-**The bill**, stated plainly:
+The bill:
 
 - **Another stateful service** — to run, to back up, and to understand.  An operator now needs a second security model in their head: tokens, policies, seals.
 - **It can be the reason things are down.**  If it isn't answering, nobody can enroll, fetch a key, or rotate one.
-- **It has its own sharp edges, and we hit them.**  OpenBao's storage has to live in exactly one directory the image already owns.  Point it anywhere else and the data lands owned by root, the database can't be opened, and the container crash-loops on first boot.  Then the config: a single file bind-mounted into a container pins the file's inode, so when `git` replaces that file by rename, the container goes on reading the old one forever.  Both are walls now, and both were paid for.
-- **Unsealing is an operational event.**  This is the one worth telling as a story.
+- **It has its own sharp edges, and we hit them.**  OpenBao's storage has to live in exactly one directory the image already owns.  Point it anywhere else and the data ends up owned by root, the database can't be opened, and the container crash-loops on first boot.  Then the config: a single file bind-mounted into a container pins the file's inode, so when `git` replaces that file by rename, the container goes on reading the old one forever.  Both are walls now, and both were paid for.
+- **Unsealing is an operational event.**  This one is a story.
 
 Every time OpenBao restarts, it comes back **sealed** — up, answering, and unable to read anything until someone hands it the unseal key.  That's by design.  For the first few weeks, only a deploy unsealed it.
 
-On 2026-09-23, the docker host rebooted on its own for the first time.  Every container came back.  Chat answered, because the course chat's key was already sitting in its rendered config.  The health check was green, because "sealed" is a normal boot state and the check had been written to say so.  And every path that needed the escrow was shut: enrolling a student, fetching a key, rotating one, approving a new course.
+On 2026-09-23, the docker host rebooted on its own for the first time.  Every container came back.  Chat answered: the course chat's key was already sitting in its rendered config.  The health check was green, because "sealed" is a normal boot state and the check had been written to say so.  And every path that needed the escrow was shut: enrolling a student, fetching a key, rotating one, approving a new course.
 
-Nothing looked down.  **A vault that fails closed fails quietly for everything that doesn't need a new secret** — and on any given minute, most things don't.  It was found by someone checking, not by anything alarming.
+Nothing looked down.  **A vault that fails closed fails silently for everything that doesn't need a new secret** — and on any given minute, most things don't.  It was found by someone checking, not by anything alarming.
 
-The fix is a boot-time unit that unseals from `.env` as soon as Docker is up, and the health check now prints a warning line when the escrow is sealed instead of passing it silently.  Five days later the same unit grew a second line, because a reboot turned out to break sign-in just as quietly — a separate story, the same lesson.  **Reboots are where "healthy" and "working" part ways.**
+The fix is a boot-time unit that unseals from `.env` as soon as Docker is up, and the health check now prints a warning line when the escrow is sealed instead of passing it silently.  Five days later the same unit grew a second line, because a reboot turned out to break sign-in with no more warning — a separate story, the same lesson.  Reboots are where "healthy" and "working" part ways.
 
 ## What is still wrong with it
 
 **The unseal key is in `.env`, on the same disk.**  The boot unit reads it from there, which is what lets the box reboot without a person.  So the first question anyone in IT asks is fair: then what does the seal protect?
 
-The honest answer is narrow.  A copy of the vault's storage that leaves the box *without* `.env` — a stolen backup, a detached disk, a shared snapshot — is ciphertext.  Someone who owns the running box gets everything.  This is not a hardware security module, and the design spec (`docs/registrar-spec.md`) says so in a paragraph headed *Honesty box*.
+The answer is narrow.  A copy of the vault's storage that leaves the box *without* `.env` — a stolen backup, a detached disk, a shared snapshot — is ciphertext.  Someone who owns the running box gets everything.  This is not a hardware security module, and the design spec (`docs/registrar-spec.md`) says so in its list of known limits.
 
-That protection only holds while `.env` and the vault's storage are backed up **apart**.  Checking it caught the backup design putting both in one tarball — which is to say, the stolen copy of both.  The design now writes two bundles to two separate repositories under two passwords, and neither password lives only on the box.  That correction is the whole argument in miniature: a control is only as good as the copy of it you forgot about.
+That protection only holds while `.env` and the vault's storage are backed up **apart**.  Checking it caught the backup design putting both in one tarball — which is to say, the stolen copy of both.  The design now writes two bundles to two separate repositories under two passwords, and neither password lives only on the box.  That correction is the argument in miniature: the seal protected the storage, and the backup would have handed over the key with it.
 
-Moving the key off the box is the upgrade path.  Its price is that every reboot waits for a person.  We chose "reboots without a human" over "a human holds the key," on purpose — it is a decision with a price, not a feature we haven't got to.
+Moving the key off the box is the upgrade path.  Its price is that every reboot waits for a person.  We chose "reboots without a human" over "a human holds the key."  That is a decision with a price, not a feature we haven't got to.
 
-**One credential does all of the registrar's work.**  The spec describes two planes inside the registrar: a chat-facing one that may read only the caller's own key, and a reconcile plane that mints.  In the code that separation is real, but it is a module boundary, not a vault policy — both planes use the same role, which can read every key in every course.  The design for a student-scoped policy, where the vault itself refuses to hand anyone else's key over, is written down and not built.
+**One credential does all of the registrar's work.**  The spec describes two planes inside the registrar: a chat-facing one that may read only the caller's own key, and a reconcile plane that mints.  In the code the separation exists as a module boundary.  The vault sees one role for both planes, and that role can read every key in every course.  The design for a student-scoped policy, where the vault itself refuses to hand anyone else's key over, is written down and not built.
 
-**The gateway's master key still lives in `.env`.**  Moving it into the escrow is a planned phase, not a shipped one.  So the most powerful secret on the box is the one the vault doesn't hold yet.
+**The gateway's master key still lives in `.env`.**  Moving it into the escrow is planned and not shipped.  So the most powerful secret on the box is the one the vault doesn't hold yet.
 
-**The receipts were never being written.**  The setup recipe asks OpenBao to turn on its audit log, and the design, the compose file and the break-glass tool all say reads are audited.  But the OpenBao version we pin refuses to enable an audit log through its API — it wants one declared in the config file — and the recipe discards that error and prints *"audit on"* anyway.  Both boxes we checked have an empty log directory.  This was found by checking a sentence on this page, which is becoming a habit.  Until the declaration lands in `openbao/config.hcl`, "custody is audit-logged" is a plan, and the only trail is the version history itself.
+**The receipts were never being written.**  The setup recipe asks OpenBao to turn on its audit log, and the design, the compose file and the break-glass tool all say reads are audited.  But the OpenBao version we pin refuses to enable an audit log through its API — it wants one declared in the config file — and the recipe discards that error and prints *"audit on"* anyway.  Both boxes we checked have an empty log directory.  This was found by checking a sentence on this page, which is becoming a habit.  Until the declaration is in `openbao/config.hcl`, "custody is audit-logged" is a plan, and the only trail is the version history itself.
 
 ## Try it yourself
 
-**If you're a student in a course here,** ask the Coder Guide at the front door for your key, then ask it to rotate your key, then ask for your key again.  The key is different, your remaining budget came along with it, and the old one now fails at the gateway.  Somewhere, a record of the old one still exists.  You just watched custody happen.
+**If you're a student in a course here,** ask the Coder Guide in the {{PLATFORM}} chat for your key, then ask it to rotate your key, then ask for your key again.  The key is different, your remaining budget came along with it, and the old one now fails at the gateway.  Somewhere, a record of the old one still exists.  You just watched custody happen.
 
 **If you want to see the mechanism,** run a throwaway OpenBao in dev mode — no setup, nothing kept:
 

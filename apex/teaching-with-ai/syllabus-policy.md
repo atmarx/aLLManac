@@ -15,9 +15,9 @@ tags: [syllabus-policy, accountability, academic-integrity, disclosure, assessme
 
 "AI is allowed" tells a student nothing about the assignment in front of them.
 
-Both fail the same way.  The right answer legitimately differs per assignment, because the capability being assessed differs per assignment.  A course-wide rule has to be either so strict it is fiction or so loose it is silent.
+Both fail the same way.  The right answer differs per assignment, and so does the capability being assessed.  A course-wide rule has to be either so strict it is fiction or so loose it is silent.
 
-So split it: **the syllabus carries the principle, and each assignment carries the rule.**
+So split it: **the syllabus states the principle, and each assignment states its rule.**
 
 ## The principle, which is one sentence
 
@@ -37,7 +37,7 @@ Five things, briefly:
 
 ## What belongs on the assignment
 
-A named permission level, on the assignment sheet itself rather than only in the syllabus.  Four levels cover nearly everything, and a small reusable set is far easier for students to follow than prose written fresh each time.
+A named permission level, printed on the assignment sheet itself.  Four levels cover nearly everything, and a small reusable set is far easier for students to follow than prose written fresh each time.
 
 | Level | Short form |
 |---|---|
@@ -88,11 +88,11 @@ One line at the end of a submission: **what tool, what for, what you changed.**
 
 Long reflective statements sound more rigorous and get written more carelessly.  Give students a template and one filled-in example, and you will get usable disclosure instead of a paragraph of throat-clearing.
 
-Say plainly that disclosure is not an admission of wrongdoing.  If students suspect it counts against them, honest students under-report and you have taught the wrong lesson to exactly the wrong people.
+Tell students that disclosure is not an admission of wrongdoing.  If they suspect it counts against them, the students most inclined to disclose under-report, and you have taught the wrong lesson to exactly the wrong people.
 
 ## What to say about verification
 
-Whatever the level, the standard for claims does not move.  Worth a line in the syllabus and a reminder on assignments where sources matter:
+Whatever the level, the standard for claims does not move.  Give it a line in the syllabus and a reminder on assignments where sources matter:
 
 > Any source you cite must exist and must say what you claim it says.  I check some of them.  This is not about AI — it is the standard for citing anything — but AI-assisted work fails it more often, so verify before you submit.
 
@@ -100,6 +100,6 @@ Whatever the level, the standard for claims does not move.  Worth a line in the 
 
 ## Aligning with your institution
 
-Your institution's academic integrity policy is the authority, and a course policy **narrows** it rather than overriding it.  Find yours before the term starts, and check two things specifically: whether it mandates detector use (if so, treat output as a flag for human review and document the review), and what the process is when you have a concern.
+Your institution's academic integrity policy is the authority, and a course policy can **narrow** it and never overrides it.  Find yours before the term starts, and check two things specifically: whether it mandates detector use (if so, treat output as a flag for human review and document the review), and what the process is when you have a concern.
 
 If your institution has adopted language you must reproduce, use it, and add the per-assignment levels underneath it.  The two layers do not conflict.

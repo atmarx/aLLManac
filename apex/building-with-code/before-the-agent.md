@@ -15,21 +15,21 @@ tethered_to:
 
 Something broke after the agent's third session, and the question was simple: what did that function say yesterday?  The answer existed in exactly one place, the terminal transcript of a session two days gone.  So the evening went to scrolling, searching, and asking a model to reconstruct its own earlier output from a log.  It got it mostly right, and nobody could say which parts weren't.
 
-With version control, that's `git log` and one command.  This page is about putting that in place first, because **version control, tests and a deployment pipeline matter more to working with an agent than any choice of model or harness.**  The research on [choosing a harness](choosing-a-harness.md) is about which pairing scores best on a benchmark, and those benchmarks mostly hand the agent a prepared repository and score its work with tests.  The repository and the tests are assumed.  In your own work they aren't there unless you put them there.
+With version control, that's `git log` and one command.  Put that in place first.  **Version control, tests and a deployment pipeline matter more to working with an agent than any choice of model or harness.**  The research on [choosing a harness](choosing-a-harness.md) is about which pairing scores best on a benchmark, and those benchmarks mostly hand the agent a prepared repository and score its work with tests.  The repository and the tests are assumed.  In your own work they aren't there unless you put them there.
 
 ## Why this comes first
 
 An agent changes a lot of things quickly, and it will be wrong some of the time.  What decides whether that's cheap or expensive is what's around it:
 
 - **Without version control**, you can't see exactly what it changed, and you can't undo it.  You're left reading logs and transcripts to reconstruct what the code used to say.
-- **Without tests**, the only way to know whether it worked is to check by hand, or to ask the agent to check, which means more steps, more file reads, and more tokens.  In a harness every one of those reads [rides along on every later step](harnesses.md#the-loop-and-why-it-spends).  A test suite answers in a few lines of pass and fail.
+- **Without tests**, the only way to know whether it worked is to check by hand, or to ask the agent to check, which means more steps, more file reads, and more tokens.  In a harness every one of those reads [is re-sent on every later step](harnesses.md#the-loop-and-why-it-spends).  A test suite answers in a few lines of pass and fail.
 - **Without a pipeline**, deploying is a sequence of steps someone remembers, and an agent asked to deploy will improvise that sequence differently each time.
 
 None of this is new to agents.  It's what software engineering learned to do about *people* changing code quickly and being wrong some of the time.  An agent just makes the cost of skipping it arrive faster.
 
 ## Scale it to the work
 
-None of this means homework needs a deployment pipeline.  The principle is the same at every size: **before an agent touches your work, have a way back and a way to check.**  How much machinery that takes depends on what you're building.
+Homework doesn't need a deployment pipeline.  The principle is the same at every size: **before an agent touches your work, have a way back and a way to check.**  How much machinery that takes depends on what you're building.
 
 | What you're working on | What to have first |
 |---|---|
@@ -37,11 +37,11 @@ None of this means homework needs a deployment pipeline.  The principle is the s
 | **A script or a small project** | Git, and a test for what you're about to change |
 | **Something other people use or run** | Git, tests, one command to deploy, and CI to run it |
 
-**In a notebook, the way back is a copy.**  Before you let an assistant or an agent rewrite cells, duplicate the notebook from the file browser.  Jupyter's own checkpoint is not a substitute: it holds one earlier version, and each save can replace it, so it's an undo for the last few minutes rather than a history.  Notebooks can live in git too, if your hub has a terminal.  Their diffs are noisy (a notebook is JSON, outputs included), so clear the outputs before you commit.
+In a notebook, the way back is a copy.  Before you let an assistant or an agent rewrite cells, duplicate the notebook from the file browser.  Jupyter's own checkpoint is not a substitute: it holds one earlier version, and each save can replace it, so it covers the last few minutes and keeps no history.  Notebooks can live in git too, if your hub has a terminal.  Their diffs are noisy (a notebook is JSON, outputs included), so clear the outputs before you commit.
 
-**In a notebook, the way to check is the cells that check you.**  If your course gives you test or autograder cells, those are your tests.  Run them yourself, and treat an agent's edit to one of them the way you'd treat an edit to a test anywhere else ([Supervising an agent](supervising-an-agent.md) has the story).
+In a notebook, the way to check is the cells that check you.  If your course gives you test or autograder cells, those are your tests.  Run them yourself, and treat an agent's edit to one of them the way you'd treat an edit to a test anywhere else ([Supervising an agent](supervising-an-agent.md) has the story).
 
-Most of what follows is for the second and third rows.  Once your work is more than one notebook, it's worth learning, and it's the first thing you'll be asked about on any team that ships software.
+Most of what follows is for the second and third rows.  Once your work is more than one notebook, learn it; it's the first thing you'll be asked about on any team that ships software.
 
 ## Version control: git, at the minimum that matters
 
@@ -70,13 +70,13 @@ git stash -u          # not sure — set it all aside; `git stash pop` brings it
 git revert <commit>   # undo a commit you already kept, as a new commit
 ```
 
-To throw a whole attempt away, set aside or commit what's on the branch first, then `git switch main` and `git branch -D agent/fix-date-check`.  Switching branches with uncommitted changes carries them along with you, which is the opposite of throwing them away.
+To throw a whole attempt away, set aside or commit what's on the branch first, then `git switch main` and `git branch -D agent/fix-date-check`.  Switching branches with uncommitted changes brings them along to the new branch — the opposite of throwing them away.
 
 Three habits make this work:
 
 - **Commit before every agent run.**  Then `git diff` shows the agent's work and nothing else, and the checkpoint is one command away.
 - **Small commits, with messages that say why.**  A month from now, `git log` is the only memory of why something changed that doesn't depend on anyone's transcript.
-- **Never commit your key.**  Put `.env` (or wherever your key lives) in `.gitignore` before the first commit.  A key in git history is leaked even after you delete the file, because the history keeps it.  If it happened, [rotate it](your-key.md#replacing-it).
+- **Never commit your key.**  Put `.env` (or wherever your key lives) in `.gitignore` before the first commit.  A key in git history stays leaked after you delete the file: the history keeps it.  If it happened, [rotate it](your-key.md#replacing-it).
 
 ## Tests: checks you don't have to redo by hand
 
@@ -92,7 +92,7 @@ A pipeline is the deployment written down as code, so it happens the same way ev
 
 Once deploying is one command, an agent doesn't improvise it, you don't spend tokens walking it through the steps, and **a rollback is a revert plus the same command.**  You don't reconstruct anything.
 
-This platform is built that way, which is part of why it's here as course material.  All of its deployment logic lives in one `justfile`.  Its CI pipeline is three lines: connect to the server, sync, run `just deploy`.  Every change, by a person or an agent, is a commit with a reason.  When a fix turns out to have its own bug, the next commit fixes the fix, and the history shows both.  The operators' version is in the repository's `docs/ci.md`.
+This platform is built that way, and that's part of why it's course material here.  All of its deployment logic lives in one `justfile`.  Its CI pipeline is three lines: connect to the server, sync, run `just deploy`.  Every change, by a person or an agent, is a commit with a reason.  When a fix turns out to have its own bug, the next commit fixes the fix, and the history shows both.  The operators' version is in the repository's `docs/ci.md`.
 
 ## The order
 

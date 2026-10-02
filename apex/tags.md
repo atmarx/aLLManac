@@ -11,7 +11,7 @@ owner: piper
 
 Pages here carry topic tags so you can pull a thread across the whole site — every page that touches retention, or access control, or what a long conversation costs.
 
-**A few worth knowing about:**
+**A few to start with:**
 
 - **`faculty-duty`** — if you teach a course on this platform, start here.  Everything you are responsible for, gathered from pages written for your students.
 - **`student-right`** — what you can ask for, and how to ask.

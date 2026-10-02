@@ -14,9 +14,9 @@ tags: [rendered-config, tenancy, secrets-management, isolation, accountability]
 
 The platform you are signed in to is also course material.
 
-There is a vault in this stack — a whole extra service whose only job is holding secrets — and it is there because of a specific afternoon that went badly, not because an architecture diagram called for one.  That afternoon is more useful to you than the diagram, and it is the kind of thing that almost never survives into documentation.  These pages are an attempt to keep it.
+There is a vault in this stack — a whole extra service whose only job is holding secrets.  No architecture diagram asked for it.  A specific afternoon that went badly did.  That afternoon is more useful to you than the diagram, and it is the kind of thing that almost never survives into documentation.  These pages try to keep it.
 
-Students here learn to use language models.  Students here also learn to build and run the systems that serve them, and that second group gets the primary sources rather than a sanitised retelling.
+Students here learn to use language models.  Students here also learn to build and run the systems that serve them, and that second group gets the primary sources, unsanitised.
 
 <!-- ORIGINAL BRIEF: The platform you are using is also the course material.  Students here
      learn to use language models; students here also learn to build and run
@@ -29,16 +29,16 @@ Students here learn to use language models.  Students here also learn to build a
 
 ## How to read these
 
-Every page is built on the same six beats, so you can skip to the one you came for.  (Pages still marked as scaffolds carry an older seventh, which is on its way out.)  Most working engineers want beat 5.
+Every page is built on the same six beats, so you can skip to the one you came for.  (Pages still marked as scaffolds have an older seventh, on its way out.)  Most working engineers want beat 5.
 
-1. **The question**, as someone would actually ask it
-2. **The obvious answer, taken seriously** — steelmanned, because it is usually a reasonable design
+1. **The question**, as someone would ask it
+2. **The obvious answer, taken seriously** — steelmanned; it is usually a reasonable design
 3. **What broke**
-4. **What we did, and the bill** — the costs stated plainly, not buried
+4. **What we did, and the bill** — the costs up front
 5. **What is still wrong with it**
 6. **Try it yourself**
 
-Beat 5 is maintained against the running system.  When we close an open edge, the page changes with it.  **If you find a beat 5 describing a problem we have clearly fixed, that is a bug and it is worth reporting.**
+Beat 5 is maintained against the running system.  When we close an open edge, the page changes with it.  **If you find a beat 5 describing a problem we have clearly fixed, that is a bug — please report it.**
 
 <!-- ORIGINAL BRIEF, and note beat 6 (other stacks) was CUT 2026-09-18 on
      xram's call: unless a deployment detail is germane to how this platform
@@ -64,7 +64,7 @@ Beat 5 is maintained against the running system.  When we close an open edge, th
 
 ## The decisions
 
-- [How do you keep the courses apart?](keeping-courses-apart.md) — tenancy by instance rather than by fence.
+- [How do you keep the courses apart?](keeping-courses-apart.md) — tenancy by instance instead of by fence.
 - [Why is there a vault?](why-a-vault.md) — secrets, escrow, and what changes when the credentials are ones you mint.
 - [Why the chatbot never asks who you are](identity-is-not-an-argument.md) — identity as context, never as a tool parameter.
 - [How do you protect data you cannot delete?](protecting-data-you-cant-delete.md) — classification, regimes, and the gap list.
@@ -87,9 +87,9 @@ Beat 5 is maintained against the running system.  When we close an open edge, th
 
 ## A note on the gaps
 
-These pages name what is broken and unfinished in a system that serves real courses, and they do it on purpose.
+These pages name what is broken and unfinished in a system that serves real courses.
 
-A case study with no open edges teaches that mature systems do not have any — which is close to the least useful thing an engineer can believe walking into their first job.  Every page in this section ends its case on a problem we have not solved.  That is the shape, not an accident of timing.
+A case study with no open edges teaches that mature systems do not have any — close to the least useful thing an engineer can believe walking into their first job.  So every page in this section ends its case on a problem we have not solved, by design.
 
 <!-- ORIGINAL BRIEF: These pages name what is broken and unfinished in a production system
      serving real courses.  That is deliberate.  A case study with no open
