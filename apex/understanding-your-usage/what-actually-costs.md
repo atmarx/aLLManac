@@ -21,7 +21,7 @@ The ranking assumes you have read [what context actually is](context-is-the-conv
 
 This is not the first item because it is tidy advice.  It is first because **it is worth more than everything else on this page combined**, by a factor that is genuinely hard to overstate.
 
-A conversation costs roughly the square of its length.  Forty turns in one thread costs about four times what the same forty turns cost split into two threads of twenty, and about sixteen times what they cost split into four threads of ten — for identical work, identical questions, identical answers.
+A conversation costs roughly the square of its length.  Forty turns in one thread costs about twice what the same forty turns cost split into two threads of twenty, and about four times what they cost split into four threads of ten — for identical work, identical questions, identical answers.
 
 The catch is that starting fresh feels wasteful.  You lose the setup, you have to re-explain, and the thread you were in still works fine.  So people don't, and the conversation that began as a question about a citation is still running four hours later having covered three unrelated topics, carrying all of it on every turn.
 

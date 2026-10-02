@@ -18,12 +18,11 @@ tethered_to:
 
 ## Getting it
 
-Open **your course's chat** — the course address, not the front desk.  It opens waiting for you to pick an agent, and the tool that hands out keys is not switched on yet, so two clicks come first:
+Open **your course's chat** — the course address, not the front desk — and ask for your key.  A new chat there starts on **Course chat**: the course's model with the key and usage tools already switched on, so there is nothing to set up first.
 
-1. In the model picker at the top, choose the course's own model — under **Almanac**, unless your campus has renamed it.
-2. In the message bar, open **MCP Servers** and tick **almanac-registrar**.
+One exception.  If the last chat you had was with an agent, or with a different model, a new chat remembers that choice instead.  Pick **Course chat** from the model picker at the top and ask again.
 
-Now ask for your key.  The assistant calls a tool named `my_key` and hands it back to you in the conversation.  Nobody emails it to you and nobody else can fetch it for you, because the tool answers the person who is signed in and nobody else.
+The assistant calls a tool named `my_key` and hands the key back to you in the conversation, along with the **gateway address** your code points at.  Nobody emails it to you and nobody else can fetch it for you, because the tool answers the person who is signed in and nobody else.
 
 If it says you are not on the roster yet, your instructor hasn't added you — the key is minted when you are enrolled, so there is nothing to fetch until then.  Teaching staff get theirs minted the first time they ask.
 
@@ -42,7 +41,7 @@ Copy it somewhere safe, then treat that conversation like it holds a password, b
 
 Leaked it, committed it, lost the laptop?  In your course's chat, ask to **rotate** your key.  The tool `rotate_my_key` mints a new key, hands it to you, and kills the old one at the gateway.  It takes seconds and needs nobody's permission.
 
-**Rotation is not a refill.**  Whatever was left on the old key's budget carries over to the new one — nothing more.  If the old key was exhausted, rotation will refuse rather than hand you a key that is dead on arrival, and it will say which budget is empty.  It will also refuse if it can't read the old key's meter at that moment, because guessing would mean guessing "full."  In both cases your current key is left exactly as it was.
+**Rotation is not a refill.**  The new key gets your course's per-key budget minus what you have already spent, and never more than the course has left — so in practice, roughly what the old key had.  If less than about a dollar would carry over, rotation refuses rather than hand you a key that is dead on arrival.  It does not say whether your own budget or the course's ran out; your instructor can tell.  It will also refuse if it can't read the old key's meter at that moment, because guessing would mean guessing "full."  In both cases your current key is left exactly as it was.
 
 ## Keeping it
 

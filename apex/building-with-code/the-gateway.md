@@ -19,7 +19,7 @@ Every model on the platform sits behind one address — the **gateway**.  Chat r
 
 It speaks the **OpenAI API**.  That is a format, not a company: nearly every AI library and tool can talk to it, which means anything that says "OpenAI-compatible" works here by changing two settings — the address and the key.
 
-Your instructor or the platform's front page will give you the gateway's address.  It looks like `https://gateway.<your platform's domain>`, and the API lives under `/v1`.
+The gateway's address comes with your key — [`my_key`](your-key.md) prints it in the same reply.  It usually looks like `https://gateway.<your platform's domain>`, and the API lives under `/v1`.
 
 ## Prove the chain works
 

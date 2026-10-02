@@ -55,9 +55,9 @@ Most of that research is about frontier models.  A model small enough to run on 
 
 And neither rescues a model that is simply too small: a 20-billion-parameter open model scored about 3% on Terminal-Bench in each of two different harnesses.
 
-## Three harnesses that work here
+## Three harnesses, one tested here
 
-All three speak to the gateway with your key; setup for each is on [coding harnesses](harnesses.md).  Facts checked against each project's own documentation on 2026-09-22 — these projects move fast, so check again.
+All three are built to speak an OpenAI-compatible API, so all three should reach the gateway with your key; setup for each is on [coding harnesses](harnesses.md).  **opencode is the one that has actually run against this platform** — it is the harness inside the platform's own workbench.  Codex and pi are documented from their own sources and have not been.  Facts checked against each project's own documentation on 2026-09-22 — these projects move fast, so check again.
 
 | | opencode | Codex CLI | pi |
 |---|---|---|---|
@@ -87,7 +87,7 @@ The benchmarks can't tell you about your task.  An afternoon can.
 1. Pick a small, real task in a project under git — fix a bug, add a test, rename something across files.  Commit first, so the working tree is clean.  **Write down both harnesses' versions** (`opencode --version` and `codex --version`; pi's `--help` lists its flag) and the model name.  A result without them can't be compared with anyone else's, including yours next month.
 2. Ask your course's chat for your usage, and note it.
 3. Run the task in harness A.  When it says it is done, run your tests yourself and read `git diff`.  Note whether it worked, how many steps it took, and your usage afterwards.
-4. `git stash` or `git checkout .` to put the tree back.
+4. `git stash -u` to put the tree back — the `-u` takes the new files the agent created too, which plain `git stash` and `git checkout .` leave behind.
 5. Same model, same wording, harness B.  Same notes.
 
 Compare four things: **did it work, what did it touch, how many tokens did it read, how many did it write.**  The third is usually the surprise — it is the harness's instructions and every file it opened, re-sent on every step.
@@ -100,9 +100,10 @@ Then try it once with a different model in the same harness.  You will have meas
 |---|---|---|
 | Codex CLI (`@openai/codex`) | 0.155.1 | 2026-09-18 |
 | opencode (`opencode-ai`) | 1.18.32 | 2026-09-21 |
+| opencode, the platform's workbench | 1.18.2 | — run here, end to end |
 | pi (`@earendil-works/pi-coding-agent`) | 0.87.0 | 2026-09-21 |
 
-Checked 2026-09-22 against each project's own documentation and source, not run against this platform's models.  The research results above used whatever versions each study ran; where a paper names its harness version, it is in the paper, not here.  **If your version is newer than this table, the facts in the comparison table may have moved** — the permission defaults and API requirements especially.
+Checked 2026-09-22 against each project's own documentation and source.  Only the workbench row has been run against this platform's models.  The research results above used whatever versions each study ran; where a paper names its harness version, it is in the paper, not here.  **If your version is newer than this table, the facts in the comparison table may have moved** — the permission defaults and API requirements especially.
 
 ## What we don't know yet
 

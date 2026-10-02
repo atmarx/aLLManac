@@ -22,7 +22,7 @@ The word is doing you no favours, so let us deal with it first.
 
 Because the model does not read words.
 
-Before any text reaches the model, it is chopped into pieces from a fixed list of a few tens of thousands of fragments.  Common words are usually one piece.  Longer or rarer words get broken into several.  Spaces and punctuation are in there too.  The list was built by looking at an enormous amount of text and finding which chunks repeat, which means it reflects ordinary writing and treats anything unusual as a series of small parts.
+Before any text reaches the model, it is chopped into pieces from a fixed list of tens of thousands to a few hundred thousand fragments, depending on the model.  Common words are usually one piece.  Longer or rarer words get broken into several.  Spaces and punctuation are in there too.  The list was built by looking at an enormous amount of text and finding which chunks repeat, which means it reflects ordinary writing and treats anything unusual as a series of small parts.
 
 The practical consequences are mildly entertaining:
 
@@ -39,7 +39,7 @@ Two, and they will carry you through everything else:
 
 > **1,000 tokens is about 750 words, or roughly a page and a half of ordinary prose.**
 
-> **A ten-page syllabus is somewhere around 5,000 tokens.**
+> **A ten-page syllabus is somewhere around 6,500 tokens.**
 
 That is enough precision for every decision you will actually make.  If you find yourself wanting a more exact figure, you are almost certainly optimising the wrong end of the problem — [what actually costs something](what-actually-costs.md) covers which end is which.
 
@@ -57,7 +57,7 @@ Confusing the two is what produces the tank picture: people notice the space lim
 
 ## Try it yourself
 
-Ask any guide for **your usage**.  You will get something like:
+Ask your course's chat, or the **Usage Guide** at the front door, for **your usage**.  You will get something like:
 
 ```
 Total: 412 requests · 1,840,220 tokens (1,790,118 in / 50,102 out)

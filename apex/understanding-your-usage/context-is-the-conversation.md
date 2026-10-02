@@ -1,6 +1,6 @@
 ---
 title: What context actually is
-description: Not a tank that fills up and not a memory that fades — the whole conversation, re-sent from the beginning on every turn, which is why the fortieth message costs twenty times the first and why it forgets the start rather than the middle.
+description: Not a tank that fills up and not a memory that fades — the whole conversation, re-sent from the beginning on every turn, which is why the fortieth message costs eighty times the first and why it forgets the start rather than the middle.
 audience: student
 also_reaches: [faculty]
 status: draft
@@ -57,7 +57,7 @@ A conversation of eighty turns in this example runs about 1.6 million tokens.  T
 
 ## Why it forgets the beginning specifically
 
-Every model has a ceiling on how much it can be handed at once, and each course on this platform sets its own limit underneath that.
+Every model has a ceiling on how much it can be handed at once, and each course on this platform sets its own limit as well — meant to sit underneath that ceiling.  When a course's limit is set higher than the model is actually served with, the model's own server does the trimming instead, the same way.
 
 When your re-sent conversation grows past the limit, something has to go — and what goes is **the oldest part**, dropped before the request is sent.  Not faded, not compressed, not deprioritised.  Removed.
 
@@ -83,6 +83,6 @@ Two things, honestly.
 
 ## Try it yourself
 
-Ask a guide for **your usage** and look at the two token figures side by side — the "in" number against the "out" number.
+Ask your course's chat, or the **Usage Guide** at the front door, for **your usage** and look at the two token figures side by side — the "in" number against the "out" number.
 
 On almost any real account, "in" is ten to fifty times larger.  That ratio is this entire page, expressed as a single measurement: it is the sound of your conversations being re-sent.

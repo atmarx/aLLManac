@@ -23,7 +23,7 @@ Here is what is actually happening:
 
 There is no tank.  There is no memory.  The model reads your entire conversation from the beginning on every turn, because it has no other way to know what you were talking about — and then it forgets it completely, and you send it again.
 
-Once that clicks, every number on your usage page stops being mysterious and starts being arithmetic.  This section is about that arithmetic, and about which parts of it are worth your attention.
+Once that clicks, every number in your usage report stops being mysterious and starts being arithmetic.  This section is about that arithmetic, and about which parts of it are worth your attention.
 
 ## Start here
 

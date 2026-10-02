@@ -44,7 +44,7 @@ Having a person press "allow" on every step feels like oversight.  It isn't, on 
 
 ## Most harnesses won't ask you
 
-Here's the uncomfortable part.  The approval prompt you'd exercise judgement on often doesn't exist.  Of the three harnesses [this platform has tested](choosing-a-harness.md#three-harnesses-that-work-here):
+Here's the uncomfortable part.  The approval prompt you'd exercise judgement on often doesn't exist.  Of the three harnesses [this site documents](choosing-a-harness.md#three-harnesses-one-tested-here):
 
 - **opencode** allows file edits and shell commands by default.  It does not ask.  Adding `"permission": {"bash": "ask"}` to its config turns asking on, and its built-in Plan agent is read-only.
 - **pi** has no permission system at all, by design, and its own documentation recommends running it in a container or a virtual machine.
@@ -65,7 +65,7 @@ The behaviour above was checked against each project's documentation on 2026-09-
 
 ## A harness we haven't tested
 
-The three harnesses above are the ones that have been tried on this platform.  They aren't the only ones you're allowed to use.  New ones appear every week, many with genuinely good ideas, most of them young.  If you want to try one, go ahead, but read it the way you'd read an agent's plan:
+The three harnesses above are the ones this site documents, and only opencode has actually been run against this platform.  They aren't the only ones you're allowed to use.  New ones appear every week, many with genuinely good ideas, most of them young.  If you want to try one, go ahead, but read it the way you'd read an agent's plan:
 
 - **Connect it as an "OpenAI-compatible" or "custom" provider**, pointed at [the gateway](the-gateway.md) with `/v1` on the end.  A harness's built-in Anthropic, Gemini or OpenRouter adapter won't work with your key, however many providers its README lists.
 - **Find out what it does on its own, before the first run.**  Look for telemetry, cloud sync, session sharing, web search and browsing, and anything that opens a tunnel to the internet.  Turn off what you don't need.  Keep your key in an environment variable, never in a config file the harness might sync.  If the key ever left your machine, [rotate it](your-key.md#replacing-it).

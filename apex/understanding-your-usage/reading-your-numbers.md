@@ -13,18 +13,18 @@ tethered_to:
 
 # Reading your own numbers
 
-Ask any guide for **your usage** and you get something in this shape:
+Ask your course's chat, or the **Usage Guide** at the front door, for **your usage** and you get something in this shape:
 
 ```
-Usage for you — last 7 days
+Usage for you@university.edu — last 7 days (since 2026-09-15)
 
 Total: 412 requests · 1,840,220 tokens (1,790,118 in / 50,102 out)
 Chat: 214 requests · API keys: 198 requests
 
 | model        | requests | tokens (in / out)       | last used        |
 |--------------|---------:|-------------------------|------------------|
-| almanac-chat |      380 | 1,700,400 (1,655,000 / 45,400) | 2026-09-21 14:02 |
-| almanac-office |     32 | 139,820 (135,118 / 4,702)      | 2026-09-20 09:41 |
+| almanac-chat |      380 | 1,700,400 (1,655,000 / 45,400) | 2026-09-21 14:02 UTC |
+| almanac-office |     32 | 139,820 (135,118 / 4,702)      | 2026-09-20 09:41 UTC |
 
 Spend: $2.41
 ```

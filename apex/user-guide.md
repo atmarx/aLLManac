@@ -68,7 +68,7 @@ Emailing prompt revisions around is how group projects die.  Here, the team shar
 
 ### What your instructor sets up
 
-Your team's group is made for you — you do not need the admin panel, and there is nothing to install.  One thing is on you, though: **log in at least once before your instructor adds you to a group.**  Accounts only exist after a first login, so if your name cannot be found in the people picker, that is almost always why.
+Your team's group is made for you — you do not need the admin panel, and there is nothing to install.  One thing is on you, though: **log in at least once before your instructor adds you to a group.**  Your sign-in account exists from the moment you are enrolled, but the people picker searches the chat's own list of users, and you only appear there after your first sign-in — so if your name cannot be found, that is almost always why.
 
 ### Sharing the agent to the team
 
@@ -94,7 +94,7 @@ The agent has one body — edits overwrite, last save wins, and there's no merge
 
 - **The Agent Marketplace** (sidebar → Agent Marketplace) is where shared agents get discovered — browse by category, find what teams have published.
 - To make a team's agent visible class-wide, share it **Viewer** to the course-wide group (faculty set one up, e.g. `engr301-all`) — or ask your instructor to share it there for you.
-- **Nobody publishes an agent platform-wide from the chat window — not you, and not your instructor either.**  That switch is off for every account on the instance, so the class-wide group above is as wide as an agent goes without the people who run the servers getting involved.  If a course genuinely needs one agent visible to everyone, that is a conversation with them, not a button anybody is missing.
+- **Nothing you share leaves your course.**  Each course runs its own copy of the chat, so even the widest share reaches only the people in it — there is no platform-wide setting to flip, for you or your instructor.  An agent that deserves a life beyond the course goes there by nomination: you or your instructor nominates it, and the people who run the servers turn it into a template another course can start from.
 
 **A caution worth repeating from the platform docs:** anyone who can chat with an agent can eventually coax out what's in its files.  Attach materials you'd hand the class anyway — never answer keys, never solutions, never anything private.
 
@@ -104,12 +104,12 @@ The agent has one body — edits overwrite, last save wins, and there's no merge
 
 Chat needs no key — sign in and go; the ledger already knows who you are.  The API key is for **code**: your own scripts, notebooks, and the coding harness in Part 4.
 
-- **You fetch it yourself.**  In your course's chat — the course address, not the front desk — pick the course's model, switch on **almanac-registrar** under **MCP Servers** in the message bar, and ask for your key ([the two clicks, step by step](building-with-code/your-key.md)).  It is minted when your instructor enrolls you, so if the chat says you're not on the roster yet, that's the person to ask.  Nobody emails it to you, and nobody else can fetch it for you.
+- **You fetch it yourself.**  In your course's chat — the course address, not the front desk — ask for your key — a new chat there starts on **Course chat**, with the tool already on ([step by step](building-with-code/your-key.md)).  The reply carries the gateway address too.  It is minted when your instructor enrolls you, so if the chat says you're not on the roster yet, that's the person to ask.  Nobody emails it to you, and nobody else can fetch it for you.
 - **One key per course, and it carries your name.**  In two courses you have two keys, each spending against its own course, and every request made with one is recorded against you.
 - Each key carries a **budget** of its own — a small one, there to catch a runaway loop before it catches your course.  Visibility, not a paywall.
 - **Treat the key like a password.**  Don't commit it to a repo, don't paste it into a shared doc.  If it leaks or you lose it, ask your course's chat to **rotate** it — you get a new key, the old one dies, and whatever was left on its budget carries over.  Seconds, and nobody's permission.
 - If you hit your budget, requests start failing with a budget-exceeded error.  That's a conversation, not a punishment — ask your instructor.
-- **Where do I stand?**  Ask.  Switch on **almanac-usage** under **MCP Servers** in your course's chat, or ask the **Usage Guide** at the front door, "how much have I used this week?" — either answers with your real numbers — chat and API keys combined.  Only ever yours; nobody else's.
+- **Where do I stand?**  Ask.  Ask your course's chat, or the **Usage Guide** at the front door, "how much have I used this week?" — either answers with your real numbers — chat and API keys combined.  Only ever yours; nobody else's.
 
 The whole story — what the budget counts, why a model added later may not show up on your key, and how to keep it out of a repo — is on [Your API key](building-with-code/your-key.md).
 
@@ -119,9 +119,9 @@ The key works with **any OpenAI-compatible tool** pointed at the campus gateway 
 
 [opencode](https://opencode.ai) is an open-source coding agent that lives in your terminal: it reads your project, edits files, runs commands — the agentic-coding loop, on campus models, metered to your key.
 
-Install, configure and test it from [Coding harnesses](building-with-code/harnesses.md#opencode) — the config lives there, in one copy, so it can't drift out from under you here.  You'll need two things from your course: the **gateway address**, and the **context size** its model is served with.  Ask your instructor for both.
+Install, configure and test it from [Coding harnesses](building-with-code/harnesses.md#opencode) — the config lives there, in one copy, so it can't drift out from under you here.  You'll need two things: the **gateway address**, which comes with your key, and the **context size** its model is served with, which comes from whoever runs your platform — your instructor can find out.
 
-**Honest expectations.**  A 7B-class campus model runs the coding loop and teaches you the workflow, but it is not a frontier model: expect occasional stumbles — a mis-named tool, a premature "done."  That's part of the lesson — you're learning to supervise an agent, not to trust one.  When the campus gateway grows bigger models, your same config gets better for free.
+**Honest expectations.**  A small campus model runs the coding loop and teaches you the workflow, but it is not a frontier model: expect occasional stumbles — a mis-named tool, a premature "done."  That's part of the lesson — you're learning to supervise an agent, not to trust one.  When the campus gateway grows bigger models, your same config gets better for free.
 
 ---
 

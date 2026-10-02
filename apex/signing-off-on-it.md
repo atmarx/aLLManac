@@ -28,7 +28,7 @@ This page is written for the three people who have to sign different parts of th
 
 ## Why build it instead of licensing a product
 
-The honest first answer: **we did not build this instead of anything.**  A campus-wide general-purpose assistant and this platform solve different problems, and the design assumes both exist — when a course's budget runs out, the documented next step is the licensed assistant the institution already pays for.  If you are weighing this as a replacement for that, the comparison is wrong in a way that will produce a bad decision.
+The honest first answer: **we did not build this instead of anything.**  A campus-wide general-purpose assistant and this platform solve different problems, and the design assumes both exist — the ruled design sends a student who has used up their share of a course to the licensed assistant the institution already pays for.  That redirect is not built yet; today a spent course budget is a hard stop.  If you are weighing this as a replacement for that, the comparison is wrong in a way that will produce a bad decision.
 
 What a licensed product does not sell, at any tier, is the thing a *course* needs:
 
@@ -50,7 +50,7 @@ And one reason that is not commercial at all, which for a Provost may be the str
 - **Students get a key, not just a chat box.**  A student can point their own editor, scripts, or coding harness at the campus gateway with a personal key, metered the same way.  That is how the tool follows them into the work they are actually being graded on.
 - **The meter is a teaching instrument.**  Cost intuition — knowing roughly what a question costs before you ask it — is a real professional skill, currently unteachable because the feedback is invisible and delayed.  We show the number, list it alphabetically, never by who used the most, and refuse to score anyone on it.  There are no leaderboards and budgets can never be merit-based, because we hold a denominator and no numerator: we can say what a query cost, never what it was worth.
 - **Assistants that decline.**  The guides here are instructed to answer from their attached documents and to say plainly when something is not in their files.  We test that behavior with a scripted evaluation suite and treat a wrong-but-confident answer as a defect rather than a quirk of the technology.
-- **The failures are published.**  [If you're evaluating this for your course](evaluating-it.md) opens with a list of what is broken, and the platform's largest self-inflicted outage is [written up in full](how-we-built-it/keeping-courses-apart.md) rather than quietly patched.
+- **The failures are published.**  [If you're evaluating this for your course](evaluating-it.md) carries a list of what is broken, under "What we already know", and the platform's largest self-inflicted outage is [written up in full](how-we-built-it/keeping-courses-apart.md) rather than quietly patched.
 
 ---
 
@@ -62,7 +62,7 @@ Worth a paragraph on its own, because everyone assumes one rule covers both and 
 
 **A personal key is capped in money.**  When a student points their own editor or scripts at the gateway, that traffic never passes through the chat software at all, so the length cap does not apply — the request gets whatever the model itself serves.  What stops it is the dollar fuse on the key.
 
-**Chat is bounded in tokens; keys are bounded in dollars.**  Both are enforced, neither is optional, and the practical consequence is that a student in the chat window gets trimmed while the same student with a harness can send an enormous request and simply spend for it.  The fuse is the only thing standing there, and it stops them in cents rather than in context.
+**Chat is bounded per conversation in tokens; keys are bounded per key in dollars.**  Both also draw on the course's pool, which is a dollar ceiling over everything.  The practical consequence is that a student in the chat window gets trimmed while the same student with a harness can send an enormous request and simply spend for it.  The fuse is what stands there, and it stops them in cents rather than in context — on a priced model.  On a campus model with no price, the fuse never moves, and the only bound is the student's own judgement and the model's own window.
 
 That asymmetry is deliberate and it is also the single thing most likely to be taught wrong, so it belongs in the first hour of any training rather than in a footnote.
 
@@ -90,7 +90,7 @@ That asymmetry is deliberate and it is also the single thing most likely to be t
 
 This is the section that earns the rest of the page.
 
-**The biggest gap is backup, and it is not close.**  Copies of the databases are made by an operator running a documented procedure.  There is no schedule, no automatic copy kept off the machine it protects, and **no restore that has been tested end to end.**  A scheduled, off-box, exercised backup is the single largest piece of work between the current state and a posture you would sign for anything that matters.  Until it exists, the platform's own guidance to students is to keep their own copy of anything they would hate to lose.
+**The biggest gap is backup, and it is half closed.**  A nightly backup copies every database, the escrow and the uploaded files to storage off the machine it protects, kept for six months.  **There is no restore.**  The recipe to bring a box back from those copies is not built, and the drill that proves it — a full round trip between two live instances — has not run, so by the platform's own rule these are not backups yet.  An exercised restore is the single largest piece of work between the current state and a posture you would sign for anything that matters.  Until it exists, the platform's own guidance to students is to keep their own copy of anything they would hate to lose.
 
 **There is no retention policy, so there is no expiry.**  Coursework persists indefinitely unless someone removes it by hand.  The one exception is a conversation a student deliberately starts as a temporary chat, which the chat software deletes after 30 days — a privacy affordance, not a policy.  That is a policy decision the institution has not made rather than an engineering task nobody got to — and building the deletion job first would mean guessing at the answer, which is a bad place to guess.  Related and frequently misunderstood: **FERPA contains no right to erasure.**  It covers inspection, amendment and disclosure.  The delete-my-data instinct comes from GDPR and from state consumer privacy statutes, and there are well over a hundred of the latter.  "FERPA does not require it" is not "nobody requires it," and which rules reach this deployment is a question for counsel, not for us.
 
@@ -112,7 +112,7 @@ This is the section that earns the rest of the page.
 
 Worth asking early, because the answer is a feature and it does not survive being asked late.
 
-The stack is open source throughout — chat, gateway, identity, secret storage, databases.  Conversations sit in standard databases in standard formats, the ledger is a Postgres table, and configuration is in git.  **Nothing here is readable only by our software.**  An institution that decided to walk away from this design would be exporting data rather than negotiating for it.
+The stack is open source throughout — chat, gateway, identity, secret storage, databases.  Conversations sit in standard databases in standard formats, the ledger is a Postgres table, and the platform's configuration templates are in git (each deployment's course records and secrets live on its box and in its backups).  **Nothing here is readable only by our software.**  An institution that decided to walk away from this design would be exporting data rather than negotiating for it.
 
 The honest asterisk, again: the provisioning layer is ours.  If the platform were abandoned, the courses' data and the running services would be perfectly intact and perfectly readable, and the thing that creates new ones would be a codebase one institution maintains.
 
