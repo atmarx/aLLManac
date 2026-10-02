@@ -212,6 +212,8 @@ Consequence, and it answers a live docs question: **nobody can publish an agent 
 
 So "seeds the default USER role" understates it: the block seeds every role, and the seam between student and faculty is Keycloak's role claim plus the admin panel, not the `interface` block.
 
+**The flip side: a key the render sets is a key no instructor can change.**  `updateInterfacePermissions` rewrites a permission on every boot only when `librechat.yaml` names it; an unnamed one keeps whatever the role already holds.  That is why **conversation share links are deliberately not rendered** *(ruled 2026-10-02)*: on by default (v0.8.7's default, `ALLOW_SHARED_LINKS_PUBLIC` unset, so a link opens only for someone signed in to that course), and an instructor turns them off in their own panel — Access → User → **Shared links** → untick Create.  Render `sharedLinks` and that choice resets on the next restart, silently.  Any future "let faculty decide" knob has the same shape: leave it out of the template.
+
 ### TLS and ACME — the full decision guide is [docs/tls.md](tls.md)
 
 That page carries the whole thing (measured against `caddy:2.11.4`, which the edge is now pinned to for exactly this reason).  The three findings most likely to be re-derived the expensive way:
