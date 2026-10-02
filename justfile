@@ -1,5 +1,5 @@
 # The aLLManac — deployment contract.
-# Every recipe here runs the same on a laptop, xdocker03, or your cloud box.
+# Every recipe here runs the same on a laptop, a docker host, or your cloud box.
 # CI (Woodpecker/GitLab/GitHub) is just a thin wrapper that ssh's in and calls
 # these — see .woodpecker/deploy.yml and docs/ci.md.
 
@@ -260,7 +260,7 @@ build: _fleet && sbom
 # guards the fleet render; nothing guarded the one the GUIDES eat.  A deploy
 # ships a prompt or a corpus change and the agents go on serving whatever the
 # last `agents-seed` attached — inert, and silent about it.  Five guides on
-# xdocker03 were weeks stale while `agents-check` itself was green
+# the docker host were weeks stale while `agents-check` itself was green
 # (2026-09-21).  `docs-corpus` renders first so the comparison is against the
 # tree you just shipped, not against whatever corpus/ happened to hold; it
 # writes only the gitignored render, never the box.
@@ -1080,7 +1080,7 @@ bao-unseal tries="12":
 # LibreChat discovers its OpenID issuer ONCE, at boot, and never retries.
 # compose's `depends_on: keycloak: service_healthy` holds that off on `up` —
 # but a reboot brings every container back at once and ignores depends_on.
-# Measured on xdocker03, 2026-09-28: the host came back at 08:27, Keycloak
+# Measured on the docker host, 2026-09-28: the host came back at 08:27, Keycloak
 # and all three LibreChats started in the same second, each logged "OpenID
 # Connect configuration failed - strategy not registered," and sign-in 500'd
 # on every instance for 26 hours behind a green `smoke` and a green deploy

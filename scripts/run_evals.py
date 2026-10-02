@@ -78,7 +78,7 @@ def parse_yaml(text: str):
     """js-yaml inside the flagship, not PyYAML on the host.
 
     A deploy box has no business growing a Python dependency so a check can
-    run on it: xdocker03's host python is PEP668-managed with no pip, so
+    run on it: the docker host's python is PEP668-managed with no pip, so
     `import yaml` made this whole runner unrunnable exactly where it matters
     and nobody found out for weeks (2026-09-21).  scripts/agents_check.py
     already reads the flagship's config this way and for this reason; the

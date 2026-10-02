@@ -141,7 +141,7 @@ EXPORT_WINDOW_DAYS = int(os.environ.get("REGISTRAR_EXPORT_DAYS", "14"))
 # boundary mid-conversation and keeps talking, with nothing in any log an
 # operator reads.  That is not a degraded answer, it is the guardrails
 # leaving and the fabrication the agent contract exists to prevent.  Measured
-# on xdocker03 2026-09-21: the endpoint serves 32768 while the model itself
+# on the docker host 2026-09-21: the endpoint serves 32768 while the model itself
 # allows 262144, so the ceiling is the SERVER's, not the model's.
 # At 128k this default is larger than many self-hosted models serve, so **a
 # course whose models resolve to a small local endpoint must set

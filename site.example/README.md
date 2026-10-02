@@ -8,7 +8,7 @@ cp -r site.example site        # or just let `just up` do it
 
 ## Why the folder exists
 
-Everything above this directory is **the platform** — the same bytes on a laptop, on xdocker03, and on a campus VM.  Everything inside `site/` is **this box**: the services this deployment adds, the core services it needs to bend, and the infrastructure underneath it.
+Everything above this directory is **the platform** — the same bytes on a laptop, on a docker host, and on a campus VM.  Everything inside `site/` is **this box**: the services this deployment adds, the core services it needs to bend, and the infrastructure underneath it.
 
 The seam matters because the two change for different reasons and on different clocks.  A LibreChat pin bump is a platform change and belongs in a commit everyone gets.  "This VM's Postgres lives on a SAN mount" is not; it belongs to exactly one box and should never reach anyone else's.
 

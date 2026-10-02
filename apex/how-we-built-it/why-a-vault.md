@@ -77,7 +77,7 @@ The registrar logs in with its own role, gets a token that lives for an hour, an
 
 Every time OpenBao restarts, it comes back **sealed** — up, answering, and unable to read anything until someone hands it the unseal key.  That's by design.  For the first few weeks, only a deploy unsealed it.
 
-On 2026-09-23, xdocker03 rebooted on its own for the first time.  Every container came back.  Chat answered, because the course chat's key was already sitting in its rendered config.  The health check was green, because "sealed" is a normal boot state and the check had been written to say so.  And every path that needed the escrow was shut: enrolling a student, fetching a key, rotating one, approving a new course.
+On 2026-09-23, the docker host rebooted on its own for the first time.  Every container came back.  Chat answered, because the course chat's key was already sitting in its rendered config.  The health check was green, because "sealed" is a normal boot state and the check had been written to say so.  And every path that needed the escrow was shut: enrolling a student, fetching a key, rotating one, approving a new course.
 
 Nothing looked down.  **A vault that fails closed fails quietly for everything that doesn't need a new secret** — and on any given minute, most things don't.  It was found by someone checking, not by anything alarming.
 

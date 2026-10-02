@@ -455,7 +455,7 @@ async function seedAll() {
     // for everyone, because visibility in 0.8.x is the ACL and a fresh agent
     // carries only its owner's entry.  The owner here is a service account
     // nobody can sign in as, so owner-only means nobody, by construction.
-    // Found on xdocker03 by signing in and watching the label flash and
+    // Found on the docker host by signing in and watching the label flash and
     // vanish (2026-09-21); six green checks had said nothing.
     //
     // On every run, not just create: update-in-place preserves whatever
@@ -677,7 +677,7 @@ def model_specs(seeded: list[dict], model: str) -> str:
                   # run's default was, so on a box whose guides run
                   # almanac-office the paste-me block said almanac-chat and
                   # pasting it re-pointed all six specs at a model they are
-                  # not on.  Found on xdocker03, 2026-09-21.
+                  # not on.  Found on the docker host, 2026-09-21.
                   f"        model: {a.get('model') or model}"]
     return "\n".join(lines)
 
