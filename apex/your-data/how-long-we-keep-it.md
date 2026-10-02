@@ -49,10 +49,12 @@ This is the platform's most visible gap, and it is the one where a high-risk pos
 
 ## Leaving a course
 
-When you are removed from a course — dropping it, or the roster changing — two things happen immediately:
+When you are removed from a course — dropping it, or the roster changing — two things happen, on different clocks:
 
-- **Your key for that course is revoked.**  You can no longer make requests against it.
-- **Your group membership is dropped.**  You lose access to the course instance.
+- **Your key for that course is revoked at once.**  You can no longer make requests against it.
+- **Your access to the course chat closes at your next sign-in.**  A chat you already have open is not cut off mid-sentence; the next time you sign in, that course turns you away.
+
+One more is not automatic: if an instructor put you in a sharing group inside the course, you stay in it until someone removes you by hand.  With the chat closed to you it reaches nothing, but it is there.
 
 Two things do not happen:
 

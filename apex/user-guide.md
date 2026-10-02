@@ -52,7 +52,7 @@ A "custom GPT" here is a LibreChat **Agent**: a system prompt + knowledge files 
 **Attach knowledge.**  In the builder, upload files where they'll do the right job:
 
 - **File Search** — the usual choice.  Files are indexed for retrieval, and the agent quotes and cites from them when relevant.  Course readings, lab manuals, syllabi.
-- **File Context** — short reference text injected directly into the agent's instructions.  Rubrics, formula sheets, a style guide.  Keep it small; it rides along on every request.
+- **File Context** — short reference text injected directly into the agent's instructions.  Rubrics, formula sheets, a style guide.  Keep it small; it rides along on every request.  **It is off unless your course has it switched on**, so if you don't see it in the builder, use File Search.
 
 Uploads are capped at course-materials scale (10 files per go, 25 MB each) — if you're bumping the caps, you're probably attaching the wrong thing.
 

@@ -14,7 +14,7 @@ tethered_to:
 
 # Budgets and meters — what the number is for, and who is allowed to say it
 
-**Status: proposed, 2026-09-10.**  Not ruled.  The budget layers described here already exist (`course` as the hard term cap, `key_fuse` as per-key blast radius, `advisory_weekly` as pacing that never blocks — see [registrar-spec.md](registrar-spec.md)); what is proposed is a rule for *what a student sees*, where they see it, and what happens when they run out.  Everything under [What the pin actually does](#what-the-pin-actually-does) is verified against `ghcr.io/danny-avila/librechat:v0.8.7` and is fact, not proposal.
+**Status: proposed, 2026-09-10.**  Not ruled.  The budget layers described here already exist (`course` as the hard term cap, `key_fuse` as per-key blast radius, `advisory_weekly` as pacing that never blocks — stored and validated, but nothing reads it yet — see [registrar-spec.md](registrar-spec.md)); what is proposed is a rule for *what a student sees*, where they see it, and what happens when they run out.  Everything under [What the pin actually does](#what-the-pin-actually-does) is verified against `ghcr.io/danny-avila/librechat:v0.8.7` and is fact, not proposal.
 
 !!! info "Ruled 2026-09-22 (@xram) — what happens when a student runs out.  Not built."
     **Chat runs in audit mode.**  There is no global per-student limit, and nobody sees an "over quota" error.  A student over their share *of one course* is redirected to the institution's general assistant on every request until the accounting clears them.  The per-course service key stays: it is what makes the per-student numbers attributable.
@@ -58,7 +58,7 @@ Judging value at scale would mean pushing every exchange through a second model 
 Three rules follow, and they bind the tool's output, not just its policy:
 
 - **"Efficient" is a word the tool may never use.**  Not in a label, not in output, not implied by an ordering.  `usage-mcp` reports what was spent and never what it was worth.
-- **No leaderboards.**  A list of students ranked by spend invites two readings — high as overuse, low as disengagement — and both are unsupported.  Course-level views render a *distribution* (where the cohort sits, how wide the spread is), which answers the question faculty actually have ("is my budget sized right?") without answering the one they cannot.
+- **No leaderboards.**  A list of students ranked by spend invites two readings — high as overuse, low as disengagement — and both are unsupported.  The course-level view lists each student alphabetically, never by spend, with dollars only as a course total — "who hasn't started yet?" needs names, and an order that isn't a ranking answers it without answering the question it cannot.
 - **Budgets can never be merit-based.**  There is no measurement to hang it on, and the first person to try will reach for spend as the proxy, which measures the opposite of what they think.
 
 What survives is description.  *"Your questions range from 300 to 12,000 tokens."*  *"Your 90th percentile is 12× your median."*  *"This exchange cost more than your last twenty."*  All true, all useful for building the intuition, none of them a claim about anybody's worth.  **The tool describes; it never scores.**

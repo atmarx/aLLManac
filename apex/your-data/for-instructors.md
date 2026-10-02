@@ -9,7 +9,7 @@ regimes: [ferpa, nist-ai-rmf]
 tethered_to:
   - registrar/courses.example.yaml
   - registrar/reconcile.py
-  - docs/design-walls.md#the-classroom-posture
+  - docs/design-walls.md#the-classroom-posture-is-opt-in
   - docs/design-walls.md#actionsalloweddomains-is-top-level--and-its-the-only-wall-around-actions
   - registrar/planes/courses.py
 ---
@@ -127,7 +127,7 @@ If you are considering this, talk to your institution's privacy or compliance of
 Stated plainly so you do not plan around something that is not there:
 
 - **No scheduled or off-box backup.**  Backups are a documented manual procedure run by an operator, and the restore path has not been tested.
-- **No automated retention or expiry.**  Conversations stay until someone removes them, and that removal is currently a manual act.
+- **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days.  Every other conversation stays until someone removes it, and that removal is currently a manual act.
 - **No per-student deletion path.**  Nothing walks a course database and removes one student's material.
 - **No way to deny all outbound domains.**  The allowlist can narrow where agents reach; it cannot express "nowhere."  Leaving actions off is the only complete answer, and that is a property of the underlying chat software rather than a setting waiting to be built.
 

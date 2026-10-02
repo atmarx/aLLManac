@@ -77,7 +77,7 @@ tags: [secrets-management, escrow, openbao, encryption-at-rest]
 regimes: [ferpa]           # data pages only; omit elsewhere
 tethered_to:               # claims this page makes about the running system
   - registrar/reconcile.py
-  - docs/design-walls.md#the-classroom-posture
+  - docs/design-walls.md#the-classroom-posture-is-opt-in
 ---
 ```
 

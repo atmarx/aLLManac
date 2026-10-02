@@ -61,7 +61,7 @@ That is deliberate.  A gap you can read about is worth more than one you cannot.
 
 Coursework generates records about you, and records about students carry obligations.
 
-The short version: your conversations live in your own course's database and nobody in another course can reach them; your usage is recorded against your email address — which model, how many tokens, when, but not what you said; nothing expires on its own; and nothing you build is shared until you share it.
+The short version: your conversations live in your own course's database and nobody in another course can reach them; your usage is recorded against your email address — which model, how many tokens, when, but not what you said; nothing expires on its own except a temporary chat, which is deleted after 30 days; and nothing you build is shared until you share it.
 
 The long version, including the parts that are not built yet, is in [Your data](your-data/index.md).  It is on this page rather than buried in a footer because you should not have to go looking for it.
 

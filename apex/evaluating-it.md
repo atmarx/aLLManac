@@ -46,7 +46,7 @@ Three things make a report much more useful:
 2. **What you asked just before.**  Some failures only appear in the second or third turn; a conversation that was fine at the start and drifted somewhere strange is a more interesting report than a single bad answer.
 3. **What you expected instead.**  Even roughly.  You know your course; we are guessing at it.
 
-**Or just say so in the chat, which is easier and works better.**  Tell the guide what went wrong — *"that answer was wrong,"* *"this should really work differently"* — and it will offer to file it for you.  Say yes and it writes the report itself, with the question you asked and the answer it gave already attached, and shows you the wording before anything is sent.
+**Or just say so in the chat, which is easier and works better.**  Tell the guide what went wrong — *"that answer was wrong,"* *"this should really work differently"* — and it will offer to file it for you.  Say yes and it files the report itself, with the question you asked and the answer it gave already attached.  It asks once and files in one step — there is no draft to approve — so if there is something you want in the report, say it when you say yes.
 
 That last part is the whole reason it beats an email.  A report is only actionable if it carries what was asked and what came back, and nobody wants to assemble that by hand at the exact moment they are annoyed.  The guide is already holding both.
 
@@ -61,7 +61,7 @@ If you would rather not use the chat, send it to whoever pointed you at this pla
 So you do not spend your time on things that are on our list:
 
 - **Backups are thin.**  Copies are made by hand, there is no off-box schedule yet, and no restore has been tested end to end.  [How long we keep it](your-data/how-long-we-keep-it.md) is honest about this.
-- **Nothing expires on its own**, and there is no per-student deletion path.
+- **Nothing expires on its own** except a temporary chat, after 30 days — and there is no per-student deletion path.
 - **Some pages on this site are unfinished**, and say so where you land on them.
 - **Knowledge files belong to the course they were uploaded in.**  They do not follow an agent between courses — if you build an agent in one course and want it in another, the documents get attached again on the other side.  This is a consequence of how courses are kept apart and it is not going to change.
 - **Agent knowledge files were broken until 18 September**, silently — the upload appeared to succeed and the agent never used the document.  It is fixed, and every course now runs its own document service rather than sharing one.  If your course was set up before that and attaching a file still does nothing, say so immediately; it means your course has not been re-rendered, and that is worth knowing fast.  The whole episode is [written up](how-we-built-it/keeping-courses-apart.md) rather than hidden.

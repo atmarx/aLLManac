@@ -8,7 +8,7 @@ owner: piper
 tags: [access-control, sso, oidc, identity-broker, tenancy, isolation, egress-control, allowlist, faculty-duty, keycloak, globus, transparency-notice]
 regimes: [ferpa]
 tethered_to:
-  - docs/design-walls.md#the-classroom-posture
+  - docs/design-walls.md#the-classroom-posture-is-opt-in
   - docs/design-walls.md#actionsalloweddomains-is-top-level--and-its-the-only-wall-around-actions
   - registrar/reconcile.py
   - registrar/render.py
@@ -82,7 +82,7 @@ provider and its data terms.
 
 Agents can be given **actions** — the ability to call an outside web service as part of answering.  An agent with actions can send whatever it is working with to whatever address it was pointed at.  That is the entire point of the feature, and it is genuinely useful: an agent that looks up live data has to reach something.
 
-Actions are **off unless a course turns them on.**  The platform's default capability set gives courses file search, tools, and artifacts, and deliberately leaves actions out.  Enabling them is a per-course decision your instructor makes. A course that leaves actions off has no *additional action route* beyond whichever model route the deployment selected.
+Actions are **off unless a course turns them on.**  The platform's default capability set gives courses file search, tools, and artifacts, and deliberately leaves actions out.  Turning them on is a per-course setting in the platform's course record — an instructor asks for it, and the operator who runs the platform sets it, along with the list of addresses those actions may reach. A course that leaves actions off has no *additional action route* beyond whichever model route the deployment selected.
 
 A course that does enable them can also declare a list of domains agents are allowed to reach.  Worth understanding what that list does and does not do:
 

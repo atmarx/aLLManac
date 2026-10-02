@@ -27,7 +27,7 @@ Coursework generates records about you, and records about students carry obligat
   and files needed to answer. Agent actions can send material to additional
   services. [The paths that can leave the building](who-can-see-it.md#paths-that-can-leave-the-building)
 - **Agent sharing is available, and nothing is shared until you share it.**  [Sharing](who-can-see-it.md#sharing-is-available-and-nothing-is-shared-until-you-share-it)
-- **Nothing expires on its own.**  [How long we keep it](how-long-we-keep-it.md)
+- **Nothing expires on its own — except a temporary chat, after 30 days.**  [How long we keep it](how-long-we-keep-it.md)
 
 ## In this section
 
@@ -42,7 +42,7 @@ Coursework generates records about you, and records about students carry obligat
 These pages name gaps rather than hiding them, so here they are in one place:
 
 - **No scheduled or off-machine backup**, and no restore that has been tested end to end.
-- **No automated retention or expiry** — nothing deletes itself.
+- **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days; everything else stays until someone removes it.
 - **No per-student deletion path.**  Removing a student revokes access without erasing what they wrote.
 - **No self-service export.**  Requests are handled by hand.
 - **No way to block all outbound domains** for courses that enable agent actions — leaving actions off is the only complete answer.

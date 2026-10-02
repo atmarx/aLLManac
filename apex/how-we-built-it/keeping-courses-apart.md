@@ -10,7 +10,7 @@ tethered_to:
   - registrar/render.py
   - registrar/reconcile.py
   - compose.yml
-  - docs/design-walls.md#rag_api-fails-open-without-jwt_secret-and-it-is-shared-by-the-whole-fleet-2026-09-12
+  - docs/design-walls.md#rag_api-fails-open-without-jwt_secret-2026-09-12
   - docs/registrar-spec.md
 ---
 
