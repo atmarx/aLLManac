@@ -70,7 +70,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # two copies of this string drifting apart.
 sys.path.insert(0, str(ROOT / "scripts"))
 from seed_agents import (  # noqa: E402
-    NOT_KNOWLEDGE, REGISTRAR_MCP, knowledge, prompt_sha, sha,
+    AGENT_PROVIDER, NOT_KNOWLEDGE, REGISTRAR_MCP, USAGE_MCP, knowledge, prompt_sha,
+    sha,
 )
 
 OK, BAD, MEH = "  ok   ", "  FAIL ", "  warn "
@@ -236,6 +237,29 @@ def main() -> int:
         else:
             print(f"{BAD}enforce is not true — raw models are still selectable")
             bad += 1
+
+    # Two names the seeder writes onto every guide and this box's config has
+    # to declare.  Nothing errors when they don't match: the guides just lose
+    # their tools, or their endpoint, without a word.  A fresh box that set
+    # MCP_SERVER_PREFIX or MODEL_PROVIDER_NAME and copied the tracked config
+    # unedited is exactly that box (docs/customizing.md).
+    servers = set((cfg.get("mcpServers") or {}).keys())
+    for key in (USAGE_MCP, REGISTRAR_MCP):
+        if key in servers:
+            print(f"{OK}mcpServers declares {key}")
+        else:
+            print(f"{BAD}mcpServers has no {key} (it has: {', '.join(sorted(servers)) or 'none'}) "
+                  f"— the guides' tools are named for MCP_SERVER_PREFIX.  Rename the key "
+                  f"in site/librechat/librechat.yaml (docs/customizing.md).")
+            bad += 1
+    endpoints = {e.get("name") for e in ((cfg.get("endpoints") or {}).get("custom") or [])}
+    if AGENT_PROVIDER in endpoints:
+        print(f"{OK}endpoint {AGENT_PROVIDER!r} exists — the guides' provider")
+    else:
+        print(f"{BAD}no custom endpoint named {AGENT_PROVIDER!r} (it has: "
+              f"{', '.join(sorted(map(str, endpoints))) or 'none'}) — the guides are pinned to it.  "
+              f"The endpoint's name must equal MODEL_PROVIDER_NAME (docs/customizing.md).")
+        bad += 1
 
     print("\nthe guides")
     claimed = set()

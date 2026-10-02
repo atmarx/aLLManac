@@ -64,6 +64,7 @@ channel: _fleet
 setup: _env _site secrets
     @echo
     @echo "Now edit .env — set ALMANAC_HOST, INFERENCE_BASE_URL, and OPENID_ISSUER."
+    @echo "Then the names readers see — PLATFORM_NAME, CHAT_MODEL and the rest: docs/customizing.md."
     @echo "This box's own compose layer (if it needs one) is site/compose.yml."
 
 _env:

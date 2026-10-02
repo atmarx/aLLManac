@@ -26,12 +26,12 @@ The project is called the aLLManac, and nothing a reader sees has to say so.  An
 |---|---|---|---|
 | `PLATFORM_NAME` | The platform, everywhere a reader meets it: every help-site page, the guides' knowledge files, their prompts and eval cases, each guide's picker description and owner name, what the tool servers say in their replies and refusals, the subject and sender of the registrar's mail, export downloads (`ai-classroom-<course>-<date>.zip`) and the README inside them, and each course's client name in Keycloak. | `aLLManac` | Yes — `just deploy` rebuilds the site and corpus, refreshes the guides and restarts the tool servers.  Two are written once, at creation, so they change on a fresh box only: the guides' owner name and each course's Keycloak client name. |
 | `CHAT_MODEL` | The chat model's public name: what LiteLLM serves, what the picker shows, what every harness snippet in the help site says, the model new courses and the guides get. | `almanac-chat` | **Fresh box only.**  Every course record and every minted key carries the name in its model list. |
-| `MODEL_PROVIDER_NAME` | The endpoint label in each course chat's picker. | `Almanac` | **Fresh box only.**  Conversations remember the endpoint they were held on, and a renamed endpoint leaves them pointing at nothing. |
-| `MCP_SERVER_PREFIX` | The tool-server names declared in each course's config, which staff can attach to an agent (`<prefix>-usage`, `<prefix>-courses`). | `almanac` | **Fresh box only.**  An agent stores its tools by server name, so every agent that uses them would lose them. |
+| `MODEL_PROVIDER_NAME` | The endpoint label in each course chat's picker, and the front door's endpoint the guides run on — the site copy of the front door's config has to name its endpoint this. | `Almanac` | **Fresh box only.**  Conversations remember the endpoint they were held on, and a renamed endpoint leaves them pointing at nothing. |
+| `MCP_SERVER_PREFIX` | The tool-server names (`<prefix>-usage`, `<prefix>-courses`): declared in each course's config, where staff can attach them to an agent, and in the front door's, where the guides carry them — the site copy has to use the same two keys. | `almanac` | **Fresh box only.**  An agent stores its tools by server name, so every agent that uses them would lose them. |
 | `APP_TITLE` | The front door's browser tab and sign-in page.  Courses are titled with their own course name, always. | `aLLManac` | Yes, at the next restart of the front door. |
 | `OPENID_BUTTON_LABEL` | The sign-in button. | `Sign in with Campus SSO` | Yes.  Courses take the button text from the render, so run `just render` too. |
 | `ALMANAC_FALLBACK_ASSISTANT` | Where the guides send a question that isn't about the platform — in words your readers recognize, like the general assistant your institution licenses. | a generic description | Yes — `just deploy`. |
-| `DOCS_SITE_NAME` | The help site's title.  Unset, it uses `PLATFORM_NAME`. | `The aLLManac` | Yes. |
+| `DOCS_SITE_NAME` | The help site's title, when it should differ from `PLATFORM_NAME`.  Leave it unset otherwise; set to empty, it breaks the site build. | unset — `PLATFORM_NAME` | Yes. |
 | `DOCS_SITE_URL` | Where the help site lives, for its canonical links. | `http://localhost/help/` | Yes. |
 | `DOCS_COPYRIGHT` | The help site's footer (HTML allowed). | the project's CC BY 4.0 credit | Yes.  If you rewrite the pages, the license asks you to keep the attribution and say they were changed. |
 | `SMTP_FROM` | The sender on mail the registrar sends (export links, request updates). | unset — no mail | Yes. |
@@ -44,14 +44,14 @@ The project is called the aLLManac, and nothing a reader sees has to say so.  An
 |---|---|---|
 | `ALMANAC_DOMAIN` | Every course lives at `<course>.<domain>`, and its admin panel at `<course>-admin.<domain>`. | **Fresh box only.**  Sign-in redirect addresses, certificates and every course's rendered config carry it. |
 | `CHAT_HOST`, `AUTH_HOST`, `GATEWAY_HOST` | The front door, the sign-in system, and the gateway students point a harness at. | **Fresh box only**, for the same reason.  `AUTH_HOST` is also inside every token's issuer. |
-| `KC_REALM` | The sign-in realm's name, which appears in sign-in URLs. | **Fresh box only.**  Keycloak imports a realm file it hasn't seen as a *second* realm on a live box (`docs/design-walls.md`, Keycloak realm import). |
+| `KC_REALM` | The sign-in realm's name, which appears in sign-in URLs.  **Leave it at `classroom`** unless you have a reason: the realm file (`keycloak/realm-classroom.json`) and every `OPENID_ISSUER` in `.env` say `classroom` too, and all three have to change together. | **Fresh box only.**  Keycloak imports a realm file it hasn't seen as a *second* realm on a live box (`docs/design-walls.md`, Keycloak realm import). |
 
 The realm's **display name** and the **sign-in page's look** are set in Keycloak itself — Realm settings → General, and Realm settings → Themes.  They can change any time.
 
 ## Set somewhere other than `.env`
 
-- **The front door's own config.**  Every deployment with guides keeps its own copy at `site/librechat/librechat.yaml` (`docs/admin-guide.md` has the procedure), and LibreChat doesn't substitute variables into the parts that hold names.  Edit them there: the endpoint's `name` and `modelDisplayLabel`, and `models.default` and `titleModel`, which must match `CHAT_MODEL`.
-- **Courses.**  `registrar/courses.yaml` is seeded from the example on first `up`, and the example's courses name `almanac-chat` in their `models:` lists.  Replace the example courses with yours before provisioning any, and list `CHAT_MODEL`'s value.
+- **The front door's own config.**  Every deployment with guides keeps its own copy at `site/librechat/librechat.yaml` (`docs/admin-guide.md` has the procedure), and LibreChat doesn't substitute variables into the parts that hold names.  Edit them there: the endpoint's `name`, which must equal `MODEL_PROVIDER_NAME`; its `modelDisplayLabel`; `models.default` and `titleModel`, which must equal `CHAT_MODEL`; and the two `mcpServers` keys, which must be `<MCP_SERVER_PREFIX>-usage` and `<MCP_SERVER_PREFIX>-courses`.  The guides are seeded against those names, and `just agents-check` fails on any that differ.
+- **Courses.**  `registrar/courses.yaml` is seeded from the example on first `up`.  Replace the example courses with yours before provisioning any.  A course without a `models:` list gets `CHAT_MODEL` (or `REGISTRAR_BASE_MODELS`), so leave it out unless a course needs a model the others don't.
 - **More models.**  Each is an entry in `litellm/config.yaml`.  A name there can come from the environment the same way the chat model's does (`model_name: os.environ/YOUR_VAR`); LiteLLM resolves it anywhere in that file.
 
 ## What stays named after the project
@@ -65,8 +65,8 @@ Pages in `apex/`, the guides' prompts and their eval cases never spell out the p
 ## A fresh box, in order
 
 1. Pick the names: `PLATFORM_NAME`, `CHAT_MODEL`, `MODEL_PROVIDER_NAME`, `MCP_SERVER_PREFIX`, `APP_TITLE`, and the hostnames.
-2. Set them in `.env` with everything else `just setup` asks for, before the first `just up`.
-3. Replace the example courses in `registrar/courses.yaml` with yours, listing `CHAT_MODEL`.
-4. After the first seed of the guides, make the site copy of the front door's config, with its endpoint label and model names to match.
+2. Set them in `.env` with everything else `just setup` asks for, before the first `just up`.  Quote any value with a space in it (`PLATFORM_NAME="AI Classroom"`) — `just` refuses an `.env` it can't parse, and every recipe fails with it.
+3. Replace the example courses in `registrar/courses.yaml` with yours.  Leave out `models:` and they get `CHAT_MODEL`.
+4. Make the site copy of the front door's config and rename what's in it to match (the list under "Set somewhere other than `.env`"): endpoint name, label, model names, the two `mcpServers` keys.  Then seed the guides, paste their ids into it, and restart the front door — `docs/admin-guide.md` has the procedure.  `just agents-check` is the proof: it fails on any name that doesn't match.
 5. Set the realm's display name and theme in Keycloak.
 6. Open the help site and ask the Student Guide what this platform is called.  If the answer is your name, the corpus took it.

@@ -71,6 +71,8 @@ just smoke          # prove it's serving, not just running
 just bao-init       # once per box: open the escrow (prints the root token ONCE)
 ```
 
+Then the guides: copy the front door's config into `site/`, rename what [docs/customizing.md](docs/customizing.md) lists under "Set somewhere other than `.env`", run `just agents-seed`, paste the ids it prints, and restart the front door.  `just agents-check` says when it's right.  The whole sequence, in order, is customizing.md's "A fresh box, in order" and then [docs/post-deploy.md](docs/post-deploy.md).
+
 What to set in `.env`:
 
 - **`INFERENCE_BASE_URL`** — where tokens come from.  `http://host.docker.internal:8000/v1` for the `site/inference/` stack on the same box (`just vllm-up`); an Ollama/vLLM URL for a campus inference box; a cloud endpoint if you must.  The model name in [`litellm/config.yaml`](litellm/config.yaml) must match what that endpoint serves.
@@ -103,7 +105,7 @@ The whole point is a **group co-editing one GPT**, inside a course.  Prove it:
    ```
 
    That provisions everything and starts it at `https://engr301-2026fall.<ALMANAC_DOMAIN>`, with its admin panel at `engr301-2026fall-admin.<ALMANAC_DOMAIN>`.
-2. Sign in to the course as `prof.vex` and ask its chat to **enroll amaya@example.edu and bram@example.edu**.  It stages the change and applies it when you confirm.  Then sign in once as each student — LibreChat creates accounts at first login, and groups need accounts that exist.
+2. Sign in to the front door as `prof.vex`, pick the **Instructor Guide**, and ask it to **enroll amaya@example.edu and bram@example.edu in engr301-2026fall**.  It stages the change and applies it when you confirm.  Then sign in once as each student — LibreChat creates accounts at first login, and groups need accounts that exist.
 3. As `prof.vex`, open the course's **admin panel** (same SSO button) → Groups → create `engr301-team-gust` with amaya + bram as members.  Why here and not Keycloak?  Agent sharing uses **LibreChat-local groups** — the Keycloak groups claim never reaches the ACL system (upstream [#10006](https://github.com/LibreChat-AI/LibreChat/issues/10006)).  Keycloak owns *who you are*; the panel owns *who's in the share dialog*.
 4. Still as `prof.vex`, back in the chat: create an **Agent**, give it instructions, attach a file.  **Share** → find `engr301-team-gust` → grant **Editor** (not Viewer).
 5. Sign in as `stu.amaya` → open the agent → confirm you can **edit its instructions and knowledge**, not just chat with it.

@@ -54,7 +54,9 @@ courses:
       course: 1000
       key_fuse: 5
       advisory_weekly: 2
-    models: [almanac-chat]
+    # models: omit it and the course gets REGISTRAR_BASE_MODELS, which is
+    # CHAT_MODEL unless the site serves more than one.  List models here only
+    # for a course that needs something the others don't.
     # How large one conversation may grow before LibreChat trims it.  Optional
     # — omit it and the course gets REGISTRAR_DEFAULT_CONTEXT_TOKENS (128000).
     #
@@ -65,9 +67,9 @@ courses:
     # worse: Ollama drops the FRONT of an over-long prompt and answers anyway,
     # and the front is the agent's own instructions.  Set this from what your
     # endpoint SERVES, not from what the model supports — on Ollama those
-    # differ silently (`/api/ps` on a loaded model is the honest read).
-    # The registrar can't choose for you — `almanac-chat` is an alias, and
-    # what it resolves to is whatever INFERENCE_MODEL names on this box.
+    # differ silently (`/api/ps` on a loaded model is the real number).
+    # The registrar can't choose for you — the chat model (CHAT_MODEL) is an
+    # alias, and what it resolves to is whatever INFERENCE_MODEL names here.
     # context_tokens: 8000
     group: ""            # globus backend (Phase 2): the managed group's UUID
     students:
@@ -88,7 +90,6 @@ courses:
       course: 1000
       key_fuse: 5
       advisory_weekly: 2
-    models: [almanac-chat]
     group: ""
     students:
       - amaya@example.edu     # enrolled in BOTH demo courses on purpose —

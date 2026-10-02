@@ -146,6 +146,11 @@ DESK_TOOLS = [_M(t) for t in ("course_requests", "course_approve",
 # it to a student-facing agent grants nothing — same reasoning as TRIAGE_TOOLS
 # on the Operator Guide.
 USAGE_MCP = f"{MCP_PREFIX}-usage"
+# The front door's endpoint the guides run on.  It is the same name the
+# courses' endpoints get (MODEL_PROVIDER_NAME), and every refresh re-sends
+# it — so a box that renamed the endpoint and not this strands every guide.
+AGENT_PROVIDER = (os.environ.get("AGENT_PROVIDER")
+                  or os.environ.get("MODEL_PROVIDER_NAME") or "Almanac").strip()
 _U = lambda t: f"{t}_mcp_{USAGE_MCP}"             # noqa: E731
 USAGE_TOOLS = [_U("my_usage"), _U("course_usage")]
 
@@ -714,7 +719,7 @@ def main() -> int:
               "the guides' knowledge files from its file manager.  Omit the email.")
     model_explicit = "AGENT_MODEL" in os.environ
     model = os.environ.get("AGENT_MODEL") or os.environ.get("CHAT_MODEL", "almanac-chat")
-    provider = os.environ.get("AGENT_PROVIDER", "Almanac")
+    provider = AGENT_PROVIDER
 
     state = {}
     if STATE.exists():
