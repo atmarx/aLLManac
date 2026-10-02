@@ -8,6 +8,7 @@ owner: geordi
 tags: [deployment, operator-duty, rendered-config, doc-drift, docker-compose]
 tethered_to:
   - justfile
+  - docs/upgrade-page.md
   - docs/design-walls.md
   - docs/admin-guide.md
   - docs/ci.md
@@ -46,7 +47,31 @@ Two of those are worth knowing by name because people re-run them by hand and ge
 - **`docs-build` rides on `up`**, so a deploy always rebuilds `site-dist/` from `apex/`.  The help site is built, mounted, and served at `/help/` on the chat host on every box — the route is in the tracked Caddyfile since `471e4f4`.
 - **`secrets` never touches a value that is already set.**  It is safe on every deploy and it is not a rotation.
 
+`deploy` runs each of those as its own `just`, with the upgrade page's status board written around it.  Same steps, same order, same exit code when one fails.  The next section is what that means for you.
+
 **A green deploy is a green control plane, not a green fleet.**  `smoke` proves LibreChat, Keycloak, LiteLLM and the escrow are answering.  It says nothing about whether `engr301-2026fall.<domain>` resolves, holds a cert, and returns a login page — that's `fleet-smoke`, and it is deliberately not in the deploy.
+
+## The upgrade page
+
+While a service is down, the edge shows students a "being upgraded, back in a few minutes" page instead of a bare 502 ([upgrade-page.md](upgrade-page.md)).  It has two triggers, and only one of them is yours to manage:
+
+- **Passive, always on.**  Any site whose upstream isn't answering gets the page (a browser) or a JSON 503 (anything else).  Nothing to run.
+- **Active, during `just deploy`.**  The deploy holds the flag file `status/upgrading` from `up` through `oidc-settle`, and while it exists every page load on the chat host and the course hosts gets the page, even though the services behind it are up.  `status/status.json` (served at `/_status.json`) is the step list the page shows; `status/history.json` keeps the last ten runs' step times for its "about N minutes".
+
+**To look behind the page while the flag is up**, send the header `X-Almanac-Bypass` with any value — `curl -H 'X-Almanac-Bypass: 1' ...`, or a header extension in a browser.  It is not a secret: it reaches exactly what would be there without the page.  API calls, `POST`s, `/help/` and `/_status.json` are never behind the flag.
+
+**If students are still seeing the page after a deploy has finished**, check for the flag:
+
+```bash
+ls -l status/upgrading      # there, and no deploy running?
+rm status/upgrading         # takes effect on the next page load — no reload of anything
+```
+
+The deploy's exit trap removes it on any ending it can see — success, a failed step, Ctrl-C, a dropped terminal — so a stuck flag means the deploy was killed outright (SIGKILL, an OOM, a host crash).  The next `just deploy` clears it too.  No flag and still the page: a service really is down — `just ps`.
+
+**The first deploy that brings this** recreates the edge once (it gains the `status/` mount and `PLATFORM_NAME`), so the edge itself is gone for a few seconds of `up`.  It also leaves **`render-check` red** for every course, because each course vhost gains the page in `registrar/render.py` and the live render predates it: run `just render`, which is the usual fix below.  Until you do, the courses still work — they just show a bare 502 when they restart, as before.
+
+**`status/` must belong to the deploying user.**  The deploy and `just up` create it; if something else made it first (a bare `docker compose up` creates a missing bind source as root), the deploy prints that the board is off and carries on.  `sudo chown "$USER" status` fixes it.
 
 ## The four things it does not do
 
@@ -195,5 +220,7 @@ After editing anything under `site/`, bring the box up with **`just up`** — ne
 | `smoke` warns openbao is SEALED | Never red — sealed is a boot state, and chat still works on the keys already rendered.  But nothing can mint or fetch a key until `just bao-unseal`.  On a box with `just fleet-watch-install`, a reboot unseals itself; `journalctl --user -u almanac-unseal` says why it didn't |
 | `oidc-settle` FAILs on an instance | It restarted it and sign-in still isn't registered.  Check `just logs chat-<slug>` (or `librechat`) for `openidStrategy`: an issuer the container can't reach, not a boot race |
 | Nobody can sign in after a reboot, and `smoke` is green | `just oidc-settle`.  `smoke`'s LibreChat and Keycloak lines both pass while every sign-in 500s.  A box whose boot unit predates 2026-09-29 needs `just fleet-watch-install` once to get the boot-time settle |
+| Students see the upgrade page after the deploy finished | `ls status/upgrading` — if it's there and no deploy is running, `rm status/upgrading` ([above](#the-upgrade-page)).  If it isn't, the page is the passive one and a service is down: `just ps` |
+| The deploy says "status/ is not writable … no upgrade page this run" | Something created `status/` as root.  `sudo chown "$USER" status`; the deploy itself was unaffected |
 | `fleet-smoke` red on one host | The instance, not the edge.  `just ps`, then `just logs chat-<slug>` |
 | A guide got worse deep in a long thread | Not the prompt.  The window trimmed it — see instance 2 above |

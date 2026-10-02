@@ -1,0 +1,14 @@
+# The rotating line under the progress bar on the upgrade page — one per
+# line, shown in a random order every few seconds.  Lines starting with #
+# are skipped.  Student-facing: `just docs-corpus` holds these to the same
+# banned-word and no-brand-name lists as the help pages.  Keep them short.
+Reticulating splines
+Re-rostering the roster
+Asking the Coder Guide where it left the keys
+Counting tokens (all of them)
+Sharpening the pencils
+Alphabetizing the syllabus
+Re-reading the instructions, slowly this time
+Dusting the bookshelves
+Checking the attendance sheet twice
+Putting the chairs back in rows

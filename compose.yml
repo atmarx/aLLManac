@@ -528,6 +528,8 @@ services:
       CHAT_HOST: "${CHAT_HOST:-chat.localhost}"
       AUTH_HOST: "${AUTH_HOST:-auth.localhost}"
       GATEWAY_HOST: "${GATEWAY_HOST:-gateway.localhost}"
+      # What the upgrade page calls the platform (caddy/upgrade/index.html).
+      PLATFORM_NAME: "${PLATFORM_NAME:-aLLManac}"
       # `just secrets` fills it; the Caddyfile refuses an EMPTY one outright
       # rather than let "" become a bearer check anyone passes.
       SBOM_TOKEN: "${SBOM_TOKEN:-}"
@@ -560,6 +562,14 @@ services:
       # by rename each build, and a mount of latest/ itself would pin the
       # first build's inode forever.
       - ./sbom:/srv/sbom:ro
+      # The deploy's status board (docs/upgrade-page.md): `just deploy`
+      # writes status.json and holds the flag file `upgrading` here; the edge
+      # serves the first at /_status.json and reads the second to decide
+      # whether a navigation gets the upgrade page.  The DIRECTORY, so each
+      # rename-into-place and each flag shows up live.  `just` creates it as
+      # the deploying user before compose can create it as root's.
+      # config-refresh skips this mount: it is a status board, not config.
+      - ./status:/srv/status:ro
       - caddy-data:/data
       - caddy-config:/config
     # Healthy = config loaded and serving (admin endpoint answers).  LibreChat

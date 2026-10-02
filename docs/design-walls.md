@@ -420,6 +420,8 @@ Silent by design, and it looks exactly like a client that forgot to send the hea
 
 Pipeline #13 went red teaching us this.
 
+**A SIGTERM to `just` is not passed to the running recipe** (1.40): `just` waits for the recipe to finish and then exits 130.  A recipe that needs to stop on a signal gets it only from a signal to the process group.  Measured on `deploy`: "The upgrade page" below.
+
 ---
 
 ## Keycloak — realm import is per realm NAME, not per database *(2026-09-11)*
@@ -771,6 +773,26 @@ A wildcard *site* is a wildcard *name* in Caddy's automation policy, and from Ca
 **What it does not fix is the certificate**, and that limit is the honest half.  The page appears only once the edge holds a cert valid for the name that was typed — a real wildcard, which is the target posture.  Without one the browser fails the handshake before any route is consulted, exactly as it does today.  The tempting repairs are both worse than the gap: on-demand issuance under a public issuer asks a CA for a certificate for any hostname pointed at the box, and forcing the internal CA here would hand every mistyped course URL a full browser interstitial — teaching the one population we are trying to educate that clicking through certificate warnings is normal.  **A blank page is better than a trust warning.**
 
 The page itself deliberately cannot tell a typo from a finished course, because the edge cannot, and **enumerating the courses that do exist to help someone is a roster leak with a friendly face.**
+
+---
+
+## The upgrade page — what `handle_errors` sees, and what `just` does with a SIGTERM *(measured on Caddy 2.11.4 and just 1.40, 2026-10-02)*
+
+The edge serves a "being upgraded" page in place of a bare 502 ([upgrade-page.md](upgrade-page.md)): passively whenever an upstream isn't answering, and on purpose while `just deploy` holds `status/upgrading`.  Measured on a throwaway compose project with stub upstreams under the real service names and a course vhost from `render.py`.
+
+**The form.**  `handle_errors 502 503 504 { ... }` is valid on 2.11.4 and adapts to an error route matching `{http.error.status_code} in [502, 503, 504]`.  A site can carry more than one: the chat site's `handle_errors 404` for `/help/` and the new one adapt to two routes and both work (a missing help page still gets mkdocs' 404 page with status 404; a stopped LibreChat gets the upgrade page with 503).  It lives in a snippet, `(upgrade_page)`, so the rendered course vhosts import the same handler the tracked sites do.
+
+**`handle_errors` sees only the errors Caddy raises.**  A refused or unresolvable upstream (a stopped container — its name stops resolving) is Caddy's 502, and a timeout its 504; those become the page.  A 503 the upstream *answers* with is a response, not an error, and passes through untouched — measured.  That is the right behaviour, not a gap: the gateway's own error JSON has to reach the program that asked.  Don't "fix" it with `handle_response` on the proxies.
+
+**The snippets live in the tracked Caddyfile, defined before `import /etc/caddy-fleet/*.caddy`**, and the rendered vhosts depend on them.  A course vhost that says `import upgrade_page` can't load under a Caddyfile that doesn't define it, so the order is the usual one: deploy (which ships the Caddyfile) and then `just render`, never a render from a newer registrar onto an older checkout.  The reverse is safe — old vhosts without the import load fine under the new Caddyfile; they just keep their bare 502 until `just render`, and `render-check` says so.
+
+**The flag answers `GET` and `HEAD` alone.**  A form `POST` or an admin-config write during the window meets what it would meet without the flag; the admin-config wall's 403 is unchanged with the flag on, the chat down, or both (Layer 5 of `egress-check` replayed request for request).  `X-Almanac-Bypass` presence is matched with `header X-Almanac-Bypass *`.
+
+**`config-refresh` must skip `status/`.**  It restarts any container whose read-only mounts are newer than its boot, and the deploy writes `status/status.json` before `config-refresh` runs, so the edge would have restarted on every deploy for a status board.  The mount is excluded by destination (`/srv/status`).  The same logic restarts the edge anyway on every deploy that rebuilds the help site, which is all of them (`docs-build` rewrites `site-dist/`); that one is read from the recipe, not yet measured, and left alone here (upgrade-page.md, "What it can't cover").
+
+**`just` 1.40 does not forward a SIGTERM to the running recipe.**  `kill -TERM <just>` while `deploy` runs: `just` waits for the recipe to finish — the whole rest of the deploy — and then exits 130, while the recipe never saw a signal and wrote `done`.  SIGINT, SIGTERM and SIGHUP to the *process group* (Ctrl-C, a closed terminal, a supervisor) reach the recipe's bash, whose trap runs once the current step dies: flag gone, `state: failed`, measured for all three.  SIGTERM to the recipe's own bash waits out the current step, then the same.  Only SIGKILL leaves the flag behind; `rm status/upgrading` is the repair.
+
+**The page reloads when its own URL stops answering with the page, not when the state says `done`.**  It sends `HEAD` to its URL each tick and reloads the moment the answer lacks `X-Almanac-Page`.  Reading `done` alone loops forever on a service that is still down after the deploy finished.
 
 ---
 

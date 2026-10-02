@@ -127,13 +127,18 @@ secrets:
 # one run where the folder had nothing to say.  Every run after it layers.
 #
 # Bring the stack up (profiles come from COMPOSE_PROFILES in .env)
-up: _roster _fleet _site _sbom-dir docs-build && usage-role bao-unseal
+up: _roster _fleet _site _sbom-dir _status-dir docs-build && usage-role bao-unseal
     {{compose}} up -d --remove-orphans
 
 # The edge bind-mounts sbom/ — make sure it exists as OURS before compose
 # creates it as root's and the next `just sbom` can't replace latest/.
 _sbom-dir:
     @mkdir -p sbom/latest sbom/archive
+
+# Same for status/, the deploy's status board (docs/upgrade-page.md): a
+# root-owned one is a deploy that can never raise the upgrade page.
+_status-dir:
+    @mkdir -p status
 
 # Build the human-readable site from apex/, which remains the RAG corpus too.
 # The output is a read-only bind in the edge container; there is no docs daemon.
@@ -280,8 +285,71 @@ build: _fleet && sbom
 # still never does is the FIRST seed on a box: that one mints the ids you
 # paste into librechat.yaml, which is an operator's act (agents-refresh).
 #
+# THE UPGRADE PAGE (docs/upgrade-page.md) is why this is a script and not a
+# dependency list.  Same recipes, same order — each one a fresh `just` of its
+# own, with the status board written around it: status/status.json (what the
+# page shows, served at /_status.json) and status/history.json (the last ten
+# runs' step times, for "about two minutes").  The flag, status/upgrading,
+# goes up just before `up` and comes down after `oidc-settle`: that is the
+# stretch that restarts things, and every check after it has to see the real
+# system, not the page.  The EXIT trap takes the flag down and writes the
+# final state on ANY exit it can see — a failed step, Ctrl-C, a closed
+# terminal — so the site is never left behind the page.  (CI's ssh has no
+# terminal: a dropped connection sends no signal, and the deploy simply
+# finishes.)  Only SIGKILL beats it; then `rm status/upgrading` by hand
+# (docs/post-deploy.md).
+#
+# What the split changes, and doesn't.  A failing step stops the run with
+# that step's exit code, as before.  Each step re-reads .env, so a variable
+# `secrets` appends is visible to the steps after it (it wasn't, inside one
+# invocation — the `just` wall), and a step's prior dependencies (_fleet) now
+# run once per step instead of once per deploy; they are all idempotent.
+# The board itself can never fail the deploy: a status write that fails is a
+# warning, and a status/ this user can't write turns the board off.
+#
 # What CI runs on the box: images, build, .env, restart, re-read config, verify
-deploy: channel pull build secrets up config-refresh bao-unseal smoke oidc-settle egress-check course-tokens-check render-check docs-corpus agents-refresh agents-check
+deploy:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    steps="channel pull build secrets up config-refresh bao-unseal smoke oidc-settle egress-check course-tokens-check render-check docs-corpus agents-refresh agents-check"
+    # The page comes down after this step; deploy_status.py counts its ETA to it.
+    export ALM_REOPEN_AFTER=oidc-settle
+    flag=status/upgrading
+    mkdir -p status 2>/dev/null || true
+    board_on=1
+    if [ ! -w status ]; then
+        echo "  (status/ is not writable by $(id -un) — no upgrade page this run; the deploy carries on)"
+        board_on=0
+    fi
+    board() {
+        [ "$board_on" = 1 ] || return 0
+        python3 scripts/deploy_status.py "$@" </dev/null || echo "  (status board: '$1' not recorded — the deploy carries on)"
+    }
+    finish() {
+        rc=$?
+        trap - EXIT INT TERM HUP
+        rm -f "$flag"
+        if [ "$rc" -eq 0 ]; then board finish done; else board finish failed; fi
+        exit "$rc"
+    }
+    trap finish EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    trap 'exit 129' HUP
+    board begin $steps
+    for s in $steps; do
+        if [ "$s" = up ] && [ "$board_on" = 1 ]; then touch "$flag"; fi
+        board start "$s"
+        "{{just_executable()}}" --justfile "{{justfile()}}" "$s"
+        rc=$?
+        if [ "$rc" -ne 0 ]; then
+            board end "$s" failed
+            exit "$rc"
+        fi
+        board end "$s" done
+        if [ "$s" = "$ALM_REOPEN_AFTER" ]; then rm -f "$flag"; fi
+    done
+    exit 0
 
 # The gap this closes: `docker compose up` recreates on a changed DEFINITION,
 # never on changed bind-mount CONTENTS.  Directory mounts got the new file into
@@ -305,8 +373,11 @@ config-refresh:
       [ "$boot" -gt 0 ] || continue
       checked=$((checked+1))
       newest=0; which=""
-      # read-only binds only: a rw bind is data, and its mtime means nothing here
-      srcs=$(docker inspect "$c" --format '{{{{range .Mounts}}{{{{if and (eq .Type "bind") (not .RW)}}{{{{println .Source}}{{{{end}}{{{{end}}' 2>/dev/null)
+      # read-only binds only: a rw bind is data, and its mtime means nothing here.
+      # And not the edge's /srv/status: that is the deploy's status board,
+      # which `deploy` rewrites before this step runs.  It is not config, and
+      # nothing about it needs a restart to be seen.
+      srcs=$(docker inspect "$c" --format '{{{{range .Mounts}}{{{{if and (eq .Type "bind") (not .RW) (ne .Destination "/srv/status")}}{{{{println .Source}}{{{{end}}{{{{end}}' 2>/dev/null)
       for src in $srcs; do
         [ -e "$src" ] || continue
         # No -type f: a DELETED config file bumps only its parent directory's
@@ -783,7 +854,7 @@ course slug name +instructors:
 # and `just course` both rewrites fleet.yml AND runs this — so without the
 # lock one course created by hand is two `compose up`s racing each other.
 # Start newly rendered instances + reload the edge's vhosts (graceful)
-course-up:
+course-up: _status-dir
     #!/usr/bin/env bash
     set -uo pipefail
     exec 9>fleet/.course-up.lock

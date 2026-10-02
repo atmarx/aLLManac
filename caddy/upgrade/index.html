@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<!--
+  The upgrade page (docs/upgrade-page.md).  The edge serves it, with status
+  503, in two cases: a service behind it isn't answering (the passive layer,
+  handle_errors in ../Caddyfile), or `just deploy` holds status/upgrading
+  (the active layer).  Same page, same URL the person asked for — so a
+  reload is all it takes to get back in.
+
+  ONE FILE, NOTHING EXTERNAL.  No CDN, no web font, no image: an upgrade is
+  exactly when an outside dependency is least welcome.
+
+  Filled by Caddy's `templates`: PLATFORM_NAME and CHAT_HOST from the edge's
+  environment (compose.yml), and lines.txt inlined below.  The help link is
+  absolute because this page also shows on course hosts, which have no
+  /help/ of their own.  Nothing in this file may contain a pair of opening
+  braces except the template calls themselves.
+
+  Without JavaScript: the plain message, and a meta refresh every 30s.
+  With it: polls /_status.json every 3s for the step list, and checks the
+  page's own URL (HEAD) for the X-Almanac-Page header — when a plain
+  navigation would no longer get this page, it reloads into the app.
+
+  Words: the pedagogy lane.  Route and script: the plumbing.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<noscript><meta http-equiv="refresh" content="30"></noscript>
+<title>{{env "PLATFORM_NAME" | html}} is upgrading</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --muted: #6a645c;
+    --rule: #e2ddd4; --accent: #7a5c2e; --track: #ece7de;
+    --ok: #3f6b3a; --bad: #9a3b2c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171614; --fg: #e8e4dd; --muted: #a09a91;
+      --rule: #322f2a; --accent: #d3ae6f; --track: #2a2824;
+      --ok: #8fbf83; --bad: #e08a78;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 17px/1.65 ui-serif, Georgia, "Times New Roman", serif;
+    padding: 16px;
+  }
+  main { max-width: 34rem; margin: 12vh auto 6rem; }
+  h1 {
+    font-size: 1.7rem; line-height: 1.25; font-weight: 600;
+    margin: 0 0 1.4rem; letter-spacing: -0.01em; overflow-wrap: anywhere;
+  }
+  p { margin: 0 0 1.15rem; }
+  .lede { font-size: 1.05rem; }
+  .safe { font-weight: 600; }
+  .bar {
+    height: 6px; border-radius: 3px; background: var(--track);
+    overflow: hidden; margin: 2rem 0 0.6rem; position: relative;
+  }
+  .bar > span {
+    position: absolute; top: 0; bottom: 0; left: 0; width: 30%;
+    background: var(--accent); border-radius: 3px;
+    animation: slide 1.8s ease-in-out infinite;
+  }
+  .bar.known > span { animation: none; transition: width 0.6s ease; }
+  @keyframes slide { from { left: -30%; } to { left: 100%; } }
+  @media (prefers-reduced-motion: reduce) {
+    .bar > span { animation: none; left: 0; width: 100%; opacity: 0.35; }
+    .bar.known > span { opacity: 1; transition: none; }
+  }
+  .line {
+    font: 0.92rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--muted); min-height: 1.5em; margin: 0 0 1.6rem;
+  }
+  ol { list-style: none; padding: 0; margin: 0 0 1.2rem; }
+  li { padding: 0.15rem 0 0.15rem 1.6rem; position: relative; color: var(--muted); }
+  li::before { position: absolute; left: 0; width: 1.2rem; text-align: center; }
+  li.done::before { content: "\2713"; color: var(--ok); }
+  li.running { color: var(--fg); font-weight: 600; }
+  li.running::before { content: "\2192"; color: var(--accent); }
+  li.waiting::before { content: "\00b7"; }
+  li.failed { color: var(--bad); }
+  li.failed::before { content: "\00d7"; }
+  .eta { color: var(--muted); }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 2.4rem 0 1.6rem; }
+  .fine { font-size: 0.92rem; color: var(--muted); }
+  a { color: var(--accent); text-underline-offset: 2px; overflow-wrap: anywhere; }
+  .js-only { display: none; }
+  .js .js-only { display: block; }
+  .js .no-js { display: none; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>{{env "PLATFORM_NAME" | html}} is being upgraded</h1>
+
+  <p class="lede" id="lede">It will be back in a few minutes.</p>
+  <p class="safe">Your conversations and files are safe.</p>
+
+  <div class="bar" id="bar" aria-hidden="true"><span id="fill"></span></div>
+  <p class="line js-only" id="line" aria-live="off"></p>
+
+  <ol id="steps" hidden></ol>
+  <p class="eta" id="eta" hidden></p>
+
+  <p class="no-js">This page checks again every 30 seconds.</p>
+  <p class="js-only">This page will reload by itself when everything is back.</p>
+
+  <hr>
+
+  <p class="fine">The help pages are still up: <a href="https://{{env "CHAT_HOST" | html}}/help/">{{env "CHAT_HOST" | html}}/help/</a></p>
+</main>
+
+<script type="text/plain" id="lines">
+{{include "lines.txt"}}
+</script>
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement;
+  var byId = function (id) { return document.getElementById(id); };
+
+  // How old a status may be and still describe what is happening now.  A
+  // deploy killed outright (no trap) leaves "upgrading" behind; a failure
+  // from yesterday is not why the platform is down today.
+  var STALE_MS = 60 * 60 * 1000;
+  var FAILED_MS = 2 * 60 * 60 * 1000;
+
+  if (!window.fetch || !window.JSON) {
+    setTimeout(function () { location.reload(); }, 30000);
+    return;
+  }
+  root.className += " js";
+
+  // The rotating line.
+  var lines = (byId("lines").textContent || "").split("\n")
+    .map(function (s) { return s.trim(); })
+    .filter(function (s) { return s && s.charAt(0) !== "#"; });
+  var lineEl = byId("line");
+  var n = Math.floor(Math.random() * Math.max(lines.length, 1));
+  function rotate() {
+    if (!lines.length) return;
+    lineEl.textContent = lines[n % lines.length] + "…";
+    n += 1;
+  }
+  rotate();
+  setInterval(rotate, 4000);
+
+  function ago(stamp) {
+    var t = Date.parse(stamp || "");
+    return isNaN(t) ? Infinity : Date.now() - t;
+  }
+
+  function minutes(s) {
+    if (typeof s !== "number") return "A few minutes left.";
+    if (s < 60) return "Less than a minute left.";
+    var m = Math.round(s / 60);
+    return m <= 1 ? "About a minute left." : "About " + m + " minutes left.";
+  }
+
+  // Consecutive steps with the same label are one line to a reader.
+  function groups(steps) {
+    var out = [];
+    steps.forEach(function (s) {
+      var last = out[out.length - 1];
+      if (last && last.label === s.label) last.states.push(s.state);
+      else out.push({ label: s.label, states: [s.state] });
+    });
+    return out.map(function (g) {
+      var has = function (x) { return g.states.indexOf(x) !== -1; };
+      var state = has("failed") ? "failed"
+        : has("running") ? "running"
+        : !has("waiting") ? "done"
+        : has("done") ? "running" : "waiting";
+      return { label: g.label, state: state };
+    });
+  }
+
+  function show(st) {
+    var stepsEl = byId("steps"), etaEl = byId("eta"), bar = byId("bar");
+    var live = st && st.state === "upgrading" && ago(st.updated) < STALE_MS;
+    var failed = st && st.state === "failed" && ago(st.finished) < FAILED_MS;
+    if (failed) {
+      byId("lede").textContent = "This is taking longer than planned.  The team knows.";
+    }
+    if (!live || !Array.isArray(st.steps)) {
+      stepsEl.hidden = true; etaEl.hidden = true;
+      bar.className = "bar";
+      return;
+    }
+    var g = groups(st.steps);
+    stepsEl.textContent = "";
+    g.forEach(function (x) {
+      var li = document.createElement("li");
+      li.className = x.state;
+      li.textContent = x.label;
+      stepsEl.appendChild(li);
+    });
+    stepsEl.hidden = false;
+    etaEl.textContent = minutes(st.eta_seconds);
+    etaEl.hidden = false;
+    var done = st.steps.filter(function (s) { return s.state === "done"; }).length;
+    bar.className = "bar known";
+    byId("fill").style.width = Math.max(4, Math.round(100 * done / st.steps.length)) + "%";
+  }
+
+  // Would a plain navigation to this URL still get this page?  The edge
+  // marks every copy of it with X-Almanac-Page.  A redirect, any other
+  // answer, or a missing header means the app is back.  No answer at all
+  // (the edge itself restarting) means wait.
+  function back() {
+    return fetch(location.href, {
+      method: "HEAD", cache: "no-store", redirect: "manual",
+      credentials: "same-origin", headers: { "Accept": "text/html" }
+    }).then(function (r) {
+      return r.type === "opaqueredirect" || !r.headers.get("X-Almanac-Page");
+    }, function () { return false; });
+  }
+
+  function tick() {
+    fetch("/_status.json", { cache: "no-store", credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(show, function () {})
+      .then(back)
+      .then(function (yes) {
+        if (yes) location.reload();
+        else setTimeout(tick, 3000);
+      }, function () { setTimeout(tick, 3000); });
+  }
+  tick();
+})();
+</script>
+</body>
+</html>

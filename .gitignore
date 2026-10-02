@@ -23,6 +23,11 @@ site/
 # is tracked; the generated HTML is rebuilt on each deployment.
 site-dist/
 
+# The deploy's status board (docs/upgrade-page.md) — status.json, history.json
+# and the flag file `upgrading`, written by `just deploy` and served by the
+# edge.  One box's state, never anyone else's.
+status/
+
 # SBOM artifacts — rewritten by every `just build` (sbom/latest/, served by
 # the edge at /sbom/) plus dated tarballs in sbom/archive/.  A render of the
 # images on the box; too big and too derivative for git

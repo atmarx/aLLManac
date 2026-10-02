@@ -157,7 +157,8 @@ TELLS = re.compile(r"\bload-bearing\b|\bhonest(?:ly|y)?\b|\bdoors?\b"
 # docstrings of anything that isn't an @mcp.tool are for whoever maintains
 # the code, so they are skipped.
 SPOKEN = ["registrar/server.py", "usage-mcp/server.py",
-          "registrar/planes/exports.py", "registrar/planes/notify.py"]
+          "registrar/planes/exports.py", "registrar/planes/notify.py",
+          "scripts/deploy_status.py"]
 
 
 def spoken(rel: str) -> str:
@@ -194,6 +195,33 @@ def spoken(rel: str) -> str:
 
 def service_hits(check) -> list[str]:
     return [hit for rel in SPOKEN for hit in check(rel, spoken(rel))]
+
+
+# The edge's upgrade page and its rotating lines are what a student reads
+# while everything else is down (docs/upgrade-page.md).  The page's comments,
+# its stylesheet and its script's comments are for whoever maintains it and
+# are blanked; what's left is the visible text and the script's strings,
+# which become visible text.  Its name is {{env "PLATFORM_NAME"}}, filled by
+# Caddy's templates, so a hard-coded one fails here like anywhere else.
+SHOWN = ["caddy/upgrade/index.html", "caddy/upgrade/lines.txt"]
+
+
+def shown(rel: str) -> str:
+    """A page or lines file as a reader meets it, line numbers kept."""
+    src = (ROOT / rel).read_text()
+    if rel.endswith(".txt"):
+        return "\n".join("" if ln.lstrip().startswith("#") else ln
+                         for ln in src.splitlines())
+    blank = lambda m: "\n" * m.group(0).count("\n")
+    src = re.sub(r"<!--.*?-->", blank, src, flags=re.S)
+    src = re.sub(r"<style\b.*?</style>", blank, src, flags=re.S | re.I)
+    src = re.sub(r"^[ \t]*//.*$", "", src, flags=re.M)
+    # A tag starts with a letter, / or !, so the script's `a < b` stays text.
+    return re.sub(r"<[A-Za-z/!][^<>]*>", " ", src)
+
+
+def shown_hits(check) -> list[str]:
+    return [hit for rel in SHOWN for hit in check(rel, shown(rel))]
 
 
 FALLBACK = os.environ.get(
@@ -415,10 +443,12 @@ def main() -> int:
     named += unbranded("docs/corpus.py (SCOPE, DIRECTORY)",
                        "\n".join([*SCOPE.values(), DIRECTORY]))
     named += service_hits(unbranded)
+    named += shown_hits(unbranded)
     if named:
         raise SystemExit("these hard-code a name a deployment chooses — write {{PLATFORM}} "
-                         "or {{MODEL}} (PLATFORM_NAME and CHAT_MODEL fill them), or "
-                         "PLATFORM in a service's Python:\n  "
+                         "or {{MODEL}} (PLATFORM_NAME and CHAT_MODEL fill them), "
+                         "PLATFORM in a service's Python, or {{env \"PLATFORM_NAME\"}} "
+                         "in the upgrade page:\n  "
                          + "\n  ".join(named))
 
     told = [hit for rel, fm, body in pages if rel.parts[0] == "apex"
@@ -431,6 +461,7 @@ def main() -> int:
     told += tells("docs/corpus.py (SCOPE, DIRECTORY)",
                   "\n".join([*SCOPE.values(), DIRECTORY]))
     told += service_hits(tells)
+    told += shown_hits(tells)
     if told:
         raise SystemExit("these use a word readers flagged as machine-written "
                          "(docs/pedagogy-authoring.md, \"Voice\"):\n  "
