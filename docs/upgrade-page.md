@@ -86,7 +86,7 @@ Running each step as its own `just` has two side effects, both harmless.  Every 
 
 ## What it can't cover
 
-**The edge itself.**  If `up` recreates the edge container (when its definition changed — this feature's own first deploy is one), nothing serves for those seconds, and the browser shows its own error.  So does `config-refresh` restarting it, and by reading that recipe it does on every deploy: `docs-build` rewrites `site-dist/`, which the edge mounts read-only, so the edge looks like it holds stale config.  A second or two, and the page's poll rides it out, but a navigation in that second gets the browser's error.  Teaching `config-refresh` that `/srv/docs` and `/srv/sbom` are content, not config, would close it; it is not done here.  (`/srv/status` is already skipped.)
+**The edge itself.**  If `up` recreates the edge container (when its definition changed — this feature's own first deploy is one), nothing serves for those seconds, and the browser shows its own error.  So does `config-refresh` restarting it, which now happens only when the edge's real config changed (the Caddyfile, the page itself, a rendered vhost) — its content mounts, `/srv/docs`, `/srv/sbom` and `/srv/status`, are skipped.  A second or two, and the page's poll rides it out, but a navigation in that second gets the browser's error.
 
 **A request already in flight.**  A chat reply streaming when its container stops is cut off; the page can't rescue it.  LibreChat keeps the conversation, so a reload shows what was saved.
 

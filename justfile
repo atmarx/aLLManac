@@ -374,10 +374,15 @@ config-refresh:
       checked=$((checked+1))
       newest=0; which=""
       # read-only binds only: a rw bind is data, and its mtime means nothing here.
-      # And not the edge's /srv/status: that is the deploy's status board,
-      # which `deploy` rewrites before this step runs.  It is not config, and
-      # nothing about it needs a restart to be seen.
-      srcs=$(docker inspect "$c" --format '{{{{range .Mounts}}{{{{if and (eq .Type "bind") (not .RW) (ne .Destination "/srv/status")}}{{{{println .Source}}{{{{end}}{{{{end}}' 2>/dev/null)
+      # And not the edge's content mounts: /srv/status is the deploy's status
+      # board, which `deploy` rewrites before this step runs; /srv/docs is
+      # `docs-build`'s output (mkdocs --clean empties site-dist/ but keeps the
+      # directory, so the mount never goes stale); /srv/sbom is renamed into
+      # under a mounted parent on purpose.  The edge serves all three per
+      # request.  Counting them restarted the edge on every deploy, because
+      # `up` rebuilds the docs — seconds with nothing serving, in the middle
+      # of the window the upgrade page exists to cover.
+      srcs=$(docker inspect "$c" --format '{{{{range .Mounts}}{{{{if and (eq .Type "bind") (not .RW) (ne .Destination "/srv/status") (ne .Destination "/srv/docs") (ne .Destination "/srv/sbom")}}{{{{println .Source}}{{{{end}}{{{{end}}' 2>/dev/null)
       for src in $srcs; do
         [ -e "$src" ] || continue
         # No -type f: a DELETED config file bumps only its parent directory's
