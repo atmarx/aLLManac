@@ -12,7 +12,8 @@
 #   course           THE cap — per term, HARD, chat + vAPI keys drain it together
 #                    (enforced as the course's LiteLLM team budget)
 #   key_fuse         per-key ceiling — leak blast radius, not a pacing tool
-#   advisory_weekly  what "on pace" means in the usage tools; never blocks
+#   advisory_weekly  stored and validated, but nothing reads it yet — a pacing
+#                    number for a future "on pace" view; never blocks
 #
 # college:  unions that college's model pack into this course's models —
 #           a college is a MODEL PACK, not an org chart.

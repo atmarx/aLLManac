@@ -264,19 +264,25 @@ async def my_usage(days: int = 7) -> str:
 async def course_usage(course: str, days: int = 30) -> str:
     """Course-wide usage — a faculty view: totals, per-student activity, who
     hasn't started yet, and the model mix.  `course` is the course's id or its
-    name (my_courses or list_courses when unsure).  Covers chat activity by enrolled students
-    AND any API keys minted under the course's owner tag."""
+    name (my_courses or list_courses when unsure).  Covers this course's chat
+    and the API keys minted for it — nothing a student did in another course
+    or at the front door."""
     email, role = _ident()
     days = _clamp_days(days)
     slug, c = _course_or_refuse(email, role, course)
     emails = c["students"]
-    ids = sorted({a for e in emails for a in c["aliases"].get(e, [])} | set(emails))
     tag = json.dumps([f"owner:{slug}"])
+    # The COURSE decides which rows count, never the person.  This used to
+    # match any row whose end_user or user was one of the course's students —
+    # and a student's email rides every chat turn they make anywhere, so an
+    # instructor saw that student's other courses and front-door use too, and
+    # "not started yet" read a student active in course B as started in A.
+    # Every row this course produces carries its team (the service key and
+    # every minted key are team-scoped, registrar/planes/gateway.py) and its
+    # owner tag; the tag also catches a key minted outside the team.
     where = """
         "startTime" >= (now() AT TIME ZONE 'utc') - make_interval(days => $1)
-          AND (lower(end_user) = ANY($2::text[])
-               OR lower("user") = ANY($3::text[])
-               OR request_tags @> $4::jsonb)
+          AND (team_id = $2 OR request_tags @> $3::jsonb)
     """
     pool = await _db()
     per_ident = await pool.fetch(
@@ -290,7 +296,7 @@ async def course_usage(course: str, days: int = 30) -> str:
         FROM "LiteLLM_SpendLogs" WHERE {where}
         GROUP BY 1
         """,
-        days, emails, ids, tag,
+        days, slug, tag,
     )
     mix = await pool.fetch(
         f"""
@@ -299,7 +305,7 @@ async def course_usage(course: str, days: int = 30) -> str:
         FROM "LiteLLM_SpendLogs" WHERE {where}
         GROUP BY 1 ORDER BY toks DESC
         """,
-        days, emails, ids, tag,
+        days, slug, tag,
     )
     # Fold key-user aliases back onto the student's email:
     rev = {a: e for e in emails for a in c["aliases"].get(e, [])}
