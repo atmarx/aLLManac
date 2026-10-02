@@ -61,9 +61,11 @@ We also do not collect keystrokes, screen activity, or attention telemetry.  Wha
 
 ## Sharing is available, and nothing is shared until you share it
 
-You can share an agent you built with other people in your course, and they can share theirs with you.  That is switched on in every course here, deliberately — group work needs it, and the chat software's own default is off, which is the wrong setting for a classroom.
+You can share an agent you built with other people in your course, and they can share theirs with you.  Agent sharing is switched on in every course here, deliberately — group work needs it, and the chat software's own default is off, which is the wrong setting for a classroom.
 
 What that does **not** mean is that anything of yours is visible by default.  An agent you build is yours until you share it, and sharing is an action you take on a specific agent.  There is no setting that quietly exposes your work.
+
+**A conversation can be shared too, as a link.**  Unless your instructor has turned it off for your course, you can make a link to one of your own conversations and send it to someone — a TA, a classmate reviewing your work.  The link opens only for someone signed in to your course, never for the open web, and a conversation has no link until you make one.
 
 One thing to know before you share: **an agent carries its knowledge files with it.**  Anyone who can chat with a shared agent can eventually get it to reveal what you attached, so attach things you would be comfortable handing over directly.
 
