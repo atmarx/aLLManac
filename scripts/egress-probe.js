@@ -168,6 +168,86 @@ const ok = (m) => console.log(`  ok    ${m}`);
     else bad(`${line}   (expected ${want})`);
   }
 
+  // ---- Layer 5: the admin config API — refused at the edge, both ways in ----
+  // A course's ADMINs (its instructors and TAs) could write a base-scope
+  // config override adding an `mcpServers` entry, which gets ${ENV}
+  // substitution, and widen `mcpSettings.allowedDomains` to let it out —
+  // the course env, sent wherever they chose (design-walls.md, "...but the
+  // admin config API does").  The edge refuses every write to
+  // /api/admin/config on a course host, on the browser's way in (the
+  // course vhost) and the panel's (its API_SERVER_URL, the edge's internal
+  // listener).  This proves it from inside the compose network.
+  //
+  // It cannot change anything.  Every request goes WITHOUT a credential, so
+  // even one that got through would meet requireJwtAuth and a 401.  And
+  // that 401 is still a FAIL: the pass condition is the edge's own 403,
+  // marked X-Almanac-Wall, which LibreChat never sends.  Reaching LibreChat
+  // at all, with any status, means the wall isn't there.  The controls run
+  // the other way — a read and a Groups write must reach LibreChat, or the
+  // panel's own pages broke.  TLS verification is off on the browser path
+  // only because no credential rides on it; it's how the probe reaches the
+  // course vhost by name through the `edge` service without trusting a CA.
+  const host = process.env.ALM_COURSE_HOST || '';
+  if (host) {
+    const http = require('http');
+    const https = require('https');
+    const edge = process.env.ALM_EDGE || 'edge';
+    const panelApi = process.env.ALM_PANEL_API || '';
+    const ask = (method, url, sni) => new Promise((resolve) => {
+      const u = new URL(url);
+      const lib = u.protocol === 'https:' ? https : http;
+      const opts = {
+        method, path: u.pathname + u.search, timeout: 8000,
+        headers: { 'Content-Type': 'application/json', 'Content-Length': 2 },
+      };
+      if (sni) Object.assign(opts, { host: edge, port: 443, servername: sni,
+        rejectUnauthorized: false, headers: { ...opts.headers, Host: sni } });
+      else Object.assign(opts, { host: u.hostname, port: u.port || 80 });
+      const req = lib.request(opts, (res) => {
+        res.resume();
+        resolve({ status: res.statusCode, wall: res.headers['x-almanac-wall'] || '' });
+      });
+      req.on('timeout', () => req.destroy(new Error('timeout')));
+      req.on('error', (e) => resolve({ status: `ERR ${e.code || e.message}`, wall: '' }));
+      req.end('{}');
+    });
+    console.log(`\nLayer 5 — the admin config API is refused at the edge (${host})`);
+    const paths = [];
+    const browser = `https://${host}`;
+    paths.push(['browser', browser, host]);
+    if (!panelApi) {
+      console.log('  --    no course panel running — the panel path is not checked');
+    } else if (!/^http:\/\/edge:\d+\//.test(panelApi)) {
+      bad(`the panel's API_SERVER_URL does not go through the edge — it walks around the wall`);
+      console.log('        Re-render (`just render`): the panel must call http://edge:<port>/<slug>.');
+    } else {
+      paths.push(['panel', panelApi, '']);
+    }
+    for (const [via, base, sni] of paths) {
+      const checks = [
+        ['PUT', '/api/admin/config/role/__base__', true, 'a base-scope override'],
+        ['POST', '/API/Admin/Config/role/__base__/fields/tombstone', true, 'a tombstone, path in odd case'],
+        ['PATCH', '/api/admin/config/role/ADMIN/active', true, 'toggling an override on'],
+        ['GET', '/api/admin/config', false, 'reading overrides (the panel shows them)'],
+        ['POST', '/api/admin/groups', false, 'a Groups write (what faculty use the panel for)'],
+      ];
+      for (const [method, path, walled, label] of checks) {
+        const r = await ask(method, base + path, sni);
+        const seen = `${r.status}${r.wall ? ` [wall: ${r.wall}]` : ''}`;
+        const line = `${pad(`${via}: ${label}`, 60)} ${pad(method, 6)} -> ${seen}`;
+        if (walled) {
+          if (r.status === 403 && r.wall === 'admin-config') ok(line);
+          else if (typeof r.status === 'number') bad(`${line}   (reached LibreChat — the edge let it through)`);
+          else bad(`${line}   (no answer from the edge)`);
+        } else if (typeof r.status === 'number' && !r.wall) {
+          ok(line);
+        } else {
+          bad(`${line}   (expected LibreChat's own answer — the wall is too wide or the edge is down)`);
+        }
+      }
+    }
+  }
+
   console.log('');
   process.exit(failed ? 1 : 0);
 })();

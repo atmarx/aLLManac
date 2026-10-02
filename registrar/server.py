@@ -1485,6 +1485,13 @@ async def fleet_inventory() -> str:
             extra = set(d["member"]) - roster - set(d["admin"])
             if extra:
                 findings.append(f"{c['slug']}: {len(extra)} may sign in but aren't rostered (fleet_access)")
+    for c in rep["courses"]:
+        ov = c["census"].get("config_overrides") or []
+        if ov:
+            secs = sorted({x for o in ov for x in o["sections"] + o["removes"]})
+            findings.append(f"{c['slug']}: {len(ov)} config override(s) saved in its database, "
+                            f"touching {', '.join(secs) or 'nothing'} — written before the edge "
+                            "refused them, and still applied (fleet_exposure)")
     if rep["orphan_databases"]:
         findings.append("databases with no course record: " + ", ".join(rep["orphan_databases"]))
     for c in rep["courses"]:
@@ -1535,7 +1542,9 @@ async def fleet_exposure(course: str) -> str:
     """What one course has that reaches past a single person: every agent
     with its share scope (public / role / group / named users / private),
     its tools and knowledge count; every file by size and owner; the
-    capabilities and Actions allowlist the course record grants; the pool.
+    capabilities and Actions allowlist the course record grants; the pool;
+    and any config override saved in the course's database (section names
+    only), since one can undo the rest.
     Platform admins only.  Names and sizes — never contents."""
     email, _role, _here = _ident_open()
     _admin_or_refuse(email)
@@ -1552,6 +1561,18 @@ async def fleet_exposure(course: str) -> str:
            f"Models: {', '.join(x['models'])}"]
     if x["pool"]:
         out.append(f"Pool: ${x['pool']['spend']:.2f} spent · {x['pool']['keys']} keys")
+    ov = x.get("config_overrides") or []
+    if ov:
+        out += ["", f"Config overrides: {len(ov)} saved in the course's database, still applied.  "
+                    "The edge refuses new ones; these predate it.  Section names only — the "
+                    "values may hold secrets and are never read.  Removing one is an operator's "
+                    "call (docs/design-walls.md).",
+                "", "| principal | active | sets | removes | updated |", "|---|---|---|---|---|"]
+        out += [f"| {o['principal']} | {'yes' if o['active'] else 'no'} | "
+                f"{', '.join(o['sections']) or '—'} | {', '.join(o['removes']) or '—'} | "
+                f"{o['updated'] or '—'} |" for o in ov]
+    else:
+        out.append("Config overrides: none")
     out += ["", f"Agents: {t.get('agents', 0)} ({t.get('agents_shared', 0)} shared)"]
     if x["agents"]:
         out += ["", "| agent | owner | scope | tools | actions | files | updated |",

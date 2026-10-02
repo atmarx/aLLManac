@@ -82,6 +82,15 @@ An **unrendered** line is not red.  A course record with no `fleet/<slug>.env` h
 
 That one is a stale render, and those courses' tools are refusing until `just render` runs.  Run it, then `just course-tokens-check` again.  Any other FAIL — a token **accepted** where it should be refused — is not a render problem: it is the boundary not holding, and it needs a person before the next deploy.
 
+**`egress-check` goes red over the same window too, and runs before both.**  Its Layer 5 asks the edge to refuse writes to each course's admin config API — on the course's host and on the way its panel calls the API — and since 2026-10-02 the panel's way runs through the edge.  A course rendered before that still has its panel pointed straight at its chat:
+
+```
+  FAIL  the panel's API_SERVER_URL does not go through the edge — it walks around the wall
+  FAIL  browser: a base-scope override        PUT    -> 401   (reached LibreChat — the edge let it through)
+```
+
+Stale render again: `just render`, then `just egress-check`.  Because `egress-check` stops the deploy, the checks after it — `course-tokens-check`, `render-check`, the guide refresh — didn't run on that pass; `just deploy` again once it's green.  A Layer 5 FAIL on a box whose render is current means the wall itself isn't holding, and it needs a person.  Overrides an instructor saved *before* the wall still apply; `just fleet` lists them as a finding, and removing one is your call ([design-walls.md](design-walls.md), "...but the admin config API does").
+
 ### 2.  `just agents-seed` — the first time, and when the deploy couldn't
 
 The guide agents on the flagship carry the docs as knowledge and the contract as their prompt.  **The deploy refreshes them itself**: `agents-refresh` re-runs the seeder on any box that has been seeded before, and `agents-check` then **fails the deploy** if a guide's knowledge or prompt is still older than the tree.  The refresh is content-hashed, so a page edit costs one upload, and it updates in place, so no agent id moves.
@@ -178,6 +187,7 @@ After editing anything under `site/`, bring the box up with **`just up`** — ne
 |---|---|
 | `render-check` red | [`just render`](#1--just-render--when-a-render-template-changed) — above |
 | `course-tokens-check` says an env "still holds the FRONT DOOR's token" or a token "the current secret doesn't derive" | `just render`, then re-run it — the courses' tools refuse until you do |
+| `egress-check` Layer 5: a panel's `API_SERVER_URL` doesn't go through the edge, or a config write "reached LibreChat" | A render from before 2026-10-02: `just render`, then `just egress-check`.  Still red with a current render: the admin-config wall isn't holding — stop and read [design-walls.md](design-walls.md), "...but the admin config API does" |
 | `course-tokens-check` says a token was **accepted** where it should be refused | The per-course boundary isn't holding.  Not a render — stop and read [design-walls.md](design-walls.md), "A course's MCP token speaks for that course alone" |
 | `render-check` FAILs on the registrar not matching the tree | `just deploy` first; the check is refusing to guess |
 | `agents-check` red on knowledge or prompt (STALE) | The deploy's refresh didn't land — read the `agents-refresh` output above it.  Never seeded: `just agents-seed`.  RATE LIMITED: wait fifteen minutes, then `just agents-seed` |

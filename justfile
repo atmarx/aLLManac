@@ -463,19 +463,24 @@ fleet-smoke:
 # doing something, which is a different question and a harder one: a control
 # that parses is not a control that runs.
 #
-# Three layers, and the third is the one that matters:
+# Layers 1-3 are Actions, and the third is the one that matters:
 #   1  placement — is the knob where the enforcing code actually reads it?
 #   2  posture   — what does this configuration MEAN? (an empty allowlist is
 #                  no allowlist; there is no way to spell deny-all)
 #   3  enforcement — ask the pinned image's OWN isActionDomainAllowed, with
 #                  this instance's real list.  Not our reimplementation of
 #                  the rule, not the vendor's description of it.  The code.
+#   4  MCP servers — the image's own isMCPDomainAllowed, the same way.
+#   5  a course only: the edge refuses writes to the admin config API on
+#      the course's host and on its panel's way in, and passes Groups.  Sent
+#      with no credential, so nothing can change even if one got through —
+#      and getting through, to any LibreChat status, is the failure.
 #
 # The probe is piped in over stdin and never written to disk inside a running
 # container — same spirit as the prod-probe pattern in docs/design-walls.md:
 # verify on the box without changing the box.
 
-# Prove the Actions egress allowlist enforces:  just egress-check [slug]
+# Prove the egress allowlists and the admin-config wall enforce:  just egress-check [slug]
 egress-check slug="":
     #!/usr/bin/env bash
     set -uo pipefail
@@ -512,12 +517,25 @@ egress-check slug="":
         fi
         ino=""
         [ -n "$hostfile" ] && [ -e "$hostfile" ] && ino=$(stat -c %i "$hostfile")
+        # Layer 5 (a course only): the edge must refuse admin-config writes on
+        # the course's own host AND on the way its panel calls the API.  The
+        # panel's API_SERVER_URL is read by name — the template picks that one
+        # variable, so no other line of the panel's env (its course's secrets)
+        # ever reaches this shell.
+        course_host=""; panel_api=""
+        case "$c" in alm-chat-*)
+            slug="${c#alm-chat-}"
+            course_host="$slug.${ALMANAC_DOMAIN:-localhost}"
+            panel_api=$(docker inspect "alm-panel-$slug" --format '{{{{range .Config.Env}}{{{{if eq (index (split . "=") 0) "API_SERVER_URL"}}{{{{index (split . "=") 1}}{{{{end}}{{{{end}}' 2>/dev/null || true)
+        esac
         docker exec -i -w /app -e ALM_STARTED_AT="$started" -e ALM_HOST_INO="$ino" \
+            -e ALM_COURSE_HOST="$course_host" -e ALM_PANEL_API="$panel_api" \
             "$c" node < scripts/egress-probe.js || fail=1
     done
     echo
     if [ "$fail" = 0 ]; then
-        echo "  every aLLManac instance checked: the allowlist is enforced."
+        echo "  every aLLManac instance checked: the allowlists are enforced, and every"
+        echo "  course's edge refuses admin-config writes on both ways in."
         echo "  (Scope is this stack — containers named alm-librechat / alm-chat-*."
         echo "   A LibreChat on this box that isn't ours is not ours to vouch for.)"
     else

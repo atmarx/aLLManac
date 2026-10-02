@@ -306,6 +306,13 @@ def main() -> int:
             print(f"{c['host']:40} {state:10} users={t.get('users', 0)} convos={t.get('conversations', 0)} "
                   f"agents={t.get('agents', 0)}/{t.get('agents_shared', 0)}shared files={t.get('files', 0)} "
                   f"pool={ps} roster={c['roster']['students']}")
+        for c in rep["courses"]:
+            # Saved before the edge refused them, and still applied — names
+            # only (design-walls.md, "...the admin config API does").
+            for o in c["census"].get("config_overrides") or []:
+                print(f"  config override  {c['slug']}  {o['principal']}"
+                      f"{'' if o['active'] else ' (inactive)'}: "
+                      + ", ".join(o["sections"] + [f"-{r}" for r in o["removes"]]))
         if rep["orphan_databases"]:
             print("orphan databases: " + ", ".join(rep["orphan_databases"]))
         print("\nwritten: fleet/inventory.md, fleet/inventory.json")

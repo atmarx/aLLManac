@@ -155,6 +155,34 @@ def _census_sync(slug: str | None) -> dict:
         })
     agents.sort(key=lambda a: (a["share"] == "private", a["name"] or ""))
 
+    # Config overrides — what an ADMIN wrote through /api/admin/config.  The
+    # edge refuses those writes now (render.py, ADMIN_CONFIG_WALL), but one
+    # saved before the wall still applies at every request, and a base-scope
+    # override is how a course's env leaves the box (design-walls.md, "A
+    # server staff add in the chat UI never sees the container's
+    # environment").  Section NAMES only: the aggregation turns `overrides`
+    # into its key list inside Mongo, so a value — which may be a header
+    # holding a secret — never reaches this process.  Tombstones are field
+    # paths (names, not values) and are reported by their top-level section.
+    config_overrides = []
+    for d in db.configs.aggregate([
+            {"$project": {
+                "_id": 0, "principalType": 1, "principalId": 1, "isActive": 1,
+                "updatedAt": 1,
+                "sections": {"$map": {
+                    "input": {"$objectToArray": {"$ifNull": ["$overrides", {}]}},
+                    "as": "kv", "in": "$$kv.k"}},
+                "tombstones": {"$ifNull": ["$tombstones", []]}}}]):
+        removed = sorted({str(t).split(".")[0] for t in d.get("tombstones") or []})
+        config_overrides.append({
+            "principal": f"{d.get('principalType')}/{d.get('principalId')}",
+            "active": d.get("isActive", True) is not False,
+            "sections": sorted(d.get("sections") or []),
+            "removes": removed,
+            "updated": _iso(d.get("updatedAt")),
+        })
+    config_overrides.sort(key=lambda o: o["principal"])
+
     stats = db.command("dbStats")
     return {
         "db": db.name,
@@ -162,6 +190,7 @@ def _census_sync(slug: str | None) -> dict:
         "users": people,
         "files": files,
         "agents": agents,
+        "config_overrides": config_overrides,
         "totals": {
             "users": len(people),
             "conversations": sum(p["conversations"] for p in people),
@@ -171,6 +200,7 @@ def _census_sync(slug: str | None) -> dict:
             "file_bytes": sum(f["bytes"] for f in files),
             "agents": len(agents),
             "agents_shared": sum(1 for a in agents if a["share"] != "private"),
+            "config_overrides": len(config_overrides),
             "data_bytes": int(stats.get("dataSize") or 0),
             "storage_bytes": int(stats.get("storageSize") or 0),
         },

@@ -666,8 +666,9 @@ async def fleet_access(slug: str) -> dict:
 
 async def fleet_exposure(slug: str) -> dict:
     """What a course has that reaches past one person: shared agents, the
-    knowledge attached to them, every file by size, and the walls the
-    course record puts (or doesn't) around Actions and tools."""
+    knowledge attached to them, every file by size, the walls the course
+    record puts (or doesn't) around Actions and tools, and any config
+    override saved in its database — which can take those walls down."""
     courses = load_courses()
     async with httpx.AsyncClient(timeout=30) as cx:
         row = await _course_row(cx, courses, slug)
@@ -676,6 +677,7 @@ async def fleet_exposure(slug: str) -> dict:
             "models": row["models"],
             "pool": row["pool"], "agents": row["census"].get("agents", []),
             "files": row["census"].get("files", []),
+            "config_overrides": row["census"].get("config_overrides", []),
             "totals": row["census"].get("totals", {})}
 
 

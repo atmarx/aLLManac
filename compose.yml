@@ -520,6 +520,10 @@ services:
       # no-DNS LAN mode — see .env.example "LAN HTTPS"):
       - "${EDGE_AUTH_PORT:-8443}:8443"
       - "${EDGE_AUTH_PORT:-8443}:8443/udp"   # HTTP/3
+      # NOT :8079, ever.  That is the course panels' plain-HTTP way to their
+      # own chat API (fleet/caddy/_panels.caddy, rendered), and it is meant
+      # for the compose network alone — see design-walls.md, "...but the
+      # admin config API does".
     environment:
       CHAT_HOST: "${CHAT_HOST:-chat.localhost}"
       AUTH_HOST: "${AUTH_HOST:-auth.localhost}"

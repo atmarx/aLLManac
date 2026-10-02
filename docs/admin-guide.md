@@ -31,7 +31,7 @@ tethered_to:
 |---|---|---|---|
 | Keycloak admin | `:8080` | `KC_ADMIN` / `KC_ADMIN_PASSWORD` | Identity: users, realm roles, the Globus broker, OIDC clients |
 | LiteLLM admin | `:4000/ui` | `LITELLM_MASTER_KEY` | The ledger: models, keys, budgets, spend |
-| LibreChat admin panel | `:3082` (flagship) / `{slug}-admin.` (a course) | SSO (same button), that instance's ADMINs | **Local groups** for agent sharing, role permissions, config overrides — per instance |
+| LibreChat admin panel | `:3082` (flagship) / `{slug}-admin.` (a course) | SSO (same button), that instance's ADMINs | **Local groups** for agent sharing and role permissions, per instance.  Config overrides on the flagship only — a course's edge refuses them |
 | LibreChat | `:3080` | SSO | The chat itself — mostly runs itself |
 
 **Those four ports bind loopback** (`PUBLISH_BIND`, default `127.0.0.1`) — they are admin surfaces and a bypass of every rule the edge enforces, so from anywhere but the box itself they need a tunnel:
@@ -45,6 +45,8 @@ Then reach them at `http://localhost:<port>`.  Chat is the exception that needs 
 **`:3082` is the flagship's panel, and it is the operator's.  A course's panel has a front door of its own** — `render_course_vhost` gives every course `{slug}-admin.$ALMANAC_DOMAIN` beside its `{slug}.` chat, so if students chat at `engr301-2026fall.ai.example.edu`, that course's panel is `engr301-2026fall-admin.ai.example.edu`, same SSO button, no tunnel.  That difference is deliberate rather than drift: faculty administer their own course and have no shell on the box, while the flagship's panel governs the vestibule everyone shares.  Send faculty to their course's vhost — [teaching-a-course.md](teaching-a-course.md) does — and keep `:3082` in operator hands.
 
 Both panels carry a `Secure` session cookie (`ADMIN_PANEL_SESSION_COOKIE_SECURE`, default true).  The tunnel above is unaffected, `http://localhost` being a trustworthy origin; what the flag rules out is a browser reaching a panel over plain HTTP at the box's *IP*, which needs `PUBLISH_BIND=0.0.0.0` anyway.
+
+**A course's panel can't write config overrides, by design** *(2026-10-02)*.  Its instructors and TAs are the instance's ADMINs, and an override at the base scope can add an MCP server that is sent the course's container env, wherever they point it.  So the edge refuses every write to `/api/admin/config` on a course — from the browser at `{slug}.`, and from the panel itself, whose server-side calls now go through the edge (`API_SERVER_URL: http://edge:8079/{slug}`, an internal listener in `fleet/caddy/_panels.caddy` that nothing publishes).  Groups and role permissions are other routes and work as before; the Configuration page still reads.  Anything a course genuinely needs in its config goes in `courses.yaml` and the render.  Overrides saved before the wall still apply: `just fleet` lists them, by section name, and removing one is a Mongo edit in that course's database ([design-walls.md](design-walls.md), "...but the admin config API does").
 
 Three things in this stack are called "groups," and confusing them costs an afternoon:
 
