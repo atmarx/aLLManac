@@ -15,26 +15,31 @@ tethered_to:
 
 # What we store
 
-Five systems hold something about you.  Here is each one, what it has, and whether it is tied to your name.
+Several systems hold something about you.  Here is each one, what it has, and whether it is tied to your name.
 
 ## The inventory
 
 | What | Where it lives | Tied to you |
 |---|---|---|
 | Your conversations, and the agents you build | Your course's own database | Yes |
-| Files you upload to an agent, and the search index built from them | The knowledge store | Through the agent you attached them to |
+| Your conversations with the guides at the front door | The front door's own database, shared by everyone who uses it | Yes |
+| Files you upload, in a chat or to an agent | Your course's file storage | Yes |
+| The search index built from those files | Your course's own knowledge store | Yes, through the file |
+| Problem reports you file, including the question and answer they quote | The registrar's records | Yes |
+| Your email on a course roster | The registrar's course records | Yes |
 | Usage records — model, tokens, cost, timestamp | The ledger | **Yes, by email address** |
 | Your account, roles, and course membership | The identity system | Yes |
 | API keys issued to you | The key escrow, versioned | Yes |
 | Chat search index | Per-course search service | Rebuilt from your conversations; holds nothing original |
+| Backup copies of all of the above | Off-machine storage, about six months | Yes |
 
 Two of those deserve more than a table row.
 
 ## Your conversations
 
-Everything you type into the chat, and everything the model types back, is stored in **your course's own database** — not a shared one with a column marking which course a row belongs to.  Each course runs its own.
+Everything you type into a course's chat, and everything the model types back, is stored in **your course's own database** — not a shared one with a column marking which course a row belongs to.  Each course runs its own.  The exception is the front door: conversations with the Front Desk and the guides there go into one database shared by everyone who uses the front door.
 
-The agents you build live there too, along with any files you attached to them.  When you upload a document to an agent so it can answer questions about it, the text of that document is broken up, indexed, and kept so the agent can search it later.  It stays until the agent is deleted.
+The agents you build live there too.  When you upload a document — to an agent, or into a chat — three things are kept: the original file, in the course's file storage; a record of it tied to you, in the database; and, for documents an agent searches, the text broken up and indexed so it can be searched later.  **Deleting an agent does not delete its files.**  They stay until the file itself is deleted.
 
 ## The ledger, which is the one that surprises people
 
@@ -44,7 +49,7 @@ Worth being direct about what that adds up to.  The ledger does not contain what
 
 The email is deliberate rather than incidental.  Attribution has to land on a real person and survive a roster change, and an opaque internal ID does neither.  The reasoning and what it cost are in [Why the chatbot never asks who you are](../how-we-built-it/identity-is-not-an-argument.md).
 
-You can see your own usage from inside the chat — ask the usage agent, and it will only ever answer for you.
+You can see your own usage from inside your course's chat — ask, and it will only ever answer for you.  Your instructor and TAs see a narrower slice of the same ledger for their course: each student's request count, token count and when they were last active, listed by email.  Counts, never content.
 
 ## What we do not store
 

@@ -113,7 +113,8 @@ tethered_to:
 
      Then what the classification bought, concretely:
      - isolation by instance rather than by permission check — for the chat
-       plane only; the shared RAG store is the carve-out, see the gap list
+       plane, and since 2026-09-18 the RAG store too (per course); the shared
+       Mongo SERVER with no auth is the carve-out now — see keeping-courses-apart
      - attribution keyed to a real identity, so records have owners
      - egress default-closed (agent actions off unless enabled)
      - escrow custody history that survives un-enrollment
@@ -129,7 +130,8 @@ tethered_to:
      processing agreement, and a "school official with legitimate
      educational interest" designation with a direct-control clause.  When
      the institution runs the servers, there is no third party to designate
-     and the data never leaves institutional control.  Owning the stack
+     for STORAGE — but a hosted model still receives prompts and files
+     under its provider's terms, so inference is the third party that remains.  Owning the stack
      removes an entire class of compliance work.  Say it plainly — it is a
      real and under-told advantage. -->
 
@@ -138,8 +140,8 @@ tethered_to:
 <!-- TETHERED, and this is the section with the most to say.  Current state:
 
      !!! warning "Open gaps"
-         - `just backup` is designed, not implemented — no schedule, no
-           off-box copy, no tested restore
+         - `just backup` runs nightly off-box (809ccbc); `just restore` and
+           the drill are not built, so by the spec's rule no backups yet
          - no automated retention or expiry
          - no per-student deletion path
          - agent actions cannot be narrowed to "nowhere" — the allowlist

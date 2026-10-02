@@ -94,7 +94,8 @@ tethered_to:
        That holds only while .env is backed up separately from bao-data.
        Checking it caught the spec's backup design putting both in ONE
        tarball — the stolen copy of both.  bd18ee4 split them: two restic
-       repositories, two passwords, neither password on the box
+       repositories, two passwords, neither password ONLY on the box —
+       the nightly run reads both locally; each also has a copy off it
        (registrar-spec.md, backups).  That correction is itself a beat.  "Reboots without a human" was chosen over "a human holds
        the key", on purpose.  Moving the key off the box is the upgrade
        path, and its price is that every reboot waits for a person.  Write

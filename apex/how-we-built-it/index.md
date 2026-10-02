@@ -39,7 +39,7 @@ Students here learn to use language models.  Students here also learn to build a
 
 ## How to read these
 
-Every page follows the same six beats, so you can skip to the one you came for.  Most working engineers want beat 5.
+Every page is built on the same six beats, so you can skip to the one you came for.  (Pages still marked as scaffolds carry an older seventh, which is on its way out.)  Most working engineers want beat 5.
 
 1. **The question**, as someone would actually ask it
 2. **The obvious answer, taken seriously** — steelmanned, because it is usually a reasonable design

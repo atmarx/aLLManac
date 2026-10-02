@@ -17,7 +17,7 @@ tethered_to:
 
 The honest answer, first: **indefinitely, unless someone removes it by hand.**  Your conversations from a course that ended two terms ago are still in that course's database.
 
-**With one exception, and it is the one thing on this page you can act on today.**  The chat window has a *temporary chat* mode, and a conversation you start in it is not kept — the database is told to delete it after a set period and does so on its own, without anyone deciding.  It is switched on by default here, deliberately, because it is a privacy affordance rather than a feature.  If you want a conversation not to persist, that is the way to get it, and it is the only automatic deletion anywhere in this platform.
+**With one exception, and it is the one thing on this page you can act on today.**  The chat window has a *temporary chat* mode, and a conversation you start in it is not kept — the database is told to delete it after a set period and does so on its own, without anyone deciding.  It is switched on by default here, deliberately, because it is a privacy affordance rather than a feature.  If you want a conversation not to persist, that is the way to get it, and it is the only conversation that deletes itself anywhere in this platform.  (Copies delete themselves too — an export link after a day, a backup after its schedule runs out — but the conversation they copied stays.)
 
 Two honest caveats attached to that.  We have confirmed the expiry is real on a running instance — the database carries the rule that does the deleting — and we have **not** set the window ourselves, so it is whatever the chat software ships with.  Read in the version we run, that shipped default is **30 days**.
 
@@ -36,14 +36,14 @@ That policy does not exist here yet, so neither does the timer that would enforc
 
 ## Backups
 
-Copies of the databases exist, made by an operator running a documented procedure.
+The backup is built to run every night, copying everything that holds your work — conversations, agents, the files you uploaded, the usage ledger, the key escrow — to storage that is not the machine it protects.  Copies are kept on a schedule: one for each of the last 7 days, the last 4 weeks, and the last 6 months.
 
-!!! warning "Not built yet"
-    The scheduled version — a nightly archive copied off the machine it protects — is designed and not implemented.  Today there is no schedule, no off-box copy, and no restore that has been tested end to end.
+!!! warning "Half built"
+    The copying half exists.  The **restore** half does not — there is no tested way yet to bring those copies back — and a backup nobody has restored from is a rumor, so by our own rule there are no backups yet.  What is real today is a second place your work lives.
 
-Both halves of that matter to you and they point in opposite directions.  A backup is protection against losing your work, and it is also a second place your work lives, which is a longer tail than most people picture when they delete something.  Any honest retention policy has to account for both.
+Both halves of that matter to you and they point in opposite directions.  A backup is protection against losing your work, and it is also a second place your work lives, which is a longer tail than most people picture when they delete something.  **A conversation you delete today is still in the backups for about six months**, until the last monthly copy holding it ages out.  Any honest retention policy has to account for both.
 
-It is worth being clear about what a backup is *not*, because the word promises more than it delivers.  **A restore is all-or-nothing at the database.**  It returns a whole course to the moment the copy was taken, which means it undoes everyone's work back to that moment, not just the thing someone wishes they still had.  That is why a copy of your material is a real protection against the machine failing and a poor protection against a mistaken click — and why keeping your own copy of anything you would hate to lose is the advice that does not depend on any of this being built.
+It is worth being clear about what a backup is *not*, because the word promises more than it delivers.  **A restore, as designed, is all-or-nothing.**  It returns the whole platform — every course at once — to the moment the copy was taken, which means it undoes everyone's work back to that moment, not just the thing someone wishes they still had.  That is why a copy of your material is a real protection against the machine failing and a poor protection against a mistaken click — and why keeping your own copy of anything you would hate to lose is the advice that does not depend on any of this being built.
 
 This is the platform's most visible gap, and it is the one where a high-risk posture is most explicit about what it expects: scheduled backups, kept off the machine they protect, with restores that have actually been exercised.
 
@@ -65,12 +65,14 @@ The distinction worth carrying away: **revoking access and erasing data are diff
 
 ## When the term ends
 
-Closing a course revokes its keys, renders a final configuration, and archives the group.  The course's web address stops resolving, and a bookmark from last term lands on a page explaining where things went and how to request a new environment.
+A course ends in two steps, a couple of weeks apart, and an operator runs each one.
 
-**Archiving is not deleting.**  The material is still there; what changed is that nobody is using it.
+- **Closing** stops the spending.  Keys and the course chat stop answering, but you can still sign in, read your history, and open your agents for **14 days** — that window is for taking your work with you.
+- **Archiving** comes after the window.  Every key for the course is revoked, its sign-in is switched off, and the course's chat goes away.  The old web address lands on a page that says the course is finished and points you to your instructor and to this site.
 
-!!! note "Not built yet"
-    The course-close routine is planned and not yet implemented.  Courses that have ended are currently closed by hand.
+**Archiving is not deleting.**  The course's database is still there; what changed is that nobody can get into it through the chat.  Your own conversations and agents can still be exported from an archived course — see [What you can actually ask for](asking-about-your-data.md).
+
+If your course has a stable address — `engr301.` rather than `engr301-2026fall.` — that address moves to the next term's course when this one closes, so a syllabus link keeps working.
 
 ## Asking for your data to be deleted
 

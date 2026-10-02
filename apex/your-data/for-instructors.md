@@ -112,7 +112,7 @@ If you are considering this, talk to your institution's privacy or compliance of
 
 ## What the platform does for you
 
-- Your course runs in **its own instance** with its own database.  No other course can reach into it.
+- Your course runs in **its own instance** with its own database.  No other course's chat can reach into it.  (The databases share one database server, which the platform's own tools read across — see [Keeping courses apart](../how-we-built-it/keeping-courses-apart.md).)
 - Students authenticate with **campus identity** — no separate accounts.
 - **The model route is explicit:** local deployments keep model traffic on
   institutional hardware; hosted deployments send it to the named provider.
@@ -126,7 +126,7 @@ If you are considering this, talk to your institution's privacy or compliance of
 
 Stated plainly so you do not plan around something that is not there:
 
-- **No scheduled or off-box backup.**  Backups are a documented manual procedure run by an operator, and the restore path has not been tested.
+- **No restore.**  A nightly backup copies everything off the machine, but the way back from it is not built and has never been exercised, so plan as if there were no backup.
 - **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days.  Every other conversation stays until someone removes it, and that removal is currently a manual act.
 - **No per-student deletion path.**  Nothing walks a course database and removes one student's material.
 - **No way to deny all outbound domains.**  The allowlist can narrow where agents reach; it cannot express "nowhere."  Leaving actions off is the only complete answer, and that is a property of the underlying chat software rather than a setting waiting to be built.

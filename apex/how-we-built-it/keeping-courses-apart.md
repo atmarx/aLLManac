@@ -56,12 +56,14 @@ The load-bearing sentence is *shared control plane, per-course data plane.*
 
 | Plane | What lives there | How many |
 |---|---|---|
-| Control — never fragments | Keycloak, LiteLLM and the ledger, OpenBao, the registrar, usage-mcp, the Caddy edge | one each |
-| Data — per course | LibreChat, its Mongo database, its search index, its admin panel | one per course |
+| Control — never fragments | Keycloak, LiteLLM and the ledger, OpenBao, the registrar, usage-mcp, the Caddy edge, the Mongo server | one each |
+| Data — per course | LibreChat, its database inside that Mongo server, its search index, its document store, its admin panel | one per course |
 
-What that buys is not a stronger check.  It is the **absence of a check**.  There is no query that reaches across courses on the chat plane, because there is no shared table to write that query against.  Nobody has to remember the boundary, which means nobody can forget it.
+What that buys is not a stronger check.  It is the **absence of a check**.  No query the chat software makes reaches across courses, because each instance is only ever told the name of its own database — there is no shared table to write that query against.  Nobody has to remember the boundary, which means nobody can forget it.
 
-A few things fix themselves on the way.  An instance only contains its own course's credential, so cross-course access dies structurally rather than by a visibility toggle.  Each course's instructors are administrators of their own house and hold no key to anyone else's.  And the blast radius of a hostile agent tool or a leaked secret is one course, not the campus.
+A few things fix themselves on the way.  An instance only holds its own course's credentials — its gateway key, its sign-in client, its encryption pair, its search and document-store secrets — so cross-course access through any of those dies structurally rather than by a visibility toggle.  Each course's instructors are administrators of their own house and hold no key to anyone else's.
+
+**One credential is missing from that list, and it matters.**  The database server asks for none.  Every course's database sits in one Mongo server, and an instance finds its own by name, not by password.  So the chat software never crosses — but anything that gets code running on the internal network could open every course's database, and the platform's own tools read across them on purpose (the census counts what is in each course; the export fetches your own work from any of them).  The blast radius of a leaked *secret* is one course.  The blast radius of a compromised *container* is, today, every course's chat history.
 
 The bill, stated plainly:
 
@@ -70,7 +72,7 @@ The bill, stated plainly:
 - **Anything genuinely cross-course has to be built on purpose.**  That is the cost of the thing that makes it safe.
 - **A rendering layer now exists**, and it is itself a thing that can break.
 
-That last one is the honest one.  We did not remove complexity; we moved it somewhere we can see it, into a file the registrar writes, in git, rolled by one loop.  That is a better place for it.  It is not nowhere.
+That last one is the honest one.  We did not remove complexity; we moved it somewhere we can see it: templates in git, rendered by the registrar into files on the box, rolled by one loop.  That is a better place for it.  It is not nowhere.
 
 ## What is still wrong with it
 
@@ -80,7 +82,7 @@ Here is where the epigraph stops being a joke, and the honest version of this se
 
 Nobody decided that.  It arrived as one service in the box and nobody made it per-course, because the question we were answering was about conversations.
 
-**The design document knew.**  The tenancy decision, written in July, contains the line *"pgvector/RAG likely shared (verify file-id isolation)"* — inside a parenthesis, as an aside, in a document that was otherwise right about everything.  It was true when it was written and it stayed true, and nobody verified it, because parentheses do not get done.  If you take one operational habit from this page, take that one: **the caveats you write in brackets are the ones that outlive you.**
+**The design document knew.**  The tenancy decision, written in July, contained the line *"pgvector/RAG likely shared (verify file-id isolation)"* — inside a parenthesis, as an aside, in a document that was otherwise right about everything.  It was true when it was written and it stayed true, and nobody verified it, because parentheses do not get done.  If you take one operational habit from this page, take that one: **the caveats you write in brackets are the ones that outlive you.**
 
 It came due twice in one week, and neither time was on purpose.
 
@@ -104,8 +106,8 @@ If you are in two courses, sign in to both.  No view shows you both sets of conv
 
 Then notice the contrast, which teaches the idea better than the clean claim does.  **Your usage tools cross courses on purpose.**  Ask about your own usage and the answer spans every course you are in, because it reads the ledger by your email address, and the ledger is control plane.  Separation here is a choice made per surface, not a property of the building.
 
-For the last step, open `fleet/fleet.yml` and find the line that gives an instance its own database.  It is the Mongo URI, and the course's name is the last thing in it.
+For the last step, open `registrar/render.py` — the template every course's configuration is rendered from — and find the line that gives an instance its own database.  It is the Mongo URI, and the course's name is the last thing in it.
 
-One line.  That is the wall.
+One line.  That is the wall.  And notice what is not in it: a username or a password.  That is the gap two sections up, sitting in plain sight.
 
-Not the rendered `librechat.yaml`, which is the tempting place to look: the line that differs per course there is a header stamped on outgoing tool calls, and that is scoping, not isolation.  Telling those two apart on sight is most of the skill this page is about.
+Not the rendered `librechat.yaml`, which is the tempting place to look: several lines differ per course there — the name, the model, the context size — and the one that sounds like a boundary is a header stamped on outgoing tool calls.  That is scoping, not isolation.  Telling those two apart on sight is most of the skill this page is about.

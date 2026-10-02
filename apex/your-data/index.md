@@ -41,10 +41,10 @@ Coursework generates records about you, and records about students carry obligat
 
 These pages name gaps rather than hiding them, so here they are in one place:
 
-- **No scheduled or off-machine backup**, and no restore that has been tested end to end.
+- **No restore.**  A nightly backup copies everything off the machine, but there is no tested way yet to bring it back — and a backup nobody has restored from is not one yet.
 - **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days; everything else stays until someone removes it.
 - **No per-student deletion path.**  Removing a student revokes access without erasing what they wrote.
-- **No self-service export.**  Requests are handled by hand.
+- **Export covers your own work, not everything.**  You can take your conversations and agents out of any course yourself; the usage ledger, your identity record and a formal records request still go through a person.
 - **No way to block all outbound domains** for courses that enable agent actions — leaving actions off is the only complete answer.
 
 Each is explained where it belongs, and each disappears from this list in the same change that closes it.

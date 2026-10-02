@@ -17,11 +17,11 @@ tethered_to:
 
 # Who can see it
 
-Four groups can reach what you write here: you, your instructor, the people who run the servers, and anyone you or your instructor deliberately lets in.  That list is short on purpose, and this page walks it from the front door inward.
+Four groups can reach what you write here: you, your instructor, the people who run the servers, and anyone you or your instructor deliberately lets in.  Two more can, in specific cases: the company behind a hosted model, if your course uses one, and — when you file a problem report that quotes your exchange — the course staff and platform maintainers who read reports.  That list is short on purpose, and this page walks it from the front door inward.
 
 ## Signing in
 
-You reach the aLLManac through your institution's single sign-on.  There is no separate password to create and no account for us to lose — you authenticate with campus identity, and the platform learns only that you are you and which courses you belong to.
+You reach the aLLManac through your institution's single sign-on.  There is no separate password to create — you authenticate with campus identity.  The platform does keep an account for you, created when you are added to a course's roster: your email and name from the campus sign-in, and which courses its own roster says you are in.
 
 The identity layer is Keycloak, and it can broker your campus identity provider — including Globus — without any of the chat software knowing the difference.
 
