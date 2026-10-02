@@ -38,7 +38,7 @@ A "custom GPT" here is a LibreChat **Agent**: a system prompt + knowledge files 
 
 **Create the agent:**
 
-1. In the model/endpoint menu at the top of a new chat, select **Agents**.
+1. In the model/endpoint menu at the top of a new chat, select **My Agents**.
 2. Open the **Side Panel** (right edge) → **Agent Builder**.
 3. Fill in:
    - **Name** — what the class will see (`ENGR 301 Lab TA`)
