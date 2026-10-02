@@ -1,28 +1,21 @@
 ---
 title: Browse by topic
-description: Every page on this site, indexed by the concepts it covers — regimes, controls, lifecycle, and the stacks each decision maps onto.
+description: Every page on this site, indexed by the concepts it covers — regimes, controls, costs, and the practices behind them.
 audience: student
 also_reaches: [faculty, builder]
-status: scaffold
+status: draft
 owner: piper
 ---
 
 # Browse by topic
 
-<!-- SCAFFOLD.  This page is the mkdocs-material tag index.  The plugin
-     renders the full tag listing at the material/tags directive below.
+Pages here carry topic tags so you can pull a thread across the whole site — every page that touches retention, or access control, or what a long conversation costs.
 
-     Build requirement (plumbing lane): mkdocs.yml needs
-       plugins:
-         - tags
--->
-
-Pages here carry topic tags so you can pull a thread across the whole site — every page that touches retention, or access control, or what a decision looks like on Kubernetes.
-
-**Three tags worth knowing about:**
+**A few worth knowing about:**
 
 - **`faculty-duty`** — if you teach a course on this platform, start here.  Everything you are responsible for, gathered from pages written for your students.
 - **`student-right`** — what you can ask for, and how to ask.
-- **`azure`, `aws`, `kubernetes`** — the same decisions we made, as they look on the stack you will probably use somewhere else.
+- **`metering`** and **`context-window`** — why a conversation costs what it does, and why the fortieth message costs more than the first.
+- **`harness`** and **`agentic-coding`** — working with an agent outside the chat window, and what to have in place before you do.
 
 <!-- material/tags -->

@@ -1,252 +1,143 @@
 ---
 title: How do you protect data you can't delete?
-description: Course data carries obligations that outlast the term. Which regime attaches to which data, how classification drives controls, and why running it yourself changes the problem.
+description: Course data carries obligations that outlast the term.  Which regime attaches to which data, why classification is a decision someone registers rather than a feeling about the data, and what running it yourself changes.
 audience: builder
 also_reaches: [faculty]
-status: scaffold
+status: draft
 owner: piper
-tags: [ferpa, gdpr, nist-800-53, nist-800-171, cui, fisma, data-classification, high-risk-data, education-record, retention, secure-deletion, backup, data-processing-agreement, azure, aws, kubernetes, faculty-duty]
+tags: [ferpa, gdpr, nist-800-53, nist-800-171, cui, fisma, data-classification, high-risk-data, education-record, retention, secure-deletion, backup, data-processing-agreement, faculty-duty]
 regimes: [ferpa, gdpr, nist-800-53, nist-800-171]
 tethered_to:
   - justfile
   - docs/admin-guide.md#backups
   - registrar/reconcile.py
+  - registrar/planes/verbs.py
+  - registrar/planes/exports.py
+  - litellm/config.yaml
 ---
+
+<!-- COUNSEL BOUNDARY.  This page describes regimes in general terms and
+     describes our system factually.  It makes no compliance claim about this
+     platform and gives no legal advice.  Counsel review is required before
+     status: published, and the external sources in beat 3 and beat 4 need a
+     citation pass first. -->
 
 # How do you protect data you can't delete?
 
-!!! note "Being written"
-    This page is not finished.  The argument and the sources are drafted, and the prose is queued behind the pages instructors need first, and it also needs a citation pass over its external sources.  What it will cover is below; [How long we keep it](../your-data/how-long-we-keep-it.md) and [Asking about your data](../your-data/asking-about-your-data.md) already carry the reader-facing half of this subject, including the honest gap list.
+The email arrives in May, a week after grades post.  *"Please delete everything I typed into the course chat this term."*
 
-<!-- SCAFFOLD.  The literacy piece.  Carries the corrections that make the
-     whole data-protection thread worth teaching.
+It is a reasonable thing to ask.  It is also, it turns out, three questions wearing one sentence: whether anybody is obliged to do it, whether anybody is allowed to, and whether the system can.  This page is about why the third one is the easiest, and why it is the one engineers start with.
 
-     COUNSEL BOUNDARY: describes regimes in general terms and describes our
-     system factually.  Makes no compliance claim about this platform and
-     gives no legal advice.  Counsel review required before status: published. -->
+## The question
 
-## 1. The question
+A course on this platform produces three kinds of record about named people: the conversations, both sides of them; the files students and instructors uploaded; and the usage records — which model, how many tokens, when, against whose key.  The term ends.  The records do not.
 
-<!-- Open concrete rather than abstract.  A course generates conversations,
-     uploaded files, and usage records tied to named students.  The term
-     ends.  The records do not.  Who is allowed to read them, how long do
-     they stay, and what happens when someone asks for them back? -->
+So: who is allowed to read them, how long do they stay, and what happens when someone asks for them back, or asks for them gone?
 
-## 2. The obvious answer, taken seriously
+[How long we keep it](../your-data/how-long-we-keep-it.md) and [Asking about your data](../your-data/asking-about-your-data.md) answer that from the student's chair, including the gap list.  This page is the builder's version — how the answers got decided, and what deciding them cost.
 
-<!-- "Encrypt everything, lock it down, delete it when they ask."
+## The obvious answer, taken seriously
 
-     Steelman it — those are good instincts and roughly the right shape.
-     Then show why each one is more specific than it sounds:
-     - encrypt *what*, against *which* threat, and who holds the key
-     - lock it down *from whom*, given the operator runs the servers
-     - delete it *when* — and, as beat 3 gets into, on whose authority -->
+*Encrypt everything, lock it down, delete it when they ask.*
 
-## 3. What broke — the assumption, not the system
+Those are good instincts and roughly the right shape, and a team that does all three is ahead of most.  The trouble is that each one is more specific than it sounds, and the specifics are where the work is.
 
-<!-- The two corrections that carry this page.
+- **Encrypt what, against which threat, and who holds the key?**  Disk encryption protects a drive that walks out of the building.  It does nothing about the operator, who runs the machine with the drive unlocked, or about a backup copied somewhere with its key beside it.
+- **Lock it down from whom?**  The people with the most access to course data are the people running the servers.  "Locked down" has to say something about them, or it says very little.
+- **Delete it when — and on whose authority?**  That one looks like an engineering task, and the next section is about why it is a legal question first.
 
-     **FERPA is not an erasure regime.**  It grants inspection and review,
-     the right to request amendment, consent before disclosure of PII (with
-     exceptions), and the right to complain to the Department of Education.
-     There is no delete-my-data right in it.  Engineers arrive expecting one
-     because GDPR Article 17 and CCPA trained the instinct on consumer
-     products.  Building a deletion pipeline to satisfy FERPA is solving a
-     requirement that FERPA never stated, while possibly missing the ones it
-     did.
+## What broke — the assumption, not the system
 
-     **NIST 800-53 and 800-171 are not triggered by FERPA.**  800-53 is the
-     control catalog for federal information systems under FISMA.  800-171
-     covers CUI in nonfederal systems and arrives through *contract* —
-     DFARS flow-down and similar — which is why colleagues in sponsored
-     research meet it and a teaching platform may not.  Neither attaches
-     because student data is sensitive.
+The system did not break here.  The assumption did, and it is the same assumption almost everyone arrives with.
 
-     What actually governs course data: FERPA, state student-privacy
-     statutes, and — the one that binds day to day — the institution's own
-     data classification policy.
+**FERPA is not an erasure regime.**  It gives students the right to inspect and review their education records, to request amendment of records they believe are inaccurate or misleading, to consent before personally identifiable information is disclosed (with exceptions), and to complain to the U.S. Department of Education.  There is no delete-my-data right in it.  Engineers expect one because GDPR's Article 17 and the state consumer privacy laws trained the instinct on consumer products.  A team that builds a deletion pipeline "for FERPA" is satisfying a requirement FERPA never stated, and quite possibly missing the ones it did.
 
-     Land the transferable rule: **the trigger is usually data type plus
-     contract, not a general duty to be secure.**  Engineers who learn to ask
-     "what makes this regime apply to me?" stop applying the wrong one. -->
+**The federal security frameworks are not triggered by student data either.**  NIST SP 800-53 is the control catalog for federal information systems under FISMA.  NIST SP 800-171 covers Controlled Unclassified Information in nonfederal systems, and it arrives by *contract* — a DFARS clause, or similar language flowed down from a federal sponsor.  That is why colleagues in sponsored research meet it and a teaching platform usually does not.  Neither one attaches because student data is sensitive.
 
-## 4. What we did, and the bill
+What actually governs course data is less famous and more local: FERPA, the state student-privacy statutes (well over a hundred of them, and many *do* impose retention and deletion duties FERPA does not), and — the one that binds day to day — the institution's own data classification policy.
 
-<!-- The method, which is the actually transferable skill:
+**The transferable rule: the trigger is usually data type plus contract, not a general duty to be secure.**  An engineer who learns to ask *"what makes this regime apply to me?"* stops applying the wrong one.
 
-     **Inventory, then classify, then map controls.**  You cannot classify
-     what you have not enumerated.
+Two more things make the wrong answer easy to find:
 
-     The correction that belongs here, because engineers get it wrong and it
-     is the most transferable thing on the page: **classification is a
-     register entry, not a property of the data.**  Someone with authority
-     makes a determination about a *system*, and the tier that comes back
-     carries the actual requirements — backup cadence, encryption, access
-     review.  You do not reason your way to a tier from how sensitive the
-     data feels.
+- **"There is no such thing as a 'FERPA seal of approval.'"**  That is Michael Hawes, then director of the Department of Education's Student Privacy Policy and Assistance Division, quoted in the Future of Privacy Forum's *Vetting Generative AI Tools for Use in Schools* (April 2024).  FERPA binds the institutions that receive federal funding, not the companies that sell to them, so no product can *be* FERPA-compliant.  The real question is whether an institution can use it in a compliant way.  Search for "FERPA-compliant AI" anyway and most of what comes back is selling the thing that cannot exist.
+- **Most of the available guidance is shaped for K-12.**  That FPF brief is explicitly written for schools and districts — parents, COPPA, district procurement.  Higher-ed guides built from it then inherit its parental-consent framing, when FERPA rights transfer to the student once they enroll in postsecondary education, at any age.
 
-     And the determination is scoped.  The same data type lands in different
-     tiers depending on what the system is FOR: FERPA-protected records inside
-     a research project and the same records inside an operational teaching
-     platform are separate entries with separate arguments, and an institution
-     may reasonably land them a tier apart.  Neither is wrong.  The tier
-     encodes what handling makes sense in that context, and context is part of
-     the question.  (Institution-neutral per authoring rule 3 — teach the
-     mechanism, name no outcome.)
+None of this is obscure.  It is just not where an engineer starts, and the cost of starting in the wrong place is a carefully built feature for the wrong law.
 
-     Two consequences worth teaching: the honest engineering answer to "how
-     should we protect this?" often starts with "who registered it and at
-     what tier," and a tier is a **budget** as much as a burden — it tells
-     you which controls you are obliged to fund.
+## What we did, and the bill
 
-     These guides take high risk as the working posture for FERPA coursework,
-     and the useful move is to write what a high tier REQUIRES — encryption in
-     transit and at rest, scheduled off-box backups with tested restores,
-     access review on a cadence, documented retention and disposal, a named
-     accountable owner.  A reader at any institution maps that onto their own
-     register.
+The method is the transferable part, and it fits on one line: **inventory, then classify, then map controls.**  You cannot classify what you have not listed.
 
-     Our inventory is the volume map — chat
-     databases, the ledger, identity, escrow, derived indexes — and it exists
-     because backups forced us to write it down.  Point that out: the backup
-     table became the data map, which is a common and useful accident.
+**Classification is a register entry, not a property of the data.**  This is the correction engineers most often need.  Someone with authority makes a determination about a *system*, and the tier that comes back carries the actual requirements — backup cadence, encryption, access review, retention and disposal, a named owner.  You do not reason your way to a tier from how sensitive the data feels.
 
-     Then what the classification bought, concretely:
-     - isolation by instance rather than by permission check — for the chat
-       plane, and since 2026-09-18 the RAG store too (per course); the shared
-       Mongo SERVER with no auth is the carve-out now — see keeping-courses-apart
-     - attribution keyed to a real identity, so records have owners
-     - egress default-closed (agent actions off unless enabled)
-     - escrow custody history that survives un-enrollment
+And the determination is scoped to what the system is *for*.  The same FERPA-protected records inside a research project and inside an operational teaching platform are separate entries with separate arguments, and an institution may reasonably land them a tier apart.  Neither is wrong.  Context is part of the question.
 
-     **The bill** — the honest one:
-     - a rendering layer, a vault, and per-course containers, all to hold a
-       line that a single app with good WHERE clauses would also hold most
-       days
-     - operational surface that a small team has to actually operate
+Two consequences follow.  The honest answer to "how should we protect this?" often starts with "who registered it, and at what tier?"  And a tier is a **budget** as much as a burden: it tells you which controls you are obliged to fund, which is a much easier conversation to have before the money is spent.
 
-     **The self-hosting dividend**, which is the part nobody writes down:
-     the usual pattern for a third-party tool is a vendor contract, a data
-     processing agreement, and a "school official with legitimate
-     educational interest" designation with a direct-control clause.  When
-     the institution runs the servers, there is no third party to designate
-     for STORAGE — but a hosted model still receives prompts and files
-     under its provider's terms, so inference is the third party that remains.  Owning the stack
-     removes an entire class of compliance work.  Say it plainly — it is a
-     real and under-told advantage. -->
+These guides take high risk as the working posture for coursework, and write down what that posture requires rather than which tier any particular institution assigned — encryption in transit and at rest, scheduled off-box backups with tested restores, access review on a cadence, documented retention and disposal, and a named accountable owner.  A reader anywhere can map that onto their own register.
 
-## 5. What is still wrong with it
+**The inventory came from the backups.**  Our list of what holds whose data is the volume table in the operators' guide — chat databases, the usage ledger, identity, the key escrow, the search indexes, the uploaded files — and it exists because a backup plan forced someone to write down every place state lives.  That is a common and useful accident: the backup table becomes the data map.
 
-<!-- TETHERED, and this is the section with the most to say.  Current state:
+It also showed that the map was wrong.  While building the export that hands a student their own work, we read the chat software's file schema and found that **uploaded files had never been kept.**  The chat wrote every non-image upload — agent knowledge files, attachments — inside the container itself, and nothing mounted that path.  Every image bump and every re-render threw them away.  Nobody noticed, because file search reads the embeddings, and those lived elsewhere and survived.  The fix was one volume per course (`3ae82a9`, 2026-09-25), and it landed before any faculty had uploaded a syllabus worth losing.
 
-     !!! warning "Open gaps"
-         - `just backup` runs nightly off-box (809ccbc); `just restore` and
-           the drill are not built, so by the spec's rule no backups yet
-         - no automated retention or expiry
-         - no per-student deletion path
-         - agent actions cannot be narrowed to "nowhere" — the allowlist
-           ships, but an empty allowlist is no allowlist, so leaving actions
-           off is the only complete egress answer
-         - whether chat logs are formally education records is with counsel
-         - CLOSED 2026-09-18 (e5abb56): uploaded knowledge files were in a
-           RAG store shared by the whole fleet.  Each course now runs its
-           own, so between courses it is a container wall.  What remains
-           true, and belongs on this page: INSIDE one course the store is
-           still a permission check -- it reads an identity out of the
-           request, treats a null one as readable, and honours a
-           caller-supplied override.  Keep the history; it is the best
-           example on the page of a gap that survived a design review.
+The first data-protection bug on a page about data you cannot delete was data being deleted that nobody had chosen to delete.  An inventory is not a formality.  It is how you find out what your system is actually doing.
 
-     Say why the list is published rather than fixed first: a reader learns
-     more from a real gap list than from a finished story, and the gaps are
-     what the next cohort gets to close. -->
+**What the posture bought, concretely:**
 
-## 5b. What everyone else did — banked prior art
+- **Isolation by instance rather than by permission check.**  Each course has its own chat, its own database, its own search index and, since `e5abb56`, its own document store.  The one shared room left is the database server, which asks for no credentials — [How do you keep the courses apart?](keeping-courses-apart.md) tells that story.
+- **Records with owners.**  Every request is attributed to a real person's email address, so a usage record means something and survives a roster change.
+- **Egress closed by default.**  Agent actions are off unless a course record turns them on.
+- **Custody that outlives enrollment.**  The key escrow keeps a versioned history of which key was issued to whom.  Leaving a course revokes the key and keeps the record, on purpose — see [Why is there a vault?](why-a-vault.md).
+- **A way out for the student's own work.**  Ask any course chat to export your data and you get a zip of your conversations and agents behind a link that lasts 24 hours.  It works on a closed or archived course, too.
+- **An end of term that doesn't destroy anything by accident.**  Closing a course stops the spending and leaves 14 days to take work out.  Archiving revokes every key and shuts the door.  Neither one deletes a byte, and the code says so in a comment, because a verb named "archive" is exactly where someone would expect a delete.
 
-<!-- Researched 2026-07-31.  Sources verified; use them, do not re-derive.
+**The contrast case is worth more than any of those.**  The University of British Columbia built a locally hosted LLM service and made it deliberately *stateless*: in their words, the infrastructure "does not need to store any data whatsoever.  It is essentially idempotent."  They chose that to simplify their privacy impact assessment, pushed responsibility for sensitive data onto the applications built on top, and self-hosted because data residency in Canada required it.
 
-     **UBC's LLM Sandbox — the contrast case that teaches the most.**
-     UBC built a locally-hosted LLM service and made it deliberately
-     STATELESS: "the infrastructure that constitutes the LLM Sandbox does
-     not need to store any data whatsoever.  It is essentially idempotent."
-     They chose that specifically to simplify their Privacy Impact
-     Assessment, and pushed responsibility for sensitive data onto the
-     applications built on top.  Data residency (keeping data in Canada)
-     drove the self-hosting decision.  Runs Ollama on AWS EC2.
+They engineered around the data problem.  We took it on, because here persistence *is* the teaching: students build agents and come back to them across a term, and faculty need attribution and budgets.  Every page in [your data](../your-data/what-we-store.md) is the bill for that choice.  Two institutions, the same privacy pressure, opposite architectures, and both defensible.  It is worth knowing which one you are, and why.
 
-     This is beat-4 gold.  They engineered AROUND the data problem.  We took
-     it on, because persistence IS the pedagogy here — students build agents
-     and come back to them, faculty need attribution and budgets.  Every
-     page in your-data/ is the bill for that choice.  Two institutions, same
-     privacy pressure, opposite architectures, and both defensible.  Say
-     which one we are and why.
+Harvard's AI Sandbox sits somewhere else again.  It publishes the ceiling — approved for data up to its Level 3 (medium-risk confidential) under its own classification scheme — and promises interactions are not used for training, and it publishes little about retention, who can read stored conversations, or deletion.  The ceiling is worth copying, because "what may I put in here?" is the most useful single line an instructor can be handed.  The silence after it is the gap these pages exist to fill.  (Harvard's tiers are Harvard's, and every register differs.  The comparison is about what gets published, not about whose tier is right.)
 
-     **Harvard's AI Sandbox — publishes a ceiling, and little else.**
-     States it is approved for data up to Level 3 (Medium Risk
-     Confidential) under Harvard's classification scheme, promises data is
-     not used to train LLMs, and gates access behind a training module.
-     Publishes nothing about retention, who can access stored interactions,
-     or deletion.
+**The self-hosting dividend**, the part that rarely gets written down.  The usual route for a third-party tool is a vendor contract, a data processing agreement, and a "school official with a legitimate educational interest" designation with a direct-control clause.  When the institution runs the servers, there is no third party to designate for *storage*.  Owning the stack removes a whole class of paperwork.
 
-     Two things follow.  One: publishing an explicit classification ceiling
-     is a concrete practice worth copying, and it is the single most useful
-     line an instructor can be handed.  Two: the gap this section exists to
-     fill is unfilled at the most-cited peer implementation, so our
-     your-data/ pages are ahead rather than catching up.  Do not overclaim
-     the comparison — Harvard's tiers are Harvard's, and every register differs.
+**But inference is still a third party** whenever the model is hosted.  A cloud model receives the prompt and the attached files under its provider's terms, whatever happens to the conversation afterwards.  Self-hosting the chat moves the question rather than retiring it: it lands on the model endpoint, and on the agreement behind it.
 
-     **"There is no such thing as a 'FERPA seal of approval.'"**
-     Michael Hawes, then director of the US Department of Education's
-     Student Privacy Policy and Assistance Division, quoted in FPF's
-     *Vetting Generative AI Tools for Use in Schools* (April 2024).  FERPA
-     binds funded schools, not companies, so no product can be
-     FERPA-compliant — the question is whether an institution can use it in
-     a compliant manner.  An entire vendor category sells the thing that
-     cannot exist; a web search for FERPA-compliant AI returns mostly that.
+**The bill**, plainly:
 
-     **Most available guidance is K-12-shaped, and higher ed imports its
-     errors.**  FPF's brief is explicitly K-12 (parents, COPPA, districts).
-     Higher-ed faculty guides then inherit parental-consent framing, when
-     FERPA rights transfer to the student on postsecondary enrollment at any
-     age.  Naming this is a real service to the reader.
+- **A rendering layer, a vault, and five containers per course**, to hold a line that a single application with careful WHERE clauses would also hold most days.
+- **Operational surface a small team has to actually run** — nightly backups across two repositories with two passwords, an escrow that has to be unsealed, a fleet to roll.
+- **Every persistence decision becomes a promise.**  A stateless service never has to answer the email at the top of this page.  We do.
 
-     **The awareness gap, which justifies the whole approach.**  EDUCAUSE
-     (Jan 2026): 94% of higher-ed workers used AI tools for work in the past
-     six months; 54% know their institution's AI policy.  Their 2024
-     landscape study: 80% use, fewer than one in four aware of a formal
-     policy.  Writing more policy does not reach people who do not read
-     policy — which is why the faculty duties here are taught through pages
-     addressed to students.
+## What is still wrong with it
 
-     **Also useful:** FPF's lifecycle spine (notice → consent → collection →
-     use → sharing → deletion); 128+ state student privacy laws, many of
-     which DO impose retention and deletion duties that FERPA does not; and
-     FPF's high-risk-decision-making section, which is the frame for
-     AI-assisted grading. -->
+This section is maintained against the running system, and it is the longest one on purpose.  A real gap list teaches more than a finished story, and the gaps are what the next cohort gets to close.
 
-## 6. How this looks on other stacks
+!!! warning "Open gaps"
+    - **Restore is not built.**  `just backup` runs two bundles off the box and keeps 7 daily, 4 weekly and 6 monthly copies.  `just restore` and the drill that proves it have not shipped, and the spec's own rule is that a backup nobody has restored from is a rumor.  So by our definition there are no backups yet.
+    - **No retention policy, so no expiry.**  Ordinary conversations stay until an operator removes them.  The only thing that deletes itself is a *temporary chat*, on the chat software's shipped default of 30 days — read from the source at our pinned version, not yet watched expiring.
+    - **No per-student deletion path.**  Nothing walks a course database and removes one person's material.
+    - **The backups would outlive a deletion anyway.**  A conversation deleted today stays in the backups for about six months, until the last monthly copy holding it ages out.  A restore, as designed, is all-or-nothing for the whole platform.
+    - **The export is not everything.**  It carries a student's conversations and agents.  It does not carry their usage records, their identity record, the history of keys issued to them, or their chats with the guides at the front door.  A request for those is handled by a person, by hand.
+    - **Archiving is not deleting.**  An archived course's database is still there, and an export still reads from it.  That is deliberate, and it is also data that outlives the course with no clock on it.
+    - **The database server asks for no password.**  The chat software never crosses courses, but code running anywhere on the internal network could open every course's database.
+    - **Inside one course, the document store is still a permission check.**  Between courses it is a container wall.
+    - **Agent actions cannot be narrowed to "nowhere."**  An empty allowlist is *no* allowlist — the whole internet — so leaving actions off is the only complete egress answer.
+    - **"The ledger holds no prompts" rests on a default.**  Our gateway config sets none of the switches that govern whether request content is stored in its spend logs, so that promise depends on the vendor's default at our pinned version rather than on a line we wrote.  Pinning it explicitly is queued.
+    - **Whether chat logs are formally education records is with counsel.**  The posture meanwhile is to treat them as if they are.
 
-<!-- - **Azure** — Purview for classification and lineage, Policy for
-       enforcement, Key Vault for key custody, immutable Blob storage with
-       legal hold for retention you must be able to prove.
-     - **AWS** — Macie for discovery and classification, S3 Object Lock for
-       WORM retention, KMS with per-tenant keys, CloudTrail as the audit
-       record.
-     - **Kubernetes** — the honest note is that k8s gives you almost none of
-       this natively.  etcd encryption at rest is a flag, audit logging is a
-       policy file you must write, and retention lives in whatever storage
-       backs your PVCs.  Compliance on k8s is assembled, not enabled.
+The deletion gaps are one problem seen from three sides, and it is the problem in this page's title.  Removing a record from a live database is easy.  Removing it from every archive of that database is not, and an archive you can selectively edit is an archive you can no longer trust.
 
-     The invariant: **crypto-shredding** — encrypt per subject and destroy
-     the key — is how mature systems answer deletion when the data is spread
-     across backups you cannot selectively edit.  Worth naming, because it is
-     the technique that makes "delete on request" tractable at all once
-     backups exist. -->
+The technique mature systems use is **crypto-shredding**: encrypt each person's data under a key of their own, and to delete it, destroy the key instead of hunting down the copies.  Every backup still holds the bytes, and none of them can be read.  It is the only approach that makes "delete on request" honest once backups exist.  It is not built here, and it is not small — it means per-subject keys inside a chat database that was never designed for them, and custody for those keys that is itself backed up very carefully.  But it is the shape of the answer, and it is worth knowing the name before you need it.
 
-## 7. Try it yourself
+## Try it yourself
 
-<!-- An exercise rather than a click-through, since this page is conceptual:
-     classify one system you already run.  List what it stores, who it is
-     about, what regime attaches and why, and what would happen if someone
-     asked for their records.  Most readers discover they cannot answer the
-     first question, which is the lesson. -->
+This page is conceptual, so the exercise is too, and it needs nothing from this platform.  Pick one system you already run — a lab server, a class project with a database, a shared drive — and write down four things:
+
+1. **Everything it stores.**  Not the tables you designed.  Every place state lives, including logs, caches, uploads, and backups.
+2. **Who each thing is about.**
+3. **Which regime attaches, and what triggers it.**  Data type, contract, or your institution's register.  If you can't name the trigger, you don't know the regime yet.
+4. **What you would do if someone asked for their records — or asked for them gone.**  Including the copies.
+
+Most people can't finish the first item.  That is the lesson, and it is the same one we learned the expensive way: the uploads we were protecting didn't exist, because nobody had listed where they lived.
+
+Then reread the email at the top of this page and draft the reply.  If it says "done," check your list again.  An honest one today says what you can give back, what you can't remove yet, and why — and that is a harder sentence to write than "deleted," and a more useful one to receive.

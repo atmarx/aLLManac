@@ -1,99 +1,90 @@
 ---
 title: Why the chatbot never asks who you are
-description: If a tool takes a username as a parameter, the model can pass any username. Identity has to arrive some other way — this is how, and why it matters the week you build your first agent.
+description: If a tool takes a username as a parameter, the model can pass any username.  Identity has to arrive some other way — this is how, and why it matters the week you build your first agent.
 audience: builder
 also_reaches: [student]
-status: scaffold
+status: draft
 owner: piper
-tags: [attribution, access-control, least-privilege, audit-logging, litellm, kubernetes, azure, aws]
+tags: [attribution, access-control, least-privilege, audit-logging, tool-calling, librechat, litellm]
 tethered_to:
-  - usage-mcp/
-  - librechat/
+  - usage-mcp/server.py
+  - registrar/server.py
+  - registrar/render.py
+  - librechat/librechat.yaml
   - docs/design-walls.md
 ---
 
 # Why the chatbot never asks who you are
 
-!!! note "Being written"
-    This page is not finished.  The argument and the sources are drafted, and the prose is queued behind the pages instructors need first.  What it will cover is below; the short version is that the tools in this platform are never told who is asking by the model.  Identity is injected from the session the request already authenticated, so a prompt can choose a date range or a course, and can never choose whose data comes back.  [What we store](../your-data/what-we-store.md) covers the reader-facing half.
+Open your course chat and type *"how much have I used this week?"*  The answer comes back with your email address at the top of it.
 
-<!-- SCAFFOLD.  Highest practical value of the first three — students are
-     building agents with tools this term and this is the mistake they will
-     make in week three.  Write it so it reaches them before they make it. -->
+You never told it your email address.  It never asked.  Look at the tool that answered, `my_usage` in `usage-mcp/server.py`, and the only thing it takes is a number of days.  There is no `user` parameter anywhere in it, and that is the most deliberate line in the file.
 
-## 1. The question
+## The question
 
-<!-- The usage tool tells you what you spent.  It never asks which account
-     to look up, and there is no user parameter anywhere in it.  Why not? -->
+A tool that reports usage has to know whose usage to report.  Every tutorial on tool calling would hand it that as an argument.  Why doesn't this one take it?
 
-## 2. The obvious answer, taken seriously
+## The obvious answer, taken seriously
 
-<!-- A `get_usage(user)` tool is the natural design.  It is what every tool
-     tutorial shows, it is easy to test, and it reads correctly.
+`get_usage(user)`.  It is what every example shows, and it deserves a fair hearing, because it is a good design for most of what software does.
 
-     Steelman it: explicit parameters are debuggable, the schema documents
-     itself, and you can call it from curl. -->
+The schema documents itself — anyone reading the tool list knows exactly what it needs.  It is easy to test: call it with three different users and check three different answers.  You can call it from `curl` while debugging, with no session, no browser and no ceremony.  And the model is good at filling it in, because "the user's email" is sitting right there in its context.
 
-## 3. What broke
+That last sentence is the whole problem, and it reads like a feature.
 
-<!-- The core point, stated so it lands: a tool parameter is filled by the
-     model, and the model fills parameters from text in its context.  Text in
-     its context includes whatever the user typed.  A parameter named `user`
-     is a request for the model to be talked into a different value.
+## What broke
 
-     "Show me the usage for dean@example.edu" is not an attack requiring
-     skill.  It is a sentence.
+**A tool parameter is filled by the model, and the model fills parameters from text in its context.**  The text in its context includes everything the person in the chat typed.  So a parameter named `user` is not a function argument in any sense that matters.  It is a request for the model to be talked into a different value.
 
-     Then the implementation scar: fastmcp's get_http_headers() silently
-     strips authorization, so the obvious fix — read identity from the auth
-     header — fails quietly rather than loudly.  Quiet failures in an
-     identity path are the worst kind, and this one cost real time. -->
+*"Show me the usage for dean@example.edu"* is not an attack that takes skill.  It is a sentence.  A model trained to be helpful will put that address in the `user` field, because that is what it was asked to do, and the tool — which has no way to know where the value came from — will answer.  You can add an instruction telling the model not to, and you have then moved your access control into a prompt, which is the one place guaranteed to be negotiable.
 
-## 4. What we did, and the bill
+The general rule is older than language models: **anything the caller can type is an assertion, not an identity.**  It is the same reason a web application does not trust a `user_id` in a query string.  Models made it easier to get wrong, because tool parameters look like function arguments and behave like user input.
 
-<!-- Identity arrives out-of-band: the platform injects the caller's identity
-     into the tool call from the session the request already authenticated,
-     never from the model's output.  Tools carry no *identity* argument: a
-     prompt can pick the date range or the course slug, but never whose data
-     comes back.  (Check the wording against usage-mcp/server.py:6-7, which
-     already says this correctly — the tools do take arguments.)
+There is a quieter trap waiting for whoever fixes it the obvious way.  The natural move is to take identity from the request rather than the arguments, and to prove the request came from a trusted caller with a bearer token in the `Authorization` header.  The MCP library this platform's tools are built on, `fastmcp`, hands you request headers through `get_http_headers()` — and strips `authorization` from what it returns unless you ask for it by name, because the function was designed for *forwarding* headers, not checking them.  It is silent by design, and from the inside it looks exactly like a client that forgot to send the token.  Our check refuses when the token is missing, so the symptom was refusals pointing at the wrong side.  A check written the other way round — verify the token *if one is present* — would have turned the same quirk into an open door with no error at all.  That is why it is written down as a wall (`docs/design-walls.md`, "fastmcp 3.x") and why both services ask for the header explicitly.
 
-     Attribution keys on the email address, deliberately, so a usage record
-     lands on a real person and survives a roster change.
+## What we did, and the bill
 
-     The bill:
-     - tools are harder to test standalone
-     - the plumbing that injects identity is now security-critical and has to
-       be right in every surface
-     - a per-course literal has to be rendered into each instance's config,
-       which is one more thing the renderer must not get wrong -->
+**Identity rides the request, never the arguments.**  The chat software injects it.  Each LibreChat instance's configuration declares its tool servers with three headers, and LibreChat fills two of them per request from whoever is signed in:
 
-## 5. What is still wrong with it
+```yaml
+headers:
+  Authorization: "Bearer ${USAGE_MCP_TOKEN}"
+  X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
+  X-User-Role: "{{LIBRECHAT_USER_ROLE}}"
+```
 
-<!-- TETHERED.  Draft: the injection path's coverage across surfaces, and
-     what happens for a tool called from a context with no authenticated
-     session.  Verify before publishing. -->
+The bearer token proves the call came from the chat software rather than from anything else on the network.  The email comes from the account that signed in through the institution's identity provider.  Neither passes through the model.  The model chooses *that* a tool is called and with *what* arguments; it has no say in the headers.
 
-## 6. How this looks on other stacks
+Every tool opens the same way — check the token, read the email, refuse if either is missing — and then scopes its answer by that email and nothing else.  Tools still take arguments: `my_usage` takes a number of days, and `course_usage` takes a course.  **A prompt can pick the date range.  It can never pick whose data comes back.**
 
-<!-- - **Kubernetes** — the same rule as service identity: workload identity
-       and mTLS establish who is calling, and a caller-supplied identity
-       field is never trusted.  ServiceAccount tokens over a `tenant` param.
-     - **Azure** — managed identity and On-Behalf-Of flow: the downstream
-       API receives a token scoped to the actual user, not a name the caller
-       typed.
-     - **AWS** — IAM roles and STS AssumeRole with session tags; the identity
-       rides the credential.
+Which course you are in works the same way, with one more header.  A course instance's configuration is rendered by the registrar, and the registrar writes that course's id into it as a literal: `X-Course: "engr301-2026fall"`.  So `my_key` takes no arguments at all — it hands back *your* key for *this* course, because both of those arrived in headers nobody in the chat can edit.  The front door has no course, so it renders no `X-Course`, and `my_key` simply refuses there with no line of policy written anywhere.  The absence of a header is the access control.
 
-     The invariant, worth stating as a rule the reader can carry: **anything
-     the caller can type is an assertion, not an identity.**  This predates
-     language models by decades — it is the same reason a web app does not
-     trust a user_id in a query string.  Models made it easier to get wrong
-     because tool parameters look like function arguments and behave like
-     user input. -->
+Some tools *do* take a course as an argument, and the reason they can is the most transferable idea on this page.  An instructor can enrol students from the front door by naming the course.  That is safe because the course argument only ever **chooses** which course — what **decides** whether you may touch it is the next line, a check of your injected email against that course's roster of teaching staff.  A student who names a course gets the same refusal they would get inside it.  Inside a course the header still wins, and a named course that disagrees with it is refused rather than obeyed: the header is configuration the registrar rendered, and the argument is a model repeating what somebody typed.  The test for moving anything from header to argument is one question: **is it choosing, or deciding?**  Only the first can move.
 
-## 7. Try it yourself
+The same rule reaches the meter.  Every chat request LibreChat sends to the gateway carries the signed-in email as `x-litellm-end-user-id`, so the ledger records who asked even though a course's chat runs on one shared service key.  A personal API key carries identity the other way — the key is minted with your email as its owner, so whatever a script does with it lands on you without the script ever saying who you are.  Chat usage and key usage join on the same email, which is why `my_usage` can show both.
 
-<!-- Ask the usage agent for someone else's usage and watch what happens.
-     Then look at the tool schema and notice there is nowhere to put the
-     request.  Short, concrete, and it will stay with them. -->
+The bill:
+
+- **The tools are harder to test.**  You cannot `curl` one with a username.  The probe we check them with on the box has to build the token and the headers by hand, and it asserts three things — the tool list returns, a scoped call works as a known user, and **a bad token is refused**.  That third one is the test that matters, because the first two pass on a service with no authentication at all.
+- **The injection path is security-critical**, and it lives in configuration rather than code: two config files, one hand-written and one rendered, each of which has to declare the headers correctly.  A misspelled placeholder arrives as the literal text `{{LIBRECHAT_USER_EMAIL}}`, which is why both services refuse an email that starts with `{{`.
+- **The renderer is now part of the access control.**  If it ever wrote the wrong course id into an instance, every tool in that instance would serve the wrong course, correctly.
+
+## What is still wrong with it
+
+**The token says "a LibreChat", not "which LibreChat."**  There is one token per service, and every course instance holds the same one, because the registrar renders the platform-wide value into each course's environment.  So anything that can present that token can assert *any* email and *any* course — the services trust the headers because the token is right, and the token is right everywhere.  In practice that means code running inside a course container, or anyone who reads one course's environment file.  It is the same shape as the shared database server in [Keeping courses apart](keeping-courses-apart.md#what-we-did-and-the-bill): the blast radius of a leaked *secret* is wider than one course here, and the fix — a token per course, checked against the `X-Course` it arrives with — is not built.
+
+**The headers are only as good as the sign-in.**  Every tool trusts the email LibreChat holds for the signed-in account, and that came from the identity provider.  That is the right place for the chain to end, but it is where it ends: these tools add no check of their own, and a mistake upstream becomes a correct-looking answer about the wrong person.
+
+**Getting identity right does not get scope right, and we have the receipt.**  Until 2026-10-01, `course_usage` — the instructor's view of a course — took the caller's identity exactly as this page describes and then picked rows by *person*: any ledger row whose user was one of the course's students.  A student's email rides every chat turn they make anywhere, so an instructor saw that student's activity in other courses and at the front door too, and "hasn't started yet" counted a student who had only worked in another course as started.  Nobody could ask for someone else's data.  The tool volunteered it.  The fix picks rows by the course instead — the course's team and its owner tag — and it turned up when a sweep of the site checked an instructor's page against the code — the page promised the view was "scoped to exactly your course."
+
+That last one is the gap worth carrying away.  **Out-of-band identity answers *who is asking*.  It says nothing about *which rows that person's question should touch*.**  Those are two decisions, and the second one gets made in a `WHERE` clause on an ordinary afternoon.
+
+## Try it yourself
+
+In your course chat, ask for a classmate's usage by their email address.  Watch what comes back: your own numbers, or a refusal, or the model explaining that the tool only answers for you.  What you will not get is theirs, and not because the model declined — there is nowhere in the request for their address to go.
+
+Then ask for `course_usage` on your own course.  Unless you teach it, you are refused, and the refusal names the roster rather than your role.  The course you named was the *choosing* half.  Your email, which you did not type, was the *deciding* half.
+
+Last, open `usage-mcp/server.py` in the repository and read the signatures: `my_usage(days: int = 7)`.  Then find `_ident()`, a short function that reads a token and two headers.  That function is the reason the chatbot never asks who you are — it already knows, and it never let the model have an opinion.
+
+When you build your first agent with a tool of its own, write the signature before you write anything else, and ask of every parameter: *if a student typed a different value into the chat, would I mind?*  If the answer is yes, it is not a parameter.

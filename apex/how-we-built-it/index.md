@@ -10,16 +10,6 @@ tags: [rendered-config, tenancy, secrets-management, isolation, accountability]
 
 # How we built it
 
-<!-- SCAFFOLD, AND PARKED (2026-08-01, xram).  Hold depth on this track until
-     the build settles — the registrar is still landing changes, and a
-     teaching page written against a moving system is the drift this whole
-     doctrine exists to prevent.  The banked prior art and the queued
-     artifacts below keep their value; nothing here needs rewriting when work
-     resumes, it needs finishing.
-
-     Priority meanwhile is apex/teaching-with-ai/ — responsible use of AI in
-     teaching, which does not depend on the build at all. -->
-
 ## Why this section exists
 
 The platform you are signed in to is also course material.
@@ -74,10 +64,10 @@ Beat 5 is maintained against the running system.  When we close an open edge, th
 
 ## The decisions
 
-- [How do you keep the courses apart?](keeping-courses-apart.md) — tenancy by instance rather than by fence.  **Finished.**
-- [Why is there a vault?](why-a-vault.md) — secrets, escrow, and what changes when the credentials are ones you mint.  *Being written.*
-- [Why the chatbot never asks who you are](identity-is-not-an-argument.md) — identity as context, never as a tool parameter.  *Being written.*
-- [How do you protect data you cannot delete?](protecting-data-you-cant-delete.md) — classification, regimes, and the gap list.  *Being written.*
+- [How do you keep the courses apart?](keeping-courses-apart.md) — tenancy by instance rather than by fence.
+- [Why is there a vault?](why-a-vault.md) — secrets, escrow, and what changes when the credentials are ones you mint.
+- [Why the chatbot never asks who you are](identity-is-not-an-argument.md) — identity as context, never as a tool parameter.
+- [How do you protect data you cannot delete?](protecting-data-you-cant-delete.md) — classification, regimes, and the gap list.
 
 <!-- Queued, not written:
      - compose-now-k3s-later.md — held until the migration actually happens,
@@ -99,7 +89,7 @@ Beat 5 is maintained against the running system.  When we close an open edge, th
 
 These pages name what is broken and unfinished in a system that serves real courses, and they do it on purpose.
 
-A case study with no open edges teaches that mature systems do not have any — which is close to the least useful thing an engineer can believe walking into their first job.  The finished page in this section ends on a problem we have not solved.  That is the shape, not an accident of timing.
+A case study with no open edges teaches that mature systems do not have any — which is close to the least useful thing an engineer can believe walking into their first job.  Every page in this section ends its case on a problem we have not solved.  That is the shape, not an accident of timing.
 
 <!-- ORIGINAL BRIEF: These pages name what is broken and unfinished in a production system
      serving real courses.  That is deliberate.  A case study with no open
