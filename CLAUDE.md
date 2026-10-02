@@ -17,6 +17,7 @@ That file is a list of **walls** — questions already answered the expensive wa
 - **MCP wiring** — the trailing-slash 307, the SSRF allowlist, and why "0 tools" at boot is correct
 - **A course's `modelSpecs`** — any spec list silently defaults `modelSelect`, `parameters` and `presets` to false, which empties the picker, agents included; the render sets all three explicitly
 - **MCP servers staff add** — course admins can add one in the UI and sharing an agent shares it; `mcpSettings.allowedDomains` is the only wall, it gates the declared servers too (so the platform's hosts are listed first), and an entry lifts the private-address block
+- **A course ADMIN and the container env** — a server added in the chat UI never gets `${VAR}` filled in; one added through the admin config API does, and a base-scope override can widen `allowedDomains` too (open hole, measured on 0.8.7)
 - **`actions.allowedDomains`** — it is top-level, not under `endpoints`; an empty list is *no allowlist*, not deny-all; capability names are never validated by LibreChat and typos fail closed and silent
 - **LiteLLM free vs. Enterprise** — especially **UI SSO dies past 5 total DB users**, and rotation is delete+mint because `/key/regenerate` is paid
 - **Key attribution** — `user_id` must be the email, and why
