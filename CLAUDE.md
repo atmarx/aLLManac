@@ -20,6 +20,7 @@ That file is a list of **walls** — questions already answered the expensive wa
 - **`actions.allowedDomains`** — it is top-level, not under `endpoints`; an empty list is *no allowlist*, not deny-all; capability names are never validated by LibreChat and typos fail closed and silent
 - **LiteLLM free vs. Enterprise** — especially **UI SSO dies past 5 total DB users**, and rotation is delete+mint because `/key/regenerate` is paid
 - **Key attribution** — `user_id` must be the email, and why
+- **Per-course MCP tokens** — a course's token is derived from `COURSE_MCP_SECRET` and good only with its own `X-Course`; the front door's only with none; unset secret fails closed; rotation is secret + `just up` + `just render`
 - **opencode** — image org, provider shape, and the ≥16k context floor
 - **`fastmcp`** — `get_http_headers()` silently strips `authorization`
 - **`just`** — `dotenv-load` snapshots `.env` at invocation start, and it dedents recipe bodies (heredocs must stay indented)

@@ -365,6 +365,20 @@ For a student key that is correct — the fuse is theirs, and rotation carries t
 - Needs **≥16k context**.  Its own prompt plus tool schemas eat ~8k before the user says anything; anything smaller thrashes.
 - Qwen2.5 tool calling needs vLLM `--enable-auto-tool-choice --tool-call-parser hermes`.  **Coder variants ignore hermes — avoid that pairing** (see the parser table above).
 
+## A course's MCP token speaks for that course alone *(2026-10-02, decision 32)*
+
+Both tool servers believe the headers a token-holder sends — who is asking, at what role, in which course — so the token is the whole boundary.  Until decision 32 every course env held the front door's two tokens, and one leaked course container could act as anyone, anywhere.  Now:
+
+- **The front door's tokens** (`REGISTRAR_MCP_TOKEN`, `USAGE_MCP_TOKEN` in `.env`) are good only on a call with **no** `X-Course`.  The flagship sends none, so nothing there changed.  Adding an `X-Course` line to the flagship's `mcpServers` now gets refused outright, on top of the reasons in "The front door is the one room that can take a complaint."
+- **A course's tokens** are `hex(HMAC-SHA256(COURSE_MCP_SECRET, "<service>|<slug>"))`, `service` ∈ `courses` | `usage`, rendered into `fleet/<slug>.env` under the same two names.  Each is good at its one service, only with `X-Course: <slug>`, only while the course is known and not archived (`courses.yaml` for the registrar, the `archived:` key the render puts in `roster.yaml` for usage-mcp).  The usage server in a course's `librechat.yaml` carries `X-Course` for exactly this reason — remove it and that course's usage tools refuse.
+- **One refusal for every failure.**  Wrong token, wrong course, unknown course, archived course: the same sentence as a bad token always was.
+- **Fail closed.**  `COURSE_MCP_SECRET` unset: the render raises rather than write a course env, and both services refuse every course token.  The front door keeps working.
+- **The derivation lives twice** — `course_mcp_token` in `registrar/render.py`, `_course_token` in `usage-mcp/server.py` (separate image, no shared module).  Change one without the other and every course's usage tools refuse; `course-tokens-check` is what catches it.
+- **Rotation is the secret.**  Change `COURSE_MCP_SECRET`, `just up` (registrar and usage-mcp recreate on the changed env), `just render`.  Every course turns over at once and refuses between the last two steps.  Nothing is stored, so nothing needs migrating or backing up.
+- **It does not bind the person.**  A course's token can still name any email in its own course.  That needs a signed identity from LibreChat, which 0.8.7 doesn't send (registrar-spec.md, "What it doesn't fix").
+
+**`just course-tokens-check`** (in `deploy`, after `egress-check`) proves it from inside the registrar container, which already mounts `fleet/`: per course, the env holds the derived token and not the front door's, own token + own `X-Course` is accepted, own token + another course's or none is refused, the front door's token + the course's `X-Course` is refused; plus the green case — the front door's token with no `X-Course` still answers — and every archived course's token refused.  No token is printed.  Right after the deploy that brings this, or after a rotation, it is red until `just render`, and it says so per course.
+
 ---
 
 ## fastmcp 3.x
@@ -531,6 +545,8 @@ docker compose exec -T usage-mcp python - < prod-probe.py
 The probe itself is a fastmcp `Client` over `StreamableHttpTransport("http://localhost:8080/mcp", headers={Authorization, X-User-Email, X-User-Role})` asserting three things: `list_tools` returns, a scoped call succeeds as a known faculty user, and a **bad bearer is rejected**.  That third assertion is the one that matters — the first two pass on a service with no auth at all.
 
 (The original probe script and the 15/15 rig lived in a session scratchpad and are gone.  Rewriting it from this paragraph is minutes; that's why the shape is written down and the file isn't.)
+
+A written-down instance of the pattern now ships: `scripts/course-tokens-probe.py`, piped into the registrar by `just course-tokens-check`.  It asserts refusals as well as acceptances for the same reason.
 
 ---
 

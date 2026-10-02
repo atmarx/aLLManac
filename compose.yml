@@ -272,6 +272,9 @@ services:
     container_name: alm-usage-mcp
     environment:
       USAGE_MCP_TOKEN: "${USAGE_MCP_TOKEN}"
+      # Each course's token is derived from this (decision 32) — held here and
+      # by the registrar, nowhere else.  Unset: every course token is refused.
+      COURSE_MCP_SECRET: "${COURSE_MCP_SECRET:-}"
       USAGE_DB_PASSWORD: "${USAGE_DB_PASSWORD}"
       PLATFORM_NAME: "${PLATFORM_NAME:-aLLManac}"   # what its replies call the platform
       USAGE_ROSTER: /app/cfg/roster.yaml
@@ -359,6 +362,13 @@ services:
       AUTH_HOST: "${AUTH_HOST:-auth.localhost}"
       EDGE_TLS: "${EDGE_TLS:-internal}"
       OPENID_BUTTON_LABEL: "${OPENID_BUTTON_LABEL:-Sign in with Campus SSO}"
+      # Derives every course's two MCP tokens (render) and checks the
+      # registrar's (decision 32).  Unset: the render refuses to write course
+      # envs and every course token is refused.
+      COURSE_MCP_SECRET: "${COURSE_MCP_SECRET:-}"
+      # The front door's usage token.  No longer rendered into any course;
+      # held only so `just course-tokens-check` can prove usage-mcp refuses
+      # it alongside an X-Course header.
       USAGE_MCP_TOKEN: "${USAGE_MCP_TOKEN}"
       REGISTRAR_DEFAULT_FUSE: "${REGISTRAR_DEFAULT_FUSE:-5}"
       REGISTRAR_MAX_FUSE: "${REGISTRAR_MAX_FUSE:-25}"

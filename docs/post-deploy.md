@@ -25,7 +25,7 @@ Everything here assumes you are on the deploy box, in the checkout, and `just` r
 
 ```bash
 just sync && just deploy      # what CI runs
-just render                   # ONLY if deploy's render-check went red
+just render                   # ONLY if render-check or course-tokens-check went red
 just fleet-smoke              # prove the courses answer, not just the control plane
 ```
 
@@ -35,10 +35,11 @@ One of those three is conditional, and **the condition is printed by the deploy 
 
 ```
 channel  pull  build  secrets  up  config-refresh  bao-unseal
-smoke  oidc-settle  egress-check  render-check  docs-corpus  agents-refresh  agents-check
+smoke  oidc-settle  egress-check  course-tokens-check  render-check  docs-corpus
+agents-refresh  agents-check
 ```
 
-Read that as two halves.  The first seven **change the box**: resolve the image pins from `channels/<name>.env`, pull them, build what's local, fill in any secret still reading `change-me`, bring the stack up, restart containers whose mounted config changed since they booted, and unseal the escrow.  Of the last seven, five **ask the box questions** and change nothing.  The two exceptions repair.  `oidc-settle` restarts any LibreChat whose sign-in route answers 500 instead of 302, the state a reboot leaves behind.  `agents-refresh` re-seeds the guides from the docs you just shipped, on any box that has been seeded before.
+Read that as two halves.  The first seven **change the box**: resolve the image pins from `channels/<name>.env`, pull them, build what's local, fill in any secret still reading `change-me`, bring the stack up, restart containers whose mounted config changed since they booted, and unseal the escrow.  Of the last eight, six **ask the box questions** and change nothing.  The two exceptions repair.  `oidc-settle` restarts any LibreChat whose sign-in route answers 500 instead of 302, the state a reboot leaves behind.  `agents-refresh` re-seeds the guides from the docs you just shipped, on any box that has been seeded before.
 
 Two of those are worth knowing by name because people re-run them by hand and get confused:
 
@@ -72,6 +73,14 @@ just render
 That re-renders every course from `courses.yaml` using the templates in the registrar you just deployed, recreates what changed, reloads the edge gracefully, and restarts any instance whose config file changed under it (`config-refresh`).  That last step used to be missing.  A change that lands only in a course's `librechat.yaml` recreates nothing, so the instance kept serving the old config while `render-check` went green: it diffs files, not processes.  **`render-check` reports and never repairs** — no course instance is recreated mid-deploy, which is why a red render-check is a note to you rather than an outage.
 
 An **unrendered** line is not red.  A course record with no `fleet/<slug>.env` has never been provisioned on this box; that's `just course`, not `just render`.
+
+**`course-tokens-check` goes red over the same window, and runs first.**  Each course holds its own two MCP tokens, derived from `COURSE_MCP_SECRET` and accepted only with that course's `X-Course`; the check asks both tool servers, per course, whether that holds.  A course whose env predates the derived tokens — or whose secret was rotated since its last render — fails before any call is made:
+
+```
+  FAIL  courses  fleet/engr301.env still holds the FRONT DOOR's token — the render predates decision 32.  Run: just render
+```
+
+That one is a stale render, and those courses' tools are refusing until `just render` runs.  Run it, then `just course-tokens-check` again.  Any other FAIL — a token **accepted** where it should be refused — is not a render problem: it is the boundary not holding, and it needs a person before the next deploy.
 
 ### 2.  `just agents-seed` — the first time, and when the deploy couldn't
 
@@ -168,6 +177,8 @@ After editing anything under `site/`, bring the box up with **`just up`** — ne
 | Symptom | Read this |
 |---|---|
 | `render-check` red | [`just render`](#1--just-render--when-a-render-template-changed) — above |
+| `course-tokens-check` says an env "still holds the FRONT DOOR's token" or a token "the current secret doesn't derive" | `just render`, then re-run it — the courses' tools refuse until you do |
+| `course-tokens-check` says a token was **accepted** where it should be refused | The per-course boundary isn't holding.  Not a render — stop and read [design-walls.md](design-walls.md), "A course's MCP token speaks for that course alone" |
 | `render-check` FAILs on the registrar not matching the tree | `just deploy` first; the check is refusing to guess |
 | `agents-check` red on knowledge or prompt (STALE) | The deploy's refresh didn't land — read the `agents-refresh` output above it.  Never seeded: `just agents-seed`.  RATE LIMITED: wait fifteen minutes, then `just agents-seed` |
 | `agents-check` reports an orphan spec | A `modelSpecs` entry points at an agent id that no longer exists — re-seed, then paste the reprinted block ([Admin Guide](admin-guide.md)) |

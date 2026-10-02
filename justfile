@@ -108,6 +108,7 @@ secrets:
     fill USAGE_MCP_TOKEN      "$(openssl rand -hex 32)"
     fill USAGE_DB_PASSWORD    "$(openssl rand -hex 16)"
     fill REGISTRAR_MCP_TOKEN  "$(openssl rand -hex 32)"
+    fill COURSE_MCP_SECRET    "$(openssl rand -hex 32)"
     fill SBOM_TOKEN           "$(openssl rand -hex 24)"
     fill KC_ADMIN_PASSWORD    "$(openssl rand -hex 12)"
     fill KC_DB_PASSWORD       "$(openssl rand -hex 16)"
@@ -279,7 +280,7 @@ build: _fleet && sbom
 # paste into librechat.yaml, which is an operator's act (agents-refresh).
 #
 # What CI runs on the box: images, build, .env, restart, re-read config, verify
-deploy: channel pull build secrets up config-refresh bao-unseal smoke oidc-settle egress-check render-check docs-corpus agents-refresh agents-check
+deploy: channel pull build secrets up config-refresh bao-unseal smoke oidc-settle egress-check course-tokens-check render-check docs-corpus agents-refresh agents-check
 
 # The gap this closes: `docker compose up` recreates on a changed DEFINITION,
 # never on changed bind-mount CONTENTS.  Directory mounts got the new file into
@@ -525,6 +526,22 @@ egress-check slug="":
         echo "  actually be permitted to reach."
     fi
     exit $fail
+
+# ---- Does each course's service token speak for that course alone? ----------
+# Decision 32 (docs/registrar-spec.md, "Service tokens — one per course").
+# Every course holds its own two MCP tokens, derived from COURSE_MCP_SECRET;
+# the front door's are good only with no X-Course.  This asks the two live
+# services, from inside the registrar — it mounts fleet/, so it reads each
+# course's env where it lies and nothing is copied out.  No token is printed.
+#
+# Right after a deploy that brings decision 32 (or rotates the secret) this is
+# RED until `just render` rewrites the course envs — it says so per course,
+# and that red is the truth: those courses' tools are refusing.  Run
+# `just render`, then this again.
+#
+# Prove each course's MCP tokens work for that course and no other
+course-tokens-check:
+    {{compose}} exec -T -w /app registrar python - < scripts/course-tokens-probe.py
 
 # Show container status
 ps:

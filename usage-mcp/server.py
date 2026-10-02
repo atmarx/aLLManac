@@ -8,10 +8,12 @@ prompt can pick the date range, but never whose data comes back.
 
 Trust model, in one breath: this container is reachable only on the compose
 network (plus a 127.0.0.1 bind for smoke tests), LibreChat proves itself
-with a bearer token, and the database role (usage_ro) can read the ledger
+with a bearer token — the front door's, or a course's own, good only with
+that course's X-Course — and the database role (usage_ro) can read the ledger
 but touch nothing.  The LiteLLM master key never enters this process.
 """
 
+import hashlib
 import hmac
 import json
 import os
@@ -26,7 +28,11 @@ from fastmcp.server.dependencies import get_http_headers
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+# The FRONT DOOR's token — good only on a call with no X-Course header.  A
+# course instance presents its own token, derived from COURSE_MCP_SECRET
+# (decision 32; see _service_token_or_refuse).
 TOKEN = os.environ.get("USAGE_MCP_TOKEN", "")
+COURSE_MCP_SECRET = os.environ.get("COURSE_MCP_SECRET", "")
 # What readers call this place (PLATFORM_NAME, docs/customizing.md).  A
 # string a person can read says this, never the project's name.
 PLATFORM = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
@@ -81,6 +87,9 @@ def _load_roster() -> dict:
                     str(k).strip().lower(): [str(a).strip().lower() for a in (v or [])]
                     for k, v in (c.get("aliases") or {}).items()
                 },
+                # Rendered by the registrar for an archived course.  Its
+                # history stays readable; its service token stops working.
+                "archived": bool(c.get("archived")),
             }
         data = {
             "courses": courses,
@@ -96,17 +105,46 @@ def _load_roster() -> dict:
 
 # ---- identity: from the headers LibreChat injects, never from arguments ------
 
-def _ident() -> tuple[str, str]:
-    # include= because get_http_headers strips authorization by default
-    # (it's meant for forwarding; we're the ones checking it):
-    h = get_http_headers(include={"authorization"})
+def _course_token(slug: str) -> str:
+    """This service's token for one course: hex HMAC-SHA256 of "usage|<slug>"
+    under COURSE_MCP_SECRET.  A COPY of registrar/render.py course_mcp_token
+    (this image has no shared module with the registrar) — the two must
+    derive the same value, or every course's usage tools refuse.  "" when
+    the secret is unset, which never matches: fail closed."""
+    if not COURSE_MCP_SECRET or not slug:
+        return ""
+    return hmac.new(COURSE_MCP_SECRET.encode(), f"usage|{slug}".encode(),
+                    hashlib.sha256).hexdigest()
+
+
+def _service_token_or_refuse(h: dict) -> None:
+    """Which chat is calling, proven (decision 32).  No X-Course: the bearer
+    must be the front door's token.  X-Course: the bearer must be that
+    course's derived token, and roster.yaml must know the course and not
+    mark it archived.  One sentence for every failure — no message says
+    which half was wrong."""
     auth = h.get("authorization", "")
     supplied = auth[7:] if auth[:7].lower() == "bearer " else ""
-    if not TOKEN or not hmac.compare_digest(supplied, TOKEN):
+    course = h.get("x-course", "").strip().lower()
+    expected = _course_token(course) if course else TOKEN
+    # Bytes, not str: compare_digest raises TypeError on a non-ASCII str,
+    # and a bearer is whatever the caller sent.
+    ok = hmac.compare_digest(supplied.encode(), expected.encode()) and bool(expected)
+    if ok and course:
+        c = _load_roster()["courses"].get(course)
+        ok = c is not None and not c["archived"]
+    if not ok:
         raise ToolError(
             f"This service only answers the {PLATFORM} chat itself "
             "(missing or wrong service token)."
         )
+
+
+def _ident() -> tuple[str, str]:
+    # include= because get_http_headers strips authorization by default
+    # (it's meant for forwarding; we're the ones checking it):
+    h = get_http_headers(include={"authorization"})
+    _service_token_or_refuse(h)
     email = h.get("x-user-email", "").strip().lower()
     role = h.get("x-user-role", "").strip().upper()
     if not email or email.startswith("{{"):

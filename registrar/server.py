@@ -10,11 +10,12 @@ front door, where there is no header to take it from — and there it names a
 course the roster must already say the caller teaches (_staff_scope).
 
 Trust model, in one breath: reachable only on the compose network (plus a
-127.0.0.1 bind for smoke), LibreChat proves itself with a bearer token,
-the course comes from rendered config students can't touch, and the roster
-(registrar/courses.yaml) is the authorization for everything an instructor
-does.  This file is the TOOL PLANE: it parses, stages, diffs, and reads
-the caller's own escrow paths.  Everything that holds a minting credential
+127.0.0.1 bind for smoke), LibreChat proves itself with a bearer token
+(the front door's, or a course's own, good only with that course's
+X-Course), the course comes from rendered config students can't touch,
+and the roster (registrar/courses.yaml) is the authorization for
+everything an instructor does.  This file is the TOOL PLANE: it parses,
+stages, diffs, and reads the caller's own escrow paths.  Everything that holds a minting credential
 lives across the seam in reconcile.py — see docs/registrar-spec.md,
 "The mint boundary".
 """
@@ -34,7 +35,11 @@ from starlette.responses import FileResponse, JSONResponse, PlainTextResponse
 import yaml
 
 import reconcile
+from render import course_mcp_token
 
+# The FRONT DOOR's token — good only on a call with no X-Course header.  A
+# course instance presents its own derived token instead (decision 32; see
+# _service_token_or_refuse).
 TOKEN = os.environ.get("REGISTRAR_MCP_TOKEN", "")
 # What readers call this place (PLATFORM_NAME).  Every string here that a
 # person can read says this, never the project's name — docs-corpus checks.
@@ -115,16 +120,38 @@ def _rehearse(email: str, would: str) -> str | None:
 
 # ---- identity: from the headers LibreChat injects, never from arguments ------
 
-def _ident() -> tuple[str, str, str]:
-    """(email, role, course) — all three from trusted headers."""
-    h = get_http_headers(include={"authorization"})
+def _service_token_or_refuse(h: dict) -> None:
+    """Which chat is calling, proven — decision 32, before anything else.
+
+    No X-Course: the bearer must be the front door's token.  X-Course: the
+    bearer must be THAT course's derived token (render.course_mcp_token), and
+    the course must be one courses.yaml knows and hasn't archived.  Every
+    failure is the same sentence, so a caller can't learn which half was
+    wrong.  COURSE_MCP_SECRET unset derives "", which never matches: every
+    course token is refused, and the front door's still works."""
     auth = h.get("authorization", "")
     supplied = auth[7:] if auth[:7].lower() == "bearer " else ""
-    if not TOKEN or not hmac.compare_digest(supplied, TOKEN):
+    course = h.get("x-course", "").strip().lower()
+    expected = course_mcp_token("courses", course) if course else TOKEN
+    # compare_digest even when expected is "" — the bool guard after it is
+    # what refuses an unset secret or token.
+    # Bytes, not str: compare_digest raises TypeError on a non-ASCII str,
+    # and a bearer is whatever the caller sent.
+    ok = hmac.compare_digest(supplied.encode(), expected.encode()) and bool(expected)
+    if ok and course:
+        c = _courses_or_refuse()["courses"].get(course)
+        ok = c is not None and reconcile.course_state(c) != "archived"
+    if not ok:
         raise ToolError(
             f"This service only answers the {PLATFORM} chat itself "
             "(missing or wrong service token)."
         )
+
+
+def _ident() -> tuple[str, str, str]:
+    """(email, role, course) — all three from trusted headers."""
+    h = get_http_headers(include={"authorization"})
+    _service_token_or_refuse(h)
     email = h.get("x-user-email", "").strip().lower()
     if not email or email.startswith("{{"):
         raise ToolError(
@@ -155,19 +182,13 @@ def _ident_open() -> tuple[str, str, str]:
     header CHOOSING which course, or DECIDING who may act?  Only the first
     can move to an argument.
 
-    The token check and the who-is-asking check are unchanged; only the
-    course becomes optional, and the caller must then work out the course
-    from the roster instead — reconcile.file_report for routing a complaint,
+    The token check (_service_token_or_refuse) and the who-is-asking check
+    are the same as _ident's; only the course becomes optional, and the
+    caller must then work out the course from the roster instead — reconcile.file_report for routing a complaint,
     _staff_scope for enrollment, my_courses for "where am I?".
     """
     h = get_http_headers(include={"authorization"})
-    auth = h.get("authorization", "")
-    supplied = auth[7:] if auth[:7].lower() == "bearer " else ""
-    if not TOKEN or not hmac.compare_digest(supplied, TOKEN):
-        raise ToolError(
-            f"This service only answers the {PLATFORM} chat itself "
-            "(missing or wrong service token)."
-        )
+    _service_token_or_refuse(h)
     email = h.get("x-user-email", "").strip().lower()
     if not email or email.startswith("{{"):
         raise ToolError(

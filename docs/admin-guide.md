@@ -216,7 +216,7 @@ No LiteLLM login, no Enterprise license, no fourth console.  Students only ever 
 
 ### How it trusts (60 seconds)
 
-LibreChat connects per user and stamps two headers on every tool call — who is asking (`{{LIBRECHAT_USER_EMAIL}}`) and whether they're faculty (`{{LIBRECHAT_USER_ROLE}}`) — plus a bearer token (`USAGE_MCP_TOKEN`) proving the call comes from LibreChat at all.  **Identity is never a tool argument**: a prompt can pick the date range, never whose data comes back.  The service reads the ledger through `usage_ro`, a SELECT-only Postgres role `just up` provisions — the LiteLLM master key never enters the container.  It listens on the compose network plus a 127.0.0.1 bind for `just smoke`; nothing off-box reaches it.
+LibreChat connects per user and stamps two headers on every tool call — who is asking (`{{LIBRECHAT_USER_EMAIL}}`) and whether they're faculty (`{{LIBRECHAT_USER_ROLE}}`) — plus a bearer token (`USAGE_MCP_TOKEN`) proving which chat the call comes from.  The front door holds the one in `.env`; each course holds its own, derived from `COURSE_MCP_SECRET` and good only alongside that course's `X-Course` header, so a course's token can't speak for any other course and the front door's can't speak for any course at all ([registrar-spec.md](registrar-spec.md), "Service tokens — one per course").  **Identity is never a tool argument**: a prompt can pick the date range, never whose data comes back.  The service reads the ledger through `usage_ro`, a SELECT-only Postgres role `just up` provisions — the LiteLLM master key never enters the container.  It listens on the compose network plus a 127.0.0.1 bind for `just smoke`; nothing off-box reaches it.
 
 ### The roster
 
@@ -343,6 +343,8 @@ diff -u site/librechat/librechat.yaml librechat/librechat.yaml
 ## The course fleet (the registrar)
 
 Every course gets **its own LibreChat instance** at its own hostname — `engr301-2026fall.<your-domain>` — with the teaching staff as its admins and the roster gating its door.  The full design (and every decision's why) is `docs/registrar-spec.md`; this is the operator's path.
+
+**Each course's tool tokens are its own.**  The render writes two MCP service tokens into `fleet/<slug>.env`, derived from `COURSE_MCP_SECRET` in `.env`: one for the courses service, one for usage.  Each is accepted only alongside that course's own `X-Course` header, and refused once the course is archived.  Nothing stores them, so there is nothing to back up or lose — rotation is the secret itself: change `COURSE_MCP_SECRET`, `just up` so the registrar and usage-mcp read it, then `just render`.  Every course gets new tokens at once, and the courses' tools refuse between the last two commands.  `just course-tokens-check` (in every deploy) proves each token works for its own course and nowhere else.
 
 ### Staging the embedding model (before the box has no internet)
 
@@ -636,6 +638,7 @@ just backup-install                           # nightly at 04:30 UTC, a lingerin
 | LiteLLM UI SSO returns 403 about ">5 users" | The free-tier SSO wall (counts **all** DB users) → use `just invite` (email+password), or license |
 | A key 403s with a license message | You've touched an Enterprise feature (top-level `tags`, `/key/regenerate`, team `role: admin`) → the OSS paths in this guide |
 | Usage tools missing from the agent-builder tool list | usage-mcp down or the mcpServers block/token mismatched → `just smoke`, then compare `USAGE_MCP_TOKEN` in .env against librechat.yaml's header |
+| Every course's tools answer "This service only answers the … chat itself" right after a deploy | The courses still hold the old shared token, or `COURSE_MCP_SECRET` changed since their last render → `just render`, then `just course-tokens-check`.  The front door is unaffected |
 | Usage tool answers "couldn't tell who's asking" | The call didn't come through LibreChat's per-user connection (or placeholders didn't resolve) → re-login; check the two `{{...}}` headers in librechat.yaml |
 | `usage-mcp (stats)` FAILs in smoke / health says db unreachable | The `usage_ro` role is missing (first boot on an old checkout) → `just usage-role` |
 | Course rollup misses a student's key usage | Key minted under a user_id that isn't their email → add an `aliases:` entry in roster.yaml, or re-mint with the email |

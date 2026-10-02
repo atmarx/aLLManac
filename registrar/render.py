@@ -11,9 +11,14 @@ edit courses.yaml, never this file).
 
 No credentials are HELD here — the two that pass through (OIDC client
 secret, course service key) arrive as arguments from the reconcile plane
-and land only in gitignored files on the fleet volume.
+and land only in gitignored files on the fleet volume.  One root secret is
+READ here, COURSE_MCP_SECRET, and only to derive each course's two MCP
+service tokens (course_mcp_token); the derived tokens are what a course
+env holds, never the secret and never the front door's tokens.
 """
 
+import hashlib
+import hmac
 import json
 import os
 import secrets as pysecrets
@@ -32,8 +37,11 @@ AUTH_HOST = os.environ.get("AUTH_HOST", "auth.localhost")
 KC_REALM = os.environ.get("KC_REALM", "classroom")
 EDGE_TLS = os.environ.get("EDGE_TLS", "internal")
 OPENID_BUTTON_LABEL = os.environ.get("OPENID_BUTTON_LABEL", "Sign in with Campus SSO")
-USAGE_MCP_TOKEN = os.environ.get("USAGE_MCP_TOKEN", "")
-REGISTRAR_MCP_TOKEN = os.environ.get("REGISTRAR_MCP_TOKEN", "")
+# The root of every course's MCP service tokens (decision 32).  The front
+# door's own tokens (REGISTRAR_MCP_TOKEN / USAGE_MCP_TOKEN) are deliberately
+# NOT read here any more: they used to be copied into every course env, which
+# made one leaked course every course.
+COURSE_MCP_SECRET = os.environ.get("COURSE_MCP_SECRET", "")
 MODEL_PROVIDER_NAME = os.environ.get("MODEL_PROVIDER_NAME", "Almanac")
 MCP_SERVER_PREFIX = os.environ.get("MCP_SERVER_PREFIX", "almanac")
 
@@ -113,13 +121,43 @@ def _read_env(path: str) -> dict:
     return out
 
 
+# ---- per-course MCP service tokens (decision 32) --------------------------------
+
+def course_mcp_token(service: str, slug: str) -> str:
+    """The bearer token a course presents to one tool server: hex HMAC-SHA256
+    of "<service>|<slug>" under COURSE_MCP_SECRET, service "courses" (the
+    registrar) or "usage" (usage-mcp).  "" when the secret is unset — every
+    caller treats that as refusal, never as a fallback to the shared token.
+
+    usage-mcp/server.py carries its own copy of this function (separate image,
+    no shared module).  Change one and you must change the other, or every
+    course's usage tools refuse.  See docs/registrar-spec.md, "Service tokens
+    — one per course"."""
+    if not COURSE_MCP_SECRET or service not in ("courses", "usage") or not slug:
+        return ""
+    return hmac.new(COURSE_MCP_SECRET.encode(), f"{service}|{slug}".encode(),
+                    hashlib.sha256).hexdigest()
+
+
 # ---- fleet/<slug>.env ----------------------------------------------------------
 
 def render_course_env(slug: str, course: dict, models: list[str],
                       oidc_secret: str, service_key: str) -> None:
     """The instance's whole environment — and NOTHING from the root .env:
-    no master key, no other course's anything.  Fill-preserving: values
-    that exist are never touched (CREDS_KEY/IV above all)."""
+    no master key, no front-door service token, no other course's anything.
+    Fill-preserving: values that exist are never touched (CREDS_KEY/IV above
+    all) — except the two MCP service tokens, which are derived and so
+    recomputed on every render.
+
+    Refuses (ValueError) when COURSE_MCP_SECRET is unset: writing an empty
+    token would just break the course's tools, and writing the shared one is
+    the bug decision 32 exists to remove."""
+    if not COURSE_MCP_SECRET:
+        raise ValueError(
+            f"COURSE_MCP_SECRET is unset, so {slug}'s MCP service tokens can't be "
+            "derived and its env was not written.  Run `just secrets` (it "
+            "appends the secret to .env), then `just up` so the registrar and "
+            "usage-mcp pick it up, then render again.")
     path = f"{OUT_FLEET}/{slug}.env"
     have = _read_env(path)
 
@@ -172,9 +210,12 @@ def render_course_env(slug: str, course: dict, models: list[str],
         "DOMAIN_CLIENT": f"https://{host}",
         "DOMAIN_SERVER": f"https://{host}",
         "VITE_API_BASE_URL": f"https://{host}",
-        # -- service tokens the instance's librechat.yaml substitutes --
-        "USAGE_MCP_TOKEN": USAGE_MCP_TOKEN,
-        "REGISTRAR_MCP_TOKEN": REGISTRAR_MCP_TOKEN,
+        # -- service tokens the instance's librechat.yaml substitutes.
+        # THIS course's own, derived per service (decision 32): good at that
+        # one service, only with X-Course: <slug>.  Same names the flagship
+        # uses, so the template's ${...} lines are the same as its. --
+        "USAGE_MCP_TOKEN": course_mcp_token("usage", slug),
+        "REGISTRAR_MCP_TOKEN": course_mcp_token("courses", slug),
         # -- the course itself, for anything that wants to say its name --
         "COURSE_SLUG": slug,
         "COURSE_NAME": course["name"],
@@ -307,6 +348,10 @@ mcpServers:
       Authorization: "Bearer ${{USAGE_MCP_TOKEN}}"
       X-User-Email: "{{{{LIBRECHAT_USER_EMAIL}}}}"
       X-User-Role: "{{{{LIBRECHAT_USER_ROLE}}}}"
+      # Not context here, as it is for -courses: usage-mcp needs it to know
+      # which course's token to expect (decision 32).  Without it this
+      # course's token is refused.
+      X-Course: "{slug}"
   # "-courses", not "-registrar": readers took the old name for the campus
   # Registrar's office (renamed 2026-10-02).  The service is still the
   # registrar container — only the name people see changed.
@@ -584,6 +629,11 @@ def render_roster(courses: dict) -> None:
             lines.append("    aliases:")
             for k, v in c["aliases"].items():
                 lines.append(f"      {k}: [{', '.join(v)}]")
+        if c.get("archived"):
+            # usage-mcp refuses an archived course's service token on this
+            # (decision 32): the container is gone, so its token goes too.
+            # The course's history stays readable to its staff.
+            lines.append(f"    archived: {json.dumps(str(c['archived']))}")
     lines.append("admins:" if courses["admins"] else "admins: []")
     lines += [f"  - {e}" for e in courses["admins"]]
     _atomic_write(f"{OUT_USAGE}/roster.yaml", "\n".join(lines) + "\n")
