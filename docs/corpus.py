@@ -29,11 +29,12 @@ CONTRACT = ROOT / "docs" / "agent-contract.md"
 # nothing else.
 SCOPE = {
     "student-guide":
-        "You are the Student Guide: using {{PLATFORM}} in your courses — "
-        "signing in, building agents, knowledge files, and what the budget "
-        "numbers mean.  Their API key is the Coder Guide's job — send them "
-        "there for it, here in the front office.  Asked which courses they are on, call "
-        "my_courses and read back what it says.  A student can ask for a "
+        "You are the Student Guide: using {{PLATFORM}} in their courses — "
+        "signing in, building agents, knowledge files, getting a copy of "
+        "their own data, and what the budget numbers mean.  For their API "
+        "key, send them to the Coder Guide, in the same selector.  Asked "
+        "which courses they are on, call my_courses and read back what it "
+        "says.  A student can ask for a "
         "project or club room with course_request: it first returns a "
         "question that you put to them in its own words, and you file only "
         "if they say yes.  Never ask them for a budget; the admins set it.  "
@@ -60,7 +61,7 @@ SCOPE = {
         "answered with course_request_reply, not filed again.",
     "platform-guide":
         "You are the Platform Guide: how {{PLATFORM}} is built and why — "
-        "the architecture, the decisions, and the trade-offs they cost.",
+        "the architecture, the decisions, and what they cost.",
     "dev-guide":
         "You are the Operator Guide: operating {{PLATFORM}} — deployment, "
         "runbooks, verification, and what breaks.  You are also the "
@@ -73,12 +74,12 @@ SCOPE = {
         "came back, and call it again with confirm=true only after they say "
         "yes to that description — never in the same turn.",
     "security-guide":
-        "You are the Security Guide: {{PLATFORM}}'s security posture — the "
+        "You are the Security Guide: how {{PLATFORM}} is secured — the "
         "controls, the boundaries, and the blue-team and purple-team "
         "exercises that test them.",
     "usage-guide":
         "You are the Usage Guide: what the numbers mean — tokens, context, "
-        "what actually moves a bill, and how to read your own usage.  You "
+        "what makes a bill go up, and how to read your own usage.  You "
         "explain; you never grade.  Every figure you state came back from a "
         "tool call verbatim, and you do no arithmetic on those figures — a "
         "number you computed is a number the reader cannot check.",
@@ -103,14 +104,16 @@ SCOPE = {
 # points nowhere, which is the failure the hatch list exists to prevent.
 # Routing lines, not SCOPE's agent-voice lines — the reader is choosing.
 DIRECTORY = """\
-      Student Guide      using {{PLATFORM}} in a course you are taking
+      Student Guide      using {{PLATFORM}} in a course you are taking, and
+                         getting a copy of your own data
       Instructor Guide   running a course on it — enrollment, class setup,
                          shared agents, and asking for a new course
       Platform Guide     how {{PLATFORM}} is built, and why
-      Operator Guide     deploying and operating it, and the operator's
-                         desk for courses and requests
-      Security Guide     the security posture, and the exercises that test it
-      Usage Guide        what the numbers mean — tokens, context, and cost
+      Operator Guide     deploying and running it, and the operator's desk
+                         for courses and requests
+      Security Guide     how it is secured, and the exercises that test it
+      Usage Guide        what the numbers mean — tokens, context, cost —
+                         and how much you have used
       Coder Guide        your API key, the gateway, and coding harnesses\
 """
 
@@ -259,7 +262,7 @@ def unbranded(label: str, text: str) -> list[str]:
 
 
 def tells(label: str, text: str) -> list[str]:
-    """Every line of an apex/ page carrying a banned tell."""
+    """Every line of a page or prompt carrying a banned tell."""
     return [f"{label}:{n}: {m.group(0)!r} in {line.strip()[:70]}"
             for n, line in enumerate(text.splitlines(), 1)
             for m in [TELLS.search(line)] if m]
@@ -371,6 +374,13 @@ def main() -> int:
 
     told = [hit for rel, fm, body in pages if rel.parts[0] == "apex"
             for hit in tells(str(rel), str(fm.get("description", "")) + "\n" + body)]
+    # The guides say what their prompts say: a word in the preamble comes back
+    # out of seven agents in front of students, so the prompts are held to the
+    # same list as the pages.
+    told += tells("docs/agent-contract.md (preamble)", preamble)
+    told += tells("docs/agent-contract.md (front desk)", welcome(contract_body))
+    told += tells("docs/corpus.py (SCOPE, DIRECTORY)",
+                  "\n".join([*SCOPE.values(), DIRECTORY]))
     if told:
         raise SystemExit("these use a word readers flagged as machine-written "
                          "(docs/pedagogy-authoring.md, \"Voice\"):\n  "

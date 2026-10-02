@@ -186,7 +186,7 @@ GUIDES = [
      f"Operating {PLATFORM} — deployment, runbooks, what breaks, and the operator's desk for courses and requests.",
      REPORT_TOOLS + TRIAGE_TOOLS + DESK_TOOLS),
     ("security-guide", "Security Guide",
-     f"{PLATFORM}'s security posture — controls, boundaries, and the blue/purple team exercises that test them."),
+     f"How {PLATFORM} is secured — controls, boundaries, and the blue/purple team exercises that test them."),
     # The one guide that needs an instrument rather than only a shelf: it
     # explains what a number means, so it has to be able to read the number.
     # The prompt forbids it doing arithmetic on what comes back — a figure it
@@ -194,7 +194,7 @@ GUIDES = [
     # because course_usage needs a course and nothing else here could name
     # one — the docstring's "call list_courses" pointed at a tool it lacked.
     ("usage-guide", "Usage Guide",
-     "What the numbers mean — tokens, context, what actually moves a bill, and how to read your own usage.",
+     "What the numbers mean — tokens, context, what makes a bill go up, and how to read your own usage.",
      REPORT_TOOLS + WHERE_TOOLS + USAGE_TOOLS),
     # my_usage and not course_usage: the question this guide gets is "what
     # did my script just cost," and the answer is the person's own ledger.

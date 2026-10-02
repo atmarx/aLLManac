@@ -183,9 +183,11 @@ Early readers' main complaint about these pages was that they sound machine-writ
 | Aphorisms — "a backup nobody has restored from is a rumor" | — | One per page at most.  It should still say something specific. |
 | The page describing itself — "this page", "an earlier draft of this page" | — | Talk about the subject, not about the page. |
 
-**Banned outright** — `just docs-corpus` fails on these in `apex/`, the same way it fails on a hard-coded platform name: *load-bearing*, *honest*/*honestly* (announcing candor makes readers doubt it), *door*/*doors*, *worth knowing*/*worth noting*/*worth saying*/*worth being clear*, *the short version*.
+**Banned outright** — `just docs-corpus` fails on these in `apex/` and in the guide prompts (the preamble, the front desk, and each guide's scope line), the same way it fails on a hard-coded platform name: *load-bearing*, *honest*/*honestly* (announcing candor makes readers doubt it), *door*/*doors*, *worth knowing*/*worth noting*/*worth saying*/*worth being clear*, *the short version*.
 
 **Naming the two places.**  Readers see two kinds of chat, and each is titled on screen: the platform's own (titled {{PLATFORM}}, where the guides live) and a course's (titled with the course name).  Write "the {{PLATFORM}} chat" and "your course's chat".  Better still, name who to ask — "ask the **Coder Guide** for your key" says where and who in one go.
+
+**The guides hear this too.**  A model writes in the register of its prompt, so a habit in the preamble comes back out of seven agents in front of students.  The preamble's VOICE section names the soft tells as a list the guides keep out of their own replies — written without the banned words, so the guard can hold the prompt to the same rule as the pages.
 
 Also avoid:
 
