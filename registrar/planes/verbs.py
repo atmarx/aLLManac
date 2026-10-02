@@ -585,6 +585,7 @@ async def _course_row(cx: httpx.AsyncClient, courses: dict, slug: str) -> dict:
         "budgets": dict(c["budgets"]),
         "capabilities": list(c["capabilities"]),
         "allowed_domains": list(c["allowed_domains"]),
+        "mcp_domains": list(c.get("mcp_domains") or []),
         "models": course_models(c, courses),
     }
     # Each column degrades alone.  A census that dies because one plane is
@@ -671,7 +672,8 @@ async def fleet_exposure(slug: str) -> dict:
     async with httpx.AsyncClient(timeout=30) as cx:
         row = await _course_row(cx, courses, slug)
     return {"slug": slug, "name": row["name"], "capabilities": row["capabilities"],
-            "allowed_domains": row["allowed_domains"], "models": row["models"],
+            "allowed_domains": row["allowed_domains"], "mcp_domains": row["mcp_domains"],
+            "models": row["models"],
             "pool": row["pool"], "agents": row["census"].get("agents", []),
             "files": row["census"].get("files", []),
             "totals": row["census"].get("totals", {})}

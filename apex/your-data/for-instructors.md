@@ -62,16 +62,17 @@ The most useful sentence an instructor can be handed is a **ceiling** — one li
 
 The conservative posture, absent a local ceiling: this platform holds coursework and the records coursework generates.  It is not the place for health records, financial aid detail, disability accommodation files, or anything you would route through a system with its own access review.
 
-## The four switches you control
+## The five switches you control
 
 | Switch | What it does | Worth thinking about |
 |---|---|---|
 | **Agent actions** | Lets agents in your course call outside web services | An additional route beyond the selected model provider, and the most consequential switch on this page. Off by default, and **that default is the control** — see below. |
+| **Outside tool servers (MCP)** | Lets agents in your course call tools on a server outside the platform | Closed until your operators add the server's domain to your course.  Whatever the model sends that server leaves the platform — [Can my course use its own tools?](../your-own-tools.md) has what to settle first. |
 | **Sharing** | Lets students share agents with each other | **On** in every course, deliberately — group work needs it and the chat software's own default is the wrong one for a classroom.  Nothing is shared unless someone shares it, and sharing does not cross the course boundary. |
 | **Knowledge files** | What you upload to a course agent | Anything you attach becomes retrievable by everyone who can use that agent.  Rosters, graded work, and student writing are the ones to think twice about. |
 | **Roster membership** | Who is enrolled | Enrollment is access.  Removing a student revokes their access; it does not erase what they already wrote. |
 
-Actions are set per course in the course record — ask the platform operators to change them, and they will tell you what the change means before making it.  Sharing is not a per-course setting: it is on everywhere, by design, and the section below is what you need to know rather than a switch to find.
+Actions and outside tool servers are set per course in the course record — ask the platform operators to change them, and they will tell you what the change means before making it.  Sharing is not a per-course setting: it is on everywhere, by design, and the section below is what you need to know rather than a switch to find.
 
 ### On sharing, which is on
 
@@ -101,7 +102,7 @@ So the meaningful decision is whether actions are on at all.  Treat the allowlis
 
 Two more things about how entries are read, because both surprise people writing their first list:
 
-- **A path in an entry does not scope anything.**  Writing `api.example.edu/v1/chat` does not restrict an agent to that endpoint — the path is ignored and the rule permits the whole host, including `api.example.edu/admin/delete`.  Give us a path-shaped entry and the registrar refuses it rather than rendering it, which is deliberate: a rule that is silently wider than it reads is worse than one that fails.
+- **A path in an entry does not scope anything.**  Writing `api.example.edu/v1/chat` does not restrict an agent to that endpoint — the path is ignored and the rule permits the whole host, including `api.example.edu/admin/delete`.  Give us a path-shaped entry and the platform refuses it rather than rendering it, which is deliberate: a rule that is silently wider than it reads is worse than one that fails.
 - **A wildcard covers the apex too.**  `*.example.edu` matches `example.edu` as well as its subdomains.  Say what you mean and read it back as *"an agent may send course material to anything at this address"* — that is what the entry authorizes.
 
 ## If you are using AI to help with grading

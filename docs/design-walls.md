@@ -254,6 +254,20 @@ A typo in `endpoints.agents.capabilities` (`file_serach`) is accepted by the sch
 - **"0 tools" at boot for user-scoped servers is BY DESIGN.**  Tools are listed per-user at login, so an empty list at container start is correct, not broken.  The registry inspector's 406 in the same situation is cosmetic.  Do not debug either one.
 - **`{{LIBRECHAT_BODY_*}}` in an MCP header is resolved per tool call — and a missing field THROWS** *(read in the source on 0.8.7 and 0.8.8-rc4, 2026-09-25; not yet exercised)*.  The allowed fields are `conversationId`, `parentMessageId` and `messageId`.  A server whose headers use one becomes an **ephemeral** connection: connect and initialize on every call, never cached, because the value changes per request.  If the request body lacks a field the headers name, `getUserConnection` raises `McpError InvalidRequest` — the tool call fails outright — and discovery only logs a warning.  So a body placeholder can't be added blind: probe it on a box first (tools still listed? first message of a new conversation? agent builder?).  This is what the roster's stage → apply gate waits on (registrar-spec.md, "Roster upload").
 
+### MCP servers staff add — the other way out, and `allowedDomains` is its only wall *(measured on 0.8.7, 2026-10-02)*
+
+Measured on a throwaway 0.8.7 stack with our course interface block, a stub model that really calls tools, and a fastmcp test server under several hostnames:
+
+- **Course admins can add MCP servers; users can't.**  ADMIN boots with `MCP_SERVERS {USE, CREATE, SHARE, SHARE_PUBLIC, CONFIGURE_OBO}` all true, and USER with only `USE` (`POST /api/mcp/servers` → 403 for a user).  Instructors are their course's ADMINs, so every course had an egress path nobody had walled.
+- **Sharing an agent shares its MCP servers.**  An admin's server, attached to an agent shared as `agent_viewer`, ran end to end in a student's turn without the server being shared, and LibreChat connected **as the student** — any identity placeholders in that server's headers go to the third party.
+- **`mcpSettings.allowedDomains` gates every server, including the ones declared in `librechat.yaml`.**  With a list that leaves them out, both platform servers failed at boot (`Domain "http://usage-mcp:8080" is not allowed` → `0 tools`), and `allowedAddresses` does not exempt them.  So the render lists `usage-mcp` and `registrar` first, and **those hostnames must match the `mcpServers` URLs** — change one without the other and both servers lose their tools in silence.
+- **Listing only the platform's hosts is closed.**  An unlisted host is refused at create (`403 MCP_DOMAIN_NOT_ALLOWED`) and at connect (`Resolved MCP server URL is not allowed by the configured domain policy`).  No placeholder domain is needed, unlike Actions, because the list is never empty.  **An absent or empty list is open**: only private-range SSRF protection applies.
+- **An entry also lifts the private-address block for its host** — a listed name connected with `allowedAddresses` removed and a private IP behind it, the same as the Actions wall.  So `mcp_domains` takes public DNS names only, and `course-check` refuses IPs, bare container names and localhost.
+- **Removing a domain strands its servers silently.**  They stay listed and attached; the tool drops out of the request and the model answers without it.
+- **`interface.mcpServers: {create: false}` turns creation off for both roles**, rewritten every boot because it's named (`updateInterfacePermissions` loops over USER and ADMIN).  Existing servers keep working; only the domain list stops them.  Not rendered: closed-by-domain keeps the UI usable for an allowed server.
+
+`just egress-check` asks the image's own `isMCPDomainAllowed` (Layer 4): every declared server allowed, an unlisted host and the metadata address refused.  Faculty-facing: `apex/your-own-tools.md`.
+
 ---
 
 ## `rag_api` fails OPEN without `JWT_SECRET` *(2026-09-12)*

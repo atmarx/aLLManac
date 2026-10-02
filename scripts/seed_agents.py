@@ -88,7 +88,11 @@ STATE = ROOT / "site" / "agents-state.json"
 PLATFORM = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
             or "aLLManac").strip()
 
-REGISTRAR_MCP = "almanac-registrar"
+# The server keys follow MCP_SERVER_PREFIX, like each course's render, so a
+# deployment that renames its tool servers gets guides whose tools match.
+# "-courses", not "-registrar": readers took that for the campus Registrar.
+MCP_PREFIX = os.environ.get("MCP_SERVER_PREFIX", "almanac").strip()
+REGISTRAR_MCP = f"{MCP_PREFIX}-courses"
 _M = lambda t: f"{t}_mcp_{REGISTRAR_MCP}"          # noqa: E731
 # Everyone can file one and check on their own.  Nothing here is privileged:
 # both tools scope themselves to the caller from the trusted headers.
@@ -141,7 +145,7 @@ DESK_TOOLS = [_M(t) for t in ("course_requests", "course_approve",
 # tool existed.  `course_usage` refuses non-faculty server-side, so attaching
 # it to a student-facing agent grants nothing — same reasoning as TRIAGE_TOOLS
 # on the Operator Guide.
-USAGE_MCP = "almanac-usage"
+USAGE_MCP = f"{MCP_PREFIX}-usage"
 _U = lambda t: f"{t}_mcp_{USAGE_MCP}"             # noqa: E731
 USAGE_TOOLS = [_U("my_usage"), _U("course_usage")]
 

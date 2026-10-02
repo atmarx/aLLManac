@@ -43,7 +43,7 @@ TOKEN = os.environ.get("REGISTRAR_MCP_TOKEN", "")
 # is a ToolError, and ToolError is exempt from masking.  So this flag
 # costs us nothing and stops `asyncpg.InvalidPasswordError: ... usage_ro`
 # and friends from being answers.
-mcp = FastMCP("almanac-registrar", mask_error_details=True)
+mcp = FastMCP("almanac-courses", mask_error_details=True)
 
 
 class _FailureWords(Middleware):
@@ -1522,6 +1522,8 @@ async def fleet_exposure(course: str) -> str:
            "Actions allowlist: " + (", ".join(x["allowed_domains"]) if x["allowed_domains"]
                                     else ("NONE — any public URL" if "actions" in x["capabilities"]
                                           else "n/a (actions off)")),
+           "MCP servers staff add may reach: " + (", ".join(x["mcp_domains"])
+                                                  or "nothing outside the platform"),
            f"Models: {', '.join(x['models'])}"]
     if x["pool"]:
         out.append(f"Pool: ${x['pool']['spend']:.2f} spent · {x['pool']['keys']} keys")

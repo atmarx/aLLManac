@@ -226,6 +226,13 @@ def load_courses() -> dict:
             # course has `actions` and no list.
             "allowed_domains": [str(x).strip() for x in (c.get("allowed_domains") or [])
                                 if str(x).strip()],
+            # Where MCP servers staff add in this course's chat may connect.
+            # Renders into mcpSettings.allowedDomains AFTER the platform's own
+            # two hosts, so an empty list here is closed, not open — unlike
+            # allowed_domains, the render always has something to put first
+            # (design-walls.md, "MCP servers staff add").
+            "mcp_domains": [str(x).strip().lower() for x in (c.get("mcp_domains") or [])
+                            if str(x).strip()],
             "group": str(c.get("group") or ""),
             "students": [str(e).strip().lower() for e in (c.get("students") or [])],
             "aliases": {str(k).strip().lower(): [str(a).strip().lower() for a in (v or [])]
@@ -527,6 +534,22 @@ def validate_courses() -> tuple[list[str], list[str]]:
             if "/" in d.replace("://", "", 1) or " " in d:
                 errors.append(f"{where}.allowed_domains: {d!r} — hostnames (optionally "
                               "with scheme/port or a leading *.), not URL paths")
+        # An mcp_domains entry does more than permit: listing a host also lifts
+        # LibreChat's private-address block for it (measured on 0.8.7,
+        # 2026-10-02).  So only public DNS names belong here — never an IP
+        # literal, a bare container name, or localhost, any of which would
+        # point an instructor's tool server into the platform's own network.
+        for d in [str(x).strip().lower() for x in (c.get("mcp_domains") or []) if str(x).strip()]:
+            host = d.split("://", 1)[-1].split(":", 1)[0].removeprefix("*.")
+            if "/" in d.replace("://", "", 1) or " " in d:
+                errors.append(f"{where}.mcp_domains: {d!r} — hostnames (optionally "
+                              "with scheme/port or a leading *.), not URL paths")
+            elif ("." not in host or host == "localhost" or host.endswith(".localhost")
+                  or host.replace(".", "").isdigit() or ":" in host):
+                errors.append(f"{where}.mcp_domains: {d!r} — a public DNS name only.  "
+                              "Listing a host lifts LibreChat's private-address block "
+                              "for it, so an IP, a container name or localhost here "
+                              "would open the platform's own network to tool servers")
 
         rec = {"closed": _stamp(c.get("closed")), "archived": _stamp(c.get("archived"))}
         for k in ("closed", "archived"):

@@ -211,6 +211,15 @@ def render_course_librechat(slug: str, course: dict, models: list[str]) -> None:
     # already in place the moment someone turns the capability on, rather
     # than one forgotten edit behind it.
     domains = course.get("allowed_domains") or []
+    # MCP servers staff add in the chat UI may connect only to these.  The
+    # platform's own two hosts come first because the list gates the servers
+    # declared below too — leave them out and both get 0 tools, silently
+    # (measured on 0.8.7, 2026-10-02).  With nothing after them the list is
+    # closed: a server at any other host is refused at create (403
+    # MCP_DOMAIN_NOT_ALLOWED) and at connect.  The hostnames must match the
+    # URLs in mcpServers below.
+    mcp_domains = "".join(f'    - "{d}"\n' for d in
+                          ["usage-mcp", "registrar", *(course.get("mcp_domains") or [])])
     actions_block = ""
     if domains:
         actions_block = ("\n# Where this course's agent Actions may reach — the wall around\n"
@@ -286,7 +295,8 @@ mcpSettings:
   allowedAddresses:
     - "usage-mcp:8080"
     - "registrar:8080"
-{actions_block}
+  allowedDomains:
+{mcp_domains}{actions_block}
 # Identity rides trusted headers; the course rides a rendered literal.
 # Neither is ever a tool argument — see docs/registrar-spec.md.
 mcpServers:
@@ -297,7 +307,10 @@ mcpServers:
       Authorization: "Bearer ${{USAGE_MCP_TOKEN}}"
       X-User-Email: "{{{{LIBRECHAT_USER_EMAIL}}}}"
       X-User-Role: "{{{{LIBRECHAT_USER_ROLE}}}}"
-  {MCP_SERVER_PREFIX}-registrar:
+  # "-courses", not "-registrar": readers took the old name for the campus
+  # Registrar's office (renamed 2026-10-02).  The service is still the
+  # registrar container — only the name people see changed.
+  {MCP_SERVER_PREFIX}-courses:
     type: streamable-http
     url: http://registrar:8080/mcp
     headers:
@@ -626,7 +639,8 @@ def render_inventory(report: dict) -> None:
               f"- models: {', '.join(c['models'])}",
               f"- capabilities: {', '.join(c['capabilities']) or 'none'}"
               + (f"; Actions may reach: {', '.join(c['allowed_domains'])}" if c['allowed_domains']
-                 else ("; **Actions enabled with no allowlist**" if "actions" in c["capabilities"] else "")),
+                 else ("; **Actions enabled with no allowlist**" if "actions" in c["capabilities"] else ""))
+              + (f"; MCP servers may reach: {', '.join(c['mcp_domains'])}" if c.get("mcp_domains") else ""),
               f"- door (Keycloak): {len(door.get('member', []))} may sign in, "
               f"{len(door.get('admin', []))} admins, {len(door.get('sessions', []))} signed in now"
               if door else ("- door (Keycloak): unreadable" if (c.get("errors") or {}).get("door")

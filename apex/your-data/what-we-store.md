@@ -25,8 +25,8 @@ Several systems hold something about you.  Here is each one, what it has, and wh
 | Your conversations with the guides at the front door | The front door's own database, shared by everyone who uses it | Yes |
 | Files you upload, in a chat or to an agent | Your course's file storage | Yes |
 | The search index built from those files | Your course's own knowledge store | Yes, through the file |
-| Problem reports you file, including the question and answer they quote | The registrar's records | Yes |
-| Your email on a course roster | The registrar's course records | Yes |
+| Problem reports you file, including the question and answer they quote | The course service's records | Yes |
+| Your email on a course roster | The course service's records | Yes |
 | Usage records — model, tokens, cost, timestamp | The ledger | **Yes, by email address** |
 | Your account, roles, and course membership | The identity system | Yes |
 | API keys issued to you | The key escrow, versioned | Yes |

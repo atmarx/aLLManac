@@ -34,6 +34,15 @@
 #           Leaving it out while `actions` is enabled means agent Actions can
 #           call any public address; there is no way to spell "deny all," so
 #           the off switch is omitting `actions` from capabilities.
+#
+# mcp_domains:  where MCP servers this course's staff add in the chat may
+#           connect.  Renders to mcpSettings.allowedDomains after the
+#           platform's own two hosts, so leaving it out is CLOSED — unlike
+#           allowed_domains.  Public DNS names only (`tools.example.org`,
+#           `*.example.org`, `https://host:port`): listing a host also lifts
+#           LibreChat's private-address block for it, so course-check refuses
+#           IPs, container names and localhost.  Whatever the model sends a
+#           server here leaves the platform — apex/your-own-tools.md.
 
 courses:
   engr301-2026fall:

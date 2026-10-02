@@ -91,6 +91,13 @@ mcpSettings:
   allowedAddresses:
     - "usage-mcp:8080"
     - "registrar:8080"
+  # Where MCP servers may connect — and it gates the two declared below as
+  # well, so they must be listed or they get 0 tools, silently.  Nothing else
+  # is listed, so a server an admin adds in the UI is refused (measured on
+  # 0.8.7, 2026-10-02; design-walls.md, "MCP servers staff add").
+  allowedDomains:
+    - "usage-mcp"
+    - "registrar"
 
 # Usage stats as chat tools (the usage-mcp service in compose.yml).  The two
 # {{placeholders}} are LibreChat's dynamic user fields: every tool call
@@ -109,24 +116,23 @@ mcpServers:
       X-User-Email: "{{LIBRECHAT_USER_EMAIL}}"
       X-User-Role: "{{LIBRECHAT_USER_ROLE}}"
 
-  # The registrar, WITHOUT an X-Course header — and that omission is the
-  # whole access-control story, so don't "fix" it by adding one.
+  # The registrar, WITHOUT an X-Course header.  Named "-courses" for
+  # readers, who took "-registrar" for the campus Registrar's office
+  # (2026-10-02); the service behind it is still the registrar.  The key must
+  # match `<MCP_SERVER_PREFIX>-courses` — the guides' tools are named after it.
   #
-  # The tools about the room you're standing in — my_key, rotate_my_key,
-  # nominate_agent — open with `_ident()`, which refuses when X-Course is
-  # absent.  A course instance gets the header rendered into its own config
-  # by the registrar itself; the vestibule renders nothing, so those go on
-  # refusing here with no policy written anywhere.  Every other tool calls
-  # `_ident_open()` and says so in its own body: the header only ever chose
-  # WHICH course for them, and the roster or `admins:` decides who may act
-  # (docs/design-walls.md, "The front door is the one room…").
+  # With no header, every tool here works out the course from an argument or
+  # the roster: the header only ever chose WHICH course, and the roster or
+  # `admins:` decides who may act (docs/design-walls.md, "The front door is
+  # the one room…").  Keys, usage and exports are asked for here on purpose
+  # (registrar-spec.md decision 31).
   #
   # Why the front door gets a tool at all: it is the one room with no roster,
   # which means it is the room that still answers when the room someone is
   # complaining about doesn't.  A report tool inside a broken course is
   # broken too.  `report_problem` works out which course a person means from
   # the roster rather than from a header — see docs/design-walls.md.
-  almanac-registrar:
+  almanac-courses:
     type: streamable-http
     url: http://registrar:8080/mcp
     headers:

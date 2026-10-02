@@ -3,7 +3,7 @@
 // point is that the verdict comes from the code that actually enforces.
 const yaml = require('js-yaml');
 const fs = require('fs');
-const { isActionDomainAllowed } = require('/app/packages/api/dist/index.cjs');
+const { isActionDomainAllowed, isMCPDomainAllowed } = require('/app/packages/api/dist/index.cjs');
 
 const CONFIG = process.env.CONFIG_PATH || '/app/librechat.yaml';
 const OFF_LIST = 'definitely-not-allowed.invalid';
@@ -134,6 +134,38 @@ const ok = (m) => console.log(`  ok    ${m}`);
       else if (assert) bad(`${line}   (expected ${want})`);
       else console.log(`  --    ${line}   (consequence of the Layer 2 finding)`);
     }
+  }
+
+  // ---- Layer 4: MCP servers — the other way out -----------------------------
+  // Course admins can add an MCP server in the chat UI (ADMIN has
+  // MCP_SERVERS.CREATE on 0.8.7), and sharing an agent shares its servers.
+  // mcpSettings.allowedDomains is the only wall, and it gates the servers
+  // declared in this file too — so the platform's own must be on it, and
+  // anything not on it is refused at create and at connect (measured
+  // 2026-10-02; design-walls.md, "MCP servers staff add").  Absent or empty
+  // means NO allowlist: any public host.
+  const mcp = cfg.mcpSettings || {};
+  const mcpDomains = Array.isArray(mcp.allowedDomains) ? mcp.allowedDomains : null;
+  const mcpAddrs = Array.isArray(mcp.allowedAddresses) ? mcp.allowedAddresses : [];
+  console.log('\nLayer 4 — MCP servers (the pinned image\'s own isMCPDomainAllowed)');
+  console.log(`        allowedDomains: ${mcpDomains === null ? '(absent)' : JSON.stringify(mcpDomains)}`);
+  if (!mcpDomains || mcpDomains.length === 0) {
+    bad('no MCP allowlist — a server an admin adds in the UI may reach ANY public host');
+  }
+  const mcpProbes = [];
+  for (const [name, srv] of Object.entries(cfg.mcpServers || {})) {
+    if (srv && srv.url) mcpProbes.push([`declared server ${name}`, { type: srv.type, url: srv.url }, true]);
+  }
+  mcpProbes.push(['an unlisted host is refused', { type: 'streamable-http', url: `https://${OFF_LIST}/mcp` }, false]);
+  mcpProbes.push(['cloud metadata endpoint is refused', { type: 'streamable-http', url: `http://${PRIVATE}/mcp` }, false]);
+  for (const [label, conf, want] of mcpProbes) {
+    let got;
+    try { got = await isMCPDomainAllowed(conf, mcpDomains || undefined, mcpAddrs); }
+    catch (e) { got = `THREW ${e.message}`; }
+    const line = `${pad(label, 52)} ${pad(conf.url, 34)} -> ${got}`;
+    if (got === want) ok(line);
+    else if (want === true) bad(`${line}   (expected true — this server would get 0 tools, silently)`);
+    else bad(`${line}   (expected ${want})`);
   }
 
   console.log('');

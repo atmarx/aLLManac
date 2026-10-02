@@ -26,7 +26,7 @@ The failure we cannot see from here is the opposite:
 
 That is the one that costs us a course, and it never generates a complaint, because it does not look like a malfunction.  It looks like caution.  You ask how to add a student to your class, the assistant explains politely that this is not something it can help with, and you close the tab having concluded the platform does not do that — when in fact it does, and the guide simply failed to find its own documentation.
 
-We have watched this happen.  One of our guides sent an instructor to the university Registrar's Office because the word "registrar" means something different inside this platform than it does on campus.  Everything it said was locally reasonable and the outcome was completely wrong.
+We have watched this happen.  One of our guides sent an instructor to the university Registrar's Office because the word "registrar" means something different inside this platform than it does on campus.  Everything it said was locally reasonable and the outcome was completely wrong.  (The tools are called the course service now, for exactly that reason.)
 
 So: **if you were redirected, refused, or told something was out of scope, and your instinct was that it should have known — that is a bug report.**  Please send it even if you are not sure.  Especially then.
 

@@ -56,7 +56,7 @@ That is a posture, not a legal conclusion, and it is the conservative direction 
 
 **Ask your instructor** what their course's own practice is.  There is no retention setting for them to change — retention is the institution's policy, and it has not set one — but they may have said something in the syllabus about what they keep and why.
 
-**For a formal records request, go to your university's Registrar's Office** — the campus office that handles student records.  (This platform has a service of its own confusingly called the registrar, which provisions courses and rosters.  It is not that.  You want the office.)  The formal FERPA process belongs to the institution and runs on paper, not through this software.
+**For a formal records request, go to your university's Registrar's Office** — the campus office that handles student records.  (This platform's course service keeps course rosters, but it is not a records office.  You want the office.)  The formal FERPA process belongs to the institution and runs on paper, not through this software.
 
 !!! warning "Not built yet"
     The export above is your conversations and agents.  It is not everything the platform holds about you — not your usage records, your identity record, the history of keys issued to you, or your chats with the guides at the front door — and there is no per-student deletion.  A request for those is currently handled by a person, by hand.  [How long we keep it](how-long-we-keep-it.md) is the honest account of why, and what would have to change.
