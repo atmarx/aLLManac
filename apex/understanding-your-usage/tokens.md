@@ -57,7 +57,7 @@ Confusing the two is what produces the tank picture: people notice the space lim
 
 ## Try it yourself
 
-Ask your course's chat, or the **Usage Guide** at the front door, for **your usage**.  You will get something like:
+Ask the **Usage Guide** at the front door for **your usage**.  You will get something like:
 
 ```
 Total: 412 requests · 1,840,220 tokens (1,790,118 in / 50,102 out)

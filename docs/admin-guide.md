@@ -76,7 +76,7 @@ just course engr301-2026fall "ENGR 301 (Fall 2026)" new.prof@example.edu
 just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@example.edu --ta ta@example.edu
 ```
 
-It takes effect at their next sign-in, and they don't need to have signed in before; the registrar pre-creates their account.  **Removing** someone: take them off `instructors:`/`tas:` and run `just course` for that course again — reconcile now takes the course's `admin` role back from anyone the file doesn't name, and if they aren't also a student, their access and key go with it.  Or skip the shell entirely: from the Dev Guide at the front door, `course_staff` adds and removes staff in one sentence (see [the front office](#from-chat-the-front-office)).
+It takes effect at their next sign-in, and they don't need to have signed in before; the registrar pre-creates their account.  **Removing** someone: take them off `instructors:`/`tas:` and run `just course` for that course again — reconcile now takes the course's `admin` role back from anyone the file doesn't name, and if they aren't also a student, their access and key go with it.  Or skip the shell entirely: from the Operator Guide at the front door, `course_staff` adds and removes staff in one sentence (see [the front office](#from-chat-the-front-office)).
 
 **That reconcile revokes as well as grants is new (2026-09-22), and it is worth a look before the first run on a live box.**  Anyone you gave a course's `admin` role by hand in Keycloak, without listing them in `courses.yaml`, loses it on the next `just course` for that course.  That is the file being the authority, which is the design — but it will be a surprise if you didn't know you were relying on a hand grant.
 
@@ -238,10 +238,12 @@ admins: []          # platform folks who may pull EVERY course
 
 ### The "Almanac Usage" agent (one-time, two minutes)
 
-The tools exist as soon as the stack is up; an agent is how the class meets them.  From any faculty/admin account:
+The tools exist as soon as the stack is up, and the class meets them through the **Usage Guide** at the front door, which the seeder gives `my_usage` and `course_usage` — so usage questions run on the front door's budget, never a course's (registrar-spec.md, decision 31).  You don't need to build anything.
 
-1. Chat → **Agents** → new agent, name it **Almanac Usage**.
-2. Model: `almanac-chat` (it must be tool-capable — this is where the hermes tool parser earns its keep).
+A course *can* still have a usage agent of its own: both tool servers are declared in every course's rendered config, so staff can attach them on purpose.  Every turn of that agent carries the tools' schemas and is billed to the course, which is why nothing attaches them by default.  If you want one anyway, from a staff account in the course:
+
+1. Chat → **Agents** → new agent, name it **Usage**.
+2. Model: the deployment's `CHAT_MODEL` (it must be tool-capable — this is where the hermes tool parser earns its keep).
 3. Instructions — paste:
 
    > You are the aLLManac usage assistant.  Answer questions about AI usage on this platform by calling your tools — never estimate or invent numbers.  Use my_usage for personal questions and course_usage for course-wide ones (faculty only — the service enforces this; if it declines, relay that gracefully).  Call list_courses when unsure of a course slug.  Report tokens and requests as the real measure — spend shows $0 for campus-hosted models.  Numbers trail live traffic by about ten seconds.
@@ -259,7 +261,7 @@ The flagship at `chat.<ALMANAC_DOMAIN>` is the room everyone can reach — the o
 
 **The vestibule is locked down on purpose.**  `librechat/librechat.yaml` turns off the agent builder, sharing, the people picker, the marketplace, prompts, bookmarks, presets, memories (and the memory subsystem itself), multi-convo, model parameters, code execution, web search, composer file search, shared links, skills and user-added MCP servers.  What is left is the picker of guide agents and a place to ask them questions.  Course instances are unaffected — they render their own, classroom-shaped config from `registrar/render.py`.  If your `site/librechat/librechat.yaml` predates 2026-09-15, copy the `interface:` and `memory:` blocks and `endpoints.agents.disableBuilder` across; the modelSpecs block is the only thing that should differ.
 
-**Two tools, and the second one needs a merge on boxes with a `site/` override.**  The vestibule carries `almanac-usage` (spend questions) and, since 2026-09-21, `almanac-registrar` — wired **without** an `X-Course` header.  At the front door that means the report tools answer, `my_courses` answers, and the enrollment tools answer for whoever the roster lists as staff on the course they name; `my_key` and the other course-bound tools go on refusing.  That block lives in the tracked `librechat/librechat.yaml`, which means **a box running `site/librechat/librechat.yaml` will not get it** until someone copies the `mcpServers.almanac-registrar` entry and the `registrar:8080` line under `mcpSettings.allowedAddresses` across by hand.  Nothing breaks without it; the front door just silently has no way to take a complaint, which is the kind of missing thing nobody notices.  The token is already in the container (`env_file: .env`), so no compose change is needed.  Verify with `just reports` after someone files one — and see [design-walls.md](design-walls.md), "The front door is the one room that can take a complaint," before adding an `X-Course` line to make something work.
+**Two tools, and the second one needs a merge on boxes with a `site/` override.**  The vestibule carries `almanac-usage` (spend questions) and, since 2026-09-21, `almanac-registrar` — wired **without** an `X-Course` header.  At the front door that means the report tools answer, `my_courses` answers, the enrollment tools answer for whoever the roster lists as staff on the course they name, and since 2026-10-02 `my_key` and `rotate_my_key` answer for the course the caller names, or their only one — the Coder Guide carries them (registrar-spec.md, decision 31).  `nominate_agent` and the other course-bound tools go on refusing.  That block lives in the tracked `librechat/librechat.yaml`, which means **a box running `site/librechat/librechat.yaml` will not get it** until someone copies the `mcpServers.almanac-registrar` entry and the `registrar:8080` line under `mcpSettings.allowedAddresses` across by hand.  Without it the front door silently can't take a complaint, enroll anyone, or hand out a key — and since keys now live only there, students will notice that last one first.  The token is already in the container (`env_file: .env`), so no compose change is needed.  Verify with `just reports` after someone files one — and see [design-walls.md](design-walls.md), "The front door is the one room that can take a complaint," before adding an `X-Course` line to make something work.
 
 **Working the queue without a shell.**  `devs:` in `courses.yaml` is the platform team's bug queue — `reports` and `report_triage` from the vestibule, and nothing else: no fleet view, no roster, no key.  That separation is the point, so the queue is safe to hand to a student worker; the reasoning is in [registrar-spec.md](registrar-spec.md), "Reports."  Admins triage implicitly, and `just course-check` warns if you list someone who's already an admin.  `just devs` shows both lists.  Closing a report needs a note, because `my_reports` shows that note back to whoever filed it.
 
@@ -453,7 +455,7 @@ just course-archive engr301-2026fall
 
 ### From chat: the front office
 
-Everything `just course` does, a platform admin can do from the **Dev Guide** at the front door — and anyone at all can *ask* for a room.  [registrar-spec.md](registrar-spec.md), "Phase 2a — the front office," is the design; this is the operating view.
+Everything `just course` does, a platform admin can do from the **Operator Guide** at the front door — and anyone at all can *ask* for a room.  [registrar-spec.md](registrar-spec.md), "Phase 2a — the front office," is the design; this is the operating view.
 
 - **The open door is a ticket, not a generator.**  Anyone who can sign in can say "I'd like a course for BIO 210 next term" to the Instructor or Student Guide.  `course_request` puts the deployment's front-door question to them first — coursework, not sponsored research — and files only on a yes, recording the exact wording they agreed to.  They describe what they need; they never name a budget.  Tickets land in `registrar/requests.yaml` (gitignored; it names people).  `my_requests` shows them where theirs stands and everything the admins wrote back.
 - **The desk** answers the `admins:` list and nobody else, and works a ticket three ways, like a problem report: `course_approve` (requires a **budget** — the pool is the platform's to set — plus an optional note), `course_return` (a note saying what you need; they answer with `course_request_reply` and it comes back to the open queue), or `course_reject` (a note saying why; closed).  `course_requests` is the queue with the whole thread on each ticket.  Beside those: `course_create` (skip the queue), `course_staff`, `course_budget_set`, and `fleet_inventory`.  Every one that changes a course or sends someone a note describes it first and acts only when called again with `confirm=true` — the guide is told to wait for a yes in between.  An approval that stops part-way through provisioning leaves the ticket open; approve it again and it finishes the same course.
@@ -506,22 +508,22 @@ The reasoning for the watcher, and why it isn't the socket, is a wall: [design-w
 
 ### The roster is a chat message now
 
-Instructors don't get a console; they get their own chat.  In their course instance, the staff paste the class list at the **Course Setup** agent (recipe below) in any format their SIS exports:
+Instructors don't get a console; they get a chat.  At the front door, staff paste the class list into the **Instructor Guide**, naming the course, in any format their SIS exports:
 
 1. `roster_stage` — the registrar extracts the emails, shows exactly what would change (adds/removes/ignored junk), changes **nothing**.
 2. `roster_apply` — executes that plan: every student gets the `member` door role (no roster, no login), a minted vAPI key inside the course team, and an escrow record in OpenBao.  Removals revoke and close.
 
-Students ask **`my_key`** in chat for their take-home key (opencode, laptops); **`rotate_my_key`** if it leaks — remaining budget carries over.  Staff get `roster_show` and `course_keys` (custody status — never the keys themselves; nobody but the owner ever sees a key).
+Students ask the **Coder Guide** at the front door for their take-home key (`my_key` — opencode, laptops), naming the course if they're on several; **`rotate_my_key`** if it leaks — remaining budget carries over.  Keys, usage, exports and enrollment all live at the front door so that bookkeeping never spends a course's budget or crowds its model's context with tool schemas (registrar-spec.md, decision 31).  Staff get `roster_show` and `course_keys` (custody status — never the keys themselves; nobody but the owner ever sees a key).
 
 The `usage-mcp/roster.yaml` you used to edit by hand is now a **render** the registrar rewrites on every roster change — edit `registrar/courses.yaml` (or run `just course`) instead.
 
-### The "Course Setup" agent (one-time per course, two minutes)
+### A course setup agent (optional — the Instructor Guide already does this)
 
-Same pattern as the usage agent, made from a staff account **in the course's instance**: new agent → model `almanac-chat` → add the **almanac-registrar** MCP tools (and the usage tools — one agent can hold both) → instructions:
+Before 2026-10-02 each course built its own setup agent.  It isn't needed now: the Instructor Guide at the front door stages and applies rosters for any course the caller teaches.  A course that wants one inside its own instance can still build it — staff account in the course, new agent, the deployment's `CHAT_MODEL`, the **registrar** MCP tools — with instructions like:
 
-> You are this course's setup assistant.  When staff paste a class roster, call roster_stage with the pasted text, show them the plan, and only call roster_apply with the stage id after they confirm.  When students ask for their key, call my_key.  Never invent keys or enrollment state — the tools are the truth.  If a tool declines, relay its message; the service enforces who may do what.
+> You are this course's setup assistant.  When staff paste a class roster, call roster_stage with the pasted text, show them the plan, and only call roster_apply with the stage id after they confirm.  Never invent enrollment state — the tools are the truth.  If a tool declines, relay its message; the service enforces who may do what.
 
-Share it to the course.  Enrollment is now a conversation.
+Every turn of it carries the registrar's tool schemas and is billed to the course.
 
 ### What lives where (the fleet files)
 

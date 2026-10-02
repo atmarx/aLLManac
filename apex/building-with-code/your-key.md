@@ -1,6 +1,6 @@
 ---
 title: How do I get an API key, and what is it?
-description: One key per person per course, fetched from your course's chat, carrying its own budget and your name.  How to get it, how to replace it, and what it will and won't let you do.
+description: One key per person per course, fetched from the Coder Guide at the front door, carrying its own budget and your name.  How to get it, how to replace it, and what it will and won't let you do.
 audience: student
 also_reaches: [faculty]
 status: draft
@@ -18,11 +18,11 @@ tethered_to:
 
 ## Getting it
 
-Open **your course's chat** — the course address, not the front desk — and ask for your key.  A new chat there starts on **Course chat**: the course's model with the key and usage tools already switched on, so there is nothing to set up first.
+Go to {{PLATFORM}}'s **front door** — the chat where the guides are, not your course's address — pick the **Coder Guide**, and ask for your key.  If you are in more than one course, it asks which one.
 
-One exception.  If the last chat you had was with an agent, or with a different model, a new chat remembers that choice instead.  Pick **Course chat** from the model picker at the top and ask again.
+Keys live at the front door rather than in your course's chat on purpose: asking for one is bookkeeping, and doing bookkeeping in the course chat would spend your course's budget and crowd the course model's memory with tools your coursework never uses.
 
-The assistant calls a tool named `my_key` and hands the key back to you in the conversation, along with the **gateway address** your code points at.  Nobody emails it to you and nobody else can fetch it for you, because the tool answers the person who is signed in and nobody else.
+The guide calls a tool named `my_key` and hands the key back to you in the conversation, along with the **gateway address** your code points at.  Nobody emails it to you and nobody else can fetch it for you, because the tool answers the person who is signed in and nobody else.
 
 If it says you are not on the roster yet, your instructor hasn't added you — the key is minted when you are enrolled, so there is nothing to fetch until then.  Teaching staff get theirs minted the first time they ask.
 
@@ -39,9 +39,9 @@ Copy it somewhere safe, then treat that conversation like it holds a password, b
 
 ## Replacing it
 
-Leaked it, committed it, lost the laptop?  In your course's chat, ask to **rotate** your key.  The tool `rotate_my_key` mints a new key, hands it to you, and kills the old one at the gateway.  It takes seconds and needs nobody's permission.
+Leaked it, committed it, lost the laptop?  Ask the **Coder Guide** at the front door to **rotate** your key.  The tool `rotate_my_key` mints a new key, hands it to you, and kills the old one at the gateway.  It takes seconds and needs nobody's permission.
 
-**Rotation is not a refill.**  The new key gets your course's per-key budget minus what you have already spent, and never more than the course has left — so in practice, roughly what the old key had.  If less than about a dollar would carry over, rotation refuses rather than hand you a key that is dead on arrival.  It does not say whether your own budget or the course's ran out; your instructor can tell.  It will also refuse if it can't read the old key's meter at that moment, because guessing would mean guessing "full."  In both cases your current key is left exactly as it was.
+**Rotation is not a refill.**  The new key gets your course's per-key budget minus what you have already spent, and never more than the course has left — so in practice, roughly what the old key had.  If less than about a dollar would carry over, rotation refuses rather than hand you a key that is dead on arrival.  Its refusal says how much your key had left and how much the course pool has, so you can tell which one ran out.  It will also refuse if it can't read the old key's meter at that moment, because guessing would mean guessing "full."  In both cases your current key is left exactly as it was.
 
 ## Keeping it
 

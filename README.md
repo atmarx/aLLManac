@@ -39,7 +39,7 @@ It is the sister project of Root Cellar, a research-data governance platform.  T
 |---|---|
 | **LibreChat** | The chat UI, one instance per course plus a locked-down front door.  "Custom GPTs" are LibreChat **Agents**: a system prompt + knowledge files (RAG) + tools, shareable to a group with an **Editor** ACL — so the group co-edits ONE agent instead of emailing prompts around.  The front door offers only the guide agents: ask how the platform works without spending course tokens. |
 | **Admin panel** | LibreChat's bundled management GUI, one per instance — `<course>-admin.<domain>` for a course, `:3082` for the front door (operators only).  The **local groups** agent sharing needs live here (Keycloak's groups claim doesn't reach LibreChat's ACLs — upstream [#10006](https://github.com/LibreChat-AI/LibreChat/issues/10006)), plus role permissions.  A course's instructors and TAs are its admins, and nobody else's. |
-| **Registrar** | The course fleet as chat tools.  It provisions a course from one record in `registrar/courses.yaml` — LiteLLM team and budget, OIDC client, staff roles, the rendered instance — and runs the term from there: instructors enroll students by asking, students ask `my_key` for theirs.  Design and every decision's why: [docs/registrar-spec.md](docs/registrar-spec.md). |
+| **Registrar** | The course fleet as chat tools.  It provisions a course from one record in `registrar/courses.yaml` — LiteLLM team and budget, OIDC client, staff roles, the rendered instance — and runs the term from there: instructors enroll students by asking the Instructor Guide, students ask the Coder Guide for their keys — both at the front door, so bookkeeping never spends a course's budget.  Design and every decision's why: [docs/registrar-spec.md](docs/registrar-spec.md). |
 | **OpenBao** | The escrow.  Every minted key is stored and versioned, so a student can get their key back and an operator can answer who held which key and when.  Comes back **sealed** from every restart; `just up`, `just deploy` and the boot unit reopen it. |
 | **LiteLLM** | The gateway and **the ledger**.  Every course is a team with a budget, every key carries an owner, every request is metered.  Models are routed here, so which GPU (or cloud) serves a request is nobody else's business. |
 | **usage-mcp** | The ledger, served back into the chat as tools: students ask their own usage, faculty ask their course's — no dashboard login, no Enterprise license.  LibreChat stamps who's asking into trusted headers; identity is never a tool argument.  It reads through a SELECT-only DB role. |
@@ -53,7 +53,7 @@ It is the sister project of Root Cellar, a research-data governance platform.  T
 1. **Login** — the course's chat bounces you to Keycloak ("Sign in with Campus SSO").  Each course has its own OIDC client, and the registrar grants its `member` role to whoever the roster names, so the door only opens for the class.
 2. **Chat** — LibreChat calls LiteLLM on the course's service key and stamps your email on the request.  LiteLLM checks the course's budget, routes to the model, meters the tokens, and writes a spend row carrying both the course and you.
 3. **Custom GPT** — a team creates an Agent, attaches course materials (indexed into that course's pgvector), and grants its group **Editor** — now the whole team maintains the assistant together.
-4. **Your own key** — ask the course chat "what's my key?" and the registrar hands back your escrowed key, minted when you were enrolled.  The same key works in opencode on a laptop, against the same budget.
+4. **Your own key** — ask the Coder Guide at the front door "what's my key?" and the registrar hands back your escrowed key for that course, minted when you were enrolled.  The same key works in opencode on a laptop, against the same budget.
 
 ---
 
@@ -127,7 +127,7 @@ If step 5 works, the core promise is real.  For the rest of a course's life — 
 
 ## Keys, owners, and the invoice (the accounting spine)
 
-Every key is minted with an **owner** — the course that answers for the spend — and escrowed in the same transaction.  Students mint their own by asking the course chat; the operator's path is:
+Every key is minted with an **owner** — the course that answers for the spend — and escrowed in the same transaction.  Students fetch their own from the Coder Guide at the front door; the operator's path is:
 
 ```bash
 just key engr301-2026fall amaya@example.edu   # course, email, [budget] — minted AND escrowed
@@ -193,7 +193,7 @@ The [`justfile`](justfile) is the deployment contract; **CI is a thin wrapper ar
 | Per-course budgets, per-user keys, metering | **Real** — LiteLLM teams, virtual keys + spend |
 | Owner on every key | **Real** — enforced at mint, and every key escrowed in OpenBao |
 | Who-spent-what per student | **Real** — LibreChat stamps every request (`x-litellm-end-user-id`); spend rows carry the student |
-| Students get their own key, in chat | **Real** — `my_key`, and `rotate_my_key` if it leaks |
+| Students get their own key, in chat | **Real** — the Coder Guide at the front door: `my_key`, and `rotate_my_key` if it leaks |
 | Students ask their own usage, in chat | **Real** — the usage-mcp tools; self-scoped by construction (identity rides trusted headers, never tool arguments) |
 | Keys work in a real coding harness | **Real** — opencode: `just workbench <key>` on the box, same config on laptops |
 | Faculty see their course's usage | **Real** — ask in chat: rollup, per-student activity, who-hasn't-started, scoped to their course.  Raw dashboards stay one invite link away; the only wall left is per-team self-serve views *inside the LiteLLM UI* (Enterprise — admin guide has the table) |

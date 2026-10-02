@@ -83,6 +83,6 @@ Two things, honestly.
 
 ## Try it yourself
 
-Ask your course's chat, or the **Usage Guide** at the front door, for **your usage** and look at the two token figures side by side — the "in" number against the "out" number.
+Ask the **Usage Guide** at the front door for **your usage** and look at the two token figures side by side — the "in" number against the "out" number.
 
 On almost any real account, "in" is ten to fifty times larger.  That ratio is this entire page, expressed as a single measurement: it is the sound of your conversations being re-sent.

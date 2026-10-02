@@ -26,7 +26,7 @@ tethered_to:
 | **Student Guide** | `student` | Using the thing: courses, custom agents, vAPI keys, what happens to your work |
 | **Instructor Guide** | `faculty` | Running a class: LibreChat's advanced features, configuring a course, rosters, groups, agents |
 | **Platform Guide** | `builder` | The theory and the ideas — why it is shaped this way, what we tried first |
-| **Dev Guide** | `operator` | The runbook: deploys, pins, escrow, the walls |
+| **Operator Guide** | `operator` | The runbook: deploys, pins, escrow, the walls |
 
 Those are the four values [pedagogy-authoring.md](pedagogy-authoring.md) has declared since the corpus began.  The guides are not a new taxonomy; they are the existing one, finally used.
 
@@ -48,11 +48,11 @@ The two notes that forced this — [budgets-and-meters.md](budgets-and-meters.md
 
 **Projection is file-granular.**  `docs/admin-guide.md` genuinely holds both faculty recipes and operator runbook, and front matter admits one primary audience.  The answer is to split the file, not to build a section-range extractor — an extractor is a build step that rots the first time someone renames a heading.
 
-## What the Dev Guide is for
+## What the Operator Guide is for
 
-Not admin-only.  Nothing in the operator docs is secret from a student; it is merely boring to most of them — and *not* boring to the ones who matter most here.  [design-walls.md](design-walls.md) is a list of places the obvious approach was wrong and someone paid to find out, which is close to an ideal handout for a student group playing blue or purple team.  Tag it `audience: operator, also_reaches: [builder, student]` and it lands in the Dev Guide while staying reachable by the enterprising.
+Not admin-only.  Nothing in the operator docs is secret from a student; it is merely boring to most of them — and *not* boring to the ones who matter most here.  [design-walls.md](design-walls.md) is a list of places the obvious approach was wrong and someone paid to find out, which is close to an ideal handout for a student group playing blue or purple team.  Tag it `audience: operator, also_reaches: [builder, student]` and it lands in the Operator Guide while staying reachable by the enterprising.
 
-Self-selection does the rest.  A student who wants the runbook picks the Dev Guide; nobody is gated, and nobody is bored by default.
+Self-selection does the rest.  A student who wants the runbook picks the Operator Guide; nobody is gated, and nobody is bored by default.
 
 ## Not every bot is an audience
 
@@ -70,6 +70,6 @@ Which means it is buildable before its own content exists.  Those tags are alrea
 
 ## What is left
 
-- `docs/` carries no front matter at all — nine files, and `audience: operator` is declared in the vocabulary and used exactly zero times.  The Dev Guide's corpus is, definitionally, the set nobody has labelled yet.
+- `docs/` carries no front matter at all — nine files, and `audience: operator` is declared in the vocabulary and used exactly zero times.  The Operator Guide's corpus is, definitionally, the set nobody has labelled yet.
 - The enum in [pedagogy-authoring.md](pedagogy-authoring.md) needs `proposed`.
 - The projection itself — a query, a denylist, and an upload — is unbuilt.  `just docs-build` already renders the same markdown to the help site; this is the embeddings half.

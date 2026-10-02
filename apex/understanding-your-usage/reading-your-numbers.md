@@ -13,7 +13,7 @@ tethered_to:
 
 # Reading your own numbers
 
-Ask your course's chat, or the **Usage Guide** at the front door, for **your usage** and you get something in this shape:
+Ask the **Usage Guide** at the front door for **your usage** and you get something in this shape:
 
 ```
 Usage for you@university.edu — last 7 days (since 2026-09-15)

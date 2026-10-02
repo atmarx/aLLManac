@@ -35,7 +35,7 @@ The boundary is **front matter, not directory.**  `docs/corpus.py` walks `apex/`
 
 So the rule an author has to hold is the wider one:
 
-> **A page with front matter and a shippable status is in some agent's mouth, wherever it sits on disk.**  Not "unless we leave it out of `nav:`" — nav curates the website, the corpus queries the tree.  `docs/admin-guide.md` is in the Dev Guide's shelf and the Security Guide's today, and it never moved directories to get there.
+> **A page with front matter and a shippable status is in some agent's mouth, wherever it sits on disk.**  Not "unless we leave it out of `nav:`" — nav curates the website, the corpus queries the tree.  `docs/admin-guide.md` is in the Operator Guide's shelf and the Security Guide's today, and it never moved directories to get there.
 
 There is exactly one file the render excludes by name: [agent-contract.md](agent-contract.md), because an agent is *told* its instructions and does not look them up.
 
@@ -127,7 +127,7 @@ So: **no institution's name, no institution's tier numbers, no institution's pol
 
 *The mechanism is portable; the entry is not.*  Risk classification is a **register** — a tier is an entry someone makes about a *system*, not a property the data has, and the entry is what carries the obligations.  That much is worth teaching everywhere.  What varies is scope and outcome: the same data type registers differently depending on what the system is for, so FERPA-protected data inside a research project and the same records inside an operational teaching platform are separate entries with separate arguments, and a given institution may land them a tier apart.  Teach the mechanism, name no outcome.
 
-*Background, and the reason this rule exists* (operator-facing — it reaches the Dev Guide and no further, and it names no institution and no tier on purpose): an earlier draft imported one institution's specifics, including a live and unfinished registration conversation.  Publishing a predicted tier gives faculty something to plan against that the register may contradict, and it front-runs a determination that belongs to a compliance officer rather than a docs page.
+*Background, and the reason this rule exists* (operator-facing — it reaches the Operator Guide and no further, and it names no institution and no tier on purpose): an earlier draft imported one institution's specifics, including a live and unfinished registration conversation.  Publishing a predicted tier gives faculty something to plan against that the register may contradict, and it front-runs a determination that belongs to a compliance officer rather than a docs page.
 
 A consequence for the plumbing side: **whatever tier a given deployment registers at hands its operator a requirements list.**  Backup cadence, encryption posture, and access review stop being good practice and become the entry's terms.  Several items on the gap lists in `your-data/` are likely to arrive as obligations rather than improvements.
 

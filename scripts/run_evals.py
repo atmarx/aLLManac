@@ -55,7 +55,7 @@ SLUG_BY_NAME = {
     "Student Guide": "student-guide",
     "Instructor Guide": "instructor-guide",
     "Platform Guide": "platform-guide",
-    "Dev Guide": "dev-guide",
+    "Operator Guide": "dev-guide", "Dev Guide": "dev-guide",
     "Security Guide": "security-guide", "SecurityBot3000": "security-guide",
     "Usage Guide": "usage-guide",
     "Coder Guide": "coder-guide",

@@ -95,7 +95,7 @@ _M = lambda t: f"{t}_mcp_{REGISTRAR_MCP}"          # noqa: E731
 REPORT_TOOLS = [_M("report_problem"), _M("my_reports")]
 # The queue itself — gated server-side on `devs:`/`admins:` in courses.yaml,
 # so attaching it to a public agent grants nothing; a student who calls it
-# gets a clean refusal.  On the Dev Guide because that is who reads it.
+# gets a clean refusal.  On the Operator Guide because that is who reads it.
 TRIAGE_TOOLS = [_M("reports"), _M("report_triage")]
 # "What courses am I on, and where are they?"  Answers only about the caller,
 # works from the front door, and "none" is a normal answer — so it goes
@@ -116,8 +116,18 @@ REQUEST_TOOLS = [_M("course_request"), _M("my_requests"),
 # only ever export themselves — and it goes wherever people ask "can I get my
 # chats out?", which is the student and instructor guides.
 EXPORT_TOOLS = [_M("export_my_data"), _M("email_my_export")]
+# A person's own course key, from the front office (registrar-spec.md,
+# decision 31).  Scoped to the caller by the trusted headers and checked
+# against the roster, so attaching it grants nothing — on the Coder Guide,
+# because the person asking for a key is about to point a harness at it.
+KEY_TOOLS = [_M("my_key"), _M("rotate_my_key")]
+# Offering an agent as a platform template, from the front office since
+# decision 31 (it took the course from the header and so only worked in a
+# course chat, which no longer carries tools).  Authority is unchanged: the
+# agent's author, or the course's staff — so it goes where both ask.
+NOMINATE_TOOLS = [_M("nominate_agent")]
 # The operator's desk.  Gated on `admins:` server-side, same reasoning as
-# TRIAGE_TOOLS — on the Dev Guide because that is who reads it, and because
+# TRIAGE_TOOLS — on the Operator Guide because that is who reads it, and because
 # its corpus is the admin guide and the spec, which is what an operator
 # approving a course needs to have on hand.
 DESK_TOOLS = [_M(t) for t in ("course_requests", "course_approve",
@@ -130,7 +140,7 @@ DESK_TOOLS = [_M(t) for t in ("course_requests", "course_approve",
 # these, which made the numbers askable only by someone who already knew the
 # tool existed.  `course_usage` refuses non-faculty server-side, so attaching
 # it to a student-facing agent grants nothing — same reasoning as TRIAGE_TOOLS
-# on the Dev Guide.
+# on the Operator Guide.
 USAGE_MCP = "almanac-usage"
 _U = lambda t: f"{t}_mcp_{USAGE_MCP}"             # noqa: E731
 USAGE_TOOLS = [_U("my_usage"), _U("course_usage")]
@@ -160,14 +170,15 @@ GUIDES = [
      "New here?  Start with this and it will point you at the right guide.",
      WHERE_TOOLS),
     ("student-guide", "Student Guide",
-     f"Using {PLATFORM} in your courses — agents, knowledge files, API keys, and what the budget numbers mean.",
-     REPORT_TOOLS + WHERE_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS),
+     f"Using {PLATFORM} in your courses — agents, knowledge files, your own data, and what the budget numbers mean.",
+     REPORT_TOOLS + WHERE_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS + NOMINATE_TOOLS),
     ("instructor-guide", "Instructor Guide",
      f"Running a course on {PLATFORM} — enrollment, class configuration, shared agents, and asking for a new course.",
-     REPORT_TOOLS + WHERE_TOOLS + ENROLL_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS),
+     REPORT_TOOLS + WHERE_TOOLS + ENROLL_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS
+     + NOMINATE_TOOLS),
     ("platform-guide", "Platform Guide",
      f"How {PLATFORM} is built and why — the architecture, the decisions, and what they cost."),
-    ("dev-guide", "Dev Guide",
+    ("dev-guide", "Operator Guide",
      f"Operating {PLATFORM} — deployment, runbooks, what breaks, and the operator's desk for courses and requests.",
      REPORT_TOOLS + TRIAGE_TOOLS + DESK_TOOLS),
     ("security-guide", "Security Guide",
@@ -183,13 +194,14 @@ GUIDES = [
      REPORT_TOOLS + WHERE_TOOLS + USAGE_TOOLS),
     # my_usage and not course_usage: the question this guide gets is "what
     # did my script just cost," and the answer is the person's own ledger.
-    # NOT my_key / rotate_my_key — the vestibule renders no X-Course, so they
-    # would refuse here by construction (design-walls.md, "The front door is
-    # the one room that can take a complaint").  The prompt sends people to
-    # their course chat instead of attaching tools that cannot work.
+    # KEY_TOOLS since 2026-10-02 (registrar-spec.md decision 31): keys are
+    # bookkeeping, and bookkeeping belongs in the front office on its own
+    # budget, not in a course chat billing the course for tool schemas on
+    # every turn.  The tools take the course as an argument there; the
+    # roster still decides.  One guide owns keys — the rest route here.
     ("coder-guide", "Coder Guide",
      "Building with code — your API key, the gateway, and coding harnesses like opencode.",
-     REPORT_TOOLS + WHERE_TOOLS + [_U("my_usage")]),
+     REPORT_TOOLS + WHERE_TOOLS + KEY_TOOLS + [_U("my_usage")]),
 ]
 
 # The table above is positional, and it grew an optional fourth element on

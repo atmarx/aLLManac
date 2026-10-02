@@ -22,7 +22,7 @@ import tempfile
 # The one thing render shares with the reconcile planes.  planes.config
 # holds no credential and calls nothing — importing it here is a constant
 # lookup, not a plane reaching across the seam.
-from planes.config import DEFAULT_CAPABILITIES, DEFAULT_CONTEXT_TOKENS
+from planes.config import CHAT_HOST, DEFAULT_CAPABILITIES, DEFAULT_CONTEXT_TOKENS
 
 OUT_FLEET = os.environ.get("OUT_FLEET", "/out/fleet")
 OUT_USAGE = os.environ.get("OUT_USAGE", "/out/usage-mcp")
@@ -254,22 +254,23 @@ interface:
   parameters: true
   presets: true
 
-# A course chat opens with the course's own tools in reach — before this it
-# opened on "Please select an Agent" and the tools were two clicks away.
-# softDefault, not default: a new chat starts here unless the person's last
-# one was somewhere else (an agent they built, a raw model), and then that
-# wins.  mcpServers is not just a UI tick — the server adds it on every turn
-# made on this spec (ephemeral-agent loader, 0.8.7 + rc4), so it can't come
-# unticked.  Names must match the mcpServers keys below; a wrong one attaches
-# nothing, silently.  A tool-free chat is still the raw model in the picker.
+# A course chat opens on the course model — before this spec it opened on
+# "Please select an Agent".  softDefault, not default: a new chat starts here
+# unless the person's last one was somewhere else, and then that wins.
+#
+# NO mcpServers on it, deliberately (decision 31, 2026-10-02).  A spec's
+# mcpServers ride every turn server-side, and the two servers carry 35 tool
+# schemas, ~4k tokens on every coursework request — bookkeeping billed to the
+# course, and on a 16-32k local model a real bite of the window.  Keys, usage
+# and exports live in the front office, on its budget.  The servers stay
+# declared below, so staff can still attach them to an agent on purpose.
 modelSpecs:
   enforce: false
   list:
     - name: "course-chat"
       label: "Course chat"
-      description: "The course model, with this course's tools already on — ask for your key, or what you've spent."
+      description: "The course model.  Your API key, your usage and your exports are at the front office: https://{CHAT_HOST}"
       softDefault: true
-      mcpServers: ["{MCP_SERVER_PREFIX}-usage", "{MCP_SERVER_PREFIX}-registrar"]
       preset:
         endpoint: "{MODEL_PROVIDER_NAME}"
         model: "{models[0]}"

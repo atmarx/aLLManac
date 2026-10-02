@@ -144,9 +144,9 @@ def _ident_open() -> tuple[str, str, str]:
 
     `_ident()` refuses without an X-Course header, and that refusal is why
     wiring this service into the flagship costs nothing for the tools that
-    are about the room you're standing in — my_key, rotate_my_key,
-    nominate_agent: the vestibule renders no X-Course, so they go on
-    refusing there without a line of policy.  A tool that opts out of that
+    are about the room you're standing in.  (my_key, rotate_my_key and
+    nominate_agent were in that list until they moved to the front office;
+    see _my_course.)  A tool that opts out of that
     has to say so in its own name, which is what this function is for.  The
     test for opting out (docs/design-walls.md, "the front door"): is the
     header CHOOSING which course, or DECIDING who may act?  Only the first
@@ -214,14 +214,14 @@ def _staff_or_refuse(email: str, course: dict, slug: str,
     """Instructors and TAs — the courses.yaml lists ARE the authority (the
     file-backend equivalent of the managed group's manager role)."""
     if email not in course.get("instructors", []) and email not in course.get("tas", []):
-        # my_key refuses at the front door, so don't send anyone to it there.
         raise ToolError(
             f"Enrollment for {slug} is managed by its teaching staff, and "
             "the roster doesn't list you as one.  my_courses shows what "
             "you're on." if front_door else
             f"Roster operations are for the teaching staff of {slug}.  Your "
-            "own key and usage are always available — ask for my_key or "
-            "my_usage."
+            "own key and usage are always available in the front office — "
+            "the Coder Guide hands out keys and the Usage Guide reads your "
+            "numbers."
         )
 
 
@@ -395,19 +395,60 @@ def _purge_stages() -> None:
 
 # ---- tools: students ----------------------------------------------------------
 
+def _my_course(arg: str) -> tuple[str, str, dict]:
+    """(email, slug, course) for the tools about a person's own course —
+    keys and nominations — which now live in the front office, so the
+    course is CHOSEN rather than rendered.
+
+    Keys are bookkeeping, and bookkeeping in a course chat bills the course:
+    the tool schemas ride every turn of whatever chat carries them.  So the
+    Coder Guide hands keys out at the front door, on the front door's budget
+    (2026-10-02, @xram; registrar-spec.md decision 31).  The course argument
+    only chooses; the roster check in each tool still decides — the same
+    split as _staff_scope.  Inside a course chat the header wins, and a named
+    course that disagrees with it is refused rather than obeyed.
+    """
+    email, _role, here = _ident_open()
+    courses = _courses_or_refuse()["courses"]
+    named = _course_slug(arg, courses) if (arg or "").strip() else ""
+    if here:
+        if named and named != here:
+            raise ToolError(
+                f"This chat belongs to {here}.  For {named}, ask in the front "
+                "office, or in that course's own chat.")
+        return email, here, _course_or_refuse(here)
+    slug = named
+    if not slug:
+        mine = [c for c in reconcile.courses_for(email)
+                if c in courses and reconcile.course_state(courses[c]) != "archived"]
+        if len(mine) == 1:
+            slug = mine[0]
+        elif mine:
+            raise ToolError("Which course?  You're on: " + ", ".join(mine) + ".")
+        else:
+            raise ToolError(
+                "You're not on any course's roster yet.  Your instructor adds "
+                "you — ask them first.")
+    if slug not in courses:
+        raise ToolError(f"There's no course called '{arg or slug}'.  "
+                        "my_courses lists the ones you're on.")
+    return email, slug, courses[slug]
+
+
 @mcp.tool
-async def my_key() -> str:
-    """The caller's own API key for THIS course — for opencode, scripts, and
+async def my_key(course: str = "") -> str:
+    """The caller's own API key for one course — for opencode, scripts, and
     laptops (chat never needs it).  Works for anyone the roster names,
-    students and teaching staff alike.  The key is per-person-per-course,
-    has its own budget fuse, and every token it spends is metered to the
-    caller.  Treat it like a password; ask rotate_my_key if it ever leaks."""
-    email, _role, slug = _ident()
-    course = _course_or_refuse(slug)
+    students and teaching staff alike.  `course` is its name or id; leave it
+    empty when the person is on one course, and if they're on several this
+    asks which.  The key is per-person-per-course, has its own budget fuse,
+    and every token it spends is metered to the caller.  Treat it like a
+    password; rotate_my_key replaces it if it ever leaks."""
+    email, slug, course = _my_course(course)
     if not _on_roster(email, course):
         raise ToolError(
-            f"You're not on the roster for {slug} yet — your instructor "
-            "uploads it here in chat, so ask them first."
+            f"You're not on the roster for {slug} yet — your instructor adds "
+            "you, so ask them first."
         )
     if (r := _rehearse(email, "handed back your key for this course")):
         return r
@@ -417,8 +458,8 @@ async def my_key() -> str:
         # already refuses — the "my key stopped working" loop, started by us.
         ends = reconcile.window_ends(course)
         until = (f"  Your conversations are still here until {ends.isoformat()} "
-                 "— export anything you want to keep before then (each "
-                 "conversation's menu has Export)." if ends else "")
+                 "— export anything you want to keep before then (ask to "
+                 "export your data)." if ends else "")
         raise ToolError(
             f"{course.get('name', slug)} closed on {course['closed']}, and its "
             f"keys stopped working then — the term's budget is shut.{until}")
@@ -457,18 +498,17 @@ async def my_key() -> str:
         + (f"Gateway: https://{reconcile.GATEWAY_HOST}/v1\n"
            if reconcile.GATEWAY_HOST else "")
         + "Point opencode (or any OpenAI-compatible client) at the gateway "
-        "with this key — the user guide has the provider block.  This key is "
+        "with this key — the help site's harness page has the provider block.  This key is "
         "YOURS: it spends your course's pool under your name."
     )
 
 
 @mcp.tool
-async def rotate_my_key() -> str:
-    """Revoke the caller's key for THIS course and mint a fresh one —
+async def rotate_my_key(course: str = "") -> str:
+    """Revoke the caller's key for one course and mint a fresh one —
     remaining budget carries over (rotation is not a budget reset).  Use
-    when a key leaked or a laptop walked away."""
-    email, _role, slug = _ident()
-    course = _course_or_refuse(slug)
+    when a key leaked or a laptop walked away.  `course` as for my_key."""
+    email, slug, course = _my_course(course)
     if not _on_roster(email, course):
         raise ToolError(f"No key to rotate — you're not on the {slug} roster.")
     try:
@@ -484,15 +524,16 @@ async def rotate_my_key() -> str:
             "would hand you a full fuse you haven't got.  Your current key "
             "still works.  Try again in a minute."
         ) from None
-    except reconcile.PoolExhausted:
+    except reconcile.PoolExhausted as e:
         # Rotation carries the remainder forward; it has never been a refill.
         # Say which budget is empty, because "your key stopped working" reads
-        # as a broken key and sends people rotating in circles.
+        # as a broken key and sends people rotating in circles.  The
+        # exception names the key's remainder and the pool's — pass it on.
         raise ToolError(
             f"Rotating won't help — there's nothing left to carry over for "
             f"{slug}.  A new key would be dead on arrival, so I won't mint "
-            "one.  Ask your instructor about more budget; `my_usage` shows "
-            "where it went."
+            f"one ({e}).  Ask your instructor about more budget; `my_usage` "
+            "shows where it went."
         ) from None
     return (
         f"Rotated.  Your new {slug} key:\n\n    {new['key']}\n\n"
@@ -824,8 +865,8 @@ async def roster_apply(stage_id: str) -> str:
         out += ["", "Failures are safe to retry — stage the same change "
                     "again; every operation is idempotent."]
     out += ["", f"Students sign in at https://{slug}.{reconcile.ALMANAC_DOMAIN} "
-                "— access takes effect at their next sign-in, and keys are "
-                "ready the moment they ask my_key there."]
+                "— access takes effect at their next sign-in, and their keys are "
+                f"ready the moment they ask the Coder Guide at https://{reconcile.CHAT_HOST}."]
     return "\n".join(out)
 
 
@@ -993,7 +1034,7 @@ async def course_request(kind: str, name: str, purpose: str,
         [f"{kind}: {rec['name']}" + (f" (under {parent})" if parent else ""),
          f"from {email}" + (f" · {rec['term']}" if rec["term"] else "")
          + (f" · ~{rec['headcount']} people" if rec["headcount"] else ""),
-         "Read it and decide in the Dev Guide at the front door — ask what's "
+         "Read it and decide in the Operator Guide at the front door — ask what's "
          "waiting."],
         _front_door())
     return (f"Filed — request {rec['id']} ({kind}: {rec['name']}).  The "
@@ -1050,7 +1091,7 @@ async def course_request_reply(request_id: str, message: str) -> str:
     await reconcile.notify_desk(
         _admins(), f"Request {rid} answered — back in the queue",
         [f"{rec['kind']}: {rec['name']}", f"from {email}",
-         "Their reply is on the ticket in the Dev Guide."],
+         "Their reply is on the ticket in the Operator Guide."],
         _front_door())
     return f"Added to {rid}, and it's back with the admins."
 
@@ -1509,16 +1550,19 @@ async def fleet_exposure(course: str) -> str:
 # and not a button in someone else's UI.
 
 @mcp.tool
-async def nominate_agent(agent_id: str, note: str = "") -> str:
-    """Nominate an agent from THIS course as a shared template for the
-    platform.  Your own agents, or any in the course if you're teaching
-    staff.  `agent_id` is on the agent's edit page (agent_…).  Nothing is
-    copied yet: a platform admin reviews the nomination and exports it as
-    a template file — name, instructions, model, tools, and the list of
-    knowledge files by name.  Say in `note` what it does and why it's
-    worth sharing."""
-    email, _role, slug = _ident()
-    course = _course_or_refuse(slug)
+async def nominate_agent(agent_id: str, note: str = "", course: str = "") -> str:
+    """Nominate an agent from one of the caller's courses as a shared
+    template for the platform.  Your own agents, or any in the course if
+    you're teaching staff.  `agent_id` is on the agent's edit page
+    (agent_…); `course` is the course it lives in — leave it empty if the
+    person is on one course.  Nothing is copied yet: a platform admin
+    reviews the nomination and exports it as a template file — name,
+    instructions, model, tools, and the list of knowledge files by name.
+    Say in `note` what it does and why it's worth sharing."""
+    email, slug, course = _my_course(course)
+    if not _on_roster(email, course):
+        raise ToolError(f"You're not on the {slug} roster, so there's nothing "
+                        "of yours there to nominate.")
     staff = email in course.get("instructors", []) or email in course.get("tas", [])
     try:
         if (r := _rehearse(email, "nominated that agent as a template")):
@@ -1642,7 +1686,7 @@ async def report_problem(what: str, course: str = "", asked: str = "",
         [], f"Problem report {rec['id']}",
         [f"about {rec['about'] or 'no single course — needs routing'} · "
          f"filed from {slug or 'the front door'}",
-         "Read it in the Dev Guide (reports) or with `just reports`."],
+         "Read it in the Operator Guide (reports) or with `just reports`."],
         _front_door(), email_fallback=False)
     out = [f"Filed — report {rec['id']}."]
     if rec["about"]:

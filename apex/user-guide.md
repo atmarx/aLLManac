@@ -104,12 +104,12 @@ The agent has one body — edits overwrite, last save wins, and there's no merge
 
 Chat needs no key — sign in and go; the ledger already knows who you are.  The API key is for **code**: your own scripts, notebooks, and the coding harness in Part 4.
 
-- **You fetch it yourself.**  In your course's chat — the course address, not the front desk — ask for your key — a new chat there starts on **Course chat**, with the tool already on ([step by step](building-with-code/your-key.md)).  The reply carries the gateway address too.  It is minted when your instructor enrolls you, so if the chat says you're not on the roster yet, that's the person to ask.  Nobody emails it to you, and nobody else can fetch it for you.
+- **You fetch it yourself.**  At {{PLATFORM}}'s front door — where the guides are, not your course's address — ask the **Coder Guide** for your key ([step by step](building-with-code/your-key.md)).  If you are in more than one course, it asks which.  The reply carries the gateway address too.  It is minted when your instructor enrolls you, so if the guide says you're not on the roster yet, that's the person to ask.  Nobody emails it to you, and nobody else can fetch it for you.
 - **One key per course, and it carries your name.**  In two courses you have two keys, each spending against its own course, and every request made with one is recorded against you.
 - Each key carries a **budget** of its own — a small one, there to catch a runaway loop before it catches your course.  Visibility, not a paywall.
-- **Treat the key like a password.**  Don't commit it to a repo, don't paste it into a shared doc.  If it leaks or you lose it, ask your course's chat to **rotate** it — you get a new key, the old one dies, and whatever was left on its budget carries over.  Seconds, and nobody's permission.
+- **Treat the key like a password.**  Don't commit it to a repo, don't paste it into a shared doc.  If it leaks or you lose it, ask the Coder Guide to **rotate** it — you get a new key, the old one dies, and whatever was left on its budget carries over.  Seconds, and nobody's permission.
 - If you hit your budget, requests start failing with a budget-exceeded error.  That's a conversation, not a punishment — ask your instructor.
-- **Where do I stand?**  Ask.  Ask your course's chat, or the **Usage Guide** at the front door, "how much have I used this week?" — either answers with your real numbers — chat and API keys combined.  Only ever yours; nobody else's.
+- **Where do I stand?**  Ask the **Usage Guide** at the front door, "how much have I used this week?" — it answers with your real numbers, chat and API keys combined, without spending your course's budget to do it.  Only ever yours; nobody else's.
 
 The whole story — what the budget counts, why a model added later may not show up on your key, and how to keep it out of a repo — is on [Your API key](building-with-code/your-key.md).
 

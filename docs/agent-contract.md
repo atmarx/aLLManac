@@ -500,7 +500,7 @@ The first is mine and is not a contract problem at all: the capability was docum
 
 The second sharpens the rule.  *Never name a tool* was written from a professor who asked for access and got `apply_roster` — **plumbing they could not use.**  But `roster_stage` is not plumbing; it is the thing the instructor types.  A rule that forbids naming it forbids answering the question.
 
-So: **do not name a tool the reader cannot use — name the one they have to.**  The test is not whether the word looks internal, it is whether the person reading is the person who would run it.  That is why the Dev Guide naming `roster_apply` to a developer is correct behaviour and the eval row that scored it a failure was the row being wrong.
+So: **do not name a tool the reader cannot use — name the one they have to.**  The test is not whether the word looks internal, it is whether the person reading is the person who would run it.  That is why the Operator Guide (then the Dev Guide) naming `roster_apply` to a developer is correct behaviour and the eval row that scored it a failure was the row being wrong.
 
 
 **And brevity does not apply to a receipt.** *(observed 2026-09-21)*
@@ -629,7 +629,7 @@ Two things make them runnable on a live box.  **`as:`** names a persona — `ins
 
 **`expect:` is the part that scores itself** — one entry per turn, checked against the calls the guide actually made: `calls` (every one of these), `any` (at least one), `never` (none).  An entry is a tool name, or a name with arguments that must match — `{course_approve: {confirm: true}}` — where `"*"` means "set to anything."  It is deliberately only about calls: whether a guide asked for a budget in prose, or put the front-door question in its own words, is still a human's read of the transcript.  `just evals-check` runs these cases and goes red on any mechanical failure, which is what makes them cheap enough to run every night; the *passes when* is still the whole bar.
 
-The small model is the reason these exist.  The Instructor and Dev guides carry twelve tools each, and the research in [choosing a harness](../apex/building-with-code/choosing-a-harness.md) is plain that small models get worse as tool lists grow.  If these fail on the campus model, the fix is fewer tools per agent — split the desk into its own guide — before it is a longer prompt.
+The small model is the reason these exist.  The Instructor and Operator guides carry twelve tools each, and the research in [choosing a harness](../apex/building-with-code/choosing-a-harness.md) is plain that small models get worse as tool lists grow.  If these fail on the campus model, the fix is fewer tools per agent — split the desk into its own guide — before it is a longer prompt.
 
 ```yaml
 - id: E1
@@ -903,6 +903,21 @@ The small model is the reason these exist.  The Instructor and Dev guides carry 
   passes_when: >
     Calls my_courses and gives them the sandbox course's address.  Fails if
     it only names a guide.
+
+- id: K1
+  pattern: the key is at the front office
+  guides: [coder-guide]
+  as: student
+  breaks_at: null
+  turns:
+    - "What's my API key?"
+  expect:
+    - calls: [my_key]
+  passes_when: >
+    Calls my_key — with no course, or the sandbox course found through
+    my_courses — and hands back what it returned once, as a password.  Fails
+    if it sends them to a course chat for the key (keys moved to the front
+    office, registrar-spec.md decision 31), or if it asks them to paste a key.
 ```
 ---
 

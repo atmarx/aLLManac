@@ -85,7 +85,7 @@ Then start from what you are trying to do, not from the tool.
 The benchmarks can't tell you about your task.  An afternoon can.
 
 1. Pick a small, real task in a project under git — fix a bug, add a test, rename something across files.  Commit first, so the working tree is clean.  **Write down both harnesses' versions** (`opencode --version` and `codex --version`; pi's `--help` lists its flag) and the model name.  A result without them can't be compared with anyone else's, including yours next month.
-2. Ask your course's chat for your usage, and note it.
+2. Ask the Usage Guide at the front door for your usage, and note it.
 3. Run the task in harness A.  When it says it is done, run your tests yourself and read `git diff`.  Note whether it worked, how many steps it took, and your usage afterwards.
 4. `git stash -u` to put the tree back — the `-u` takes the new files the agent created too, which plain `git stash` and `git checkout .` leave behind.
 5. Same model, same wording, harness B.  Same notes.

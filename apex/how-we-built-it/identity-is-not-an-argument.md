@@ -16,7 +16,7 @@ tethered_to:
 
 # Why the chatbot never asks who you are
 
-Open your course chat and type *"how much have I used this week?"*  The answer comes back with your email address at the top of it.
+Open the Usage Guide at {{PLATFORM}}'s front door and type *"how much have I used this week?"*  The answer comes back with your email address at the top of it.
 
 You never told it your email address.  It never asked.  Look at the tool that answered, `my_usage` in `usage-mcp/server.py`, and the only thing it takes is a number of days.  There is no `user` parameter anywhere in it, and that is the most deliberate line in the file.
 
@@ -57,9 +57,9 @@ The bearer token proves the call came from the chat software rather than from an
 
 Every tool opens the same way — check the token, read the email, refuse if either is missing — and then scopes its answer by that email and nothing else.  Tools still take arguments: `my_usage` takes a number of days, and `course_usage` takes a course.  **A prompt can pick the date range.  It can never pick whose data comes back.**
 
-Which course you are in works the same way, with one more header.  A course instance's configuration is rendered by the registrar, and the registrar writes that course's id into it as a literal: `X-Course: "engr301-2026fall"`.  So `my_key` takes no arguments at all — it hands back *your* key for *this* course, because both of those arrived in headers nobody in the chat can edit.  The front door has no course, so it renders no `X-Course`, and `my_key` simply refuses there with no line of policy written anywhere.  The absence of a header is the access control.
+Which course you are in can work the same way, with one more header.  A course instance's configuration is rendered by the registrar, and the registrar writes that course's id into it as a literal: `X-Course: "engr301-2026fall"`.  A tool called from inside that course knows which course it is serving because of a header nobody in the chat can edit.  The front door has no course, so it renders no `X-Course`, and the tools that are only about the room you are standing in simply refuse there, with no line of policy written anywhere.  The absence of a header is the access control.
 
-Some tools *do* take a course as an argument, and the reason they can is the most transferable idea on this page.  An instructor can enrol students from the front door by naming the course.  That is safe because the course argument only ever **chooses** which course — what **decides** whether you may touch it is the next line, a check of your injected email against that course's roster of teaching staff.  A student who names a course gets the same refusal they would get inside it.  Inside a course the header still wins, and a named course that disagrees with it is refused rather than obeyed: the header is configuration the registrar rendered, and the argument is a model repeating what somebody typed.  The test for moving anything from header to argument is one question: **is it choosing, or deciding?**  Only the first can move.
+Some tools *do* take a course as an argument, and the reason they can is the most transferable idea on this page.  An instructor can enrol students from the front door by naming the course, and anyone can ask the Coder Guide there for their API key, naming the course or letting the tool find their only one.  That is safe because the course argument only ever **chooses** which course — what **decides** whether you may touch it is the next line, a check of your injected email against that course's roster.  A student who names a course they aren't in gets no key, and a student who names a course to enrol people in gets the same refusal they would get inside it.  Keys moved to the front door for a dull reason — every tool attached to a course's chat rides along on every turn of it, so bookkeeping there was billed to coursework — and the move cost nothing in safety, because the argument was only ever choosing.  Inside a course the header still wins, and a named course that disagrees with it is refused rather than obeyed: the header is configuration the registrar rendered, and the argument is a model repeating what somebody typed.  The test for moving anything from header to argument is one question: **is it choosing, or deciding?**  Only the first can move.
 
 The same rule reaches the meter.  Every chat request LibreChat sends to the gateway carries the signed-in email as `x-litellm-end-user-id`, so the ledger records who asked even though a course's chat runs on one shared service key.  A personal API key carries identity the other way — the key is minted with your email as its owner, so whatever a script does with it lands on you without the script ever saying who you are.  Chat usage and key usage join on the same email, which is why `my_usage` can show both.
 
@@ -81,9 +81,9 @@ That last one is the gap worth carrying away.  **Out-of-band identity answers *w
 
 ## Try it yourself
 
-In your course chat, ask for a classmate's usage by their email address.  Watch what comes back: your own numbers, or a refusal, or the model explaining that the tool only answers for you.  What you will not get is theirs, and not because the model declined — there is nowhere in the request for their address to go.
+At the front door, ask the Usage Guide for a classmate's usage by their email address.  Watch what comes back: your own numbers, or a refusal, or the model explaining that the tool only answers for you.  What you will not get is theirs, and not because the model declined — there is nowhere in the request for their address to go.
 
-Then ask for `course_usage` on your own course.  Unless you teach it, you are refused, and the refusal names the roster rather than your role.  The course you named was the *choosing* half.  Your email, which you did not type, was the *deciding* half.
+Then ask it for `course_usage` on your own course.  Unless you teach it, you are refused, and the refusal names the roster rather than your role.  The course you named was the *choosing* half.  Your email, which you did not type, was the *deciding* half.
 
 Last, open `usage-mcp/server.py` in the repository and read the signatures: `my_usage(days: int = 7)`.  Then find `_ident()`, a short function that reads a token and two headers.  That function is the reason the chatbot never asks who you are — it already knows, and it never let the model have an opinion.
 

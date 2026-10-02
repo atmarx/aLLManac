@@ -48,11 +48,11 @@ That is a posture, not a legal conclusion, and it is the conservative direction 
 
 ## What you can do today
 
-**See your own usage.**  Ask the usage tool in the chat about your own activity and it will tell you which models you used, how many tokens, and when.  It reads the ledger by your email address, so it spans every course you are in.
+**See your own usage.**  Ask the Usage Guide at the front door about your own activity and it will tell you which models you used, how many tokens, and when.  It reads the ledger by your email address, so it spans every course you are in.
 
 **See your own conversations.**  While a course is running — and for 14 days after it closes — they are in your account, in the course's chat.  Nobody has to send them to you.
 
-**Take a copy of your own work.**  Ask your course's chat, or the Student Guide at the front door, to export your data.  You get a zip of every conversation you had in that course, both sides, and every agent you own, behind a link that works for 24 hours — and it works on a course that has closed or been archived, too.  Files you uploaded are listed in it rather than included, and conversations with the guides at the front door are not part of it.
+**Take a copy of your own work.**  Ask the Student Guide at the front door to export your data, naming the course.  You get a zip of every conversation you had in that course, both sides, and every agent you own, behind a link that works for 24 hours — and it works on a course that has closed or been archived, too.  Files you uploaded are listed in it rather than included, and conversations with the guides at the front door are not part of it.
 
 **Ask your instructor** what their course's own practice is.  There is no retention setting for them to change — retention is the institution's policy, and it has not set one — but they may have said something in the syllabus about what they keep and why.
 

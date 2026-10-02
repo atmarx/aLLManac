@@ -101,7 +101,7 @@ Moving the key off the box is the upgrade path.  Its price is that every reboot 
 
 ## Try it yourself
 
-**If you're a student in a course here,** ask the course chat for your key, then ask it to rotate your key, then ask for your key again.  The key is different, your remaining budget came along with it, and the old one now fails at the gateway.  Somewhere, a record of the old one still exists.  You just watched custody happen.
+**If you're a student in a course here,** ask the Coder Guide at the front door for your key, then ask it to rotate your key, then ask for your key again.  The key is different, your remaining budget came along with it, and the old one now fails at the gateway.  Somewhere, a record of the old one still exists.  You just watched custody happen.
 
 **If you want to see the mechanism,** run a throwaway OpenBao in dev mode — no setup, nothing kept:
 
