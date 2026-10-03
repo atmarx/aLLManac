@@ -37,7 +37,7 @@ You can also ask the platform about itself.  The guides live in the {{PLATFORM}}
 
 ## Teaching with it
 
-Your students already have access.  That changes some of your assignments and leaves others completely alone, and working out which is which is a teaching question, not a technology question.
+Your students already have access.  That changes some of your assignments and leaves others alone, and working out which is which is a teaching question.
 
 [Teaching with AI](teaching-with-ai/index.md) is written for that work, and it starts from one principle: **a student is fully responsible for what they submit.  A model cannot accept blame.**  Once that is settled, most of the hard questions get easier.  The subject moves from *did you use AI* — unanswerable, and increasingly beside the point — to *do you stand behind this*, the question scholarship has always asked.
 
@@ -51,7 +51,7 @@ From there:
 
 ## Learning to build it
 
-The platform is also course material.  Every significant decision here was made for a reason, and the reasons are written down.  The reasons transfer — you will meet the same trade-offs on a stack that looks nothing like this one.
+The platform is also course material.  Every significant decision here has its reasons written down, and they transfer — you will meet the same trade-offs on a stack that looks nothing like this one.
 
 [How we built it](how-we-built-it/index.md) is that track.  It is being written as the build settles; the first piece finished is [How do you keep the courses apart?](how-we-built-it/keeping-courses-apart.md), which is about tenancy.  It ends on a gap we have not closed yet.  A gap you can read about is worth more than one you cannot.
 
@@ -59,9 +59,9 @@ The platform is also course material.  Every significant decision here was made 
 
 Coursework generates records about you, and records about students come with obligations.
 
-Your conversations live in your own course's database, and nobody in another course can get to them; your usage is recorded against your email address — which model, how many tokens, when, but not what you said; nothing expires on its own except a temporary chat, which is deleted after 30 days; and nothing you build is shared until you share it.
+Your conversations are stored in your own course's database, and nobody in another course can get to them; your usage is recorded against your email address — which model, how many tokens, when, but not what you said; nothing expires on its own except a temporary chat, which is deleted after 30 days; and nothing you build is shared until you share it.
 
-The full account, including the parts that are not built yet, is in [Your data](your-data/index.md).  It's linked from the first page so you don't have to go looking for it.
+The full account, including the parts that are not built yet, is in [Your data](your-data/index.md).
 
 ---
 

@@ -37,17 +37,17 @@ Here is each line.
 
 One request is one time the platform asked a model for something.  Usually that is one message you sent.
 
-Not always, and this trips people up.  A few requests are made on your behalf without you typing anything.  Naming a new conversation is one — when a thread acquires a title by itself, that was a small extra request against your account.  The bigger one is an agent looking something up: searching its knowledge files or calling a tool is a request of its own, before the one that writes your answer.  If your request count runs ahead of the messages you remember sending, that is almost certainly why.
+Not always.  A few requests are made on your behalf without you typing anything.  Naming a new conversation is one — when a thread gets a title by itself, that was a small extra request against your account.  The bigger one is an agent looking something up: searching its knowledge files or calling a tool is a request of its own, before the one that writes your answer.  If your request count runs ahead of the messages you remember sending, that is almost certainly why.
 
 ## Tokens in, and tokens out
 
-**"In"** is everything sent to the model: your message, the conversation behind it, any passages pulled from attached documents, the agent's own instructions, and the descriptions of any tools the agent carries.
+**"In"** is everything sent to the model: your message, the conversation behind it, any passages pulled from attached documents, the agent's own instructions, and the descriptions of any tools the agent has.
 
 **"Out"** is what the model wrote back.
 
-On virtually every real account, **"in" is ten to fifty times larger than "out."**  That ratio is [the conversation being re-sent](context-is-the-conversation.md), which is how these systems work.  There is nothing to fix.
+On virtually every real account, **"in" is ten to fifty times larger than "out."**  That ratio is [the conversation being re-sent](context-is-the-conversation.md).  It is how these systems work, and there is nothing to fix.
 
-The ratio is useful for noticing change in yourself over time.  If it climbs steeply over a term, you are probably running longer threads than you used to, which is the most common way usage grows without anyone deciding anything.
+The ratio is useful for noticing change over time.  If it climbs steeply over a term, you are probably running longer threads than you used to, which is the most common way usage grows without anyone deciding anything.
 
 ## Chat, and API keys
 
@@ -69,9 +69,7 @@ The useful reading is concentration.  If nearly everything sits against one expe
 
 ## Spend
 
-Dollars, always shown, even when it rounds to nothing.
-
-**It shows even at zero.**  The number is there so you can build a sense of what things cost, and hiding it until it gets large teaches exactly the wrong lesson to the person who most deserves to know their habits are economical.
+Dollars, always shown, even when it rounds to nothing.  The number is there so you can build a sense of what things cost.  Hiding it until it got large would teach the wrong lesson to the person who most deserves to know their habits are economical.
 
 It also counts things people do not expect:
 
@@ -85,7 +83,7 @@ It also counts things people do not expect:
 
 **Whether a question was worth asking.**  We have the price and nobody has the value.  That limit is permanent; no feature is waiting to fix it.
 
-**How you compare to anyone else.**  There is no ranking.  Your instructor's view of the course does list each student — requests, tokens, and when each was last active — because "who hasn't started yet?" is a question only names can answer.  But the list runs alphabetically, never by who used the most, dollars appear only as a course total, and it shows counts, not content; what your instructor can read is a separate question, answered in [Who can see it](../your-data/who-can-see-it.md).  Nobody is scored on the number.  It answers whether the budget was sized right, and says nothing about whether the work was any good.
+**How you compare to anyone else.**  There is no ranking.  Your instructor's view of the course does list each student — requests, tokens, and when each was last active — because "who hasn't started yet?" is a question only names can answer.  But the list runs alphabetically, never by who used the most.  Dollars appear only as a course total, and it shows counts, not content.  What your instructor can read is a separate question, answered in [Who can see it](../your-data/who-can-see-it.md).  Nobody is scored on the number.  It answers whether the budget was sized right, and says nothing about whether the work was any good.
 
 ## Two data notes
 

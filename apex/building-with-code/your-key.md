@@ -20,13 +20,13 @@ tethered_to:
 
 Open the **{{PLATFORM}} chat** — where the guides are, not your course's address — pick the **Coder Guide**, and ask for your key.  If you are in more than one course, it asks which one.
 
-Keys are kept out of your course's chat.  Asking for one is bookkeeping, and bookkeeping tools in the course chat would spend your course's budget and fill the course model's context with tools your coursework never uses.
+Keys are kept out of your course's chat.  Bookkeeping tools there would spend your course's budget and fill the course model's context with tools your coursework never uses.
 
-The guide calls a tool named `my_key` and hands the key back to you in the conversation, along with the **gateway address** your code points at.  Nobody emails it to you and nobody else can fetch it for you.  The tool answers the person who is signed in and nobody else.
+The guide calls a tool named `my_key` and returns the key in the conversation, along with the **gateway address** your code points at.  Nobody emails it to you.  The tool answers only the person who is signed in, so nobody else can fetch it for you.
 
 If it says you are not on the roster yet, your instructor hasn't added you — the key is minted when you are enrolled, so there is nothing to fetch until then.  Teaching staff get theirs minted the first time they ask.
 
-Copy it somewhere safe, then treat that conversation like it holds a password, because it does.
+Copy it somewhere safe.  That conversation now contains a password, so treat it like one.
 
 ## What it is
 
@@ -39,9 +39,9 @@ Copy it somewhere safe, then treat that conversation like it holds a password, b
 
 ## Replacing it
 
-Leaked it, committed it, lost the laptop?  Ask the **Coder Guide** in the {{PLATFORM}} chat to **rotate** your key.  The tool `rotate_my_key` mints a new key, hands it to you, and kills the old one at the gateway.  It takes seconds and needs nobody's permission.
+Leaked it, committed it, lost the laptop?  Ask the **Coder Guide** in the {{PLATFORM}} chat to **rotate** your key.  The tool `rotate_my_key` mints a new key, returns it to you, and kills the old one at the gateway.  It takes seconds and needs nobody's permission.
 
-**Rotation is not a refill.**  The new key gets your course's per-key budget minus what you have already spent, and never more than the course has left — so in practice, roughly what the old key had.  If less than about a dollar would carry over, rotation refuses; it won't hand you a key that is dead on arrival.  Its refusal says how much your key had left and how much the course pool has, so you can tell which one ran out.  It will also refuse if it can't read the old key's meter at that moment, because guessing would mean guessing "full."  In both cases your current key is left exactly as it was.
+**Rotation is not a refill.**  The new key gets your course's per-key budget minus what you have already spent, and never more than the course has left — so in practice, roughly what the old key had.  If less than about a dollar would carry over, rotation refuses; it won't give you a key that is dead on arrival.  Its refusal says how much your key had left and how much the course pool has, so you can tell which one ran out.  It will also refuse if it can't read the old key's meter at that moment, because guessing would mean guessing "full."  In both cases your current key is left exactly as it was.
 
 ## Keeping it
 

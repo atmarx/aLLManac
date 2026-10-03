@@ -13,19 +13,19 @@ tethered_to:
 
 # What actually costs something
 
-Advice about using these tools economically is everywhere, and it is a strange mixture of things that matter enormously and things that are rounding error, delivered in the same confident tone.  This page sorts them by size.
+Advice about using these tools economically mixes things that matter enormously with things that are rounding error, all in the same confident tone.  The ranking below sorts them by size.
 
-The ranking assumes you have read [what context actually is](context-is-the-conversation.md).  Every item on it follows from that one fact.
+It assumes you have read [what context actually is](context-is-the-conversation.md).  Every item follows from that one fact.
 
 ## 1. Starting a new conversation when the subject changes
 
-**This one is worth more than everything else on this page combined**, by a wide margin.
+**This one is worth more than all the others combined**, by a wide margin.
 
 A conversation costs roughly the square of its length.  Forty turns in one thread costs about twice what the same forty turns cost split into two threads of twenty, and about four times what they cost split into four threads of ten — for identical work, identical questions, identical answers.
 
 The catch is that starting fresh feels wasteful.  You lose the setup, you have to re-explain, and the thread you were in still works fine.  So people don't, and the conversation that began as a question about a citation is still running four hours later having covered three unrelated topics, sending all of it on every turn.
 
-> **When you change subject, change conversation.**  If the last ten exchanges have nothing to do with the next one, they are pure freight.
+> **When you change subject, change conversation.**  If the last ten exchanges have nothing to do with the next one, you are paying to send them for nothing.
 
 There is a real exception.  When the earlier context matters — a document you worked through together, a problem you have been narrowing down — keeping it is what you are paying for, and that is money well spent.  The test is whether the old material is still doing work.  Length alone doesn't decide it.
 
@@ -43,9 +43,9 @@ It is a real lever, and it sits third because it is bounded.  Choosing well save
 
 ## 4. How you phrase the question
 
-The one everybody asks about.  Caveman speak — clipped, telegraphic, articles and pronouns stripped out — does reduce tokens.  You can take perhaps a quarter off the length of what you type, and the model will usually understand you fine, because meaning survives the loss of small words remarkably well.  The instinct is not silly.
+The one everybody asks about.  Caveman speak — clipped, telegraphic, articles and pronouns stripped out — does reduce tokens.  You can take perhaps a quarter off the length of what you type, and the model will usually understand you fine.  The instinct is not silly.
 
-In a normal conversation it is also **almost entirely pointless**, and the reason is arithmetic.
+In a normal conversation it is also **almost entirely pointless**.  The arithmetic:
 
 Your question is not the expensive part.  On turn twenty of a conversation, what you typed might be two per cent of what gets sent; the other ninety-eight per cent is the conversation behind it, which you did not retype and cannot shorten by writing tersely.  Shaving a quarter off two per cent saves you half of one per cent.
 
@@ -63,7 +63,7 @@ A sentence you type once is sent as part of that conversation from then on.  But
 - a document attached to an agent that gets consulted constantly
 - a system prompt somebody wrote once and never revisited
 
-Ten words removed from an agent's instructions is ten words removed from every request anyone ever makes to it.  That is the same edit, applied thousands of times, and it is where being ruthless about wording repays the effort.
+Ten words removed from an agent's instructions is ten words removed from every request anyone ever makes to it.  That one edit is applied thousands of times, and it is where tight wording repays the effort.
 
 So if you build agents, be brisk in the instructions.  When you are just asking a question, write like a person — you will get a better answer and it will cost you essentially nothing.
 
@@ -71,6 +71,6 @@ So if you build agents, be brisk in the instructions.  When you are just asking 
 
 Every item above is about how much a question costs.  Nothing here, and nothing in any ledger on this platform, can tell you whether the question was worth asking.
 
-We have the price and nobody has the value, and in coursework the relationship between the two is frequently inverted.  The expensive, circling, inefficient-looking conversation where you finally understood something is often the one that did its job, and a tool that flagged it as waste would be confidently wrong about the most important thing in the room.
+We have the price and nobody has the value, and in coursework the relationship between the two is frequently inverted.  The expensive, circling, inefficient-looking conversation where you finally understood something is often the one that did its job, and a tool that flagged it as waste would be confidently wrong about the thing that matters most.
 
-So use this page to stop spending money accidentally.  Do not use it to talk yourself out of asking.
+Use the ranking above to stop spending money accidentally, and not to talk yourself out of asking.

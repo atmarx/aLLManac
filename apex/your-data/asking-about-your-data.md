@@ -16,8 +16,6 @@ tethered_to:
 
 What follows describes a law in general terms and what this platform can currently do.  It is not advice about your particular situation, and nothing here says the platform is compliant with anything — those are determinations for your institution and its counsel, not for a help site.
 
-Most of what people want to know is not complicated.
-
 ## What FERPA gives you
 
 - **You can inspect and review your education records.**
@@ -31,7 +29,7 @@ What nearly everybody has backwards:
 
 You can look, and you can argue that something is wrong and ask for it to be corrected.  There is no provision that makes the institution erase your records because you would prefer they were gone.
 
-The instinct to expect one is learned, and reasonable.  GDPR has a right to erasure, and several state consumer privacy laws have something like one.  Those regimes are different: different triggers, different obligations, different people covered.  Knowing which regime grants which right is the useful skill, more than memorising any single one of them.  A right you assume you have is a right you will not ask for correctly.
+The instinct to expect one is learned, and reasonable.  GDPR has a right to erasure, and several state consumer privacy laws have something like one.  Those regimes are different: different triggers, different obligations, different people covered.  Knowing which regime grants which right is the useful skill.  A right you assume you have is a right you will not ask for correctly.
 
 "FERPA does not require it" is not "nobody requires it," though.  State student-privacy statutes frequently *do* address retention and deletion, and there are well over a hundred of them.  Which ones apply to a given deployment is a question for the institution running it.
 
@@ -42,7 +40,7 @@ Records that are directly related to a student and maintained by the institution
 !!! note "Under review"
     Whether these conversations are formally education records is a determination for university counsel, and it has not been made.  In the meantime, the platform treats them as though they are.
 
-That is a working assumption, not a legal conclusion, and it errs in the conservative direction by design.  Treating them as records and later learning they are not costs us some care we did not owe.  Guessing the other way and being wrong costs somebody else something they cannot get back.
+That is a working assumption, not a legal conclusion, and it errs in the conservative direction.  Treating them as records and later learning they are not costs us some care we did not owe.  Guessing the other way and being wrong costs somebody else something they cannot get back.
 
 ## What you can do today
 
@@ -61,7 +59,7 @@ That is a working assumption, not a legal conclusion, and it errs in the conserv
 
 ## If you go on to build systems like this
 
-The mistake to avoid is the one at the top of this section on FERPA, and it is easier to make from the builder's chair than the student's: **assuming that one privacy regime's rights apply to another regime's data.**
+The mistake to avoid is the one in the FERPA section above, and it is easier to make as a builder than as a student: **assuming that one privacy regime's rights apply to another regime's data.**
 
 It produces two opposite failures, and both are expensive.  You build an erasure feature nobody required, in a system where erasure is hard, and it becomes the thing you cannot truthfully promise about your backups.  Or you skip one that was required, because the regime you had in mind did not ask for it.
 

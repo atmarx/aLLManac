@@ -14,20 +14,20 @@ tethered_to:
 
 The word is doing you no favours, so let us deal with it first.
 
-A subway token is a unit of access.  One token, one ride, and it costs the same whether you go two stops or twenty.  That is a perfectly sensible thing to call a token, and if that is the picture you brought here, it is a reasonable guess that happens to be exactly backwards.
+A subway token is a unit of access.  One token, one ride, and it costs the same whether you go two stops or twenty.  That is a sensible thing to call a token, but if that is the picture you brought here, it is exactly backwards.
 
-**A language model's token is a unit of text.**  It is a piece of a word.  You are not buying rides; you are paying by the yard, and the token is how the yard gets measured.
+**A language model's token is a unit of text.**  It is a piece of a word.  You pay by the yard, and the token is how the yard gets measured.
 
 ## Why not just count words?
 
 Because the model does not read words.
 
-Before any text reaches the model, it is chopped into pieces from a fixed list of tens of thousands to a few hundred thousand fragments, depending on the model.  Common words are usually one piece.  Longer or rarer words get broken into several.  Spaces and punctuation are in there too.  The list was built by looking at an enormous amount of text and finding which chunks repeat, which means it reflects ordinary writing and treats anything unusual as a series of small parts.
+Before any text reaches the model, it is chopped into pieces from a fixed list of tens of thousands to a few hundred thousand fragments, depending on the model.  Common words are usually one piece.  Longer or rarer words get broken into several.  Spaces and punctuation are in there too.  The list was built by looking at an enormous amount of text and finding which chunks repeat, so it reflects ordinary writing and anything unusual becomes a series of small parts.
 
-The practical consequences are mildly entertaining:
+Some consequences:
 
 - **`notebook`** is a common enough word to be a piece or two.
-- **`nOTEbooK`** is not a word at all, so it gets taken apart into something like `n` + `OTE` + `boo` + `K` — **roughly twice the tokens for the same eight letters**, purely because of the capital letters scattered through it.
+- **`nOTEbooK`** is not a word at all, so it gets taken apart into something like `n` + `OTE` + `boo` + `K` — **roughly twice the tokens for the same eight letters**, because of the capital letters scattered through it.
 - Numbers get split in ways that have nothing to do with how you would say them.  `2026` may be one piece; `20260921` is several.
 - Languages other than English, and code, and anything with unusual spacing, all run token counts up relative to their length.
 
@@ -63,4 +63,4 @@ Ask the **Usage Guide** in the {{PLATFORM}} chat for **your usage**.  You will g
 Total: 412 requests · 1,840,220 tokens (1,790,118 in / 50,102 out)
 ```
 
-Look at those two numbers beside each other.  **You sent thirty-five times more text than you received**, which sounds wrong until you know why, and it is the single most useful thing on the page once you do.
+Look at those two numbers beside each other.  **You sent thirty-five times more text than you received.**  That sounds wrong until you know why, and once you do it is the most useful thing on the page.

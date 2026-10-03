@@ -49,7 +49,7 @@ Look at what it stands for.  **Large language models produce large amounts of la
 
 It writes a page in seconds.  Reading that page properly takes minutes.  Those rates do not match, so if you take the output at the speed it shows up, you are not reading it — that is arithmetic, not a comment on your discipline.  And because the text arrives polished and confident, skimming *feels* like enough.
 
-Which runs straight into the one rule.  **You cannot answer for something you have not read.**  So read it — at the speed reading takes, trying to understand it rather than checking that it looks okay.
+That runs straight into the one rule.  **You cannot answer for something you have not read.**  So read it — at the speed reading takes, trying to understand it rather than checking that it looks okay.
 
 **Ask for less.**  Most people resist it, since it gives up the tool's apparent advantage.  But three paragraphs you read are worth more to you than five pages you scanned, and only one of those is something you can defend.
 
@@ -57,28 +57,28 @@ Which runs straight into the one rule.  **You cannot answer for something you ha
 
 **Name the assumptions.**  Generated text rests on premises it never mentions, and it will happily accept a flawed assumption baked into your question and argue brilliantly from it.  Ask what the answer is taking for granted.
 
-**Check somewhere else.**  And specifically —
+**Check somewhere else.**
 
 !!! warning "Asking it again is not checking"
     "Are you sure?" gets you either the same claim restated with equal confidence or an apology and a reversal.  Neither tells you whether the original was true.  Go to something independent: the actual paper, the documentation, a person who knows.
 
-**Question it, and question yourself.**  Do not throw out what you know because a machine sounded certain — students give up their own knowledge far too easily to a confident paragraph.  Also hold your view loosely enough to check it.  Neither you nor the model is infallible, so aim for calibration and trust neither one by default.
+**Question it, and question yourself.**  Do not throw out what you know because a machine sounded certain — it is easy to give up your own knowledge to a confident paragraph.  Also hold your view loosely enough to check it.  Neither you nor the model is infallible, so aim for calibration and trust neither one by default.
 
 ## Check your sources — this is the part that is actually graded
 
-What gets assessed is increasingly not whether you used AI.  It is whether the sources you cite exist and say what you claim they say.  That is the one rule with a checkable edge on it, and it is a standard that predates any of this by about a century.
+What gets assessed is increasingly not whether you used AI.  It is whether the sources you cite exist and say what you claim they say.  That is the one rule that can be checked, and the standard predates any of this by about a century.
 
 Citations go wrong three ways, and they take very different amounts of time to catch.
 
 **The paper does not exist.**  Search the exact title in quotation marks.  Nothing comes back, or nothing matching.  Fifteen seconds, and it is the rarest of the three.
 
-**The paper exists but the details are wrong.**  Wrong year, wrong volume, or — most often — a DOI that is formatted correctly and resolves to a different paper or to nothing at all.  Resolve it and confirm the title that comes back is the title you cited.  Highest-yield check available, and it takes seconds.  A correctly formatted DOI is not a working DOI.
+**The paper exists but the details are wrong.**  Wrong year, wrong volume, or — most often — a DOI that is formatted correctly and resolves to a different paper or to nothing at all.  Resolve it and confirm the title that comes back is the title you cited.  It is the highest-yield check available, and it takes seconds.  A correctly formatted DOI is not a working DOI.
 
 **The paper exists, is cited correctly, and does not say that.**  The common one, and the only one that requires reading.  Find the specific claim in the source itself — not the abstract, which routinely overstates what the paper found.
 
-Eyeballing does not catch any of this.  Fabricated citations *look right*.  Real journal, plausible author names, correct formatting, nothing that reads as suspicious — produced by a tool that is very good at producing things which read as unsuspicious.
+Eyeballing does not catch any of this.  Fabricated citations *look right*: real journal, plausible author names, correct formatting, nothing suspicious, from a tool that is very good at producing exactly that.
 
-If you want the version your instructors were handed, with the failure rates and the technique, it is in [Verifying sources](verifying-sources.md).  Read it if you like.  Knowing what standard you are being held to is your business as much as theirs.
+The version your instructors were handed, with the failure rates and the technique, is in [Verifying sources](verifying-sources.md).  Read it if you like.  Knowing what standard you are being held to is your business as much as theirs.
 
 ## If you are accused because of a detector
 
@@ -109,10 +109,10 @@ The rules will differ between your courses, and between assignments inside a sin
 
 **Asking is not an admission of anything.**  "Can I use AI for this?" is an ordinary question about an assignment, in the same category as asking about the word count.
 
-And if a rule seems arbitrary, ask what the assignment is assessing.  The answer usually makes the rule obvious — a restriction that looks pointless from outside tends to look like a straightforward consequence once you know what your instructor is trying to observe.
+And if a rule seems arbitrary, ask what the assignment is assessing.  The answer usually makes the rule obvious.  A restriction that looks pointless from outside tends to make sense once you know what your instructor is trying to observe.
 
 ## What you type here is stored
 
-A conversation with the model in your course is data, and it lives somewhere.  Before you paste something in — a draft, a personal situation you are explaining for context, someone else's work, anything you would not hand directly to your instructor — find out who can see it and how long it stays.
+A conversation with the model in your course is data, and it is stored somewhere.  Before you paste something in — a draft, a personal situation you are explaining for context, someone else's work, anything you would not hand directly to your instructor — find out who can see it and how long it stays.
 
 The answer, gaps included, is in [Your data in {{PLATFORM}}](../your-data/index.md).

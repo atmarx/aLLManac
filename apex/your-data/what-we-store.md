@@ -15,7 +15,7 @@ tethered_to:
 
 # What we store
 
-Several systems hold something about you.  Here is each one, what it has, and whether it is tied to your name.
+Several systems store something about you.  The table lists each one, what it has, and whether it is tied to your name.
 
 ## The inventory
 
@@ -39,7 +39,7 @@ Two of those need more than a table row.
 
 Everything you type into a course's chat, and everything the model types back, is stored in **your course's own database**.  Each course runs its own; there is no shared database with a column marking which course a row belongs to.  The exception is the {{PLATFORM}} chat: conversations with the Front Desk and the guides there go into one database shared by everyone who uses it.
 
-The agents you build live in your course's database too.  When you upload a document — to an agent, or into a chat — the platform keeps the original file in the course's file storage and a record of it, tied to you, in the database.  For documents an agent searches, it also breaks the text up and indexes it so it can be searched later.  **Deleting an agent does not delete its files.**  They stay until the file itself is deleted.
+The agents you build are stored in your course's database too.  When you upload a document — to an agent, or into a chat — the platform keeps the original file in the course's file storage and a record of it, tied to you, in the database.  For documents an agent searches, it also breaks the text up and indexes it so it can be searched later.  **Deleting an agent does not delete its files.**  They stay until the file itself is deleted.
 
 ## The ledger, which is the one that surprises people
 
@@ -53,7 +53,7 @@ To see your own usage, ask the **Usage Guide** in the {{PLATFORM}} chat.  It onl
 
 ## What we do not store
 
-- **Conversation content is not in the ledger.**  The two are separate systems and only one of them holds what you wrote.
+- **Conversation content is not in the ledger.**  The two are separate systems and only one of them stores what you wrote.
 - **This platform does not use your conversations to fine-tune its models.**  If a deployment uses a hosted model, that provider's retention and training terms are a separate promise the operator should publish.
 - **No keystroke, screen, or attention telemetry.**  There is no record of how long you paused before sending, what else was on your screen, or whether you were reading.
 - **Content can leave the institution through a hosted model or an agent action.**  Both routes are configuration choices your instructor or operator should be able to name.  See [Who can see it](who-can-see-it.md#paths-that-can-leave-the-building).
@@ -62,6 +62,6 @@ To see your own usage, ask the **Usage Guide** in the {{PLATFORM}} chat.  It onl
 
 The table above is a **data inventory**, the first artifact of every data protection regime.  You cannot classify what you have not enumerated, and you cannot answer "what happens to my data" without a list like this one.
 
-This one did not start as a privacy document.  It started as a list of what needs backing up.  Working out what you would lose in a disaster produces the same list as working out what you are holding about people, and most teams write the first one long before anybody asks for the second.
+This one did not start as a privacy document.  It started as a list of what needs backing up.  Working out what you would lose in a disaster produces the same list as working out what you are storing about people, and most teams write the first one long before anybody asks for the second.
 
 More on that in [How do you protect data you can't delete?](../how-we-built-it/protecting-data-you-cant-delete.md)

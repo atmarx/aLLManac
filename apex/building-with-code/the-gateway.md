@@ -15,9 +15,9 @@ tethered_to:
 
 # The gateway
 
-Every model on the platform sits behind one address — the **gateway**.  Chat reaches it for you; code reaches it directly, with your key.  The gateway checks the key, checks the model is one the key is allowed, records the request against your name, and passes it on.
+One address, the **gateway**, fronts every model on the platform.  Chat calls it for you; code calls it directly, with your key.  The gateway checks the key, checks that the key is allowed to use that model, records the request against your name, and passes it on.
 
-It speaks the **OpenAI API**.  That is a format, not a company: nearly every AI library and tool can talk to it, which means anything that says "OpenAI-compatible" works here by changing two settings — the address and the key.
+It speaks the **OpenAI API**.  That is a format, not a company, and nearly every AI library and tool can talk to it.  Anything that says "OpenAI-compatible" works here once you change two settings — the address and the key.
 
 The gateway's address comes with your key — the Coder Guide's [`my_key`](your-key.md) prints it in the same reply.  It usually looks like `https://gateway.<your platform's domain>`, and the API lives under `/v1`.
 
@@ -60,10 +60,10 @@ This is the one to remember.
 | **What stops spending** | The course's budget | Your key's own fuse, inside the course's budget |
 | **Who is recorded** | You, by your sign-in | You, by your key |
 
-So a rule you learned in the chat window — "long conversations get trimmed, so there's a ceiling" — does not apply here.  Through a key, **your code decides how much context it sends**, and the gateway forwards all of it.
+So a rule you learned in the chat window — "long conversations get trimmed, so there's a ceiling" — does not apply here.  Through a key, your code decides how much context it sends, and the gateway forwards all of it.
 
 What happens when you send more than the model's server will take depends on the server.  Some refuse with an error, which is the good case.  **Some drop the front of the prompt and answer anyway, with no error** — and the front is where your instructions are.  A script that works on short inputs and goes strange on long ones is usually showing you this; the model is fine.  Keep your requests inside the context length the model is served with; ask your instructor if nobody has told you the number.
 
 ## Everything is attributed
 
-Every request through your key is recorded against you, in your course — tokens in, tokens out, which model, when.  Out of the box the gateway's ledger keeps those counts and not the text of what you sent; that is a setting an operator controls, not a law of nature, and [your data](../your-data/index.md) is where a deployment says what it keeps.  You can see your own numbers any time by asking the **Usage Guide** in the {{PLATFORM}} chat for your usage.
+Every request through your key is recorded against you, in your course — tokens in, tokens out, which model, when.  By default the gateway's ledger keeps those counts and not the text of what you sent.  An operator controls that setting, and [your data](../your-data/index.md) is where a deployment says what it keeps.  You can see your own numbers any time by asking the **Usage Guide** in the {{PLATFORM}} chat for your usage.

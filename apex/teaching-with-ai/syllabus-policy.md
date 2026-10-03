@@ -23,7 +23,7 @@ So split it: **the syllabus states the principle, and each assignment states its
 
 > You are fully responsible for everything you submit.  A tool cannot be accountable for your work; only you can.
 
-Almost everything else follows from that, and it has the considerable advantage of being true regardless of what models can do next year.  It also sidesteps the unanswerable question — *did you use AI* — in favor of the one that has always mattered.
+Almost everything else follows from that, and it stays true regardless of what models can do next year.  It also sidesteps the unanswerable question — *did you use AI* — in favor of the one that has always mattered.
 
 ## What belongs in the syllabus
 
@@ -32,7 +32,7 @@ Five things, briefly:
 1. **The principle above**, in your own words.
 2. **That the rule varies by assignment**, and where students will find it.
 3. **The disclosure expectation** when use is permitted.
-4. **What happens if you have concerns** — specifically that a detector score is not evidence and the first step is a conversation.  Students who know this are meaningfully less afraid of you, and fear produces concealment.
+4. **What happens if you have concerns** — specifically that a detector score is not evidence and the first step is a conversation.  Students who know this are less afraid of you, and fear produces concealment.
 5. **Who to ask when the rule is unclear**, with the default being *ask*.
 
 ## What belongs on the assignment

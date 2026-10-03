@@ -14,7 +14,7 @@ tags: [accountability, source-verification, academic-integrity, critical-evaluat
 
 **You are fully responsible for what you submit.  A model cannot accept blame; only a person can.**
 
-That is the whole policy.  Everything below is what it looks like in practice.  Whatever helped you produce a piece of work — a language model, a search engine, a colleague, a tutor — the claims in it are yours the moment you put your name on it.  "The AI said so" is not a defense in a course, and it will not be one in a lab, a courtroom, a clinic, or a newsroom.
+That is the whole policy.  Whatever helped you produce a piece of work — a language model, a search engine, a colleague, a tutor — the claims in it are yours the moment you put your name on it.  "The AI said so" is not a defense in a course, and it will not be one in a lab, a courtroom, a clinic, or a newsroom.
 
 Faculty and staff use these tools daily, to write and to automate.  Pretending students should not is a fiction, and it teaches them to hide their process.  The workable expectation is the one professionals are already held to — use what you like, and answer for the result.
 
@@ -62,7 +62,7 @@ Say this to a class out loud.  The failure being asked of students is one that p
 
 *Check:* find the specific claim in the source.  Not the abstract — abstracts routinely overstate relative to the paper's own results.  Ask whether the sample, scope, and conditions match what the citing text implies.
 
-Mode three is also where the interesting human failures live: the telephone-game chain, where a paper cites another paper for a claim that the second paper attributed to a third, which never said it at all.  Once students see one of those traced, they understand the point permanently.
+Mode three is also where the interesting human failures occur: the telephone-game chain, where a paper cites another paper for a claim that the second paper attributed to a third, which never said it at all.  Once students see one of those traced, they understand the point permanently.
 
 ## Teaching it
 
@@ -70,7 +70,7 @@ Verification is a skill, which means it can be assigned, practiced, and graded.
 
 - **Grade the citations as their own artifact.**  Ask for a source list where each entry has a resolving DOI or link and one sentence on what that source specifically supports.  Wrong sources become visible without anyone being accused of anything.
 - **Assign a verification exercise.**  Hand out a short passage with five citations, two of them broken in different ways, and have students find them.  This teaches faster than any warning about hallucination.
-- **Ask for the quotation as well as the reference.**  Requiring the actual sentence that supports a claim collapses failure mode three almost entirely, and it improves human writing regardless of AI.
+- **Ask for the quotation as well as the reference.**  Requiring the actual sentence that supports a claim nearly eliminates failure mode three, and it improves human writing regardless of AI.
 - **Spot-check.**  Verify two or three citations per submission, chosen by you and not announced in advance.  The deterrent is that the checking is real; it doesn't need to be total.
 - **Let them use AI, and hold them to the citations.**  This is the clean version of a permissive policy: use whatever you like, and every claim you make is yours to support.
 
@@ -78,7 +78,7 @@ Verification is a skill, which means it can be assigned, practiced, and graded.
 
 More time than running a detector, and less time than an integrity hearing.
 
-Be realistic about scope.  Full verification of every citation in every submission is not realistic in a large course, and pretending otherwise produces a policy nobody follows.  Unpredictable spot-checking does most of the work.
+Be realistic about scope.  Full verification of every citation in every submission is out of reach in a large course, and pretending otherwise produces a policy nobody follows.  Unpredictable spot-checking does most of the work.
 
 For the assignments where it matters most — capstones, theses, anything that will be cited by someone else — full verification earns its cost.
 

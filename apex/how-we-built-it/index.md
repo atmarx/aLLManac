@@ -14,7 +14,7 @@ tags: [rendered-config, tenancy, secrets-management, isolation, accountability]
 
 The platform you are signed in to is also course material.
 
-There is a vault in this stack — a whole extra service whose only job is holding secrets.  No architecture diagram asked for it.  A specific afternoon that went badly did.  That afternoon is more useful to you than the diagram, and it is the kind of thing that almost never survives into documentation.  These pages try to keep it.
+There is a vault in this stack — a whole extra service whose only job is storing secrets.  No architecture diagram asked for it; a specific afternoon that went badly did.  That afternoon is more useful to you than the diagram, and it almost never survives into documentation.  These pages try to keep it.
 
 Students here learn to use language models.  Students here also learn to build and run the systems that serve them, and that second group gets the primary sources, unsanitised.
 

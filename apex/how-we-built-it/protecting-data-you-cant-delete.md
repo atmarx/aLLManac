@@ -40,7 +40,7 @@ So: who is allowed to read them, how long do they stay, and what happens when so
 
 *Encrypt everything, lock it down, delete it when they ask.*
 
-Those are good instincts and roughly the right shape, and a team that does all three is ahead of most.  The trouble is that each one is more specific than it sounds, and the specifics are where the work is.
+Those are good instincts, and a team that does all three is ahead of most.  Each is more specific than it sounds, and the specifics are where the work is.
 
 - **Encrypt what, against which threat, and who holds the key?**  Disk encryption protects a drive that walks out of the building.  It does nothing about the operator, who runs the machine with the drive unlocked, or about a backup copied somewhere with its key beside it.
 - **Lock it down from whom?**  The people with the most access to course data are the people running the servers.  "Locked down" has to say something about them, or it says very little.
@@ -52,7 +52,7 @@ The system did not break here.  The assumption did, and it is the same assumptio
 
 **FERPA is not an erasure regime.**  It gives students the right to inspect and review their education records, to request amendment of records they believe are inaccurate or misleading, to consent before personally identifiable information is disclosed (with exceptions), and to complain to the U.S. Department of Education.  There is no delete-my-data right in it.  Engineers expect one: GDPR's Article 17 and the state consumer privacy laws trained the instinct on consumer products.  A team that builds a deletion pipeline "for FERPA" is satisfying a requirement FERPA never stated, and quite possibly missing the ones it did.
 
-**The federal security frameworks are not triggered by student data either.**  NIST SP 800-53 is the control catalog for federal information systems under FISMA.  NIST SP 800-171 covers Controlled Unclassified Information in nonfederal systems, and it arrives by *contract* — a DFARS clause, or similar language flowed down from a federal sponsor.  So colleagues in sponsored research meet it and a teaching platform usually does not.  Neither one attaches because student data is sensitive.
+The federal security frameworks are not triggered by student data either.  NIST SP 800-53 is the control catalog for federal information systems under FISMA.  NIST SP 800-171 covers Controlled Unclassified Information in nonfederal systems, and it arrives by *contract* — a DFARS clause, or similar language flowed down from a federal sponsor.  So colleagues in sponsored research meet it and a teaching platform usually does not.  Neither one attaches because student data is sensitive.
 
 What governs course data is less famous and more local: FERPA, the state student-privacy statutes (well over a hundred of them, and many *do* impose retention and deletion duties FERPA does not), and — the one that binds day to day — the institution's own data classification policy.
 
@@ -63,7 +63,7 @@ The wrong answer is also easy to find:
 - **"There is no such thing as a 'FERPA seal of approval.'"**  That is Michael Hawes, then director of the Department of Education's Student Privacy Policy and Assistance Division, quoted in the Future of Privacy Forum's *Vetting Generative AI Tools for Use in Schools* (April 2024).  FERPA binds the institutions that receive federal funding, not the companies that sell to them, so no product can *be* FERPA-compliant.  The real question is whether an institution can use it in a compliant way.  Search for "FERPA-compliant AI" anyway and most of what comes back is selling the thing that cannot exist.
 - **Most of the available guidance is shaped for K-12.**  That FPF brief is explicitly written for schools and districts — parents, COPPA, district procurement.  Higher-ed guides built from it then inherit its parental-consent framing, when FERPA rights transfer to the student once they enroll in postsecondary education, at any age.
 
-None of this is obscure.  It is just not where an engineer starts, and the cost of starting in the wrong place is a carefully built feature for the wrong law.
+None of this is obscure.  It is not where an engineer starts, and the cost of starting in the wrong place is a carefully built feature for the wrong law.
 
 ## What we did, and the bill
 
@@ -73,15 +73,15 @@ The method is the transferable part, and it fits on one line: **inventory, then 
 
 And the determination is scoped to what the system is *for*.  The same FERPA-protected records inside a research project and inside an operational teaching platform are separate entries with separate arguments, and an institution may reasonably put them a tier apart.  Neither is wrong.  Context is part of the question.
 
-So the useful answer to "how should we protect this?" often starts with "who registered it, and at what tier?"  And a tier is a **budget** as much as a burden: it tells you which controls you are obliged to fund, which is a much easier conversation to have before the money is spent.
+So the useful answer to "how should we protect this?" often starts with "who registered it, and at what tier?"  And a tier is a budget as much as a burden: it tells you which controls you are obliged to fund, and that is an easier conversation before the money is spent.
 
 These guides treat coursework as high risk and write down what that requires — encryption in transit and at rest, scheduled off-box backups with tested restores, access review on a cadence, documented retention and disposal, and a named accountable owner.  They don't say which tier any particular institution assigned.  A reader anywhere can map that onto their own register.
 
-The inventory came from the backups.  Our list of what holds whose data is the volume table in the operators' guide — chat databases, the usage ledger, identity, the key escrow, the search indexes, the uploaded files — and it exists because a backup plan forced someone to write down every place state lives.  That is a common and useful accident: the backup table becomes the data map.
+The inventory came from the backups.  Our list of what stores whose data is the volume table in the operators' guide — chat databases, the usage ledger, identity, the key escrow, the search indexes, the uploaded files — and it exists because a backup plan forced someone to write down every place state lives.  That is a common and useful accident: the backup table becomes the data map.
 
-It also showed that the map was wrong.  While building the export that hands a student their own work, we read the chat software's file schema and found that **uploaded files had never been kept.**  The chat wrote every non-image upload — agent knowledge files, attachments — inside the container itself, and nothing mounted that path.  Every image bump and every re-render threw them away.  Nobody noticed, because file search reads the embeddings, and those lived elsewhere and survived.  The fix was one volume per course (`3ae82a9`, 2026-09-25), and it shipped before any faculty had uploaded a syllabus worth losing.
+It also showed that the map was wrong.  While building the export that hands a student their own work, we read the chat software's file schema and found that **uploaded files had never been kept.**  The chat wrote every non-image upload — agent knowledge files, attachments — inside the container itself, and nothing mounted that path.  Every image bump and every re-render threw them away.  Nobody noticed, because file search reads the embeddings, and those were stored elsewhere and survived.  The fix was one volume per course (`3ae82a9`, 2026-09-25), and it shipped before any faculty had uploaded a syllabus worth losing.
 
-The first data-protection bug on a page about data you cannot delete was data being deleted that nobody had chosen to delete.  An inventory is how you find out what your system is doing.
+The first data-protection bug we found, in a project about data you cannot delete, was data being deleted that nobody had chosen to delete.  An inventory is how you find out what your system is doing.
 
 What treating it as high risk bought:
 
@@ -92,25 +92,25 @@ What treating it as high risk bought:
 - **A way out for the student's own work.**  Ask the Student Guide in the {{PLATFORM}} chat to export your data from a course and you get a zip of your conversations and agents behind a link that lasts 24 hours.  It works on a closed or archived course, too.
 - **An end of term that doesn't destroy anything by accident.**  Closing a course stops the spending and leaves 14 days to take work out.  Archiving revokes every key and switches off the course's sign-in.  Neither one deletes a byte, and the code says so in a comment, because a verb named "archive" is exactly where someone would expect a delete.
 
-**The contrast case teaches more than any of those.**  The University of British Columbia built a locally hosted LLM service and made it *stateless* by design: in their words, the infrastructure "does not need to store any data whatsoever.  It is essentially idempotent."  They chose that to simplify their privacy impact assessment, pushed responsibility for sensitive data onto the applications built on top, and self-hosted because data residency in Canada required it.
+The contrast case teaches more than any of those.  The University of British Columbia built a locally hosted LLM service and made it *stateless* by design: in their words, the infrastructure "does not need to store any data whatsoever.  It is essentially idempotent."  They chose that to simplify their privacy impact assessment, pushed responsibility for sensitive data onto the applications built on top, and self-hosted because data residency in Canada required it.
 
 They engineered around the data problem.  We took it on.  Here persistence *is* the teaching: students build agents and come back to them across a term, and faculty need attribution and budgets.  Every page in [your data](../your-data/what-we-store.md) is the bill for that choice.  Two institutions, the same privacy pressure, opposite architectures, and both defensible.  Know which one you are, and why.
 
-Harvard's AI Sandbox sits somewhere else again.  It publishes the ceiling — approved for data up to its Level 3 (medium-risk confidential) under its own classification scheme — and promises interactions are not used for training, and it publishes little about retention, who can read stored conversations, or deletion.  Copy the ceiling: "what may I put in here?" is the most useful single line an instructor can be handed.  The silence after it is the gap these pages exist to fill.  (Harvard's tiers are Harvard's, and every register differs.  The comparison is about what gets published, not about whose tier is right.)
+Harvard's AI Sandbox sits somewhere else again.  It publishes the ceiling — approved for data up to its Level 3 (medium-risk confidential) under its own classification scheme — and promises interactions are not used for training, and it publishes little about retention, who can read stored conversations, or deletion.  Copy the ceiling: "what may I put in here?" is the most useful single line an instructor can be handed.  The silence after it is the gap our documentation fills.  (Harvard's tiers are Harvard's, and every register differs.  The comparison is about what gets published, not about whose tier is right.)
 
 **The self-hosting dividend**, the part that rarely gets written down.  The usual route for a third-party tool is a vendor contract, a data processing agreement, and a "school official with a legitimate educational interest" designation with a direct-control clause.  When the institution runs the servers, there is no third party to designate for *storage*.  Owning the stack removes a whole class of paperwork.
 
-**But inference is still a third party** whenever the model is hosted.  A cloud model receives the prompt and the attached files under its provider's terms, whatever happens to the conversation afterwards.  Self-hosting the chat moves the question without retiring it: it now sits at the model endpoint, and with the agreement behind it.
+**But inference is still a third party** whenever the model is hosted.  A cloud model receives the prompt and the attached files under its provider's terms, whatever happens to the conversation afterwards.  Self-hosting the chat moves the question without retiring it: it is now at the model endpoint, and with the agreement behind it.
 
 The bill:
 
 - **A rendering layer, a vault, and five containers per course**, to keep a line that a single application with careful WHERE clauses would also keep most days.
-- **Operational surface a small team has to run** — nightly backups across two repositories with two passwords, an escrow that has to be unsealed, a fleet to roll.
+- **Operations a small team has to run** — nightly backups across two repositories with two passwords, an escrow that has to be unsealed, a fleet to roll.
 - **Every persistence decision becomes a promise.**  A stateless service never has to answer the email at the top.  We do.
 
 ## What is still wrong with it
 
-This section is maintained against the running system, and it is the longest one.  A real gap list teaches more than a finished story, and the gaps are what the next cohort gets to close.
+This section is maintained against the running system.  A real gap list teaches more than a finished story, and the gaps are what the next cohort gets to close.
 
 !!! warning "Open gaps"
     - **Restore is not built.**  `just backup` runs two bundles off the box and keeps 7 daily, 4 weekly and 6 monthly copies.  `just restore` and the drill that proves it have not shipped, and the spec's own rule is that a backup nobody has restored from is a rumor.  So by our definition there are no backups yet.
@@ -118,7 +118,7 @@ This section is maintained against the running system, and it is the longest one
     - **No per-student deletion path.**  Nothing walks a course database and removes one person's material.
     - **The backups would outlive a deletion anyway.**  A conversation deleted today stays in the backups for about six months, until the last monthly copy holding it ages out.  A restore, as designed, is all-or-nothing for the whole platform.
     - **The export is not everything.**  It contains a student's conversations and agents.  It does not include their usage records, their identity record, the history of keys issued to them, or their chats with the guides in the {{PLATFORM}} chat.  A request for those is handled by a person, by hand.
-    - **Archiving is not deleting.**  An archived course's database is still there, and an export still reads from it.  That is deliberate, and it is also data that outlives the course with no clock on it.
+    - **Archiving is not deleting.**  An archived course's database is still there, and an export still reads from it.  That is intended, and it is also data that outlives the course with no clock on it.
     - **The database server asks for no password.**  The chat software never crosses courses, but code running anywhere on the internal network could open every course's database.
     - **Inside one course, the document store is still a permission check.**  Between courses it is a container wall.
     - **Agent actions cannot be narrowed to "nowhere."**  An empty allowlist is *no* allowlist — the whole internet — so leaving actions off is the only complete egress answer.
@@ -127,7 +127,7 @@ This section is maintained against the running system, and it is the longest one
 
 The deletion gaps are one problem seen from three sides, and it is the problem in the title.  Removing a record from a live database is easy.  Removing it from every archive of that database is not, and an archive you can selectively edit is an archive you can no longer trust.
 
-The technique mature systems use is **crypto-shredding**: encrypt each person's data under a key of their own, and to delete it, destroy the key instead of hunting down the copies.  Every backup still holds the bytes, and none of them can be read.  It is the only approach that makes "delete on request" true once backups exist.  It is not built here, and it is not small — it means per-subject keys inside a chat database that was never designed for them, and custody for those keys that is itself backed up very carefully.  But it is the shape of the answer.  Learn the name before you need it.
+The technique mature systems use is **crypto-shredding**: encrypt each person's data under a key of their own, and to delete it, destroy the key instead of hunting down the copies.  Every backup still contains the bytes, and none of them can be read.  It is the only approach that makes "delete on request" true once backups exist.  It is not built here, and it is not small — it means per-subject keys inside a chat database that was never designed for them, and custody for those keys that is itself backed up very carefully.  But it is the shape of the answer.  Learn the name before you need it.
 
 ## Try it yourself
 

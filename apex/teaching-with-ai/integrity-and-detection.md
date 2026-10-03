@@ -10,7 +10,7 @@ tags: [accountability, academic-integrity, detection, equity, assessment-design,
 
 # Integrity and detection
 
-The instinct when a new tool can produce coursework is to look for a tool that detects it.  Follow that instinct far enough to learn where it leads.  The evidence on AI detectors is unusually clear, and it comes with an equity problem attached.
+The instinct when a new tool can produce coursework is to look for a tool that detects it.  The evidence on AI detectors is unusually clear, and it comes with an equity problem attached.
 
 First, the whole framing is a dead end.  Detection asks *how was this produced*, and that question is already unanswerable and getting more so — faculty and staff use these tools daily, and a standard nobody applies to themselves does not survive contact with a classroom.  The question that survives is *do you stand behind this*.  See [the principle](index.md#the-principle-underneath-all-of-it).
 
@@ -25,7 +25,7 @@ Stanford researchers ran seven widely used GPT detectors against TOEFL essays wr
 - Around **a fifth** were unanimously misclassified by every detector tested.
 - On native English writers' essays, the detectors were **near-perfect**.
 
-The failure is not random noise that better models will sand down.  It follows from how the detectors work: they score text as machine-generated when word choice is predictable and sentence construction is simple.  That is a reasonable proxy for machine text, and it is also an accurate description of competent second-language writing.  The bias is structural.
+The failure is not random noise that better models will remove.  It follows from how the detectors work: they score text as machine-generated when word choice is predictable and sentence construction is simple.  That is a reasonable proxy for machine text, and it is also an accurate description of competent second-language writing.  The bias is structural.
 
 Scale makes it worse.  Even at a **1% false-positive rate** — far better than anything measured — an institution processing 75,000 submissions a year produces **750 wrongly accused students**.  Those accusations do not distribute evenly across the student body.
 
@@ -34,7 +34,7 @@ Scale makes it worse.  Even at a **1% false-positive rate** — far better than 
 
 ## What follows for your course
 
-**A detector score is a reason to have a conversation.  It is never proof.**  That is the defensible position, and it is the one you want to be standing on if a grade is contested or a case reaches a hearing.
+**A detector score is a reason to have a conversation.  It is never proof.**  That is the defensible position if a grade is contested or a case reaches a hearing.
 
 Practically:
 
@@ -46,7 +46,7 @@ Practically:
 
 The practice institutions are moving to as they retire detectors is **verifying the sources** — confirming that cited publications exist and that they say what the citation claims they say.
 
-It is a better instrument for a specific reason: it evaluates the work and leaves the author alone.  It assumes nothing about how the text was produced, it cannot be biased by a student's sentence rhythm or first language, and asking someone to support a claim is ordinary scholarship.  Nobody is being accused.  It also catches failures that have nothing to do with AI.
+It is a better instrument: it evaluates the work and leaves the author alone.  It assumes nothing about how the text was produced, it cannot be biased by a student's sentence rhythm or first language, and asking someone to support a claim is ordinary scholarship.  Nobody is being accused.  It also catches failures that have nothing to do with AI.
 
 The rates justify it.  Studies of LLM-generated literature reviews report fabrication rates from roughly **18% to 95%** depending on model and method, and among citations pointing at papers that do exist, **45.4% contain bibliographic errors**.
 
@@ -74,7 +74,7 @@ A one-line disclosure at the end of a submission is usually enough: what tool, w
 
 ## The conversation to have in week one
 
-Students arrive with wildly different assumptions about what is allowed, and some of them are frightened of being accused and won't say so.  Saying out loud that you know detectors are unreliable, that you will not run their work through one and act on the result, and that you would rather talk to them than accuse them, buys more candor than a policy paragraph will.
+Students arrive with wildly different assumptions about what is allowed, and some of them are frightened of being accused and won't say so.  Saying out loud that you know detectors are unreliable, that you will not run their work through one and act on the result, and that you would rather talk to them than accuse them, gets you more candor than a policy paragraph will.
 
 It also models the thing you are trying to teach: judgment about a tool, stated openly, with its limits named.
 

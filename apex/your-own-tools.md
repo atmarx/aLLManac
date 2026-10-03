@@ -29,7 +29,7 @@ As an instructor you're an administrator of your own course's chat, and the chat
 
 Out of the box, your course's chat can't connect to any tool server outside the platform.  You can add one, but the chat refuses it when you save, with an error that the domain isn't allowed.
 
-An outside tool server is a place your course's data can go.  Whatever the model decides to send it — a student's question, a pasted paragraph of their draft, part of a file — leaves the platform for someone else's computer.  Actions, the other way an agent can call the web, start closed for the same reason.
+Whatever the model decides to send an outside tool server — a student's question, a pasted paragraph of their draft, part of a file — leaves the platform for someone else's computer.  Actions, the other way an agent can call the web, start closed for the same reason.
 
 **To open it, ask your platform operators** for the server's domain to be added to your course.  Be ready to say:
 
@@ -37,11 +37,11 @@ An outside tool server is a place your course's data can go.  Whatever the model
 - **What it will receive.**  What students will ask the agent, and so what the model is likely to pass along.
 - **Whether that's allowed.**  If students' work goes to a third party, your institution's rules on sharing student records apply — the operators will ask whether there's an agreement with whoever runs the server.  [For instructors](your-data/for-instructors.md) covers the questions to settle first.
 
-The operators add the domain to your course's record, and your course's chat picks it up at its next restart.  Only that course can connect to it, and only public hostnames qualify.  An address inside the platform's own network is refused outright.
+The operators add the domain to your course's record, and your course's chat picks it up at its next restart.  Only that course can connect to it, and only public hostnames qualify.  An address inside the platform's own network is refused.
 
 ## Before you attach it to an agent
 
-- **Every tool costs tokens on every turn.**  A tool's description is sent with every message to an agent that has it, whether the student needs it or not.  A server with twenty tools can add thousands of tokens to each turn, which your course's budget pays for and which takes room the conversation needs.  Attach the tools an agent needs, not the whole server.  ([Why the course chat no longer carries the platform's own tools](building-with-code/your-key.md) is the same lesson.)
+- **Every tool costs tokens on every turn.**  A tool's description is sent with every message to an agent that has it, whether the student needs it or not.  A server with twenty tools can add thousands of tokens to each turn, which your course's budget pays for and which take room the conversation needs.  Attach the tools an agent needs, not the whole server.  ([Why the course chat no longer carries the platform's own tools](building-with-code/your-key.md) is the same lesson.)
 - **Check what the server can do, not just what it says.**  A tool that can write, delete or send something will, when a student asks the right way.  Prefer read-only tools for a class.
 - **Tell your students.**  Your syllabus policy should say that the agent can reach an outside service and what it sends there.  [Your syllabus policy](teaching-with-ai/syllabus-policy.md) has the shape.
 - **Test it as a student would.**  Share the agent with a TA or a test account and ask it something real before the class sees it.

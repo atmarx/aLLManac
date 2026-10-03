@@ -53,7 +53,7 @@ Options, roughly in order of effort, none of which are "ban it and hope."
 
 **Raise the floor.**  Try this one first.  If the model can now do the old task, assess the level above it: not *summarize this paper*, but *evaluate this summary against the paper and identify what it distorts*.  Not *write a function that does X*, but *here are three implementations, choose one for this context and defend the choice*.
 
-The capability you were assessing has not disappeared.  It has become table stakes, and the interesting question moved up a level.  Assignments rebuilt this way tend to be better than what they replaced.  That is the only good news in this whole subject.
+The capability you were assessing has not disappeared.  It has become table stakes, and the interesting question has moved up a level.  Assignments rebuilt this way tend to be better than what they replaced.  That is the only good news in this whole subject.
 
 **Make the AI use the assignment.**  Require the prompts, the raw output, and the student's critique of it.  This converts an integrity problem into a skills assessment, and their judgment about the output is a better read on their understanding than the essay was.
 
@@ -69,7 +69,7 @@ Pick the two or three where the mismatch is worst.  A course with three well-ada
 
 **Fluency is unevenly distributed.**  "Just use AI" is as unequal a starting line as "never use AI" when nobody is taught how.  Some students arrive having used these tools for two years; others have never opened one and will not admit it.
 
-**Requiring a paid tool disadvantages students.**  Part of why a course platform exists at all is so the tool is the institution's, with no personal subscription — everyone gets the same model and draws on the same course budget.
+**Requiring a paid tool disadvantages students.**  Part of why a course platform exists is so the tool is the institution's, with no personal subscription — everyone gets the same model and draws on the same course budget.
 
 **Process-visibility requirements cost time**, and time is not evenly available to students working jobs or carrying care responsibilities.  Design so the trail is a byproduct of the work, with no second assignment stapled to the first — a shared document with revision history costs nothing; a reflective process journal costs hours.
 
@@ -99,4 +99,4 @@ Pick the two or three where the mismatch is worst.  A course with three well-ada
 
 ## Where this connects
 
-Once assignments are sorted, the rule per assignment is short and easy to write.  That is [your syllabus policy](syllabus-policy.md), and it is the easier half of this work, so it comes second.
+Once assignments are sorted, the rule per assignment is short and easy to write.  That is [your syllabus policy](syllabus-policy.md), the easier half of this work.

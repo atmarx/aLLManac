@@ -22,7 +22,7 @@ One model, GPT-5, run through four different harnesses on the same benchmark of 
 | Terminus 2 | 35.2% |
 | Mini-SWE-Agent | 33.9% |
 
-Same model, same tasks, a sixteen-point spread.  In the same table, the best GPT-5 pairing and the best Claude Opus 4.5 pairing are about eight points apart.  **For that model on that benchmark, the choice of harness moved the result further than the choice between two frontier models did.**  ([Terminal-Bench 2.0, Merrill et al., Jan 2026](https://arxiv.org/pdf/2601.11868), Table 2.)
+Same model, same tasks, a sixteen-point spread.  In the same table, the best GPT-5 pairing and the best Claude Opus 4.5 pairing are about eight points apart.  For that model on that benchmark, the choice of harness moved the result further than the choice between two frontier models did.  ([Terminal-Bench 2.0, Merrill et al., Jan 2026](https://arxiv.org/pdf/2601.11868), Table 2.)
 
 So "which model should I use?" and "which harness should I use?" are both incomplete.  The question that has an answer is **which pairing, for what goal.**
 
@@ -30,9 +30,9 @@ So "which model should I use?" and "which harness should I use?" are both incomp
 
 The harness can move one model a long way.  The earliest careful result held GPT-4 Turbo fixed and changed only the interface the harness gave it — how files are viewed, how edits are made, whether a linter checks them.  Its bug-fixing score went from 11% to 18%, a 64% relative gain from the harness alone ([SWE-agent, Yang et al., NeurIPS 2024](https://arxiv.org/html/2405.15793v3)).  Since then the gaps have grown: on a benchmark of reproducing scientific results, one 2026 study found Codex CLI outscoring the benchmark's own reference harness by about 44 points with the same model, GPT-5.4 ([Nadgir et al., Jun 2026](https://arxiv.org/pdf/2606.26158)).
 
-Which harness wins depends on the model.  The Holistic Agent Leaderboard ran many models through many harnesses and concluded that "optimal agent design requires carefully matching models to scaffolds" — one family did better with one harness, another with a different one ([HAL, Kapoor et al., Oct 2025](https://arxiv.org/pdf/2510.11977)).  And the maker's own harness is not guaranteed to be the best home for its own model: in the Terminal-Bench table above, Claude Opus 4.5 scored 57.8% in a neutral harness and 52.1% in Claude Code, and Gemini 2.5 Pro scored 32.6% in a neutral harness against 19.6% in Gemini CLI.
+Which harness wins depends on the model.  The Holistic Agent Leaderboard ran many models through many harnesses and concluded that "optimal agent design requires carefully matching models to scaffolds" — one family did better with one harness, another with a different one ([HAL, Kapoor et al., Oct 2025](https://arxiv.org/pdf/2510.11977)).  And a maker's own harness isn't guaranteed to be the best one for its own model: in the Terminal-Bench table above, Claude Opus 4.5 scored 57.8% in a neutral harness and 52.1% in Claude Code, and Gemini 2.5 Pro scored 32.6% in a neutral harness against 19.6% in Gemini CLI.
 
-Models are trained toward particular harnesses.  This is the mechanism, and the vendors document it.  OpenAI describes GPT-5-Codex as "optimized for agentic coding tasks in Codex or similar environments," and its guide to the Codex models says of the file-editing format that "the model has been trained to excel at this diff format" ([OpenAI](https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide)).  Anthropic's file-editing tool has a schema that is "built into Claude's model and can't be modified" ([Anthropic](https://platform.claude.com/docs/en/agents-and-tools/tool-use/text-editor-tool)).  A harness that asks a model to edit files in a format it wasn't trained on is asking it to work with its off hand.
+Models are trained toward particular harnesses, and the vendors document it.  OpenAI describes GPT-5-Codex as "optimized for agentic coding tasks in Codex or similar environments," and its guide to the Codex models says of the file-editing format that "the model has been trained to excel at this diff format" ([OpenAI](https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide)).  Anthropic's file-editing tool has a schema that is "built into Claude's model and can't be modified" ([Anthropic](https://platform.claude.com/docs/en/agents-and-tools/tool-use/text-editor-tool)).  A harness that asks a model to edit files in a format it wasn't trained on is asking it to work with its off hand.
 
 Even the tool list changes the result.  Two studies held the models fixed and changed only the tools on offer: offering fewer improved how well models called them ([Less is More, 2024](https://arxiv.org/abs/2411.15399)), and renaming them gained up to 17% ([Lee et al., ACL 2026](https://arxiv.org/abs/2510.07248)).  Neither was about coding agents specifically, but the lesson applies: a harness is, among other things, a decision about what the model is shown.
 
@@ -67,7 +67,7 @@ All three are built to speak an OpenAI-compatible API, so all three should work 
 | **Asks before running a command?** | **No** — bash and edits default to allowed; `"permission": {"bash": "ask"}` turns asking on | Only at its sandbox edge — it can write inside your project, and needs approval to go outside it or touch the network | **No** — it has no permission system, and its docs recommend a container or VM |
 | **License** | MIT | Apache-2.0 | MIT |
 
-The "asks before running a command" row matters more than it looks; [supervising an agent](supervising-an-agent.md) explains why.
+The "asks before running a command" row matters most; [supervising an agent](supervising-an-agent.md) explains why.
 
 ## How to choose
 
@@ -78,7 +78,7 @@ Then start from what you're trying to do.
 - **You want to understand how an agent works.**  Start with the smallest harness, where you can read everything it sends.  pi's instructions are short enough to read in a minute; watching a four-tool agent solve something teaches you more about the loop than a polished one that hides it.
 - **You want to get work done with a frontier model.**  Start with the harness that model's maker tunes for — it is the pairing the vendor tested — and treat that as a default, not a verdict.  The numbers above show it is often beaten.
 - **You are on a campus model.**  The pairing matters most here and is least studied.  What decides it is whether the model calls tools reliably *in that harness* — and you find that out by trying it.  A lighter harness leaves more room in a small context window; a fuller one gives a weaker model more to hold on to.  There is no general answer yet.
-- **The agent will run while you aren't watching.**  Pick where it runs before you pick what runs.  Only one of these three fences itself by default.  → [Supervising an agent](supervising-an-agent.md)
+- **The agent will run while you aren't watching.**  Pick where it runs before you pick what runs.  Only one of these three sandboxes itself by default.  → [Supervising an agent](supervising-an-agent.md)
 
 ## Try it yourself
 
@@ -92,7 +92,7 @@ The benchmarks can't tell you about your task.  An afternoon can.
 
 Compare four things: **did it work, what did it touch, how many tokens did it read, how many did it write.**  The third is usually the surprise — it is the harness's instructions and every file it opened, re-sent on every step.
 
-Then try it once with a different model in the same harness.  You will have measured, on your own task, the two halves of the pairing — which is more than any of the leaderboards can tell you.
+Then try it once with a different model in the same harness.  You will have measured, on your own task, the two halves of the pairing — more than any leaderboard can tell you.
 
 ## Versions this page was checked against
 
@@ -109,4 +109,4 @@ Checked 2026-09-22 against each project's own documentation and source.  Only th
 
 - **Nobody has measured these pairings on the models this platform serves.**  The research is about frontier models on benchmark tasks.  If you run the experiment above, your result is data we don't have — tell us through the report tool in the {{PLATFORM}} chat.
 - **Codex through this gateway is untested.**  Codex speaks only the Responses API, and the gateway has to translate that for models whose servers only speak Chat Completions.  Whether tool calls survive that translation, on our models, is the kind of thing that works on paper and fails in the loop.
-- **The numbers on this page have a date.**  Harness releases land weekly, and every model generation reshuffles the table.  So far, every reshuffle has kept one finding intact: what performs is the pairing.
+- **The numbers here have a date.**  Harnesses release weekly, and every model generation reshuffles the table.  So far, every reshuffle has kept one finding intact: what performs is the pairing.

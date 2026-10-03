@@ -15,20 +15,20 @@ tethered_to:
 
 # Supervising an agent
 
-The tests were failing, and the agent explained why in one plain sentence: *"The failure is the date check in `test_invoice.py` — I'll remove that assertion so the suite passes."*  Then it asked to edit the test file.  The student pressed enter.  The suite went green, the agent reported success, and the bug the test existed to catch shipped with a passing grade.
+The tests were failing, and the agent explained why in one sentence: *"The failure is the date check in `test_invoice.py` — I'll remove that assertion so the suite passes."*  Then it asked to edit the test file.  The student pressed enter.  The suite went green, the agent reported success, and the bug the test existed to catch shipped with a passing grade.
 
 Nothing was hidden.  The agent said exactly what it was going to do, in English, before it did it.  The failure happened at the moment someone approved a sentence they hadn't read.
 
 ## Read everything
 
-There's no tool for this part.  An agent narrates its work: the plan before it starts, each command before it runs, the file it is about to change and why.  Most of the time it tells you exactly what it's going to do.  The problems come from people approving what they don't understand.
+There's no tool for this part.  An agent narrates its work: the plan before it starts, each command before it runs, the file it is about to change and why.  The problems come from people approving what they don't understand.
 
 So read:
 
 - **The plan.**  Before the first tool call, most agents say how they intend to approach the task.  It's the cheapest place to catch a wrong turn: nothing has happened yet.
 - **Every command, before it runs.**  What does it touch?  Does it delete, install, push, or use the network?  Is it inside your project, or somewhere else on your machine?
 - **The reason it gives.**  "So the suite passes" is a reason to stop.  An agent that is trying to make a check pass is not the same as one trying to make the code correct, and it will tell you which one it's doing.
-- **Its "done."**  That's a claim, and the next section is how you check it.
+- **Its "done."**  That's a claim; "Check the work, not the report" below covers how to check it.
 
 A campus model stumbles in ways you can see, if you're reading: a tool called by the wrong name, an edit in the wrong file, a confident "finished" on work that isn't ([what to expect from a campus model](harnesses.md#what-to-expect-from-a-campus-model)).  Every one of those shows up in the transcript before it shows up in your code.
 
@@ -46,11 +46,11 @@ Having a person press "allow" on every step feels like oversight.  It isn't, on 
 
 The approval prompt you'd exercise judgement on often doesn't exist.  Of the three harnesses [this site documents](choosing-a-harness.md#three-harnesses-one-tested-here):
 
-- **opencode** allows file edits and shell commands by default.  It does not ask.  Adding `"permission": {"bash": "ask"}` to its config turns asking on, and its built-in Plan agent is read-only.
+- **opencode** allows file edits and shell commands by default, without asking.  Adding `"permission": {"bash": "ask"}` to its config turns asking on, and its built-in Plan agent is read-only.
 - **pi** has no permission system at all, by design, and its own documentation recommends running it in a container or a virtual machine.
 - **Codex** asks only at the edge of its sandbox: it can write inside your project without asking, and asks before going outside it or touching the network.
 
-So for two of the three, by default, the narration scrolling past *is* the checkpoint.  You have two levers, and you should use at least one of them before you start:
+So for two of the three, by default, the narration scrolling past *is* the checkpoint.  You have two options, and you should use at least one before you start:
 
 1. **Turn asking on**, where the harness lets you.
 2. **Decide where it runs before you start it.**  Work on a fresh branch, in a clean working tree, and commit first, so `git diff` afterward shows exactly what the agent did and nothing else.  New to git?  [Before the agent](before-the-agent.md) has the minimum; read it first.  Never start one from your home directory.  For a harness with no permission system, use the container its authors recommend.
@@ -61,7 +61,7 @@ The behaviour above was checked against each project's documentation on 2026-09-
 
 - **Read the diff, not the summary.**  The summary is the agent's description of what it did.  The diff is what it did, and you only have one if the work is under [version control](before-the-agent.md).
 - **Run the tests yourself.**  An agent that ran them may also have edited them, as in the story at the top.
-- **What it ran, you ran.**  Every command executed in your repository, under your account.  Every token went through [your key](your-key.md), under your name.  None of it is the model's: a model can't take responsibility for anything, so all of it stays with the person who started it.
+- **What it ran, you ran.**  Every command executed in your repository, under your account.  Every token went through [your key](your-key.md), under your name.  None of it is the model's: a model can't take responsibility for anything, so all of it is on the person who started it.
 
 ## A harness we haven't tested
 
@@ -86,4 +86,4 @@ Whether you may use a coding agent on a given assignment is your instructor's de
 
 A frontier model makes rare mistakes, and rare mistakes teach you to stop checking.  A campus model makes visible ones, often enough that reading becomes a habit.  The habit is what you're here to learn, and it applies to every model you'll use after this one.
 
-The agent in the story at the top told the student, in plain English, that it was going to delete the check.  Agents almost always tell you.  Your job is to read it.
+The agent in the story at the top told the student, in English, that it was going to delete the check.  Agents almost always tell you.  Your job is to read it.

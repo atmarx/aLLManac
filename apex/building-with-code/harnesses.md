@@ -14,7 +14,7 @@ tethered_to:
 
 # Coding harnesses
 
-A model on its own can only produce text.  It cannot open a file, run your tests, or see what happened when it did.  A **harness** is the program that gives it hands: it hands the model a list of tools ("read a file," "run a command," "edit these lines"), and when the model answers with *"call this tool with these arguments"* instead of prose, the harness does it and sends the result back.
+A model on its own can only produce text.  It cannot open a file, run your tests, or see what happened when it did.  A **harness** is the program that lets it do those things.  It gives the model a list of tools ("read a file," "run a command," "edit these lines"), and when the model answers with *"call this tool with these arguments"* instead of prose, the harness runs the tool and sends the result back.
 
 That exchange repeats until the model says it is finished.  The repetition is the whole idea, and it is also where every surprise comes from.
 
@@ -31,12 +31,12 @@ Step 1 is the conversation-is-the-context rule from [Understanding your usage](.
 
 For you, that means:
 
-- **A harness's instructions and tool list cost you on every step before you have said anything.**  For opencode that is roughly eight thousand tokens of its own, which is why it needs a model served with **at least 16k of context** — anything smaller and it spends its whole window on itself.
+- **A harness's instructions and tool list cost you on every step before you have said anything.**  For opencode that is roughly eight thousand tokens of its own.  It needs a model served with **at least 16k of context**; with anything smaller it spends its whole window on itself.
 - **"In" tokens dwarf "out" tokens.**  Your usage will show a harness reading enormously more than it writes.  That is the loop, not a bug.
 
 ## opencode
 
-[opencode](https://opencode.ai) is an open-source harness that runs in your terminal, and the one this page walks through in full.  It is not a recommendation — [which harness to use](choosing-a-harness.md) depends on the model and the goal.  Any harness that speaks the OpenAI API works the same way: the address and the key.
+[opencode](https://opencode.ai) is an open-source harness that runs in your terminal, and the one set up in full below.  It is not a recommendation — [which harness to use](choosing-a-harness.md) depends on the model and the goal.  Any harness that speaks the OpenAI API works the same way: the address and the key.
 
 **Install** one of these ways:
 
@@ -76,7 +76,7 @@ Four things about that config matter:
 
 - **`tool_call: true`** on each model.  Without it opencode never offers the model any tools, and you have a chat window in a terminal.
 - **Permissions default to allowed** — opencode runs shell commands and edits files without asking.  Add `"permission": { "bash": "ask" }` at the top level if you want it to ask first, and read [supervising an agent](supervising-an-agent.md) either way.
-- **`limit.context`** is what opencode believes it can send.  Set it to what the model is **served** with — ask your instructor — and never to what the model's documentation says it supports.  Too high and some servers silently drop the front of the prompt, which is where opencode's instructions live.  Too low and it trims your work early.  16384 is the floor, not a recommendation.
+- **`limit.context`** is what opencode believes it can send.  Set it to what the model is **served** with — ask your instructor — and never to what the model's documentation says it supports.  Too high and some servers silently drop the front of the prompt, which is where opencode's instructions are.  Too low and it trims your work early.  16384 is the floor, not a recommendation.
 - **`{env:CAMPUS_API_KEY}`** keeps the key out of the file, so the file can be committed and the key can't.
 
 **Prove it works:**
@@ -90,7 +90,7 @@ Then `cd` into a project and run `opencode` for the full interface.
 
 ## Codex and pi
 
-The same two settings — address and key — in each one's own format.  Every config on this page was checked against the releases listed in [the versions table](choosing-a-harness.md#versions-this-page-was-checked-against); config formats are exactly the kind of thing a new release renames.  Which one suits you is [a question about the pairing](choosing-a-harness.md), not about the harness alone.
+The same two settings — address and key — in each one's own format.  Every config here was checked against the releases listed in [the versions table](choosing-a-harness.md#versions-this-page-was-checked-against); a new release can rename config formats.  Which one suits you is [a question about the pairing](choosing-a-harness.md), not about the harness alone.
 
 **Codex CLI** (`npm install -g @openai/codex`), in `~/.codex/config.toml`:
 
@@ -105,7 +105,7 @@ env_key = "CAMPUS_API_KEY"
 wire_api = "responses"
 ```
 
-Codex speaks **only** the Responses API — `wire_api = "chat"` has been an error since February 2026.  The gateway translates, but **Codex against campus models is untested here**: whether tool calls survive that translation is the open question.  The provider can't be named `openai`, `ollama`, or `lmstudio`; those are reserved.  Set `model_context_window` to the number the model is served with, for the same reason as opencode's `limit.context`.
+Codex speaks only the Responses API — `wire_api = "chat"` has been an error since February 2026.  The gateway translates, but **Codex against campus models is untested here**: whether tool calls survive that translation is the open question.  The provider can't be named `openai`, `ollama`, or `lmstudio`; those are reserved.  Set `model_context_window` to the number the model is served with, for the same reason as opencode's `limit.context`.
 
 **pi** (`npm install -g --ignore-scripts @earendil-works/pi-coding-agent`, Node 22.19 or later — the older `@mariozechner/pi-coding-agent` package is deprecated), in `~/.pi/agent/models.json`:
 
@@ -122,12 +122,12 @@ Codex speaks **only** the Responses API — `wire_api = "chat"` has been an erro
 }
 ```
 
-pi has no permission system: it runs whatever the model asks.  Its own docs recommend a container or a VM, and they mean it.
+pi has no permission system: it runs whatever the model asks.  Its own docs recommend a container or a VM.
 
 ## What to expect from a campus model
 
 A model small enough to run on institutional hardware will run the loop and teach you the workflow.  It is not a frontier model, and inside a harness the gap shows: a tool called by the wrong name, a file edited in the wrong place, a confident "done" on work that isn't.
 
-**Tool calling is the fragile part.**  Whether a model can call tools at all depends on the model *and* on how its server is configured — the server has to be told how that model family writes a tool call, and there is no universal setting.  When it isn't, the model writes something that looks like a tool call into ordinary text, the harness doesn't recognise it, and the loop stalls.  That is a server configuration problem, not yours to fix; [report it](when-it-breaks.md).
+**Tool calling is the fragile part.**  Whether a model can call tools at all depends on the model *and* on how its server is configured — the server has to be told how that model family writes a tool call, and there is no universal setting.  When the server hasn't been told, the model writes something that looks like a tool call into ordinary text, the harness doesn't recognise it, and the loop stalls.  That is a server configuration problem, not yours to fix; [report it](when-it-breaks.md).
 
-The rest of it — the stumbles — is the lesson.  You are learning to supervise an agent, and a model that makes visible mistakes is a better teacher of supervision than one whose mistakes are rare enough to stop checking for.  → [Supervising an agent](supervising-an-agent.md)
+The stumbles are the lesson.  You are learning to supervise an agent, and a model that makes visible mistakes is a better teacher of supervision than one whose mistakes are rare enough to stop checking for.  → [Supervising an agent](supervising-an-agent.md)

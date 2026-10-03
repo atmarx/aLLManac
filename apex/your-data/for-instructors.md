@@ -18,7 +18,7 @@ tethered_to:
 
 Running a course here generates records about identifiable students — what they asked, what they built, how much they used, and when.  Those are records about students, maintained by the university, produced by your coursework.  The obligations that come with them were already yours; the platform makes them concrete and gives you switches that affect them.
 
-What follows is a brief account of what you are holding and what you control.  It makes no claim about what the law requires in your specific situation — that is a question for your institution's counsel and privacy office.
+Nothing here claims what the law requires in your specific situation — that is a question for your institution's counsel and privacy office.
 
 ## Where the obligation comes from
 
@@ -36,7 +36,7 @@ One caveat to that last one: state student privacy statutes frequently *do* addr
 
 NIST **800-53** covers federal information systems under FISMA.  NIST **800-171** covers Controlled Unclassified Information in nonfederal systems and arrives through contract flow-down.  Colleagues with federal research awards run into it; you may never.  Neither attaches to your course because student data is sensitive.
 
-The NIST framework about AI is the **AI Risk Management Framework** (AI RMF 1.0, 2023), and it is voluntary — a way to organize thinking about AI risk, not a compliance obligation.
+The NIST framework about AI is the **AI Risk Management Framework** (AI RMF 1.0, 2023), and it is voluntary — a way to organize thinking about AI risk, with no compliance obligation attached.
 
 What governs your course day to day is FERPA, applicable state law, and your institution's own data classification policy.
 
@@ -73,11 +73,11 @@ Absent a local ceiling, assume this: the platform holds coursework and the recor
 | **Knowledge files** | What you upload to a course agent | Anything you attach becomes retrievable by everyone who can use that agent.  Rosters, graded work, and student writing are the ones to think twice about. |
 | **Roster membership** | Who is enrolled | Enrollment is access.  Removing a student revokes their access; it does not erase what they already wrote. |
 
-Actions and outside tool servers are set per course in the course record — ask the platform operators to change them, and they will tell you what the change means before making it.  Share links, knowledge files and the roster are yours.  Agent sharing is on everywhere, by design, so the section below is about what that means for your course.
+Actions and outside tool servers are set per course in the course record — ask the platform operators to change them, and they will tell you what the change means before making it.  Share links, knowledge files and the roster are yours.  Agent sharing is on everywhere; the next section covers what that means for your course.
 
 ### On sharing, which is on
 
-Guidance for other platforms usually says the opposite, so to be clear: **agent sharing is on in every course here.**  The chat software ships it off, which suits a general-purpose deployment and not a classroom.  Group projects are the single most requested thing, and a course where nobody can hand anyone else an agent is a course fighting its own tooling.
+Guidance for other platforms usually says the opposite: **agent sharing is on in every course here.**  The chat software ships it off, which suits a general-purpose deployment and not a classroom.  Group projects are the single most requested thing, and a course where nobody can hand anyone else an agent is a course fighting its own tooling.
 
 What that means for you:
 
@@ -97,7 +97,7 @@ If you enable actions, you can also give your course a list of domains agents ar
 - **The allowlist narrows an open path.  It cannot close one.**  There is no way to write "allow nothing" — an empty list is no list, not a denial.
 - **Internal addresses are blocked by default, and naming one lifts the block.**  University-internal and private addresses are refused unless the list names them, at which point they are permitted.  The default is a floor, not a ceiling.
 
-So the decision that matters is whether actions are on at all.  The allowlist reduces a risk you have already accepted.  It does not let you avoid accepting it.
+So the decision that matters is whether actions are on at all.  The allowlist reduces a risk you have already accepted; it does not let you avoid accepting it.
 
 How entries are read surprises people writing their first list:
 

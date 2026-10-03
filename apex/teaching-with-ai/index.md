@@ -11,21 +11,21 @@ tags: [accountability, assessment-design, academic-integrity, syllabus-policy, a
 
 Students in your course have access to a capable language model through an environment with your course's name on it.  That changes some assignments and leaves others alone, and working out which is which is a teaching question.
 
-This section is about that work.  It assumes you are competent at designing your own course and that what you are missing is specifics about a tool that arrived faster than the guidance for it.
+This section assumes you are competent at designing your own course and that what you are missing is specifics about a tool that arrived faster than the guidance for it.
 
 ## The principle underneath all of it
 
 **A student is fully responsible for what they submit.  A model cannot accept blame; only a person can.**
 
-Once that is settled, most of the hard questions get easier.  The subject moves from *did you use AI* — unanswerable, and increasingly beside the point — to *do you stand behind this*, the question scholarship has always asked.
+Once that is settled, most of the hard questions get easier.  The question moves from *did you use AI* — unanswerable, and increasingly beside the point — to *do you stand behind this*, the one scholarship has always asked.
 
-It also avoids a double standard.  Faculty and staff use these tools every day to write and to automate; expecting students not to is a fiction that teaches them to conceal their process instead of owning it.  The workable expectation is the one professionals already live under: use what you like, and answer for the result.
+It also avoids a double standard.  Faculty and staff use these tools every day to write and to automate; expecting students not to is a fiction that teaches them to conceal their process.  The workable expectation is the one professionals already live under: use what you like, and answer for the result.
 
 ### And the reason that is hard
 
 Answering for something means having read it, which runs into what the tool is named after.  **Large language models produce large amounts of language** — a page in seconds, against the minutes it takes to read one properly.  Those rates do not match, so output accumulates faster than anyone can be accountable for it.
 
-That is arithmetic, not a discipline problem, so "be more careful" is not an intervention.  [AI literacy](ai-literacy.md) takes it seriously, and its most underrated fix is to generate less.
+That is arithmetic, so "be more careful" is not an intervention.  [AI literacy](ai-literacy.md) takes the problem seriously, and its most underrated fix is to generate less.
 
 ## Start with the design question
 
@@ -63,4 +63,4 @@ Running the course here means a few things are true that are not true of a stude
 - **Usage is visible and budgeted**, so cost becomes something you can teach.
 - **The institution chooses the model route**, so you can ask for a concrete answer about whether requests stay on institutional hardware or go to a hosted provider, and under what terms.
 
-What that does not do is decide your pedagogy for you.  It just removes some of the reasons to say no.
+None of that decides your pedagogy for you.  It removes some of the reasons to say no.
