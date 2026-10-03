@@ -1191,12 +1191,23 @@ bao-unseal tries="12":
     # device opens it at unseal (openbao/config.hcl); no token needed to look.
     audited() {
         if {{compose}} exec -T openbao test -f /openbao/logs/audit.log </dev/null; then return 0; fi
-        echo "openbao — unsealed, but NOT AUDITING: no /openbao/logs/audit.log (openbao/config.hcl's audit block; restart bao to load it)"
+        echo "openbao — unsealed, but NOT AUDITING: no /openbao/logs/audit.log (openbao/config.hcl's audit block)"
         return 1
     }
+    restarted=""
     for i in $(seq 1 {{tries}}); do
         {{compose}} exec -T openbao bao status </dev/null >/dev/null 2>&1; rc=$?
-        [ $rc -eq 0 ] && { audited; exit $?; }   # already unsealed
+        if [ $rc -eq 0 ]; then           # already unsealed
+            {{compose}} exec -T openbao test -f /openbao/logs/audit.log </dev/null && exit 0
+            # Open, but booted before its config gained the audit block — the
+            # block is read only at startup.  `up` runs this BEFORE
+            # config-refresh would restart bao, so repair it here, once: a
+            # restart reseals, and the loop unseals it with the device loaded.
+            [ -n "$restarted" ] && { audited; exit 1; }
+            echo "openbao — open but not auditing; restarting it once to load the audit block"
+            {{compose}} restart openbao >/dev/null 2>&1; restarted=1; sleep 3
+            continue
+        fi
         [ $rc -eq 2 ] && break           # sealed and answering — unseal it
         sleep 5
     done
