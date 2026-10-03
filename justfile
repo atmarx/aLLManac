@@ -335,11 +335,26 @@ deploy:
         [ "$board_on" = 1 ] || return 0
         python3 scripts/deploy_status.py "$@" </dev/null || echo "  (status board: '$1' not recorded — the deploy carries on)"
     }
+    # A failed step tells the desk — the upgrade page's failure wording says
+    # "The team knows", and this is what makes it true.  Same path `backup`
+    # uses: the registrar holds the mail and webhook settings.  Never changes
+    # the deploy's exit code; if the registrar is what broke, CI's red is the
+    # record.  A signal (someone pressed Ctrl-C) is not a failure to report.
+    failed_step=""
+    tell_desk() {
+        {{compose}} exec -T registrar python -c 'import asyncio, sys, reconcile as R
+    print(asyncio.run(R.notify_desk(R.load_courses()["admins"], f"Deploy FAILED on {sys.argv[1]}", sys.argv[2:])))' \
+            "$(hostname -s)" "\`just deploy\` stopped at \`$failed_step\` (exit $1), on $(git log -1 --format='%h %s')." \
+            "Anything still down shows the upgrade page with \"taking longer than planned\"." \
+            "On the box: just $failed_step — then docs/post-deploy.md, \"When something is red\"." \
+            </dev/null >/dev/null 2>&1 || echo "  (the desk could not be told — the registrar did not answer)"
+    }
     finish() {
         rc=$?
         trap - EXIT INT TERM HUP
         rm -f "$flag"
         if [ "$rc" -eq 0 ]; then board finish done; else board finish failed; fi
+        if [ "$rc" -ne 0 ] && [ -n "$failed_step" ]; then tell_desk "$rc"; fi
         exit "$rc"
     }
     trap finish EXIT
@@ -354,6 +369,7 @@ deploy:
         rc=$?
         if [ "$rc" -ne 0 ]; then
             board end "$s" failed
+            failed_step=$s
             exit "$rc"
         fi
         board end "$s" done

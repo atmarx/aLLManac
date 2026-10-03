@@ -75,6 +75,8 @@ The deploy's exit trap removes it on any ending it can see — success, a failed
 
 **`status/` must belong to the deploying user.**  The deploy and `just up` create it; if something else made it first (a bare `docker compose up` creates a missing bind source as root), the deploy prints that the board is off and carries on.  `sudo chown "$USER" status` fixes it.
 
+A deploy that fails at a step also tells the desk — the webhook if `NOTIFY_WEBHOOK_URL` is set, else an email to `admins:` — with the step, the exit code and the commit.  So a red run you didn't start still reaches someone.
+
 ## The four things it does not do
 
 Every one of these is an **inert change**: the deploy shipped the new code and something else has to make it true.  That family is the longest section of [design-walls.md](design-walls.md), and these are its four live instances.
