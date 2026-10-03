@@ -311,7 +311,17 @@ build: _fleet && sbom
 deploy:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps="channel pull build secrets up config-refresh bao-unseal smoke oidc-settle egress-check course-tokens-check render-check docs-corpus agents-refresh agents-check"
+    steps="channel pull build secrets up config-refresh bao-unseal smoke oidc-settle realm-lock egress-check course-tokens-check render-check docs-corpus agents-refresh agents-check"
+    # One deploy at a time.  A hand deploy and a CI one collided on the docker
+    # host 2026-10-02: CI's build failed under the other's, and its EXIT trap
+    # wiped the status board out from under the run still going.  The lock is
+    # on the checkout's directory, whose inode `just sync` never replaces;
+    # it's released when this shell exits, however it exits.
+    exec 9<.
+    if ! flock -n 9; then
+        echo "  another deploy is running in this checkout — waiting for it (up to 30 min)"
+        flock -w 1800 9 || { echo "deploy: still locked after 30 min — not starting"; exit 1; }
+    fi
     # The page comes down after this step; deploy_status.py counts its ETA to it.
     export ALM_REOPEN_AFTER=oidc-settle
     flag=status/upgrading
@@ -1203,6 +1213,54 @@ bao-unseal tries="12":
       echo "openbao — unseal FAILED (check BAO_UNSEAL_KEY)"
       exit 1
     fi
+
+# ---- Who you are is not yours to edit -----------------------------------------
+# Every tool trusts `X-User-Email`, which is the Keycloak `email` claim, and
+# the roster decides who teaches what BY EMAIL.  Keycloak 26's default user
+# profile lets a user edit their own email in the account console, with no
+# verification on our realms, so a student could take any address that hasn't
+# signed in yet (an instructor before day one) and be them everywhere.
+# `duplicateEmailsAllowed: false` only stops taking one already in use.
+# Found live on the docker host 2026-10-02: `email` had edit [admin, user] in
+# every realm.  The realm import can't fix it (it skips realms that exist), so
+# this is a repair that runs every deploy, like oidc-settle: it narrows edit
+# to admin in every realm but master and says what it changed.
+# Make email admin-only in every realm (repairs, then verifies)
+realm-lock:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    kc() {  # kcadm inside the container; the password rides the env, never argv
+        {{compose}} exec -T -e KC_CLI_PASSWORD="${KC_ADMIN_PASSWORD:?}" keycloak \
+            /opt/keycloak/bin/kcadm.sh "$@" --no-config --server http://localhost:8080 \
+            --realm master --user "${KC_ADMIN:-admin}" 2>/dev/null
+    }
+    realms=$(kc get realms --fields realm </dev/null | python3 -c 'import json,sys; print(" ".join(r["realm"] for r in json.load(sys.stdin) if r["realm"]!="master"))')
+    [ -n "$realms" ] || { echo "realm-lock: no realms answered — is keycloak up?"; exit 1; }
+    bad=0
+    for r in $realms; do
+        prof=$(kc get "realms/$r/users/profile" </dev/null)
+        fixed=$(printf '%s' "$prof" | python3 -c '
+    import json, sys
+    d = json.load(sys.stdin)
+    hit = False
+    for a in d.get("attributes", []):
+        if a["name"] == "email":
+            perm = a.setdefault("permissions", {})
+            if "user" in perm.get("edit", []):
+                perm["edit"] = [x for x in perm["edit"] if x != "user"] or ["admin"]
+                hit = True
+    print(json.dumps(d) if hit else "")')
+        if [ -n "$fixed" ]; then
+            printf '%s' "$fixed" | kc update "realms/$r/users/profile" -f - >/dev/null
+            echo "  fixed  $r — users could edit their own email; now admin-only"
+        fi
+        now=$(kc get "realms/$r/users/profile" </dev/null | python3 -c 'import json,sys; print(" ".join(next(a for a in json.load(sys.stdin)["attributes"] if a["name"]=="email").get("permissions",{}).get("edit",[])))')
+        case " $now " in
+            *" user "*) echo "  FAIL   $r — email is still user-editable"; bad=1 ;;
+            *) echo "  ok     $r — email editable by: ${now:-nobody}" ;;
+        esac
+    done
+    exit $bad
 
 # ---- Sign-in survives a reboot ------------------------------------------------
 # LibreChat discovers its OpenID issuer ONCE, at boot, and never retries.

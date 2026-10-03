@@ -36,11 +36,13 @@ One of those three is conditional, and **the condition is printed by the deploy 
 
 ```
 channel  pull  build  secrets  up  config-refresh  bao-unseal
-smoke  oidc-settle  egress-check  course-tokens-check  render-check  docs-corpus
-agents-refresh  agents-check
+smoke  oidc-settle  realm-lock  egress-check  course-tokens-check  render-check
+docs-corpus  agents-refresh  agents-check
 ```
 
-Read that as two halves.  The first seven **change the box**: resolve the image pins from `channels/<name>.env`, pull them, build what's local, fill in any secret still reading `change-me`, bring the stack up, restart containers whose mounted config changed since they booted, and unseal the escrow.  Of the last eight, six **ask the box questions** and change nothing.  The two exceptions repair.  `oidc-settle` restarts any LibreChat whose sign-in route answers 500 instead of 302, the state a reboot leaves behind.  `agents-refresh` re-seeds the guides from the docs you just shipped, on any box that has been seeded before.
+Only one deploy runs at a time in a checkout: a second one, by hand or from CI, waits up to 30 minutes for the first and says so.
+
+Read that as two halves.  The first seven **change the box**: resolve the image pins from `channels/<name>.env`, pull them, build what's local, fill in any secret still reading `change-me`, bring the stack up, restart containers whose mounted config changed since they booted, and unseal the escrow.  Of the last nine, six **ask the box questions** and change nothing.  The three exceptions repair.  `oidc-settle` restarts any LibreChat whose sign-in route answers 500 instead of 302, the state a reboot leaves behind.  `realm-lock` makes `email` admin-only in every realm's user profile, because Keycloak's default lets people edit their own and every tool trusts it as who they are; it prints `fixed` the one time it changes something.  `agents-refresh` re-seeds the guides from the docs you just shipped, on any box that has been seeded before.
 
 Two of those are worth knowing by name because people re-run them by hand and get confused:
 

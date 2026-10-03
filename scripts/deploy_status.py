@@ -52,6 +52,7 @@ LABELS = {
     "bao-unseal": "Restarting services",
     "smoke": "Checking it's serving",
     "oidc-settle": "Checking sign-in",
+    "realm-lock": "Running safety checks",
     "egress-check": "Running safety checks",
     "course-tokens-check": "Running safety checks",
     "render-check": "Running safety checks",
