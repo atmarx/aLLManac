@@ -9,6 +9,8 @@ tags: [metering, attribution, cost-intuition, token-economy, student-right, ai-l
 tethered_to:
   - usage-mcp/server.py
   - docs/admin-guide.md
+  - litellm/config.yaml
+  - .env.example
 ---
 
 # Reading your own numbers
@@ -54,6 +56,8 @@ The split between the two ways you can reach a model.
 **Chat** is the browser.  **API keys** is everything else — your own editor, a script, a coding tool pointed at the platform gateway.
 
 They are limited by different things.  [The chat window is capped in length](context-is-the-conversation.md) and your key is capped in money.  A coding session will not be trimmed the way a chat conversation is; it will spend, and stop when the key's budget is gone.
+
+Neither one limits how often you send.  There are no per-message rate limits here, in the chat or on a key: the budget is the limit.  The one counter the chat keeps is on attaching files, a guard against abuse that ordinary use stays well under.  If a coding tool reports a 429, that is the model's server being busy — [When it breaks](../building-with-code/when-it-breaks.md) has what to do.
 
 If you have never set up a key, this line reads `API keys: 0` and you can ignore it.  If you use one, expect it to dominate — coding tools send a great deal of context by design.  That is what makes them useful.
 

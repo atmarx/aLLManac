@@ -20,7 +20,9 @@ tethered_to:
 
 Asked about rate limits on 2026-10-02, the Instructor Guide said "Rate limits are covered by the Usage Guide" and sent the person there.  It had no way to know.  It had searched its own files, found nothing, and picked the sibling whose line in the guide directory sounded closest — "what the numbers mean — tokens, context, cost."
 
-The Usage Guide has no page that mentions rate limits.  The only answer anywhere is one line in the registrar spec — "per-message rate limits (budgets are the governor)" — and that page is on the Operator, Platform and Security shelves.  Those same shelves also say "rate limit" a dozen times about TLS certificates and LibreChat's upload limit.  So the guess went to a guide with nothing, and a word count would have sent a professor to a page about ACME.
+The Usage Guide had no page that mentioned rate limits.  The only answer anywhere was one line in the registrar spec — "per-message rate limits (budgets are the governor)" — and that page sits on the Operator, Platform and Security shelves.  Those same shelves also say "rate limit" a dozen times about TLS certificates and LibreChat's upload limit.  So the guess went to a guide with nothing, and a word count would have sent a professor to a page about ACME.
+
+The gap is closed now.  [When it breaks](../apex/building-with-code/when-it-breaks.md) and [Reading your own numbers](../apex/understanding-your-usage/reading-your-numbers.md) both say there are no per-message rate limits, and the Instructor Guide carries both pages, so it answers that question itself.  The pattern behind it hasn't changed: a guide that comes up empty still picks a sibling by its description.
 
 Every hand-off works that way today.  Each guide carries its own pages and the shared rules, and it knows the other six guides only by a one-line description ([the guide-agent contract](agent-contract.md), "WHERE TO SEND PEOPLE").  The hand-off itself has a shape now — name the guide, switch to it at the top and press enter, it sees this conversation — but the choice of guide is a guess from a description.
 
@@ -112,19 +114,20 @@ Tool cases in the contract's `expect:` format, so `just evals-check` scores the 
 ```yaml
 - id: H2
   pattern: route on evidence
-  guides: [instructor-guide]
+  guides: [usage-guide]
   as: instructor
   turns:
-    - "My student asked about rate limits on their key — what are they?"
+    - "What should my syllabus say about students using AI?"
   expect:
     - calls: [which_guide]
   passes_when: >
     Names the guide which_guide ranked first and says to switch and press
     enter.  Fails if it names a guide from the directory without calling
     the tool, or quotes the counts to the person.  On today's corpus the
-    only answer is the registrar spec's "budgets are the governor," on the
-    Operator, Platform and Security shelves; the TLS pages there must not
-    count, so this case also checks the threshold.
+    syllabus and assignment pages sit only on the Instructor Guide's shelf,
+    so it should rank first by a clear margin.  The Usage Guide's pages
+    mention AI and students throughout, and they must not count, so this
+    case also checks the threshold.
 
 - id: H3
   pattern: own shelf wins
@@ -177,6 +180,6 @@ H3 is the one that keeps the tool honest.  A guide that calls `which_guide` befo
 
 ## Open questions
 
-- **A gap the tool found before it was built.**  "Are there rate limits?" has an answer — no, budgets are the governor — and no page a student or instructor can reach says it.  That is pedagogy's to fix in `apex/`, whatever happens to this spec.  A tool that ranks shelves will keep finding these: a question that routes only to operator pages is often a reader-facing page that hasn't been written.
+- **Gaps like the rate-limit one.**  A question that routes only to operator pages is often a reader-facing page that hasn't been written.  The tool's log will show them: a call where only the Operator, Platform and Security shelves count anything is a candidate, and that list is pedagogy's to read.
 - **@marco:** does the service belong in its own container, or in `usage-mcp` with the rag_api image as its base?  Pedagogy has no preference.  The constraint is the credential: whatever hosts it must not hold `JWT_SECRET`.
 - **Shelf overlap.**  Many pages sit on three or more shelves, so ties will be common once the caller's own count is zero.  The prompt names both on a tie.  If calibration shows ties on most hand-offs, the tool could count only pages unique to each guide, but that is a second change, not part of the first.

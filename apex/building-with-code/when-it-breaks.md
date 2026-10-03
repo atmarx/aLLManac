@@ -10,6 +10,7 @@ tethered_to:
   - registrar/server.py
   - registrar/planes/verbs.py
   - registrar/planes/gateway.py
+  - litellm/config.yaml
   - docs/design-walls.md
 ---
 
@@ -22,6 +23,7 @@ Work down this table from the top.  The first row that matches is almost always 
 | **401, "invalid key" or "authentication error"** on every call | The key is wrong, or it has been rotated and you are holding the old one | Check the environment variable is set *in the shell running the code*.  If you rotated recently, ask the Coder Guide for your current key (`my_key`) |
 | **An authentication-style error that names a model** | The key is fine.  It isn't allowed that model — either your course doesn't have it, or it was added after your key was minted | List what your key can call (`/v1/models`, see [the gateway](the-gateway.md)).  If the model should be there, rotate your key to pick up the course's current list |
 | **"Budget exceeded"** | Your key's fuse has run out — or the course's budget has | The error's own wording is what says which, so keep it.  Asking the Usage Guide for your usage shows what you've spent, not which limit you hit.  Rotating won't help; it moves the remainder to the new key and doesn't refill.  Talk to your instructor |
+| **429, "rate limit" or "too many requests"** | Not a limit on you.  The platform never limits how often you send, on a key or in the chat — your budget is the only limit.  A 429 means the server running the model was busy and turned the request away, and the gateway has already tried it twice more before showing you the error | Wait a minute and send it again.  If it keeps happening, report it with the model name and the time |
 | **Connection refused, DNS error, or a certificate warning** | You are pointed at the wrong address — or, for a certificate error only, the platform uses a certificate of its own that your machine doesn't trust yet | Use the gateway address `my_key` gave you, with `/v1` on the end, over `https`.  If the address is right and only the certificate fails, ask whoever runs the platform how to trust it — don't switch verification off |
 | **Works on short inputs, goes strange on long ones** | You are sending more context than the model is served with, and its server is dropping the front — your instructions first | Send less.  In a harness, lower `limit.context` to the served number |
 | **The harness stalls, or prints something that looks like a tool call as plain text** | The model's server isn't configured for that model's tool-call format | Not yours to fix.  Report it, with the model name |
