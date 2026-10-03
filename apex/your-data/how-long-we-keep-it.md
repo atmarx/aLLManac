@@ -32,11 +32,11 @@ Retention is a policy question before it is an engineering one.  Deciding that c
 That policy does not exist here yet, so neither does the timer that would enforce it.  Building the timer first would mean guessing at the answer, and a deletion job is a bad place to guess.
 
 !!! warning "Not built yet"
-    No retention policy and no expiry for ordinary conversations.  Removal is a manual act by an operator.  The temporary-chat expiry above is the single exception, and it is the chat software's own behaviour, not a policy we set.
+    No retention policy and no expiry for ordinary conversations.  Removal is a manual act by an operator.  The temporary-chat expiry above is the single exception, and it is the chat software's own behaviour, not a policy we set.  The software could put every conversation on that same clock; we have not turned it on, because choosing the number is the policy question nobody has answered.
 
 ## Backups
 
-The backup is built to run every night, copying everything that holds your work — conversations, agents, the files you uploaded, the usage ledger, the key escrow — to storage that is not the machine it protects.  Copies are kept on a schedule: one for each of the last 7 days, the last 4 weeks, and the last 6 months.
+The backup is built to run every night, copying everything that holds your work — conversations, agents, the documents you uploaded (not images — those are not copied yet), the usage ledger, the key escrow — to storage that is not the machine it protects.  Copies are kept on a schedule: one for each of the last 7 days, the last 4 weeks, and the last 6 months.
 
 !!! warning "Half built"
     The copying half exists.  The **restore** half does not — there is no tested way yet to bring those copies back — and by our own rule, copies nobody has restored from are not backups yet.  What exists today is a second place your work lives.
@@ -52,7 +52,7 @@ This is the platform's most visible gap.  It is also where high-risk security ba
 When you are removed from a course — dropping it, or the roster changing — your access ends on two different clocks:
 
 - **Your key for that course is revoked at once.**  You can no longer make requests against it.
-- **Your access to the course chat closes at your next sign-in.**  A chat you already have open is not cut off mid-sentence; the next time you sign in, that course turns you away.
+- **Your access to the course chat closes the next time it asks you to sign in.**  A chat you already have open is not cut off mid-sentence, and if you stay signed in that can be days later.  When it asks again, that course turns you away.
 
 Sharing groups are not automatic: if an instructor put you in one inside the course, you stay in it until someone removes you by hand.  With the chat closed to you, it gives you access to nothing, but it is there.
 
@@ -68,7 +68,7 @@ Your data does not go anywhere:
 A course ends in two steps, a couple of weeks apart, and an operator runs each one.
 
 - **Closing** stops the spending.  Keys and the course chat stop answering, but you can still sign in, read your history, and open your agents for **14 days** — that window is for taking your work with you.
-- **Archiving** comes after the window.  Every key for the course is revoked, its sign-in is switched off, and the course's chat goes away.  The old web address now shows a page that says the course is finished and points you to your instructor and to this site.
+- **Archiving** comes after the window.  Every key for the course is revoked, its sign-in is switched off, and the course's chat goes away.  The old web address now shows the same page a mistyped one does — there's no course here — with a link to this site.  You can still export your own work from an archived course: ask the Student Guide in the {{PLATFORM}} chat.
 
 Archiving is not deleting.  The course's database is still there; nobody can get into it through the chat any more.  Your own conversations and agents can still be exported from an archived course — see [Asking about your data](asking-about-your-data.md).
 

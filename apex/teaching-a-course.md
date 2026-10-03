@@ -23,7 +23,7 @@ Your students work from the [course guide](user-guide.md), so read it too.
 
 ## Getting a course
 
-**Ask the Instructor Guide in the {{PLATFORM}} chat.**  Tell it you'd like a course for your class.  It asks you one question about the coursework, then files your request as a ticket.  An admin approves it, sends it back with questions — you answer on the same ticket — or turns it down with a reason, and you're notified either way.  Ask the guide where your requests stand (`my_requests`) any time.
+**Ask the Instructor Guide in the {{PLATFORM}} chat.**  Tell it you'd like a course for your class.  It asks you one question about the coursework, then files your request as a ticket.  An admin approves it, sends it back with questions — you answer on the same ticket — or turns it down with a reason.  Where the platform has mail set up you get an email when it moves.  Either way, ask the guide where your requests stand (`my_requests`) and it shows the status and anything the admins wrote back.
 
 You won't be asked for a budget.  The admins set it, so take the pool advice below to them.
 

@@ -20,7 +20,7 @@ Coursework generates records about you, and records about students come with obl
 ## At a glance
 
 - **Your conversations live in your own course's database**, separate from every other course.  [What we store](what-we-store.md)
-- **Your instructor and the platform's operators can get to them.**  Nobody in another course can.  [Who can see it](who-can-see-it.md)
+- **The platform's operators can get to them, and anything you share reaches who you share it with.**  Nobody in another course can.  [Who can see it](who-can-see-it.md)
 - **Your usage is recorded against your email address** — which model, how many tokens, what it cost, when.  Not what you said.  [The ledger](what-we-store.md#the-ledger-which-is-the-one-that-surprises-people)
 - **Where model traffic goes is a deployment choice.**  A locally hosted model can keep it on institutional hardware; a hosted model receives the prompts and files needed to answer.  Agent actions can send material to additional services.  [The paths that can leave the building](who-can-see-it.md#paths-that-can-leave-the-building)
 - **Agent sharing is available, and nothing is shared until you share it.**  [Sharing](who-can-see-it.md#sharing-is-available-and-nothing-is-shared-until-you-share-it)
@@ -38,7 +38,7 @@ Coursework generates records about you, and records about students come with obl
 
 Each of these is explained on its own page.  Collected in one place:
 
-- **No restore.**  A nightly backup copies everything off the machine, but there is no tested way yet to bring it back — and until a restore has worked, it isn't a backup yet.
+- **No restore.**  A nightly backup copies everything except uploaded images off the machine, but there is no tested way yet to bring it back — and until a restore has worked, it isn't a backup yet.
 - **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days; everything else stays until someone removes it.
 - **No per-student deletion path.**  Removing a student revokes access without erasing what they wrote.
 - **Export covers your own work, not everything.**  You can take your conversations and agents out of any course yourself; the usage ledger, your identity record and a formal records request still go through a person.

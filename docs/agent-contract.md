@@ -520,7 +520,7 @@ So when a tool reports the outcome of an action taken for someone, **pass throug
 The sharper version, because it generalises past reports: **be brief with what you know, never with what you just did to someone's account, roster, key or queue.**
 
 
-**A receipt also has to say what happens next, and the true answer is allowed to be "nothing will ping you."** @xram's second look at that same confirmation: *it doesn't explain how we'll follow up.*  He is right, and the platform had the answer already — `my_reports` works from any room and shows `open`, `triaged` or `closed` plus a resolution when there is one.
+**A receipt also has to say what happens next, and the true answer is allowed to be "nothing will ping you."** @xram's second look at that same confirmation: *it doesn't explain how we'll follow up.*  He is right, and the platform had the answer already — `my_reports` works from any guide but the Front Desk and shows `open`, `triaged` or `closed` plus a resolution when there is one.
 
 Its own design note is the line to hand the reader, not hide from them: *"Pull, not push: there is no notification channel we own, and inventing one would be a second inbox nobody reads.  Asking is the channel."*
 
@@ -636,7 +636,7 @@ Two things make them runnable on a live box.  **`as:`** names a persona — `ins
 
 **`expect:` is the part that scores itself** — one entry per turn, checked against the calls the guide actually made: `calls` (every one of these), `any` (at least one), `never` (none).  An entry is a tool name, or a name with arguments that must match — `{course_approve: {confirm: true}}` — where `"*"` means "set to anything."  It is deliberately only about calls: whether a guide asked for a budget in prose, or put the front-door question in its own words, is still a human's read of the transcript.  `just evals-check` runs these cases and goes red on any mechanical failure, which is what makes them cheap enough to run every night; the *passes when* is still the whole bar.
 
-The small model is the reason these exist.  The Instructor and Operator guides carry twelve tools each, and the research in [choosing a harness](../apex/building-with-code/choosing-a-harness.md) is plain that small models get worse as tool lists grow.  If these fail on the campus model, the fix is fewer tools per agent — split the desk into its own guide — before it is a longer prompt.
+The small model is the reason these exist.  The Instructor Guide carries fifteen tools and the Operator Guide twelve, and the research in [choosing a harness](../apex/building-with-code/choosing-a-harness.md) is plain that small models get worse as tool lists grow.  If these fail on the campus model, the fix is fewer tools per agent — split the desk into its own guide — before it is a longer prompt.
 
 ```yaml
 - id: E1

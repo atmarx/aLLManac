@@ -57,9 +57,9 @@ A conversation of eighty turns in this example runs about 1.6 million tokens.  T
 
 ## Why it forgets the beginning specifically
 
-Every model has a ceiling on how much it can be handed at once, and each course on this platform sets its own limit as well — meant to sit underneath that ceiling.  When a course's limit is set higher than the model is served with, the model's own server does the trimming instead, the same way.
+Every model's server has a ceiling on how much it will take at once, and each course on this platform sets its own limit too — a cap on what one conversation can spend, which is not always below what the server takes.  Past the server's ceiling, some servers refuse the request and some drop the front of it and answer anyway.
 
-When your re-sent conversation grows past the limit, something has to go — and what goes is **the oldest part**, dropped before the request is sent.  Not faded, not compressed, not deprioritised.  Removed.
+When your re-sent conversation grows past the limit, something has to go — and what goes is **the oldest part**.  Not faded, not compressed, not deprioritised.  Removed.
 
 That gives the forgetting its shape.  A human memory loses the middle, the boring parts, the things that did not matter.  This loses the beginning, precisely and completely, including the part where you explained what you were trying to do.  If an assistant has been sharp for an hour and suddenly seems to have lost the plot, that is usually what happened.  Start fresh and say the important part again.
 
@@ -67,7 +67,7 @@ That gives the forgetting its shape.  A human memory loses the middle, the borin
 
 If you are talking to an agent with knowledge files, those files are not sitting in the model's head either.
 
-What happens is that your question is used to search the documents, and the passages that look relevant get **pasted into the conversation** before it is sent — invisibly, as extra context, on that turn.  A well-targeted question pulls in a paragraph.  A vague one pulls in a lot more, because more things looked equally plausible.
+What happens is that the agent decides to search its documents, writes the search itself, and the passages that look relevant get **pasted into the conversation** — invisibly, as extra context, and as a request of its own.  A well-targeted question pulls in a paragraph.  A vague one pulls in a lot more, because more things looked equally plausible.
 
 So the guides are cheap to ask precise questions of and expensive to ask woolly ones, for a reason that has nothing to do with the length of what you typed.
 

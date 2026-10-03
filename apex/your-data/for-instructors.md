@@ -84,7 +84,7 @@ What that means for you:
 - **Nothing is shared unless a person shares it.**  There is no state in which a student's agent becomes visible without them acting.
 - **Sharing does not cross the course boundary.**  Your course is its own instance, so there is no other course to share into and nothing to misconfigure.
 - **A shared agent shares its knowledge files.**  The Editor role can read and change them, and anyone who can merely *chat* with an agent can eventually coax out what is in its files.  Say this to a class out loud: attach materials you would hand them anyway, never answer keys or solutions.
-- **Group sharing exists, but campus groups do not flow into it.**  Share-groups have to be created in the platform's own admin panel; your roster and institutional groups are not available as sharing targets.  Sharing with named individuals is the path that works today.
+- **Group sharing exists, but campus groups do not flow into it.**  You make your course's groups yourself, in your course's admin panel (**Groups**), and add students who have signed in at least once.  Your roster and institutional groups are not available as sharing targets.
 
 If your course is one where student work should not circulate, settle that with your class and put it in the assignment — there is no switch for agent sharing.  Conversation share links do have one (above).  Have that conversation in week one, before someone shares something they assumed was private.
 
@@ -123,7 +123,7 @@ If you are considering this, talk to your institution's privacy or compliance of
 
 So you do not plan around something that is not there:
 
-- **No restore.**  A nightly backup copies everything off the machine, but the way back from it is not built and has never been exercised, so plan as if there were no backup.
+- **No restore.**  A nightly backup copies everything except uploaded images off the machine, but the way back from it is not built and has never been exercised, so plan as if there were no backup.
 - **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days.  Every other conversation stays until someone removes it, and that removal is currently a manual act.
 - **No per-student deletion path.**  Nothing walks a course database and removes one student's material.
 - **No way to deny all outbound domains.**  The allowlist can narrow where agents send requests; it cannot express "nowhere."  Leaving actions off is the only complete answer, and that limit comes from the underlying chat software — it is not a setting waiting to be built.

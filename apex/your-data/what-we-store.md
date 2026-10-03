@@ -49,7 +49,7 @@ The ledger does not contain what you *said* — no prompts, no responses, no con
 
 The email was a choice.  Attribution has to point at a real person and survive a roster change, and an opaque internal ID does neither.  The reasoning, and what it cost, are in [Why the chatbot never asks who you are](../how-we-built-it/identity-is-not-an-argument.md).
 
-To see your own usage, ask the **Usage Guide** in the {{PLATFORM}} chat.  It only ever answers for you.  Your instructor and TAs see a narrower slice of the same ledger for their course: each student's request count, token count and when they were last active, listed by email.  Counts, never content.
+To see your own usage, ask the **Usage Guide** in the {{PLATFORM}} chat.  It only ever answers for you.  Your instructor and TAs — and the platform's admins — see a narrower slice of the same ledger for the course: each person's requests, tokens and last activity listed by email, who hasn't started yet, the model mix, and the course's total spend.  Counts, never content.
 
 ## What we do not store
 

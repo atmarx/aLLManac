@@ -14,7 +14,7 @@ Sign in with the account you already use for everything else on campus, and in a
 
 Behind that, your course has its own AI service: an instance with your course's name on it, running on hardware your institution owns.  A whole project team can build **one shared assistant together**, and every token spent goes on a ledger your course can see.
 
-The sign-in button is on the front page of your course's instance.  If you do not know that address yet, your instructor does.
+The sign-in button is on the front page of your course's instance.  If you do not know that address yet, ask the Front Desk in the {{PLATFORM}} chat which courses you're on — it lists each one with its address — or ask your instructor.
 
 ## Start here
 
@@ -33,7 +33,7 @@ People underestimate how much of the skill is *curation*.  An agent is a block o
 
 [Using it in a course](user-guide.md) covers the mechanics — your first agent, a team-built one with co-editors, your API key, and the coding harness.  [Verifying sources](teaching-with-ai/verifying-sources.md) covers the habit that makes any of it trustworthy.
 
-You can also ask the platform about itself.  The guides in the model picker are agents with this documentation attached to them, and they will tell you when a question is outside what they know.  Watch for that — most assistants never say it.
+You can also ask the platform about itself.  The guides live in the {{PLATFORM}} chat, in the selector at the top, and each is an agent with part of this documentation attached.  They will tell you when a question is outside what they know.  Watch for that — most assistants never say it.
 
 ## Teaching with it
 

@@ -51,7 +51,7 @@ There's a subtler failure too, and we learned it the hard way.  A key exists in 
 
 ## What we did, and the bill
 
-**OpenBao, used as an escrow** — an open-source fork of HashiCorp Vault, running as one more container.  Its consumer list is short: the registrar, and nothing else.  Every other service still reads its environment file.
+**OpenBao, used as an escrow** — an open-source fork of HashiCorp Vault, running as one more container.  Its consumer list is short: the registrar, and a backup role that can take a snapshot and read nothing.  Every other service still reads its environment file.
 
 What it holds is one record per key, at a path that says whose it is:
 

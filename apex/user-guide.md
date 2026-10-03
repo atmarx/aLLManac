@@ -16,7 +16,7 @@ tethered_to:
   - docs/admin-guide.md
 ---
 
-# {{PLATFORM}} — Course Guide
+# Using {{PLATFORM}} in a course
 
 *For the people teaching with it, and the students building on it.*
 
@@ -94,7 +94,7 @@ There is one copy of the agent — edits overwrite, last save wins, and there's 
 
 - **The Agent Marketplace** (sidebar → Agent Marketplace) is where shared agents get discovered — browse by category, find what teams have published.
 - To make a team's agent visible class-wide, share it **Viewer** to the course-wide group (faculty set one up, e.g. `engr301-all`) — or ask your instructor to share it there for you.
-- **Nothing you share leaves your course.**  Each course runs its own copy of the chat, so even the widest share gets no further than the people in it — there is no platform-wide setting to flip, for you or your instructor.  An agent that deserves a life beyond the course goes there by nomination: you or your instructor nominates it, and the people who run the servers turn it into a template another course can start from.
+- **Nothing you share leaves your course.**  Each course runs its own copy of the chat, so even the widest share gets no further than the people in it — there is no platform-wide setting to flip, for you or your instructor.  An agent that deserves a life beyond the course goes there by nomination.  Ask the Student Guide or the Instructor Guide in the {{PLATFORM}} chat to nominate it, with the agent's id from its edit page and a line on what it does.  The people who run the servers review it and turn it into a template another course can start from.
 
 **A caution from the platform docs:** anyone who can chat with an agent can eventually coax out what's in its files.  Attach materials you'd hand the class anyway — never answer keys, never solutions, never anything private.
 

@@ -179,7 +179,7 @@ GUIDES = [
      "New here?  Start with this and it will point you at the right guide.",
      WHERE_TOOLS),
     ("student-guide", "Student Guide",
-     f"Using {PLATFORM} in your courses — agents, knowledge files, your own data, and what the budget numbers mean.",
+     f"Using {PLATFORM} in your courses — agents, knowledge files, your own data, and asking for a project or club room.",
      REPORT_TOOLS + WHERE_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS + NOMINATE_TOOLS),
     ("instructor-guide", "Instructor Guide",
      f"Running a course on {PLATFORM} — enrollment, class configuration, shared agents, and asking for a new course.",
@@ -188,7 +188,7 @@ GUIDES = [
     ("platform-guide", "Platform Guide",
      f"How {PLATFORM} is built and why — the architecture, the decisions, and what they cost."),
     ("dev-guide", "Operator Guide",
-     f"Operating {PLATFORM} — deployment, runbooks, what breaks, and the operator's desk for courses and requests.",
+     f"Operating {PLATFORM} — deployment, runbooks, what breaks, and the operator's desk for courses, requests and problem reports.",
      REPORT_TOOLS + TRIAGE_TOOLS + DESK_TOOLS),
     ("security-guide", "Security Guide",
      f"How {PLATFORM} is secured — controls, boundaries, and the blue/purple team exercises that test them."),
@@ -199,7 +199,7 @@ GUIDES = [
     # because course_usage needs a course and nothing else here could name
     # one — the docstring's "call list_courses" pointed at a tool it lacked.
     ("usage-guide", "Usage Guide",
-     "What the numbers mean — tokens, context, what makes a bill go up, and how to read your own usage.",
+     "What the numbers mean — tokens, context, what makes a bill go up, and how to read your own usage, or your course's if you teach it.",
      REPORT_TOOLS + WHERE_TOOLS + USAGE_TOOLS),
     # my_usage and not course_usage: the question this guide gets is "what
     # did my script just cost," and the answer is the person's own ledger.

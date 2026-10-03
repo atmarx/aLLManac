@@ -37,11 +37,11 @@ Here is each line.
 
 One request is one time the platform asked a model for something.  Usually that is one message you sent.
 
-Not always, and this trips people up.  A few requests are made on your behalf without you typing anything.  Naming a new conversation is the common one — when a thread acquires a title by itself, that was a small extra request against your account.  They are tiny and they are real, and if your request count runs slightly ahead of the messages you remember sending, that is almost certainly why.
+Not always, and this trips people up.  A few requests are made on your behalf without you typing anything.  Naming a new conversation is one — when a thread acquires a title by itself, that was a small extra request against your account.  The bigger one is an agent looking something up: searching its knowledge files or calling a tool is a request of its own, before the one that writes your answer.  If your request count runs ahead of the messages you remember sending, that is almost certainly why.
 
 ## Tokens in, and tokens out
 
-**"In"** is everything sent to the model: your message, the conversation behind it, any passages pulled from attached documents, and the agent's own instructions.
+**"In"** is everything sent to the model: your message, the conversation behind it, any passages pulled from attached documents, the agent's own instructions, and the descriptions of any tools the agent carries.
 
 **"Out"** is what the model wrote back.
 
@@ -55,11 +55,11 @@ The split between the two ways you can reach a model.
 
 **Chat** is the browser.  **API keys** is everything else — your own editor, a script, a coding tool pointed at the platform gateway.
 
-They are limited by different things.  [The chat window is capped in length](context-is-the-conversation.md) and your key is capped in money.  A coding session will not be trimmed the way a chat conversation is; it will spend, and stop when the key's budget is gone.
+They are limited by different things.  The chat [trims a conversation to the course's length limit](context-is-the-conversation.md) and draws on the course's budget.  A key skips that length limit — it gets whatever the model's server will take — and stops when the key's own budget or the course's runs out.
 
-Neither one limits how often you send.  There are no per-message rate limits here, in the chat or on a key: the budget is the limit.  The one counter the chat keeps is on attaching files, a guard against abuse that ordinary use stays well under.  If a coding tool reports a 429, that is the model's server being busy — [When it breaks](../building-with-code/when-it-breaks.md) has what to do.
+Neither one limits how often you send.  There are no per-message rate limits here, in the chat or on a key: the budget is the limit.  The chat does keep a few counters against abuse — on attaching files, on importing and copying conversations, and on voice — and ordinary use stays well under them.  If a coding tool reports a 429, that is the model's server being busy — [When it breaks](../building-with-code/when-it-breaks.md) has what to do.
 
-If you have never set up a key, this line reads `API keys: 0` and you can ignore it.  If you use one, expect it to dominate — coding tools send a great deal of context by design.  That is what makes them useful.
+If you have never set up a key, this line reads `API keys: 0 requests` and you can ignore it.  If you use one, expect it to dominate — coding tools send a great deal of context by design.  That is what makes them useful.
 
 ## The per-model table
 
@@ -76,6 +76,7 @@ Dollars, always shown, even when it rounds to nothing.
 It also counts things people do not expect:
 
 - **Spending you did outside the chat window.**  A coding session on your key shows up in this number, so your balance can move in a way your visible chat history does not explain.  Nothing is wrong when that happens.
+- **Your conversations with the guides.**  The {{PLATFORM}} chat counts as chat here, so asking the Usage Guide for these numbers is itself in them.  The {{PLATFORM}} chat pays for those, not your course.
 - **Nothing at all, for some models.**  Models running on institutional hardware have no per-token price, so they add tokens and no dollars.  On a course using those, token counts are the real measure and the dollar figure will look implausibly small.
 
 ## The three things this cannot tell you

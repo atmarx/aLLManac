@@ -17,7 +17,7 @@ tethered_to:
 
 # Who can see it
 
-Four groups can see what you write here: you, your instructor, the people who run the servers, and anyone you or your instructor chooses to let in.  Two more can in specific cases: the company behind a hosted model, if your course uses one, and — when you file a problem report that quotes your exchange — the course staff and platform maintainers who read reports.  The sections below take them in order, starting with how you sign in.
+Four groups can see what you write here: you, your instructor, the people who run the servers, and anyone you or your instructor chooses to let in.  Two more can in specific cases: the company behind a hosted model, if your course uses one, and — when you file a problem report that quotes your exchange — the platform operators, who read the full report on the server.  The sections below take them in order, starting with how you sign in.
 
 ## Signing in
 
@@ -39,7 +39,7 @@ The reasoning behind that choice — and what it costs us — is written up in [
 
 **You** — everything in your own account.
 
-**Your instructor**, within your course.  They can see the conversations and agents in the course instance they run.  Assume your instructor can read what you write in their course, the same way you would assume it about anything you submit for a grade.
+**Your instructor**, within your course.  The chat software gives them no screen for reading your conversations — a link you share reaches one, and so does an operator with access to the database.  They can see and manage the agents in their course.  Still assume your instructor can read what you write in their course, the same way you would assume it about anything you submit for a grade.
 
 **The people who run the platform.**  Operators hold the infrastructure — the servers, the databases, the backups.  Technical access follows from running the system.  What controls it is institutional policy and professional obligation; nothing in the software stops them.  Any platform you use works this way, including the commercial ones.  Here, the people in question work for your institution and you can find out who they are.
 
@@ -57,7 +57,7 @@ We also do not collect keystrokes, screen activity, or attention telemetry.  Wha
 
 You can share an agent you built with other people in your course, and they can share theirs with you.  Agent sharing is switched on in every course here.  Group work needs it, and the chat software's own default is off, which is the wrong setting for a classroom.
 
-None of your work is visible by default.  An agent you build is yours until you share it, and sharing is something you do to one specific agent.  No setting exposes your work behind your back.
+None of your work is visible by default.  An agent you build is yours until you share it, and sharing is something you do to one specific agent.  No setting exposes your work behind your back.  One path skips you: your instructor can nominate an agent of yours as a template for other courses, and if a platform admin exports it, its name, instructions and the names of its knowledge files are copied out of the course.
 
 A conversation can be shared too, as a link.  Unless your instructor has turned it off for your course, you can make a link to one of your own conversations and send it to someone — a TA, a classmate reviewing your work.  The link opens only for someone signed in to your course, never for the open web, and a conversation has no link until you make one.
 
