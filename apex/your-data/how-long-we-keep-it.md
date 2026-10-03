@@ -36,7 +36,7 @@ That policy does not exist here yet, so neither does the timer that would enforc
 
 ## Backups
 
-The backup is built to run every night, copying everything that holds your work — conversations, agents, the documents you uploaded (not images — those are not copied yet), the usage ledger, the key escrow — to storage that is not the machine it protects.  Copies are kept on a schedule: one for each of the last 7 days, the last 4 weeks, and the last 6 months.
+The backup is built to run every night, copying everything that holds your work — conversations, agents, the documents and images you uploaded, the usage ledger, the key escrow — to storage that is not the machine it protects.  Copies are kept on a schedule: one for each of the last 7 days, the last 4 weeks, and the last 6 months.
 
 !!! warning "Half built"
     The copying half exists.  The **restore** half does not — there is no tested way yet to bring those copies back — and by our own rule, copies nobody has restored from are not backups yet.  What exists today is a second place your work lives.

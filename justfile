@@ -1131,7 +1131,13 @@ bao-init:
             exit 1
         fi
     fi
-    b audit enable file file_path=/openbao/logs/audit.log 2>/dev/null || true
+    # The audit device is declared in openbao/config.hcl, never enabled here:
+    # 2.x refuses it over the API, and this line used to swallow that refusal
+    # and print "audit on" over an empty log directory.  Check it instead.
+    if ! b audit list -format=json | grep -q '"file/"'; then
+        echo "bao-init: no audit device — openbao/config.hcl has no audit block, or bao hasn't restarted since it gained one"
+        exit 1
+    fi
     b secrets enable -path=almanac kv-v2 2>/dev/null || true
     {{compose}} exec -T ${ROOT_TOKEN:+-e BAO_TOKEN=$ROOT_TOKEN} openbao bao policy write registrar - <<'POL'
     path "almanac/data/courses/*"     { capabilities = ["create", "read", "update", "delete", "list"] }
@@ -1170,9 +1176,17 @@ bao-unseal tries="12":
     set -uo pipefail
     key=$(grep '^BAO_UNSEAL_KEY=' .env 2>/dev/null | head -1 | cut -d= -f2-)
     [ -z "$key" ] && exit 0
+    # An open escrow with no receipts is a broken promise, not a quirk: every
+    # page that says "key reads are audited" leans on this file existing.  The
+    # device opens it at unseal (openbao/config.hcl); no token needed to look.
+    audited() {
+        if {{compose}} exec -T openbao test -f /openbao/logs/audit.log </dev/null; then return 0; fi
+        echo "openbao — unsealed, but NOT AUDITING: no /openbao/logs/audit.log (openbao/config.hcl's audit block; restart bao to load it)"
+        return 1
+    }
     for i in $(seq 1 {{tries}}); do
         {{compose}} exec -T openbao bao status </dev/null >/dev/null 2>&1; rc=$?
-        [ $rc -eq 0 ] && exit 0          # already unsealed
+        [ $rc -eq 0 ] && { audited; exit $?; }   # already unsealed
         [ $rc -eq 2 ] && break           # sealed and answering — unseal it
         sleep 5
     done
@@ -1184,6 +1198,7 @@ bao-unseal tries="12":
     fi
     if {{compose}} exec -T openbao bao operator unseal "$key" </dev/null >/dev/null; then
       echo "openbao — unsealed"
+      audited || exit 1
     else
       echo "openbao — unseal FAILED (check BAO_UNSEAL_KEY)"
       exit 1
@@ -1433,10 +1448,10 @@ _backup mode:
     # Volumes that are plain files go in as they are — dedup does the rest.
     project=$(docker inspect alm-mongo --format '{{{{index .Config.Labels "com.docker.compose.project"}}')
     vols=()
-    for v in caddy-data librechat-uploads; do
+    for v in caddy-data librechat-uploads librechat-images bao-logs; do
         docker volume inspect "${project}_$v" >/dev/null 2>&1 && vols+=(-v "${project}_$v:/backup/volumes/$v:ro")
     done
-    for v in $(docker volume ls --format '{{{{.Name}}' | { grep -E "^${project}_chat-.+-uploads$" || true; }); do
+    for v in $(docker volume ls --format '{{{{.Name}}' | { grep -E "^${project}_chat-.+-(uploads|images)$" || true; }); do
         vols+=(-v "$v:/backup/volumes/${v#${project}_}:ro")
     done
 

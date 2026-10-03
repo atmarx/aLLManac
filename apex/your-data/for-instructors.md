@@ -123,7 +123,7 @@ If you are considering this, talk to your institution's privacy or compliance of
 
 So you do not plan around something that is not there:
 
-- **No restore.**  A nightly backup copies everything except uploaded images off the machine, but the way back from it is not built and has never been exercised, so plan as if there were no backup.
+- **No restore.**  A nightly backup copies everything, uploaded images included, off the machine, but the way back from it is not built and has never been exercised, so plan as if there were no backup.
 - **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days.  Every other conversation stays until someone removes it, and that removal is currently a manual act.
 - **No per-student deletion path.**  Nothing walks a course database and removes one student's material.
 - **No way to deny all outbound domains.**  The allowlist can narrow where agents send requests; it cannot express "nowhere."  Leaving actions off is the only complete answer, and that limit comes from the underlying chat software — it is not a setting waiting to be built.

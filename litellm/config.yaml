@@ -122,6 +122,11 @@ model_list:
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
   database_url: os.environ/DATABASE_URL
+  # The ledger records usage, never content ("what we store" says so to
+  # every reader).  This is the default for our pin — checked on the docker
+  # host 2026-10-02: 0 of 1,366 spend rows carried messages or a response —
+  # and it's written down so the promise has a line behind it.
+  store_prompts_in_spend_logs: false
 
 litellm_settings:
   drop_params: true

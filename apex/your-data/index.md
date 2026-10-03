@@ -38,7 +38,7 @@ Coursework generates records about you, and records about students come with obl
 
 Each of these is explained on its own page.  Collected in one place:
 
-- **No restore.**  A nightly backup copies everything except uploaded images off the machine, but there is no tested way yet to bring it back — and until a restore has worked, it isn't a backup yet.
+- **No restore.**  A nightly backup copies everything, uploaded images included, off the machine, but there is no tested way yet to bring it back — and until a restore has worked, it isn't a backup yet.
 - **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days; everything else stays until someone removes it.
 - **No per-student deletion path.**  Removing a student revokes access without erasing what they wrote.
 - **Export covers your own work, not everything.**  You can take your conversations and agents out of any course yourself; the usage ledger, your identity record and a formal records request still go through a person.

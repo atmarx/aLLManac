@@ -97,7 +97,7 @@ Moving the key off the box is the upgrade path.  Its price is that every reboot 
 
 **The gateway's master key still lives in `.env`.**  Moving it into the escrow is planned and not shipped.  So the most powerful secret on the box is the one the vault doesn't hold yet.
 
-**The receipts were never being written.**  The setup recipe asks OpenBao to turn on its audit log, and the design, the compose file and the break-glass tool all say reads are audited.  But the OpenBao version we pin refuses to enable an audit log through its API — it wants one declared in the config file — and the recipe discards that error and prints *"audit on"* anyway.  Both boxes we checked have an empty log directory.  This was found by checking a sentence on this page, which is becoming a habit.  Until the declaration is in `openbao/config.hcl`, "custody is audit-logged" is a plan, and the only trail is the version history itself.
+**For its first three months, the receipts were never written.**  The setup recipe asked OpenBao to turn on its audit log, and the design, the compose file and the break-glass tool all said reads were audited.  But the OpenBao version we pin refuses to enable an audit log through its API — it wants one declared in the config file — and the recipe discarded that error and printed *"audit on"* anyway.  Both boxes we checked had an empty log directory.  This was found by checking a sentence on this page, which is becoming a habit.  The declaration is in `openbao/config.hcl` now, and the unseal step fails if the log isn't being written.  Nothing from before the fix can be recovered.  For those months, the only trail is the version history itself.
 
 ## Try it yourself
 

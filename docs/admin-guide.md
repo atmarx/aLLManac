@@ -429,7 +429,7 @@ While you are on that endpoint, check `models.default` lists every model you act
 just bao-init
 ```
 
-Initializes OpenBao, mounts the `almanac/` kv2 store, turns on the audit device, and provisions the registrar's AppRole.  It writes the unseal key and role credentials into `.env` and prints the **root token exactly once** — password manager, not a sticky note.  It comes back **sealed** from every restart.  `just up` and `just deploy` re-unseal it, and so does a reboot on a box with the fleet watcher installed (below) — nothing else does.  A sealed escrow is quiet: chat still answers, and every key path (enrollment, `my_key`, rotation, approving a course) fails until it's open.  It fails in words, not a stack trace — whoever asked is told keys are locked for the moment, that it usually means a restart, and that nothing is lost — and a roster apply checks the vault before its first change, so a sealed escrow never leaves half a class enrolled.  `just smoke` prints a warning line when it's sealed.
+Initializes OpenBao, mounts the `almanac/` kv2 store, checks the audit device (it's declared in `openbao/config.hcl`, because OpenBao 2.x won't enable one any other way), and provisions the registrar's AppRole.  It writes the unseal key and role credentials into `.env` and prints the **root token exactly once** — password manager, not a sticky note.  It comes back **sealed** from every restart.  `just up` and `just deploy` re-unseal it, and so does a reboot on a box with the fleet watcher installed (below) — nothing else does.  A sealed escrow is quiet: chat still answers, and every key path (enrollment, `my_key`, rotation, approving a course) fails until it's open.  It fails in words, not a stack trace — whoever asked is told keys are locked for the moment, that it usually means a restart, and that nothing is lost — and a roster apply checks the vault before its first change, so a sealed escrow never leaves half a class enrolled.  `just smoke` prints a warning line when it's sealed.
 
 ### Per course: one command
 
@@ -607,7 +607,7 @@ And the facts that outrank everything: **the volumes are not the whole state.** 
 
 ### Running them
 
-`just backup` takes all of it without stopping anything, as **two bundles in two restic repositories under two passwords**: the data bundle (every database dump, the escrow's raft snapshot, the uploads volumes, caddy's certificates, and the files in the table above that aren't secrets) and the secrets bundle (`.env`, every `fleet/<slug>.env`, and `site/`).  Where they go is `site/backup.env`.  Once per box:
+`just backup` takes all of it without stopping anything, as **two bundles in two restic repositories under two passwords**: the data bundle (every database dump, the escrow's raft snapshot and its audit log, the uploads and images volumes, caddy's certificates, and the files in the table above that aren't secrets) and the secrets bundle (`.env`, every `fleet/<slug>.env`, and `site/`).  Where they go is `site/backup.env`.  Once per box:
 
 ```bash
 cp site.example/backup.env site/backup.env    # the two repos, the two password sources

@@ -19,5 +19,19 @@ storage "raft" {
   node_id = "almanac"
 }
 
+# The receipts.  OpenBao 2.x refuses `bao audit enable` over the API ("use
+# declarative, config-based audit device management") — so this block is the
+# ONLY way the device exists.  Read at every unseal: an already-initialized
+# store gains it on its next restart (measured on 2.4.1, 2026-10-02).  The
+# file is HMAC'd JSON, one line per request and per response, in the
+# bao-logs volume, which the data bundle carries.  If the device can't write,
+# bao refuses requests rather than serve them unrecorded — that is the point.
+audit "file" "file" {
+  description = "every request and response, HMAC'd"
+  options {
+    file_path = "/openbao/logs/audit.log"
+  }
+}
+
 api_addr     = "http://openbao:8200"
 cluster_addr = "http://openbao:8201"
