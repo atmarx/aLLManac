@@ -140,12 +140,13 @@ EXPORT_WINDOW_DAYS = int(os.environ.get("REGISTRAR_EXPORT_DAYS", "14"))
 #
 # Too large is worse than it first looks, and NOT reliably an error.  Some
 # backends reject an over-long prompt, which is loud and fine.  **Ollama —
-# what INFERENCE_BASE_URL points at by default — silently truncates the
-# FRONT of the prompt and answers anyway**, and the front of the prompt is
-# the system prompt.  A course agent quietly loses its instructions and its
-# boundary mid-conversation and keeps talking, with nothing in any log an
-# operator reads.  That is not a degraded answer, it is the guardrails
-# leaving and the fabrication the agent contract exists to prevent.  Measured
+# what INFERENCE_BASE_URL points at by default — silently drops the oldest
+# messages and answers anyway** (it keeps the system messages, so the agent
+# keeps its instructions and loses the start of the conversation).  When the
+# instructions plus one oversized message alone overflow, its default context
+# shift cuts tokens from the FRONT, and then the instructions do go — the
+# guardrails leaving for that turn, with nothing in any log an operator reads.
+# (Corrected 2026-10-03 from Ollama's source — design-walls.md.)  Measured
 # on the docker host 2026-09-21: the endpoint serves 32768 while the model itself
 # allows 262144, so the ceiling is the SERVER's, not the model's.
 # At 128k this default is larger than many self-hosted models serve, so **a

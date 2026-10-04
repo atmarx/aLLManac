@@ -1,6 +1,6 @@
 ---
 title: What is the gateway, and how do I call it?
-description: One OpenAI-compatible address in front of every model.  How to point code at it, how to see which models your key can use, and which limits apply to code that don't apply to chat — and the other way round.
+description: One OpenAI-compatible address in front of every model.  How to point code at it, how to see which models your key can use, and which limits apply to code that don't apply to chat — and the other way around.
 audience: student
 also_reaches: [faculty, builder]
 status: draft
@@ -56,14 +56,14 @@ This is the one to remember.
 
 | | In chat | Through your key |
 |---|---|---|
-| **What stops a long conversation** | The course's context window — LibreChat trims the oldest turns before sending | Nothing at the gateway.  You send what you send |
+| **What stops a long conversation** | The course's context window — the chat software trims the oldest turns before sending | Nothing at the gateway.  You send what you send |
 | **What stops spending** | The course's budget | Your key's own fuse, inside the course's budget |
 | **Who is recorded** | You, by your sign-in | You, by your key |
 
 So a rule you learned in the chat window — "long conversations get trimmed, so there's a ceiling" — does not apply here.  Through a key, your code decides how much context it sends, and the gateway forwards all of it.
 
-What happens when you send more than the model's server will take depends on the server.  Some refuse with an error, which is the good case.  **Some drop the front of the prompt and answer anyway, with no error** — and the front is where your instructions are.  A script that works on short inputs and goes strange on long ones is usually showing you this; the model is fine.  Keep your requests inside the context length the model is served with; ask your instructor if nobody has told you the number.
+What happens when you send more than the model's server will take depends on the server.  Some refuse with an error, which is the good case.  **Some drop your oldest messages and answer anyway, with no error.**  They keep your system instructions and your latest message — unless those two alone are too long, and then some servers cut from the front, instructions included.  A script that works on short inputs and goes strange on long ones is usually showing you this; the model is fine.  Keep your requests inside the context length the model is served with; ask your instructor if nobody has told you the number.
 
 ## Everything is attributed
 
-Every request through your key is recorded against you, in your course — tokens in, tokens out, which model, when.  By default the gateway's ledger keeps those counts and not the text of what you sent.  An operator controls that setting, and [your data](../your-data/index.md) is where a deployment says what it keeps.  You can see your own numbers any time by asking the **Usage Guide** in the {{PLATFORM}} chat for your usage.
+Every request through your key is recorded against you, in your course — tokens in, tokens out, which model, when.  The gateway's ledger keeps those counts and not the text of what you sent — the platform's gateway config turns storing the text off.  An operator controls that setting, and [your data](../your-data/index.md) is where a deployment says what it keeps.  You can see your own numbers any time by asking the **Usage Guide** in the {{PLATFORM}} chat for your usage.

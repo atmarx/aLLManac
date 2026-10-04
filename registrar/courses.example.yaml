@@ -64,8 +64,9 @@ courses:
     # than that, which many do.  The default is a cost cap chosen for the
     # large hosted models; it is NOT a safe ceiling for a small local one.
     # Too small trims a conversation sooner (fine).  Too large is QUIET and
-    # worse: Ollama drops the FRONT of an over-long prompt and answers anyway,
-    # and the front is the agent's own instructions.  Set this from what your
+    # worse: Ollama drops the oldest messages and answers anyway, with no
+    # error, and one oversized message can take the agent's own instructions
+    # with it.  Set this from what your
     # endpoint SERVES, not from what the model supports — on Ollama those
     # differ silently (`/api/ps` on a loaded model is the real number).
     # The registrar can't choose for you — the chat model (CHAT_MODEL) is an

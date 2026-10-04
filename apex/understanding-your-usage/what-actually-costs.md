@@ -39,7 +39,7 @@ A few seconds of thought here pays for itself many times over.  The paragraph yo
 
 Models differ in price by more than an order of magnitude, and the most capable one is not automatically the right one for reformatting a list.
 
-It is a real lever, and it sits third because it is bounded.  Choosing well saves a fraction of each request; the first item on this list changes the number of tokens in the request by multiples.  Do it, and don't agonise over it.
+It is a real lever, and it sits third because it is bounded.  Choosing well saves a fraction of each request; the first item on this list changes the number of tokens in the request by multiples.  Do it, and don't agonize over it.
 
 ## 4. How you phrase the question
 
@@ -47,13 +47,13 @@ The one everybody asks about.  Caveman speak — clipped, telegraphic, articles 
 
 In a normal conversation it is also **almost entirely pointless**.  The arithmetic:
 
-Your question is not the expensive part.  On turn twenty of a conversation, what you typed might be two per cent of what gets sent; the other ninety-eight per cent is the conversation behind it, which you did not retype and cannot shorten by writing tersely.  Shaving a quarter off two per cent saves you half of one per cent.
+Your question is not the expensive part.  On turn twenty of a conversation, what you typed might be two percent of what gets sent; the other ninety-eight percent is the conversation behind it, which you did not retype and cannot shorten by writing tersely.  Shaving a quarter off two percent saves you half of one percent.
 
 And it has a failure mode that costs more than it saves.  Terse instructions are ambiguous instructions, ambiguity produces an answer to the wrong question, and correcting it costs **a whole extra turn** — which re-sends the entire conversation again.  One misunderstanding wipes out the savings from a hundred clipped sentences.
 
 > **Worrying about the wording of your question with forty turns of history behind it is fussing over the stamp on a parcel you are shipping by air freight.**
 
-### Where terseness genuinely pays
+### Where terseness pays
 
 **Trim what repeats, not what you say once.**
 

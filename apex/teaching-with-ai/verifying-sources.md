@@ -36,15 +36,15 @@ Verification also does something detection cannot: it evaluates **the work** and
 
 The argument doesn't depend on these numbers — the principle stands whether they are large or small.  They happen to be large.
 
-- In one study of LLM-generated mental health literature reviews, **19.9% of all citations were entirely fabricated.**  Across models and elicitation methods, published fabrication rates range from roughly **18% to 95%**.
-- Comparative work on systematic reviews found hallucination rates around **28.6% for GPT-4**, **39.6% for GPT-3.5**, and **91.4% for Bard**.
-- Among citations that pointed at **real** publications, **45.4% contained bibliographic errors** — with the DOI the single least reliable field.
+- In one study of LLM-generated mental health literature reviews, **19.9% of all citations were entirely fabricated** ([Linardon et al., *JMIR Mental Health*, 2025](https://mental.jmir.org/2025/1/e80371)).  Another found **55%** of GPT-3.5's citations and **18%** of GPT-4's fabricated ([Walters & Wilder, *Scientific Reports*, 2023](https://www.nature.com/articles/s41598-023-41032-5)).
+- Comparative work on systematic reviews found hallucination rates around **28.6% for GPT-4**, **39.6% for GPT-3.5**, and **91.4% for Bard** ([Chelli et al., *JMIR*, 2024](https://www.jmir.org/2024/1/e53164)).
+- In the first study, among citations that pointed at **real** publications, **45.4% contained bibliographic errors** — most often a wrong or invalid DOI.
 
-Read that last figure again.  It drives the technique below: **most bad citations are not inventions.**  They are real papers with the wrong metadata, or real papers that do not support the claim attached to them.  Checking only for existence catches the smaller half.
+Read that last figure again.  It drives the technique below: **in that study, most bad citations were not inventions.**  They are real papers with the wrong metadata, or real papers that do not support the claim attached to them.  Checking only for existence catches the smaller half.
 
 ## This is not a student problem
 
-After NeurIPS 2025, an audit of accepted papers reported **53 with fabricated citations that had passed peer review.**  (The audit was run by a detector vendor, so weigh the source — but the papers are checkable and the finding was widely corroborated.)
+After NeurIPS 2025, an audit of accepted papers reported **more than 50 with fabricated citations that had passed peer review.**  (The audit was run by a detector vendor, so weigh the source — but the papers are checkable, and the finding was widely reported and not disputed.)
 
 Say this to a class out loud.  The failure being asked of students is one that professional researchers and a top venue's review process missed at scale.  Verification becomes a discipline everyone now needs, researchers included.
 
@@ -56,7 +56,7 @@ Say this to a class out loud.  The failure being asked of students is one that p
 
 **2. The publication exists, but the citation is wrong.**  Right paper, wrong year, wrong volume, wrong page range, or — most often — a DOI that is correctly formatted and resolves to something else, or to nothing.
 
-*Check:* resolve the DOI and confirm the title that comes back is the title cited.  This is the highest-yield check available and it takes seconds.  A correctly formatted DOI is not a working DOI, and models are markedly worse at this field than any other.
+*Check:* resolve the DOI and confirm the title that comes back is the title cited.  This is the highest-yield check available and it takes seconds.  A correctly formatted DOI is not a working DOI, and in the study above it was the field models got wrong most often.
 
 **3. The publication exists, is cited correctly, and does not say that.**  The hard one, the most common in practice, and the only one that requires reading.
 
@@ -84,24 +84,19 @@ For the assignments where it matters most — capstones, theses, anything that w
 
 ## By discipline
 
-<!-- TODO: expand with concrete per-field guidance.  Sketch:
-     - sciences/medicine — DOI resolution, then check the sample and
-       population match the claim; systematic reviews are the highest-risk
-       genre because the citation density is enormous
-     - humanities — quotations against the primary text, editions and
-       translations matter, page numbers are the tell
-     - law — citators exist for exactly this reason and predate the problem
-       by a century; point at the discipline's own machinery
-     - code/CS — arXiv IDs resolve or they do not, and preprint versions
-       shift, so pin the version
-     - quantitative fields — the reasoning can be sound and the number
-       wrong; recompute rather than re-read -->
+The three failure modes are the same everywhere.  What changes is which check finds them fastest, and most fields already have the tool.
+
+- **Sciences and medicine.**  Resolve the DOI first, then check that the study's sample and population match the claim it is cited for.  Systematic reviews are the riskiest genre — the citation density is enormous, so a few bad entries hide easily.
+- **Humanities.**  Check quotations against the primary text.  Editions and translations matter, and page numbers are the tell: a quotation with no page, or a page that doesn't exist in the edition cited, is where to start.
+- **Law.**  Citators — Shepard's, KeyCite — exist for exactly this reason and predate the problem by more than a century.  Point students at the discipline's own machinery.
+- **Computer science.**  An arXiv ID resolves or it doesn't.  Preprints change between versions, so ask for the version that was read.
+- **Quantitative fields.**  The reasoning can be sound and the number wrong.  Recompute the figure instead of rereading it.
 
 ## Why this transfers
 
 Citations are not sacred.  The reason to teach this is that "someone is answerable for this output" is a habit, and habits formed under low stakes are the ones people keep when the stakes rise.
 
-Automated systems already make consequential decisions about people, and the accountability question there is considerably less settled than it is in scholarship.  Facial recognition misidentification has produced documented wrongful arrests — people held on the strength of a machine's output that nobody was required to verify.  The asymmetry is hard to look at directly: we ask a sophomore to confirm that a cited paper says what they claim it says, while systems that can take someone's liberty have faced no comparable obligation.
+Automated systems already make consequential decisions about people, and the accountability question there is considerably less settled than it is in scholarship.  Facial recognition misidentification has produced documented wrongful arrests — people held on the strength of a machine's output that nobody was required to verify ([Williams v. City of Detroit](https://www.aclu.org/cases/williams-v-city-of-detroit-face-recognition-false-arrest)).  The asymmetry is hard to look at directly: we ask a sophomore to confirm that a cited paper says what they claim it says, while systems that can take someone's liberty ran for years under no comparable obligation, and only a settlement and a few state laws have started to impose one.
 
 Students who internalize *I own what I put my name on* are the ones who might build the systems that close that gap, or refuse to ship the ones that widen it.  That is a better reason to run the exercise than catching anyone.
 

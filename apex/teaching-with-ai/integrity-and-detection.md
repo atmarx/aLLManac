@@ -18,19 +18,19 @@ The evidence below matters for a narrower reason.  A lot of institutions tried d
 
 ## What the evidence shows
 
-Stanford researchers ran seven widely used GPT detectors against TOEFL essays written by non-native English speakers, and against essays by native English writers.
+Stanford researchers ran seven widely used GPT detectors against TOEFL essays written by non-native English speakers, and against essays by native English writers ([Liang et al., *Patterns*, 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10382961/)).
 
-- **61.3%** of the non-native writers' essays were flagged as AI-generated.
+- Averaged across the seven detectors, **61.3%** of the non-native writers' essays were flagged as AI-generated.
 - **97.8%** were flagged by at least one of the seven detectors.
 - Around **a fifth** were unanimously misclassified by every detector tested.
-- On native English writers' essays, the detectors were **near-perfect**.
+- On essays by US eighth-graders writing in their first language, the detectors were **near-perfect**.
 
-The failure is not random noise that better models will remove.  It follows from how the detectors work: they score text as machine-generated when word choice is predictable and sentence construction is simple.  That is a reasonable proxy for machine text, and it is also an accurate description of competent second-language writing.  The bias is structural.
+The failure is not random noise that better models will remove.  It follows from how the detectors work: they score text as machine-generated when word choice is predictable and sentence construction is simple.  That is a reasonable proxy for machine text, and it is also an accurate description of competent second-language writing.  For detectors that work this way, the bias is structural.
 
-Scale makes it worse.  Even at a **1% false-positive rate** — far better than anything measured — an institution processing 75,000 submissions a year produces **750 wrongly accused students**.  Those accusations do not distribute evenly across the student body.
+Scale makes it worse.  Even at a **1% false-positive rate** — about what the leading vendor claims for its own product — an institution processing 75,000 submissions a year flags **750 submissions that were the students' own work**.  Those flags do not fall evenly across the student body.
 
 !!! note "The finding is contested, and by whom matters"
-    Detector vendors have published rebuttals arguing the study's methodology is flawed.  Weigh those as you would any product manufacturer's critique of research finding the product does not work.  The direction of the result has been corroborated by independent reporting and subsequent scholarship.
+    Detector vendors have published rebuttals arguing the study's methodology is flawed.  Weigh those as you would any product manufacturer's critique of research finding the product does not work.  Independent reporting has found the same pattern.  Later scholarship is mixed: an ETS study found that detectors trained on a broad sample of non-native writing did not show the bias ([Jiang et al., *Computers & Education*, 2024](https://doi.org/10.1016/j.compedu.2024.105070)).  The detectors a course can switch on are not those.
 
 ## What follows for your course
 
@@ -44,11 +44,11 @@ Practically:
 
 ## What replaces it
 
-The practice institutions are moving to as they retire detectors is **verifying the sources** — confirming that cited publications exist and that they say what the citation claims they say.
+The practice that replaces a detector is **verifying the sources** — confirming that cited publications exist and that they say what the citation claims they say.
 
 It is a better instrument: it evaluates the work and leaves the author alone.  It assumes nothing about how the text was produced, it cannot be biased by a student's sentence rhythm or first language, and asking someone to support a claim is ordinary scholarship.  Nobody is being accused.  It also catches failures that have nothing to do with AI.
 
-The rates justify it.  Studies of LLM-generated literature reviews report fabrication rates from roughly **18% to 95%** depending on model and method, and among citations pointing at papers that do exist, **45.4% contain bibliographic errors**.
+The rates justify it.  Published studies put the share of fabricated citations anywhere from **18%** to over **90%** depending on model and task, and in one study, **45.4%** of the citations that pointed at real papers contained bibliographic errors.  [Verifying sources](verifying-sources.md#how-often-this-bites) has the studies.
 
 **[Verifying sources](verifying-sources.md)** is the full treatment — the three failure modes, the checks that take seconds versus the ones that take reading, and how to grade it as a skill.
 

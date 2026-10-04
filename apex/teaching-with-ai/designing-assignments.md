@@ -67,7 +67,7 @@ Pick the two or three where the mismatch is worst.  A course with three well-ada
 
 ## Equity, in the parts that get missed
 
-**Fluency is unevenly distributed.**  "Just use AI" is as unequal a starting line as "never use AI" when nobody is taught how.  Some students arrive having used these tools for two years; others have never opened one and will not admit it.
+**Fluency is unevenly distributed.**  "Just use AI" is as unequal a starting line as "never use AI" when nobody is taught how.  Some students arrive having used these tools for years; others have never opened one and will not admit it.
 
 **Requiring a paid tool disadvantages students.**  Part of why a course platform exists is so the tool is the institution's, with no personal subscription — everyone gets the same model and draws on the same course budget.
 

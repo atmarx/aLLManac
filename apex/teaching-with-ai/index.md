@@ -51,7 +51,7 @@ There is also **[a page for your students](for-students.md)** on using these too
 
 ## Before the term starts
 
-If your plan for academic integrity depends on an AI detector, read [Integrity and detection](integrity-and-detection.md) before the term starts.  Detectors do not work reliably, and their failures fall hardest on non-native English writers.  Institutions are retiring them.
+If your plan for academic integrity depends on an AI detector, read [Integrity and detection](integrity-and-detection.md) before the term starts.  Detectors do not work reliably, and their failures fall hardest on non-native English writers.  Some institutions have switched them off — [Vanderbilt](https://www.vanderbilt.edu/brightspace/2023/08/16/guidance-on-ai-detection-and-why-were-disabling-turnitins-ai-detector/) did in 2023.
 
 What replaced them is [verifying sources](verifying-sources.md) — checking that cited work exists and says what the citation claims.  It is the accountability principle above, in a form you can put on an assignment.
 

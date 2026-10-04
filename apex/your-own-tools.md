@@ -41,7 +41,7 @@ The operators add the domain to your course's record, and your course's chat pic
 
 ## Before you attach it to an agent
 
-- **Every tool costs tokens on every turn.**  A tool's description is sent with every message to an agent that has it, whether the student needs it or not.  A server with twenty tools can add thousands of tokens to each turn, which your course's budget pays for and which take room the conversation needs.  Attach the tools an agent needs, not the whole server.  ([Why the course chat no longer carries the platform's own tools](building-with-code/your-key.md) is the same lesson.)
+- **Every tool costs tokens on every turn.**  A tool's description is sent with every message to an agent that has it, whether the student needs it or not.  A server with twenty tools can add thousands of tokens to each turn, which your course's budget pays for and which take room the conversation needs.  Attach the tools an agent needs, not the whole server.  ([Why the course chat no longer carries the platform's own tools](how-we-built-it/identity-is-not-an-argument.md) is the same lesson.)
 - **Check what the server can do, not just what it says.**  A tool that can write, delete or send something will, when a student asks the right way.  Prefer read-only tools for a class.
 - **Tell your students.**  Your syllabus policy should say that the agent can reach an outside service and what it sends there.  [Your syllabus policy](teaching-with-ai/syllabus-policy.md) has the shape.
 - **Test it as a student would.**  Share the agent with a TA or a test account and ask it something real before the class sees it.

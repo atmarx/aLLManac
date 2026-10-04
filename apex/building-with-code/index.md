@@ -32,4 +32,4 @@ No config file covers what it means to hand an agent your repository and your na
 
 ## What this section assumes
 
-That you can open a terminal, set an environment variable, and run a script.  If you're going to hand code to an agent, you'll also want git first, and [Before the agent](before-the-agent.md) has the minimum.  If you have never used an API before, start with [the gateway](the-gateway.md) — the first example there is four lines long and proves the whole chain works.
+That you can open a terminal, set an environment variable, and run a script.  If you're going to hand code to an agent, you'll also want git first, and [Before the agent](before-the-agent.md) has the minimum.  If you have never used an API before, start with [the gateway](the-gateway.md) — the first example there is three lines long and proves the whole chain works.

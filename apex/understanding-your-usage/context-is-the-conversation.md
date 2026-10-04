@@ -25,7 +25,7 @@ This is a good guess.  It explains the forgetting, it explains the limit, and it
 
 It is wrong, and almost everything confusing about your usage numbers follows from it.
 
-## What is actually happening
+## What happens
 
 **The model has no memory at all.**  Not a short one — none.  Between one message and the next it retains nothing about you or your conversation.
 
@@ -57,9 +57,9 @@ A conversation of eighty turns in this example runs about 1.6 million tokens.  T
 
 ## Why it forgets the beginning specifically
 
-Every model's server has a ceiling on how much it will take at once, and each course on this platform sets its own limit too — a cap on what one conversation can spend, which is not always below what the server takes.  Past the server's ceiling, some servers refuse the request and some drop the front of it and answer anyway.
+Every model's server has a ceiling on how much it will take at once, and each course on this platform sets its own limit too — a cap on what one conversation can spend, which is not always below what the server takes.  Past the server's ceiling, some servers refuse the request and some drop the oldest turns and answer anyway.
 
-When your re-sent conversation grows past the limit, something has to go — and what goes is **the oldest part**.  It is removed outright, not faded, compressed or deprioritised.
+When your re-sent conversation grows past the limit, something has to go — and what goes is **the oldest part**.  It is removed outright, not faded, compressed or deprioritized.
 
 That gives the forgetting its shape.  A human memory loses the middle, the boring parts, the things that did not matter.  This loses the beginning, precisely and completely, including the part where you explained what you were trying to do.  If an assistant has been sharp for an hour and suddenly seems to have lost the plot, that is usually what happened.  Start fresh and say the important part again.
 
@@ -77,7 +77,7 @@ We are not yet sure whether you can watch the number while you work.  The versio
 
 Nothing warns you before you hit the limit.  The conversation does not announce that it just dropped your opening message.  It stops knowing it and goes on confidently.
 
-What falls off the front may not be yours, either.  Everything above describes losing the beginning of *your* conversation.  But an agent's own instructions sit in front of the first thing you ever typed — that is what makes it a guide and not a general chatbot — so they go first.  You get no error when that happens.  You get a guide that starts answering questions it would have declined, inventing details it would have refused to guess at, or sounding like something else.  **The tell is that it is fine in a new conversation and strange in a long one.**  If you see that, the model is fine; the conversation outgrew its window.  Start a fresh one, and mention it to us — it is a setting on our side, and you will notice it long before we do.
+An agent's own instructions are kept when the oldest turns go — the chat and the servers we know of hold on to them and drop your early messages instead.  What you lose is what you said at the start: the constraints you set, the document you pasted, the correction you made on turn three.  You get no error.  You get answers that ignore what you established, or repeat a mistake you already fixed.  **The tell is that it is fine in a new conversation and strange in a long one.**  If you see that, the model is fine; the conversation outgrew its window.  One exception: a single message so large that the instructions and that message alone overflow the window can, on some servers, push the instructions out too.  Start a fresh one, and mention it to us — it is a setting on our side, and you will notice it long before we do.
 
 ## Try it yourself
 

@@ -16,7 +16,7 @@ The platform you are signed in to is also course material.
 
 There is a vault in this stack — a whole extra service whose only job is storing secrets.  No architecture diagram asked for it; a specific afternoon that went badly did.  That afternoon is more useful to you than the diagram, and it almost never survives into documentation.  These pages try to keep it.
 
-Students here learn to use language models.  Students here also learn to build and run the systems that serve them, and that second group gets the primary sources, unsanitised.
+Students here learn to use language models.  Students here also learn to build and run the systems that serve them, and that second group gets the primary sources, unsanitized.
 
 <!-- ORIGINAL BRIEF: The platform you are using is also the course material.  Students here
      learn to use language models; students here also learn to build and run
@@ -29,7 +29,7 @@ Students here learn to use language models.  Students here also learn to build a
 
 ## How to read these
 
-Every page is built on the same six beats, so you can skip to the one you came for.  (Pages still marked as scaffolds have an older seventh, on its way out.)  Most working engineers want beat 5.
+Every page is built on the same six beats, so you can skip to the one you came for.  Most working engineers want beat 5.
 
 1. **The question**, as someone would ask it
 2. **The obvious answer, taken seriously** — steelmanned; it is usually a reasonable design

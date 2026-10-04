@@ -43,7 +43,7 @@ Every student in every course gets their own API key to the gateway — for open
 That last part is what forced the issue.  **A student has to be able to ask for their key again** — on a new laptop, a week later, after they lost the terminal it was printed in.  So the key has to be stored somewhere it can be read back.  And once you're storing minted keys, the environment file stops fitting in several ways at once:
 
 - **It changes constantly.**  Enrollment mints, un-enrollment revokes, rotation does both, and closing a course revokes the whole class.  A file rewritten on every roster change is a different thing from a file written once at install.
-- **It has no history.**  When a student rotates a leaked key, the old one should die — and someone should be able to say afterwards which key they held, from when to when.  A file keeps the current line and forgets the rest.
+- **It has no history.**  When a student rotates a leaked key, the old one should die — and someone should be able to say afterward which key they held, from when to when.  A file keeps the current line and forgets the rest.
 - **It has no receipts.**  Anything that can read the file can read every key in it, and nothing records that it did.
 - **It is one secret, shared.**  A file is readable whole or not at all.  "This tool may read the caller's key and nobody else's" is not a permission a file can express.
 

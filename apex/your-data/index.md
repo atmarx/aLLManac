@@ -42,9 +42,8 @@ Each is explained on its own page.  Together:
 - **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days; everything else stays until someone removes it.
 - **No per-student deletion path.**  Removing a student revokes access without erasing what they wrote.
 - **Export covers your own work, not everything.**  You can take your conversations and agents out of any course yourself; the usage ledger, your identity record and a formal records request still go through a person.
-- **No way to block all outbound domains** for courses that enable agent actions — leaving actions off is the only complete answer.
 
-Each one comes off this list in the same change that closes it.
+Each one comes off this list in the same change that closes it.  One more can't be built here at all: there is no way to block all outbound domains for courses that enable agent actions, so leaving actions off is the only complete answer.
 
 ## Why the gaps are published
 

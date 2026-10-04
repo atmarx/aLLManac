@@ -22,7 +22,7 @@ So if you accept output at the speed it arrives, you are necessarily not reading
 
 Volume alone would be manageable if the output looked rough.  It does not.  It arrives polished, evenly confident, correctly formatted, and organized with headings — every signal humans normally use to judge whether a text was carefully made.
 
-For human writing, fluency and care correlate.  For generated text they do not correlate at all.  A student should be able to say that sentence out loud.  It is the single most useful thing they can know about the tool.
+For human writing, fluency and care correlate.  For generated text that link breaks.  A student should be able to say that sentence out loud.  It is the single most useful thing they can know about the tool.
 
 The two failures compound.  Volume means you skim; fluency means skimming feels sufficient.  You come away believing you have absorbed something you have only scanned.
 
@@ -43,7 +43,7 @@ The habits that make a good reader of anything apply here.
 **Check elsewhere.**  Corroborate against something independent.
 
 !!! warning "Asking it again is not checking"
-    Asking the same model "are you sure?" is not verification.  It will either reassert with equal confidence or fold and apologize, and neither response carries information about whether the original claim was true.  Consistency is not corroboration.  Go to a source that does not share the first one's failure modes — the actual paper, the documentation, a person who knows.
+    Asking the same model "are you sure?" is not verification.  It will either reassert with equal confidence or fold and apologize, and neither response tells you much about whether the original claim was true.  Consistency is not corroboration.  Go to a source that does not share the first one's failure modes — the actual paper, the documentation, a person who knows.
 
 **Question it, and question yourself.**  Do not abandon your own knowledge because a machine sounded certain — expertise you spent years acquiring outranks a confident paragraph, and students give theirs up far too readily.  And hold your own view loosely enough to check it.  Neither humans nor models are infallible, so aim for calibration, with no deference in either direction.
 

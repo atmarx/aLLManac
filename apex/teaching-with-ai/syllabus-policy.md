@@ -100,6 +100,6 @@ Whatever the level, the standard for claims does not move.  Give it a line in th
 
 ## Aligning with your institution
 
-Your institution's academic integrity policy is the authority, and a course policy can **narrow** it and never overrides it.  Find yours before the term starts, and check two things specifically: whether it mandates detector use (if so, treat output as a flag for human review and document the review), and what the process is when you have a concern.
+Your institution's academic integrity policy is the authority, and a course policy can **narrow** it but never override it.  Find yours before the term starts, and check two things specifically: whether it mandates detector use (if so, treat output as a flag for human review and document the review), and what the process is when you have a concern.
 
 If your institution has adopted language you must reproduce, use it, and add the per-assignment levels underneath it.  The two layers do not conflict.

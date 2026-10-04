@@ -53,7 +53,7 @@ From there:
 
 The platform is also course material.  Every significant decision here has its reasons written down, and they transfer — you will meet the same trade-offs on a stack that looks nothing like this one.
 
-[How we built it](how-we-built-it/index.md) is that track.  It is being written as the build settles; the first piece finished is [How do you keep the courses apart?](how-we-built-it/keeping-courses-apart.md), which is about tenancy.  It ends on a gap we have not closed yet.  A gap you can read about is worth more than one you cannot.
+[How we built it](how-we-built-it/index.md) is that track.  It is being written as the build settles.  Start with [How do you keep the courses apart?](how-we-built-it/keeping-courses-apart.md), which is about tenancy.  It ends on a gap we have not closed yet.  A gap you can read about is worth more than one you cannot.
 
 ## Your data
 

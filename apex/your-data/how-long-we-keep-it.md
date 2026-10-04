@@ -32,7 +32,7 @@ Retention is a policy question before it is an engineering one.  Deciding that c
 That policy does not exist here yet, so neither does the timer that would enforce it.  Building the timer first would mean guessing at the answer, and a deletion job is a bad place to guess.
 
 !!! warning "Not built yet"
-    No retention policy and no expiry for ordinary conversations.  Removal is a manual act by an operator.  The temporary-chat expiry above is the single exception, and it is the chat software's own behaviour, not a policy we set.  The software could put every conversation on that same clock; we have not turned it on, because choosing the number is the policy question nobody has answered.
+    No retention policy and no expiry for ordinary conversations.  Removal is a manual act by an operator.  The temporary-chat expiry above is the single exception, and it is the chat software's own behavior, not a policy we set.  The software could put every conversation on that same clock; we have not turned it on, because choosing the number is the policy question nobody has answered.
 
 ## Backups
 
@@ -70,7 +70,7 @@ A course ends in two steps, a couple of weeks apart, and an operator runs each o
 - **Closing** stops the spending.  Keys and the course chat stop answering, but you can still sign in, read your history, and open your agents for **14 days** — that window is for taking your work with you.
 - **Archiving** comes after the window.  Every key for the course is revoked, its sign-in is switched off, and the course's chat goes away.  The old web address now shows the same page a mistyped one does — there's no course here — with a link to this site.  You can still export your own work from an archived course: ask the Student Guide in the {{PLATFORM}} chat.
 
-Archiving is not deleting.  The course's database is still there; nobody can get into it through the chat any more.  [Asking about your data](asking-about-your-data.md) covers exporting your own conversations and agents.
+Archiving is not deleting.  The course's database is still there; nobody can get into it through the chat anymore.  [Asking about your data](asking-about-your-data.md) covers exporting your own conversations and agents.
 
 If your course has a stable address — `engr301.` instead of `engr301-2026fall.` — that address moves to the next term's course when this one closes, so a syllabus link keeps working.
 
@@ -86,6 +86,6 @@ So per-student deletion here is a **policy choice an institution may make**.  It
 
 ## What would have to change
 
-Deletion is harder than it looks once backups exist, and that is the engineering reason nobody has added it.  Removing a record from a live database is easy; removing it from every archive of that database is not, and an archive you can selectively edit is an archive you cannot trust.
+Deletion is harder than it looks once backups exist, and that is the engineering problem waiting behind the policy one.  Removing a record from a live database is easy; removing it from every archive of that database is not, and an archive you can selectively edit is an archive you cannot trust.
 
 The technique mature systems use is **crypto-shredding** — encrypt each subject's data under its own key, and destroy the key instead of hunting the data.  It is written up in [How do you protect data you can't delete?](../how-we-built-it/protecting-data-you-cant-delete.md), which treats this problem as engineering.

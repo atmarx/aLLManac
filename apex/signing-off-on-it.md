@@ -28,7 +28,7 @@ Three people sign different parts of the same form.  The CIO inherits the operat
 
 ## Why build it instead of licensing a product
 
-**We did not build this instead of anything.**  A campus-wide general-purpose assistant and this platform solve different problems, and the design assumes both exist — the ruled design sends a student who has used up their share of a course to the licensed assistant the institution already pays for.  That redirect is not built yet; today a spent course budget is a hard stop.  If you are weighing this as a replacement for that, the comparison is wrong in a way that will produce a bad decision.
+**We did not build this instead of anything.**  A campus-wide general-purpose assistant and this platform solve different problems, and the design assumes both exist.  The plan is that a student who has used up their share of a course is sent on to the licensed assistant the institution already pays for.  That redirect is not built yet; today a spent course budget is a hard stop.  If you are weighing this as a replacement for that, the comparison is wrong in a way that will produce a bad decision.
 
 What a licensed product does not sell, at any tier, is the thing a *course* needs:
 
@@ -62,7 +62,7 @@ The chat window is capped in length.  A conversation may grow to a set size — 
 
 A personal key is capped in money.  When a student points their own editor or scripts at the gateway, that traffic never passes through the chat software at all, so the length cap does not apply — the request gets whatever the model itself serves.  What stops it is the dollar fuse on the key.
 
-**Chat is bounded per conversation in tokens; keys are bounded per key in dollars.**  Both also draw on the course's pool, which is a dollar ceiling over everything.  The practical consequence is that a student in the chat window gets trimmed while the same student with a harness can send an enormous request and pay for it.  On a priced model, the fuse stops them when the key's dollars run out.  On a campus model with no price, the fuse never moves, and the only bound is the student's own judgement and the model's own window.
+**Chat is bounded per conversation in tokens; keys are bounded per key in dollars.**  Both also draw on the course's pool, which is a dollar ceiling over everything.  The practical consequence is that a student in the chat window gets trimmed while the same student with a harness can send an enormous request and pay for it.  On a priced model, the fuse stops them when the key's dollars run out.  On a campus model with no price, the fuse never moves, and the only bound is the student's own judgment and the model's own window.
 
 The asymmetry is by design, and it is the thing most likely to be taught wrong.  Put it in the first hour of any training.
 
@@ -92,7 +92,7 @@ The biggest gap is backup, and it is half closed.  A nightly backup copies every
 
 There is no retention policy, so there is no expiry.  Coursework persists indefinitely unless someone removes it by hand.  The one exception is a conversation a student chooses to start as a temporary chat, which the chat software deletes after 30 days.  That is a privacy feature of the software, and it sets no policy.  What is missing is a policy decision the institution has not made.  No engineering task is waiting for someone to get to it, and building the deletion job first would mean guessing the answer.
 
-**FERPA contains no right to erasure.**  It covers inspection, amendment and disclosure.  The delete-my-data instinct comes from GDPR and from state consumer privacy statutes, and there are well over a hundred of the latter.  "FERPA does not require it" is not "nobody requires it," and which rules apply to this deployment is a question for counsel.
+**FERPA contains no right to erasure.**  It covers inspection, amendment and disclosure.  The delete-my-data instinct comes from GDPR and from state law — about twenty states now have comprehensive consumer privacy statutes, and states have passed well over a hundred student-privacy laws, most of them written for K-12.  "FERPA does not require it" is not "nobody requires it," and which rules apply to this deployment is a question for counsel.
 
 Capacity is per course, not per user.  Each course costs five containers — chat, search, admin panel, document service, vector database.  The isolation that makes the security argument work is the same thing that sets the ceiling, and **we will meet that ceiling before we meet any other limit in the system.**  Growth past a couple of dozen courses is an orchestration project, already scoped and not yet started.
 
@@ -104,7 +104,7 @@ We depend on upstream projects we do not control.  Images are pinned so upgrades
 
 The named failure mode is documentation drift, and it has bitten us in the way that does not look like a failure.  Three capabilities were built, working and completely invisible because the page a reader would consult never got the paragraph.  Nothing was broken; nothing would have failed a test; instructors concluded the platform could not do things it had done all along.  The countermeasure is procedural — a behavior change pings the documentation in the same commit — and procedural countermeasures decay.  Assume this recurs and budget attention for it.
 
-Budget enforcement is decided but not built.  Today the course budget is a hard stop for chat and API keys alike, each API key has its own hard fuse, chat has no per-person cap, and the weekly pacing number is recorded but nothing reads it yet.  The ruled design keeps the hard stop for keys — a script retries, so a budget error is the right answer to a program — and keeps the course cap as a high circuit breaker.  It changes chat: a student past their share of one course is sent to the licensed assistant the institution already pays for, so one student's heavy month stops being the whole class's problem.  **Until that ships, a spent course budget stops the course for everyone at once.**
+Budget enforcement is decided but not built.  Today the course budget is a hard stop for chat and API keys alike, each API key has its own hard fuse, chat has no per-person cap, and the weekly pacing number is recorded but nothing reads it yet.  The decision keeps the hard stop for keys — a script retries, so a budget error is the right answer to a program — and keeps the course cap as a high circuit breaker.  It changes chat: a student past their share of one course is sent to the licensed assistant the institution already pays for, so one student's heavy month stops being the whole class's problem.  **Until that ships, a spent course budget stops the course for everyone at once.**
 
 ---
 

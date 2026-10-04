@@ -12,7 +12,7 @@ tethered_to:
 
 # Why is it measured in tokens?
 
-The word is doing you no favours, so let us deal with it first.
+The word is doing you no favors, so let us deal with it first.
 
 A subway token is a unit of access.  One token, one ride, and it costs the same whether you go two stops or twenty.  That is a sensible thing to call a token, but if that is the picture you brought here, it is exactly backwards.
 
@@ -28,12 +28,12 @@ Some consequences:
 
 - **`notebook`** is a common enough word to be a piece or two.
 - **`nOTEbooK`** is not a word at all, so it gets taken apart into something like `n` + `OTE` + `boo` + `K` — **roughly twice the tokens for the same eight letters**, because of the capital letters scattered through it.
-- Numbers get split in ways that have nothing to do with how you would say them.  `2026` may be one piece; `20260921` is several.
+- Numbers get split in ways that have nothing to do with how you would say them.  `2026` may be one piece or two; `20260921` is several.
 - Languages other than English, and code, and anything with unusual spacing, all run token counts up relative to their length.
 
-Don't optimise around any of it.  It explains why the count never quite matches your intuition, and why "just count the words" was never going to work.
+Don't optimize around any of it.  It explains why the count never quite matches your intuition, and why "just count the words" was never going to work.
 
-## The numbers you actually need
+## The numbers you need
 
 Two cover everything else:
 
@@ -41,13 +41,13 @@ Two cover everything else:
 
 > **A ten-page syllabus is somewhere around 6,500 tokens.**
 
-That is enough precision for every decision you will make.  If you find yourself wanting a more exact figure, you are almost certainly optimising the wrong end of the problem — [what actually costs something](what-actually-costs.md) covers which end is which.
+That is enough precision for every decision you will make.  If you find yourself wanting a more exact figure, you are almost certainly optimizing the wrong end of the problem — [what actually costs something](what-actually-costs.md) covers which end is which.
 
 ## The unit does two jobs, and that is the confusing part
 
 Most of the muddle starts here.
 
-**Tokens are the billing unit.**  Every request adds up what went in and what came out, applies the model's rate, and writes a line to the ledger.  That is money.
+**Tokens are the billing unit.**  Every request adds up what went in and what came out, applies the model's input and output rates, and writes a line to the ledger.  That is money.
 
 **Tokens are also the capacity unit.**  Every model has a limit on how much text it can consider at once — its *context window* — and that limit is counted in the same tokens.  That is space.
 

@@ -205,7 +205,7 @@ A box with a `site/` override **stops inheriting for the file it overrides, sile
 Three known instances, all on the flagship's `librechat.yaml`:
 
 1. The `mcpServers.<prefix>-courses` block (`almanac-courses` unless `MCP_SERVER_PREFIX` says otherwise) and `registrar:8080` under `mcpSettings.allowedAddresses` — without them the front door has no way to take a complaint, and nothing looks wrong.
-2. `maxContextTokens`, sized to **what that box's endpoint actually serves** (`/api/ps` on a loaded model), never what the model supports.  On Ollama these differ silently and by a lot, and too large does not fail the request — it drops the front of the prompt, which is the system prompt.
+2. `maxContextTokens`, sized to **what that box's endpoint actually serves** (`/api/ps` on a loaded model), never what the model supports.  On Ollama these differ silently and by a lot, and too large does not fail the request — the endpoint drops the oldest turns of the conversation silently (and one oversized message can take the system prompt with it).
 3. `almanac-declined` and `content_policy_fallbacks` in that box's `litellm/config.yaml`, if it serves a filtered hosted model.
 
 After editing anything under `site/`, bring the box up with **`just up`** — never a bare `docker compose up -d <service>`, which merges only `compose.yml` and silently recreates the container without your override.

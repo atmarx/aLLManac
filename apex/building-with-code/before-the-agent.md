@@ -92,7 +92,7 @@ A pipeline is the deployment written down as code, so it happens the same way ev
 
 Once deploying is one command, an agent doesn't improvise it, you don't spend tokens walking it through the steps, and **a rollback is a revert plus the same command.**
 
-This platform is built that way.  All of its deployment logic is in one `justfile`.  Its CI pipeline is three lines: connect to the server, sync, run `just deploy`.  Every change, by a person or an agent, is a commit with a reason.  When a fix turns out to have its own bug, the next commit fixes the fix, and the history shows both.  The operators' version is in the repository's `docs/ci.md`.
+This platform is built that way.  All of its deployment logic is in one `justfile`.  Its CI pipeline is three lines: connect to the server, sync, run `just deploy`.  Every change, by a person or an agent, is a commit with a reason.  When a fix turns out to have its own bug, the next commit fixes the fix, and the history shows both.  The operators' version is in the repository.
 
 ## The order
 

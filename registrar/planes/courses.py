@@ -474,9 +474,10 @@ def validate_courses() -> tuple[list[str], list[str]]:
                                     f"conversations will be trimmed almost at once")
                 elif ctx > 200000:
                     # Too HIGH is the dangerous direction, and the danger is
-                    # that it is QUIET.  Ollama truncates the front of an
-                    # over-long prompt and answers anyway — and the front is
-                    # the system prompt.
+                    # that it is QUIET.  Ollama drops the oldest messages of an
+                    # over-long prompt and answers anyway, and one oversized
+                    # message can take the system prompt with it
+                    # (design-walls.md, corrected 2026-10-03).
                     warnings.append(f"{where}.context_tokens is {ctx} — larger than "
                                     f"anything we serve.  If the endpoint serves "
                                     f"less, the front of the prompt (the agent's "

@@ -74,9 +74,9 @@ brew install anomalyco/tap/opencode              # macOS
 
 Four things about that config matter:
 
-- **`tool_call: true`** on each model.  Without it opencode never offers the model any tools, and you have a chat window in a terminal.
+- **`tool_call: true`** on each model.  opencode assumes it when the line is missing; it's here so the setting is visible.  Set it to `false` and opencode offers the model no tools, and you have a chat window in a terminal.
 - **Permissions default to allowed** — opencode runs shell commands and edits files without asking.  Add `"permission": { "bash": "ask" }` at the top level if you want it to ask first, and read [supervising an agent](supervising-an-agent.md) either way.
-- **`limit.context`** is what opencode believes it can send.  Set it to what the model is **served** with — ask your instructor — and never to what the model's documentation says it supports.  Too high and some servers silently drop the front of the prompt, which is where opencode's instructions are.  Too low and it trims your work early.  16384 is the floor, not a recommendation.
+- **`limit.context`** is what opencode believes it can send.  Set it to what the model is **served** with — ask your instructor — and never to what the model's documentation says it supports.  Too high and some servers silently drop the oldest messages — the earlier steps of the task — and a single oversized message can push out opencode's instructions too.  Too low and it trims your work early.  16384 is the floor, not a recommendation.
 - **`{env:CAMPUS_API_KEY}`** keeps the key out of the file, so the file can be committed and the key can't.
 
 **Prove it works:**
@@ -128,6 +128,6 @@ pi has no permission system: it runs whatever the model asks.  Its own docs reco
 
 A model small enough to run on institutional hardware will run the loop and teach you the workflow.  It is not a frontier model, and inside a harness the gap shows: a tool called by the wrong name, a file edited in the wrong place, a confident "done" on work that isn't.
 
-**Tool calling is the fragile part.**  Whether a model can call tools at all depends on the model *and* on how its server is configured — the server has to be told how that model family writes a tool call, and there is no universal setting.  When the server hasn't been told, the model writes something that looks like a tool call into ordinary text, the harness doesn't recognise it, and the loop stalls.  That is a server configuration problem, not yours to fix; [report it](when-it-breaks.md).
+**Tool calling is the fragile part.**  Whether a model can call tools at all depends on the model *and* on how its server is configured — the server has to be told how that model family writes a tool call, and there is no universal setting.  When the server hasn't been told, the model writes something that looks like a tool call into ordinary text, the harness doesn't recognize it, and the loop stalls.  That is a server configuration problem, not yours to fix; [report it](when-it-breaks.md).
 
 The stumbles are the lesson.  You are learning to supervise an agent, and a model that makes visible mistakes is a better teacher of supervision than one whose mistakes are rare enough to stop checking for.  → [Supervising an agent](supervising-an-agent.md)

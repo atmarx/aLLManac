@@ -84,7 +84,7 @@ The version your instructors were handed, with the failure rates and the techniq
 
 Most students do not know this, and you should.
 
-**AI detectors are unreliable, and they are unreliable unevenly.**  Stanford researchers ran seven of them against essays by non-native English writers: **61.3% were flagged as AI-generated**, and **97.8% were flagged by at least one detector**.  On essays by native English writers, the same tools were near-perfect.
+**AI detectors are unreliable, and they are unreliable unevenly.**  [Stanford researchers](https://pmc.ncbi.nlm.nih.gov/articles/PMC10382961/) ran seven of them against essays by non-native English writers: on average **61.3% were flagged as AI-generated**, and **97.8% were flagged by at least one detector**.  On essays by US eighth-graders writing in their first language, the same tools were near-perfect.
 
 The failure is not a bug someone will fix.  Detectors score text as machine-generated when word choice is predictable and sentence construction is simple — a fair description of machine text, and also a fair description of good second-language writing.  The bias is in the method.
 
@@ -95,13 +95,13 @@ So if it happens to you:
 - **Offer your process.**  Outlines, drafts, notes, a conversation about your sources.  A student who did the work can talk about the work.
 - **Keep your drafts.**  Version history costs nothing to have and is the only thing that helps if you ever need it.
 
-Your instructors have been pointed at [the same evidence](integrity-and-detection.md), including the arithmetic: at a **1% false-positive rate**, an institution reading 75,000 submissions a year wrongly accuses 750 students.  Most instructors here will not be running your work through a detector at all.
+Your instructors have been pointed at [the same evidence](integrity-and-detection.md), including the arithmetic: at a **1% false-positive rate**, an institution reading 75,000 submissions a year flags 750 submissions that were the students' own work.  Most instructors here will not be running your work through a detector at all.
 
 ## Say what you used
 
 Where your course permits AI assistance, say what you used.  One line at the end: **what tool, what you used it for, and what you changed about the output.**
 
-Disclosure is documentation, not confession.  Under a permissive policy it is not an admission of anything and it does not cost you marks — it is the same note a professional puts in a methods section.  Get comfortable writing that line now.  You will be writing some version of it for the rest of your career.
+Disclosure is documentation, not confession.  Under a permissive policy it is not an admission of anything and it does not cost you points — it is the same note a professional puts in a methods section.  Get comfortable writing that line now.  You will be writing some version of it for the rest of your career.
 
 ## Know your course's rules, and ask when they are unclear
 

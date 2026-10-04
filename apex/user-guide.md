@@ -22,19 +22,19 @@ tethered_to:
 
 Your class has its own AI service, run by your campus on campus models.  The whole team can build **one shared assistant together**, and every token goes on a ledger your course can see.  This guide covers the three things you'll do:
 
-1. Build a custom GPT (everyone)
+1. Build an agent (everyone)
 2. Build one as a group — and share it with the class (the whole point)
 3. Use the models from code with your API key (opencode)
 
-Faculty: [Teaching a course](teaching-a-course.md) is your playbook, and whoever operates your deployment has the admin guide that covers the machinery behind it.
+Faculty: [Teaching a course](teaching-a-course.md) is your playbook, and the operators keep their own guide to the machinery behind it.
 
 ---
 
-## Part 1 — Your first custom GPT
+## Part 1 — Your first agent
 
-A "custom GPT" here is a LibreChat **Agent**: a system prompt + knowledge files + tools, wrapped in a name.  Anyone can make one.
+An **agent** is what other tools call a custom GPT: a system prompt + knowledge files + tools, wrapped in a name.  Anyone can make one.
 
-Sign in at the chat URL your instructor gave you — use the SSO button (your campus credentials).  There's no separate account to create; logging in *is* creating your account.
+Sign in at the chat URL your instructor gave you — use the SSO button (your campus credentials).  There's no separate account to create — enrolling you made one, and your first sign-in links your campus login to it.
 
 **Create the agent:**
 
@@ -62,7 +62,7 @@ Iterate.  Talk to it.  When it answers wrong, you've found your next instruction
 
 ---
 
-## Part 2 — Group projects: one GPT, whole team
+## Part 2 — Group projects: one agent, whole team
 
 The team shares **one agent**, and everyone with **Editor** access maintains the same instructions and the same files.
 
@@ -106,7 +106,7 @@ Chat needs no key — sign in and go; the ledger already knows who you are.  The
 
 - You fetch it yourself.  In the {{PLATFORM}} chat — where the guides are, not your course's chat — ask the **Coder Guide** for your key ([step by step](building-with-code/your-key.md)).  If you are in more than one course, it asks which.  The reply includes the gateway address too.  It is minted when your instructor enrolls you, so if the guide says you're not on the roster yet, that's the person to ask.  Nobody emails it to you, and nobody else can fetch it for you.
 - One key per course, with your name on it.  In two courses you have two keys, each spending against its own course, and every request made with one is recorded against you.
-- Each key has a budget of its own — a small one, there to catch a runaway loop before it catches your course.
+- Each key has a budget of its own — a small one, there to catch a runaway loop before it catches your course.  It counts dollars, so on a model your deployment records at $0 it never moves; see [your key](building-with-code/your-key.md#what-it-is).
 - **Treat the key like a password.**  Don't commit it to a repo, don't paste it into a shared doc.  If it leaks or you lose it, ask the Coder Guide to **rotate** it — you get a new key, the old one dies, and whatever was left on its budget carries over.  Seconds, and nobody's permission.
 - If you hit your budget, requests start failing with a budget-exceeded error.  That's a conversation, not a punishment — ask your instructor.
 - Where do I stand?  Ask the **Usage Guide** in the {{PLATFORM}} chat, "how much have I used this week?" — it answers with your numbers, chat and API keys combined, without spending your course's budget to do it.  Only ever yours; nobody else's.
@@ -122,8 +122,6 @@ The key works with **any OpenAI-compatible tool** pointed at the campus gateway 
 Install, configure and test it from [Coding harnesses](building-with-code/harnesses.md#opencode) — the config is kept there, in one copy, so it can't drift out of date here.  You'll need two things: the **gateway address**, which comes with your key, and the **context size** its model is served with, which comes from whoever runs your platform — your instructor can find out.
 
 What to expect.  A small campus model runs the coding loop and teaches you the workflow, but it is not a frontier model: expect occasional stumbles — a mis-named tool, a premature "done."  That's part of the lesson — you're learning to supervise an agent, not to trust one.  When the campus gateway grows bigger models, your same config gets better for free.
-
----
 
 ---
 

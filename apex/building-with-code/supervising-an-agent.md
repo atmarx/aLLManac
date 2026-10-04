@@ -34,9 +34,9 @@ A campus model stumbles in ways you can see, if you're reading: a tool called by
 
 ## A human in the loop is not the same as a human paying attention
 
-Having a person press "allow" on every step feels like oversight.  It isn't, on its own.  The thirtieth approval in a session is a reflex, and a reflex is not judgement.
+Having a person press "allow" on every step feels like oversight.  It isn't, on its own.  The thirtieth approval in a session is a reflex, and a reflex is not judgment.
 
-**Supervision means exercising judgement and restraint, based on understanding the work — or at least being curious about it.**  You don't need to know every command by heart.  You need to notice when you don't know one, and treat that as a question to ask before you approve.
+**Supervision means exercising judgment and restraint, based on understanding the work — or at least being curious about it.**  You don't need to know every command by heart.  You need to notice when you don't know one, and treat that as a question to ask before you approve.
 
 - **Not understanding is a reason to ask, not a reason to approve.**  Ask the agent: *"Before you run that, explain what it does and what it will change."*  It costs one message.  The explanation is something else to read, and if it doesn't match the command, you've just caught something.
 - **"No" is a supervising move.**  So are "stop," "don't touch the tests," and "do only the first part, then show me."  A narrower task is easier to check.
@@ -44,9 +44,9 @@ Having a person press "allow" on every step feels like oversight.  It isn't, on 
 
 ## Most harnesses won't ask you
 
-The approval prompt you'd exercise judgement on often doesn't exist.  Of the three harnesses [this site documents](choosing-a-harness.md#three-harnesses-one-tested-here):
+The approval prompt you'd exercise judgment on often doesn't exist.  Of the three harnesses [this site documents](choosing-a-harness.md#three-harnesses-one-tested-here):
 
-- **opencode** allows file edits and shell commands by default, without asking.  Adding `"permission": {"bash": "ask"}` to its config turns asking on, and its built-in Plan agent is read-only.
+- **opencode** allows file edits and shell commands by default, without asking.  Adding `"permission": {"bash": "ask"}` to its config turns asking on, and its built-in Plan agent asks before it edits a file or runs a command.
 - **pi** has no permission system at all, by design, and its own documentation recommends running it in a container or a virtual machine.
 - **Codex** asks only at the edge of its sandbox: it can write inside your project without asking, and asks before going outside it or touching the network.
 
@@ -55,7 +55,7 @@ So for two of the three, by default, the narration scrolling past *is* the check
 1. **Turn asking on**, where the harness lets you.
 2. **Decide where it runs before you start it.**  Work on a fresh branch, in a clean working tree, and commit first, so `git diff` afterward shows exactly what the agent did and nothing else.  New to git?  [Before the agent](before-the-agent.md) has the minimum; read it first.  Never start one from your home directory.  For a harness with no permission system, use the container its authors recommend.
 
-The behaviour above was checked against each project's documentation on 2026-09-22, at the versions listed on [Choosing a harness](choosing-a-harness.md#versions-this-page-was-checked-against).  Harnesses change their defaults; check yours.
+The behavior above was checked against each project's documentation on 2026-09-22, at the versions listed on [Choosing a harness](choosing-a-harness.md#versions-this-page-was-checked-against).  Harnesses change their defaults; check yours.
 
 ## Check the work, not the report
 
@@ -67,9 +67,9 @@ The behaviour above was checked against each project's documentation on 2026-09-
 
 The three harnesses above are the ones this site documents, and only opencode has been run against this platform.  They aren't the only ones you're allowed to use.  New ones appear every week, many with good ideas, most of them young.  If you want to try one, go ahead, but read it the way you'd read an agent's plan:
 
-- **Connect it as an "OpenAI-compatible" or "custom" provider**, pointed at [the gateway](the-gateway.md) with `/v1` on the end.  A harness's built-in Anthropic, Gemini or OpenRouter adapter won't work with your key, however many providers its README lists.
+- **Connect it as an "OpenAI-compatible" or "custom" provider**, pointed at [the gateway](the-gateway.md) with `/v1` on the end.  A harness's built-in Anthropic, Gemini or OpenRouter adapters are untested here, however many providers its README lists; the OpenAI-compatible one is the one known to work.
 - **Find out what it does on its own, before the first run.**  Look for telemetry, cloud sync, session sharing, web search and browsing, and anything that opens a tunnel to the internet.  Turn off what you don't need.  Keep your key in an environment variable, never in a config file the harness might sync.  If the key ever left your machine, [rotate it](your-key.md#replacing-it).
-- **Set its context to what the model is served with.**  Young harnesses tend to assume frontier-sized windows, and some servers [drop the front of a prompt without warning](the-gateway.md#chat-and-code-are-limited-by-different-things) that's too long.
+- **Set its context to what the model is served with.**  Young harnesses tend to assume frontier-sized windows, and some servers [drop the oldest part of a prompt without warning](the-gateway.md#chat-and-code-are-limited-by-different-things) that's too long.
 - **Turn off memory or "self-learning" features for coursework.**  They change how the agent behaves from one session to the next, so "it worked yesterday" stops meaning anything, and what they store can include your code.
 - **Write down what you ran:** harness, version, model.  We can't debug a harness we don't support.  But "harness X, version 1.2, on {{MODEL}}: tool calls never fire" is the kind of result [nobody has measured yet](choosing-a-harness.md#what-we-dont-know-yet), and the report tool in the {{PLATFORM}} chat will take it.
 

@@ -40,7 +40,7 @@ The failure mode makes that worse.  A missing condition does not make the featur
 
 We did not reason our way out of the shared design.  We tried to build it and hit a wall.
 
-Sharing an agent with a class means putting people in a group, and the identity system already knows those groups — the roster built them.  But **LibreChat's share-groups resolve only from its own local source or from Entra.**  The Keycloak `groups` claim arrives in the token and goes nowhere: the ACL system cannot see it.  Upstream [#10006](https://github.com/danny-avila/LibreChat/issues/10006) is open, and the sync PR that would have fixed it died unmerged.
+Sharing an agent with a class means putting people in a group, and the identity system already knows those groups — the roster built them.  But **LibreChat's share-groups resolve only from its own local source or from Entra.**  The Keycloak `groups` claim arrives in the token and goes nowhere: the ACL system cannot see it.  Upstream [#10006](https://github.com/LibreChat-AI/LibreChat/issues/10006) is open, and the sync PR that would fix it ([#13008](https://github.com/LibreChat-AI/LibreChat/pull/13008)) is open but unmerged.
 
 So a shared instance would have meant maintaining every course's membership by hand, in a second place, forever — with the authoritative copy in the identity provider, unreadable.
 
@@ -80,11 +80,11 @@ For most of this platform's life, one room was still shared, and it was the one 
 
 Nobody decided that.  It arrived as one service in the box, and nobody made it per-course; the question we were answering was about conversations.
 
-The design document knew.  The tenancy decision, written in July, contained the line *"pgvector/RAG likely shared (verify file-id isolation)"* — inside a parenthesis, as an aside, in a document that was otherwise right about everything.  It was true when it was written and it stayed true, and nobody verified it.  If you take one operational habit from this essay, take that one: **the caveats you write in brackets are the ones that outlive you.**
+The design document knew.  The tenancy decision, written in July, contained the line *"pgvector/RAG likely shared (verify file-id isolation)"* — inside a parenthesis, as an aside, in a document that was otherwise right about everything.  It was true when it was written and it stayed true, and nobody verified it.  If you take one operational habit from this essay, take that one: **the caveats you write in parentheses are the ones that outlive you.**
 
 It came due twice in one week, and nobody went looking either time.
 
-First the store turned out to be readable by anything on the internal network.  The document service treats a missing secret as *no authentication configured*, not as a reason to refuse to start.  One warning line at boot, which reads like a note about an optional feature.  Found by measurement, closed the same day.
+First the store turned out to be readable by anything on the internal network.  The document service treats a missing secret as *no authentication configured*, not as a reason to refuse to start.  One warning line in its log, which reads like a note about an optional feature.  Found by measurement, closed the same day.
 
 Then — while someone was checking a claim on *this page* — it turned out each course signs its requests with a secret of its own that the shared service did not have.  Nothing was leaking; every call was being rejected.  Knowledge files had never worked on any course instance, and the health check does not take the same path as real requests, so every course booted announcing the document service was up and then refused every real call.  Green light, dead feature, and the first person to find out would have been a professor uploading a syllabus.
 
@@ -96,7 +96,7 @@ The lesson isn't *"instance-per-course wins."*
 
 **Structural isolation has to be kept up across every component, and the place it breaks is never the component you were thinking about.**  We got it right for conversations and agents — those were the subject of the question.  We got a permission check for files — for free, without a decision, from a dependency that came that way.  It survived a design review, a full end-to-end provision, and months of running, and what finally turned it up was somebody verifying a sentence in a documentation page.
 
-The gap in this section now is the cost, not the hole: five containers per course is a real ceiling on one box, and we will meet it before we meet any of the others.
+Two gaps remain: the database server that asks for no password, and the cost — five containers per course is a real ceiling on one box, and we will meet it before we meet any of the others.
 
 ## Try it yourself
 

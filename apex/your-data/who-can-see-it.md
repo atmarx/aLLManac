@@ -67,7 +67,7 @@ Either way, you can only share with people in *your* course.  Another course is 
 
 Someone chose to make sharing possible, and you choose each time you use it.
 
-Sharing an agent, step by step, is in [the course guide](../user-guide.md).
+Sharing an agent, step by step, is in [Using it in a course](../user-guide.md).
 
 ## Paths that can leave the building
 
@@ -88,4 +88,4 @@ If you are building an agent with actions in a course that allows them, you are 
 
 ## If something looks wrong
 
-Access problems, an agent you did not expect to see, a course you should not have: tell your instructor, and they can contact the platform operators.  The boring explanation is usually right, and if it isn't, the sooner someone looks the better.
+Access problems, an agent you did not expect to see, a course you should not have: ask any guide in the {{PLATFORM}} chat to file a report, or tell your instructor.  The boring explanation is usually right, and if it isn't, the sooner someone looks the better.
