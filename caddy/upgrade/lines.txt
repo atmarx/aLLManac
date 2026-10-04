@@ -1,5 +1,6 @@
 # The rotating line under the progress bar on the upgrade page — one per
-# line, shown in a random order every few seconds.  Lines starting with #
+# line, every four seconds, from a random starting line and then in file
+# order, so neighbours are seen together.  Lines starting with #
 # are skipped.  Student-facing: `just docs-corpus` holds these to the same
 # banned-word and no-brand-name lists as the help pages.  Keep them short.
 Reticulating splines

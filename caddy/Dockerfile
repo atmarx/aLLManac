@@ -7,7 +7,12 @@
 # from supported to a hard config error.  A floating base means the edge's
 # certificate behaviour can change on a rebuild nobody thought was a change.
 # docs/tls.md records what was measured, and this is the version it measured.
-FROM caddy:2.11.4-builder AS build
+# By DIGEST, not just tag: Docker Hub rebuilds `caddy:2.11.4` when Alpine
+# ships fixes, and `just build` never re-pulls a base it already has — so a
+# tag-only pin left every box on whatever 2.11.4 it pulled first.  Measured
+# 2026-10-03: a June pull carried 24 fixable criticals (curl, OpenSSL); the
+# 09-17 rebuild, pinned here, carries none.  Same version, newer packages.
+FROM caddy:2.11.4-builder@sha256:369218c81ca6d6af249981221b3a5c764d886dd5b058f51d144066de13f2418d AS build
 # PINNED for the same reason the base is, and it was the one thing here that
 # wasn't.  Bare `--with github.com/caddy-dns/azure` floats to whatever is
 # latest at build time, so the component doing ACME DNS-01 could change on a
@@ -17,7 +22,7 @@ FROM caddy:2.11.4-builder AS build
 # pinning forward would ship an untested module under the guise of a pin.
 RUN xcaddy build --with github.com/caddy-dns/azure@v0.6.0
 
-FROM caddy:2.11.4
+FROM caddy:2.11.4@sha256:0c994536bddb66445885237f1a5dcc1916bccea922661c76b4e9fc24061f9b52
 COPY --from=build /usr/bin/caddy /usr/bin/caddy
 
 # Caddy writes its PKI dirs 0700-root, but other containers (librechat) mount

@@ -656,6 +656,12 @@ def render_fleet(courses: dict) -> None:
       # model files come from the shared hf-cache volume (`just embed-stage`).
       EMBEDDINGS_PROVIDER: huggingface
       EMBEDDINGS_MODEL: "BAAI/bge-small-en-v1.5"
+      # rag_api after 2026-06 stopped building its indexes on boot unless asked.
+      # Every course is a fresh vectordb, so without these a new course never
+      # gets the file_id index its queries filter on.  IF NOT EXISTS: a no-op
+      # on a database that has them, and ignored by older images.
+      PGVECTOR_CREATE_LEGACY_INDEXES: "true"
+      PGVECTOR_CREATE_CMETADATA_GIN_INDEX: "true"
     volumes:
       - hf-cache:/root/.cache/huggingface
     depends_on:

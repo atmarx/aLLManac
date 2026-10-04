@@ -521,6 +521,7 @@ Seven doors found so far, all the same sentence with a different noun: **the sou
 | `scripts/seed_agents.py` | anything at all, until a human runs it | `agents-check` q7 + the GUIDES self-check |
 | an agent that exists | anyone's ability to *see* it | `agents-check` q7 |
 | `caddy:2.11.4` pinned on both stages | `xcaddy --with github.com/caddy-dns/azure`, which had no version | the pin, and the artifact repo |
+| `caddy:2.11.4` pinned **by tag** | the base's packages — Docker Hub rebuilds a tag when Alpine ships fixes, and `just build` never re-pulls a base it has, so every box kept the 2.11.4 it pulled first (a June pull: 24 fixable criticals; the 09-17 rebuild: none) | the digest on both stages (2026-10-03) |
 | `registrar/render.py` | **`render-check` itself**, run by hand against a container older than the change — it rendered the old template and diffed it against files the old template wrote, both sides stale, green | the `justfile` guard that proves the deployed registrar is this tree before believing it |
 
 **The ninth door was the guard for the third one.**  q5 shipped comparing knowledge file *counts*, under a comment asserting "drift this class always moves the count."  That held for nine hours.  A full seed then reported `9 unchanged, 1 embedded, 1 retired` — a page replaced with a changed version, count identical on both sides — and the check read `10 files` before and after, green, on stale knowledge.  It compares content now, from the same per-file `sha` the seeder already recorded.
