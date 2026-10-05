@@ -60,7 +60,7 @@ If you would rather not use the chat, send it to whoever pointed you at this pla
 
 So you do not spend your time on things that are on our list:
 
-- **Backups are half built.**  A nightly backup copies everything off the machine, but the way back from it — a restore — is not built and has never been exercised.  [How long we keep it](your-data/how-long-we-keep-it.md) has the details.
+- **Backups are half built.**  They run nightly, but a restore is not built.  [Backups](your-data/how-long-we-keep-it.md#backups) has the details.
 - **Nothing expires on its own** except a temporary chat, after 30 days — and there is no per-student deletion path.
 - **Some pages on this site are unfinished**, and say so on the page.
 - **Knowledge files belong to the course they were uploaded in.**  They do not follow an agent between courses — if you build an agent in one course and want it in another, the documents get attached again on the other side.  This is a consequence of how courses are kept apart and it is not going to change.

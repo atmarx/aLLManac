@@ -55,6 +55,8 @@ The shape of that growth:
 
 A conversation of eighty turns in this example runs about 1.6 million tokens.  This is the most important fact about using these tools well.  It is invisible from inside the chat window, and it explains the advice at the top of [what actually costs something](what-actually-costs.md).
 
+Those are token counts, and the ledger records them that way.  Some hosted providers discount input they have seen recently — OpenAI's [prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching) is on by default and takes up to 95% off reused tokens — so in dollars the curve can be gentler.  It is still a curve.
+
 ## Why it forgets the beginning specifically
 
 Every model's server has a ceiling on how much it will take at once, and each course on this platform sets its own limit too — a cap on what one conversation can spend, which is not always below what the server takes.  Past the server's ceiling, some servers refuse the request and some drop the oldest turns and answer anyway.

@@ -82,7 +82,7 @@ A course that enables them can also declare a list of domains agents may call.  
 !!! warning "An allowlist narrows; it cannot close"
     If a course enables actions and declares no domains, agents can call anything on the public internet.  An empty list is no list at all, and there is no way to write "allow nothing."  The only switch that closes the path is leaving actions off.
 
-Internal university addresses are refused by default, but the refusal is not permanent: **naming an internal address in the list permits it.**  A carelessly written list can open an internal address that was blocked before anyone wrote a list at all.
+Internal university addresses are refused by default, and **naming one in the list permits it.**  [How the list is read](for-instructors.md#on-actions-and-the-allowlist-precisely) is on the instructors' page.
 
 If you are building an agent with actions in a course that allows them, you are the one deciding where course material goes.  Point it at something you would be comfortable naming out loud.
 

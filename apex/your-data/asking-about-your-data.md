@@ -18,6 +18,8 @@ What follows describes a law in general terms and what this platform can current
 
 ## What FERPA gives you
 
+The Department of Education [lists these rights](https://studentprivacy.ed.gov/ferpa); the regulation itself is [34 CFR Part 99](https://www.ecfr.gov/current/title-34/subtitle-A/part-99).
+
 - **You can inspect and review your education records.**
 - **You can ask to have a record amended** if you believe it is inaccurate or misleading.
 - **You must generally consent before the school discloses personally identifiable information** from those records — with a list of exceptions, one of which covers school officials with a legitimate educational interest.
@@ -29,9 +31,9 @@ What nearly everybody has backwards:
 
 You can look, and you can argue that something is wrong and ask for it to be corrected.  There is no provision that makes the institution erase your records because you would prefer they were gone.
 
-The instinct to expect one is learned, and reasonable.  GDPR has a right to erasure, and several state consumer privacy laws have something like one.  Those regimes are different: different triggers, different obligations, different people covered.  Knowing which regime grants which right is the useful skill.  A right you assume you have is a right you will not ask for correctly.
+The instinct to expect one is learned, and reasonable.  GDPR has a right to erasure, and several state consumer privacy laws have something like one — about twenty states have passed comprehensive consumer privacy laws ([IAPP's tracker](https://iapp.org/resources/article/us-state-privacy-legislation-tracker/) keeps the current count).  Those regimes are different: different triggers, different obligations, different people covered.  Knowing which regime grants which right is the useful skill.  A right you assume you have is a right you will not ask for correctly.
 
-"FERPA does not require it" is not "nobody requires it," though.  State student-privacy statutes frequently *do* address retention and deletion, and there are well over a hundred of them.  Which ones apply to a given deployment is a question for the institution running it.
+"FERPA does not require it" is not "nobody requires it," though.  State student-privacy statutes frequently *do* address retention and deletion, and there are well over a hundred of them — the Future of Privacy Forum [counted almost 120 by 2019](https://fpf.org/press-releases/future-of-privacy-forum-releases-policymakers-guide-to-student-data-privacy/), most of them written for K-12.  Which ones apply to a given deployment is a question for the institution running it.
 
 ## Are chat conversations an education record?
 

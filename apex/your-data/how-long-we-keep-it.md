@@ -78,11 +78,7 @@ If your course has a stable address — `engr301.` instead of `engr301-2026fall.
 
 **There is no per-student deletion path.**  Nothing walks a course database and removes one student's material.
 
-**FERPA does not include a right to erasure.**  It gives students the right to inspect and review their education records, to seek amendment of records they believe are inaccurate or misleading, and to have some control over disclosure.  There is no delete-my-data provision in it.  That instinct comes from GDPR and state consumer privacy laws, which are different regimes with different triggers.
-
-So per-student deletion here is a **policy choice an institution may make**.  It is not an obligation the institution is currently failing.  State student privacy statutes, though, frequently *do* address retention and deletion, and there are well over a hundred of them.  "FERPA does not require it" is not "nobody requires it," and which rules apply to a given deployment is a question for the institution running it.
-
-[Asking about your data](asking-about-your-data.md) covers the requests that do have answers today.
+**FERPA does not include a right to erasure**, so per-student deletion here is a **policy choice an institution may make**.  It is not an obligation the institution is currently failing — though state student-privacy laws may impose one, and which rules apply is a question for the institution running it.  [What FERPA gives you](asking-about-your-data.md#what-ferpa-gives-you) has the rights that do exist and the requests that have answers today.
 
 ## What would have to change
 

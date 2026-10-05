@@ -14,9 +14,7 @@ tags: [accountability, source-verification, academic-integrity, critical-evaluat
 
 **You are fully responsible for what you submit.  A model cannot accept blame; only a person can.**
 
-That is the whole policy.  Whatever helped you produce a piece of work — a language model, a search engine, a colleague, a tutor — the claims in it are yours the moment you put your name on it.  "The AI said so" is not a defense in a course, and it will not be one in a lab, a courtroom, a clinic, or a newsroom.
-
-Faculty and staff use these tools daily, to write and to automate.  Pretending students should not is a fiction, and it teaches them to hide their process.  The workable expectation is the one professionals are already held to — use what you like, and answer for the result.
+That is the whole policy.  Whatever helped you produce a piece of work — a language model, a search engine, a colleague, a tutor — the claims in it are yours the moment you put your name on it.  "The AI said so" is not a defense in a course, and it will not be one in a lab, a courtroom, a clinic, or a newsroom.  [Teaching with AI](index.md#the-principle-underneath-all-of-it) makes the case for the principle.
 
 ## Why verification is the practice that follows
 
@@ -44,7 +42,7 @@ Read that last figure again.  It drives the technique below: **in that study, mo
 
 ## This is not a student problem
 
-After NeurIPS 2025, an audit of accepted papers reported **more than 50 with fabricated citations that had passed peer review.**  (The audit was run by a detector vendor, so weigh the source — but the papers are checkable, and the finding was widely reported and not disputed.)
+After NeurIPS 2025, [an audit of accepted papers](https://gptzero.me/news/neurips/) reported **more than 50 with fabricated citations that had passed peer review.**  (The audit was run by a detector vendor, so weigh the source — but the papers are checkable, and the finding was widely reported and not disputed.)
 
 Say this to a class out loud.  The failure being asked of students is one that professional researchers and a top venue's review process missed at scale.  Verification becomes a discipline everyone now needs, researchers included.
 
@@ -60,7 +58,7 @@ Say this to a class out loud.  The failure being asked of students is one that p
 
 **3. The publication exists, is cited correctly, and does not say that.**  The hard one, the most common in practice, and the only one that requires reading.
 
-*Check:* find the specific claim in the source.  Not the abstract — abstracts routinely overstate relative to the paper's own results.  Ask whether the sample, scope, and conditions match what the citing text implies.
+*Check:* find the specific claim in the source.  Not the abstract — abstracts routinely overstate relative to the paper's own results.  (One study of trials with null primary results found spin in the conclusions of 58% of their abstracts — [Boutron et al., *JAMA*, 2010](https://doi.org/10.1001/jama.2010.651).)  Ask whether the sample, scope, and conditions match what the citing text implies.
 
 Mode three is also where the interesting human failures occur: the telephone-game chain, where a paper cites another paper for a claim that the second paper attributed to a third, which never said it at all.  Once students see one of those traced, they understand the point permanently.
 

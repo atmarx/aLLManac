@@ -26,11 +26,9 @@ Much of the guidance on this topic was written for K-12, so start with three cor
 
 **Your students hold the rights, not their parents.**  FERPA rights transfer from parents to the student when they turn 18 *or enroll in a postsecondary institution at any age* — so in your classroom, the rights holder is the student in front of you, including the sixteen-year-old dual-enrollment student.  Guidance that centers parental consent is describing a different school system.
 
-**No software is "FERPA compliant."**  FERPA binds schools that receive Department of Education funding.  It reaches companies only through the schools that contract with them, so a product cannot carry FERPA approval.  As the former director of the Department's Student Privacy Policy and Assistance Division put it, *"there is no such thing as a 'FERPA seal of approval.'"*  The question is always whether a tool **can be used by the institution in a FERPA-compliant manner** — a question about your use, not about the vendor's marketing.
+**No software is "FERPA compliant."**  FERPA binds schools that receive Department of Education funding.  It reaches companies only through the schools that contract with them, so a product cannot carry FERPA approval.  As the former director of the Department's Student Privacy Policy and Assistance Division put it, *"there is no such thing as a 'FERPA seal of approval'"* ([FPF, 2024](https://fpf.org/wp-content/uploads/2024/10/Ed_AI_legal_compliance.pdf_FInal_OCT24.pdf)).  The question is always whether a tool **can be used by the institution in a FERPA-compliant manner** — a question about your use, not about the vendor's marketing.
 
-**FERPA does not give students a right to deletion.**  It gives them the right to inspect and review their education records, to seek amendment of records they believe are inaccurate or misleading, and to have some control over disclosure of personally identifiable information.  There is no erase-my-data provision.  That instinct comes from GDPR and state consumer privacy laws, which are different regimes with different triggers.
-
-One caveat to that last one: state student privacy statutes frequently *do* address retention and deletion, and there are well over a hundred of them.  "FERPA does not require it" is not the same as "nobody requires it."
+**FERPA does not give students a right to deletion**, though state student-privacy laws may.  [What FERPA gives you](asking-about-your-data.md#what-ferpa-gives-you) has the rights it does give, written for your students.
 
 ### On the standards you may have heard named
 
@@ -68,7 +66,7 @@ Absent a local ceiling, assume this: the platform holds coursework and the recor
 |---|---|---|
 | **Agent actions** | Lets agents in your course call outside web services | An additional route beyond the selected model provider, and the most consequential switch here.  Off by default, and **that default is the control** — see below. |
 | **Outside tool servers (MCP)** | Lets agents in your course call tools on a server outside the platform | Closed until your operators add the server's domain to your course.  Whatever the model sends that server leaves the platform — [Can my course use its own tools?](../your-own-tools.md) has what to settle first. |
-| **Agent sharing** | Lets students share agents with each other | **On** in every course, and not a setting anyone changes per course.  Group work needs it, and the chat software's own default is the wrong one for a classroom.  Nothing is shared unless someone shares it, and sharing does not cross the course boundary. |
+| **Agent sharing** | Lets students share agents with each other | **On** in every course — see [On sharing](#on-sharing-which-is-on) below. |
 | **Conversation share links** | Lets anyone in your course make a link to one of their own conversations | **On** by default, and yours to turn off: your course's admin panel, **Access → User → Shared links**, uncheck **Create**.  A link only opens for someone signed in to your course. |
 | **Knowledge files** | What you upload to a course agent | Anything you attach becomes retrievable by everyone who can use that agent.  Rosters, graded work, and student writing are the ones to think twice about. |
 | **Roster membership** | Who is enrolled | Enrollment is access.  Removing a student revokes their access; it does not erase what they already wrote. |
@@ -106,7 +104,7 @@ How entries are read surprises people writing their first list:
 
 ## If you are using AI to help with grading
 
-Using a model to make or substantially inform decisions about students — grades, flags, referrals — is a different risk category from using one as a writing partner, and it is the use case emerging AI regulation is most interested in.  A defensible approach generally has a human who reviews each decision, a record of how the decision was reached, and students who were told the tool is in the loop.
+Using a model to make or substantially inform decisions about students — grades, flags, referrals — is a different risk category from using one as a writing partner, and it is the use case emerging AI regulation is most interested in — the EU AI Act, for one, lists systems that evaluate learning outcomes as high-risk ([Annex III](https://artificialintelligenceact.eu/annex/3/)).  A defensible approach generally has a human who reviews each decision, a record of how the decision was reached, and students who were told the tool is in the loop.
 
 If you are considering this, talk to your institution's privacy or compliance office before the term starts, not after a grade is contested.
 
@@ -123,7 +121,7 @@ If you are considering this, talk to your institution's privacy or compliance of
 
 So you do not plan around something that is not there:
 
-- **No restore.**  A nightly backup copies everything, uploaded images included, off the machine, but the way back from it is not built and has never been exercised, so plan as if there were no backup.
+- **No restore.**  Backups run nightly, but the way back from them is not built, so plan as if there were no backup.  [Backups](how-long-we-keep-it.md#backups) has the detail.
 - **No retention policy.**  The one automatic deletion is a temporary chat, after 30 days.  Every other conversation stays until someone removes it, and that removal is currently a manual act.
 - **No per-student deletion path.**  Nothing walks a course database and removes one student's material.
 - **No way to deny all outbound domains.**  The allowlist can narrow where agents send requests; it cannot express "nowhere."  Leaving actions off is the only complete answer, and that limit comes from the underlying chat software — it is not a setting waiting to be built.

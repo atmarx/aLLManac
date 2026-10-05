@@ -86,7 +86,7 @@ You never send them to the Registrar's Office, and there's no LMS involved.  Thi
 
 Most people have this backwards: **a backup is not an undo.**
 
-A restore puts a whole database back to the moment a copy was made.  Getting your deleted agent back that way means putting the whole platform — every course — back to that moment, and every conversation your students have had since goes with it.  Nobody trades a week of a class's work for one agent, so "can you restore just this thing" is almost always answered no — and that stays true now that nightly backups run.  Backups are for the day the machine dies.  They won't help with a wrong click.
+A restore puts the whole platform — every course — back to the moment a copy was made ([Backups](your-data/how-long-we-keep-it.md#backups) has how it works), so "can you restore just this thing" is almost always answered no.  Backups are for the day the machine dies.  They won't help with a wrong click.
 
 What gets your work back is having kept it somewhere else.
 
@@ -96,4 +96,4 @@ What gets your work back is having kept it somewhere else.
 
 If something is gone and it matters, **tell the operators the same day**, and name the thing and roughly when it went.  Whatever recovery is possible is bounded by how long any copy lives, and that clock started without you.
 
-Where the platform stands today: [How long we keep it](your-data/how-long-we-keep-it.md) has the current account, and it's half built.  A nightly backup copies everything off the machine, but the way back from it — a restore — is not built and has never been exercised.  Until that changes, plan as though recovery is your job, because mostly it is.
+Where the platform stands today: backups run nightly, and a restore is not built yet — [Backups](your-data/how-long-we-keep-it.md#backups) has the current account.  Until that changes, plan as though recovery is your job, because mostly it is.
