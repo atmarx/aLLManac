@@ -25,7 +25,10 @@ questions, in the order they go wrong:
      or corpus change is inert on the box and NOTHING says so.  Five guides
      were serving knowledge weeks older than the tree while every other
      check was green.  Counts, not contents — cheap, and drift this class
-     always moves the count.  Red means run `just agents-seed`.
+     always moves the count.  Red means run `just agents-seed`.  The one
+     exception: while `_agents-pace` is still landing a rate-limited
+     refresh, drift is a warning that names its log, not a red — it is
+     already being fixed, one upload window at a time.
   6. Can anyone actually tell us something is broken?  `report_problem` is
      an MCP tool, and MCP tool names fail closed and SILENT when they are
      wrong — the feature does not error, it just isn't there.  So this asks
@@ -163,6 +166,22 @@ def visibility() -> dict:
     return out
 
 
+def pacing() -> str | None:
+    """The pid of a paced refresh still landing knowledge, if one is.
+
+    `just agents-refresh` leaves `_agents-pace` running when the upload
+    limiter stops it, and records its pid.  The cmdline test is what makes a
+    stale pid file harmless: a recycled pid is not the pacer.
+    """
+    try:
+        pid = (ROOT / "site" / "agents-pace.pid").read_text().strip()
+        if b"_agents-pace" in pathlib.Path(f"/proc/{int(pid)}/cmdline").read_bytes():
+            return pid
+    except (OSError, ValueError):
+        pass
+    return None
+
+
 def seeded_prompts() -> tuple[dict, bool]:
     """slug -> sha of the SYSTEM-PROMPT the seeder last pushed, and whether
     the state file predates this field.
@@ -222,6 +241,7 @@ def main() -> int:
     cfg = chat_config()
     live = agents()
     state = seeded_files()
+    paced = pacing()
     specs = (cfg.get("modelSpecs") or {}).get("list") or []
     bad = 0
 
@@ -342,7 +362,11 @@ def main() -> int:
             missing = sorted(set(want) - set(got))
             extra = sorted(set(got) - set(want))
             drift = sorted(set(changed) | set(missing) | set(extra))
-            if drift:
+            if drift and paced:
+                print(f"{MEH}{label:20} {aid}  {n} files, {len(drift)} still "
+                      f"landing — a paced refresh (pid {paced}) is uploading "
+                      f"them one window at a time; site/agents-pace.log")
+            elif drift:
                 shown = ", ".join(drift[:3]) + ("…" if len(drift) > 3 else "")
                 print(f"{BAD}{label:20} {aid}  {n} files, {len(drift)} differ "
                       f"from the render ({shown}) — STALE: this guide is "

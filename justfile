@@ -1663,15 +1663,77 @@ agents-seed *flags="":
 # the state file and the deploy stops refreshing until the next hand seed.
 # No docs-corpus here: deploy has just run it.
 #
+# The upload limiter is the other half (docs/design-walls.md, "The file-upload
+# limiter").  Fifty uploads per user per fifteen minutes, and a docs pass that
+# touches every page is 129 of them — three windows.  That used to turn the
+# deploy red and leave the rest to whoever noticed, which on 2026-10-02 was a
+# hand-run loop on two boxes.  A red that clears itself by waiting is noise,
+# so it waits: the seeder exits 75 when the limiter is all that stopped it,
+# and this hands the rest to `_agents-pace` in the background and says so.
+# The prompts and tools are already in by then; only knowledge is behind, and
+# the old knowledge is still attached.  A pace already running means this
+# deploy doesn't knock at all — its next try reads the corpus this deploy
+# just rendered.
+#
 # Refresh the guides if this box has any (deploy runs this)
 agents-refresh:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -uo pipefail
     if [ ! -f site/agents-state.json ]; then
       echo "agents-refresh — no guides seeded on this box yet; the first seed is by hand (just agents-seed), because it mints the ids you paste into librechat.yaml"
       exit 0
     fi
-    python3 scripts/seed_agents.py
+    pid=$(cat site/agents-pace.pid 2>/dev/null || true)
+    if [ -n "$pid" ] && grep -qa _agents-pace "/proc/$pid/cmdline" 2>/dev/null; then
+      echo "agents-refresh — a paced refresh is already running (pid $pid, site/agents-pace.log); its next try picks up this tree"
+      exit 0
+    fi
+    rc=0; python3 scripts/seed_agents.py || rc=$?
+    [ "$rc" -eq 75 ] || exit "$rc"
+    # setsid + nohup: it outlives CI's ssh.  9<&-: deploy's lock fd must not
+    # ride along, or the next deploy waits on a pacer that is only sleeping.
+    setsid nohup "{{just_executable()}}" --justfile "{{justfile()}}" _agents-pace \
+        </dev/null >site/agents-pace.log 2>&1 9<&- &
+    echo $! > site/agents-pace.pid
+    echo "  warn  RATE LIMITED — the rest uploads in the background, one window at a time (site/agents-pace.log)."
+    echo "        Until it lands, agents-check warns on knowledge instead of failing; if it gives up, it tells the desk."
+
+# What agents-refresh leaves running when the limiter stops it.  One try per
+# window, each under the deploy's lock (so never across a restart) and none
+# for longer than eight windows.  It ends one of three ways: landed and
+# agents-check green, which needs no one; or red, or out of windows, which
+# tells the desk — the same notice a failed deploy step sends.
+_agents-pace:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    trap 'rm -f site/agents-pace.pid' EXIT
+    stamp() { echo "$(date -u +%FT%TZ) $*"; }
+    desk() {
+        if {{compose}} exec -T registrar python -c 'import asyncio, sys, reconcile as R
+    print(asyncio.run(R.notify_desk(R.load_courses()["admins"], sys.argv[1], sys.argv[2:])))' \
+            "Guide refresh FAILED on $(hostname -s)" "$@" \
+            "On the box: site/agents-pace.log, then just agents-seed once the window clears." \
+            </dev/null >/dev/null 2>&1; then stamp "told the desk"
+        else stamp "the desk could not be told — the registrar did not answer"; fi
+    }
+    stamp "pacing the guide refresh past the upload limiter (50 per user per 15 min)"
+    for try in 1 2 3 4 5 6 7 8; do
+      sleep "${ALM_PACE_SLEEP:-960}"
+      stamp "try $try"
+      # -E 75: a deploy holding the lock past the wait is one more window, not a failure.
+      rc=0; flock -E 75 -w 1800 . python3 scripts/seed_agents.py || rc=$?
+      case $rc in
+        75) continue ;;
+        0)  rm -f site/agents-pace.pid          # so the check below reads red as red
+            if python3 scripts/agents_check.py; then stamp "landed — agents-check green"; exit 0; fi
+            stamp "landed, but agents-check is red"
+            desk "The paced refresh finished on try $try, but agents-check is red."; exit 1 ;;
+        *)  stamp "seeder failed (exit $rc) — not the rate limit"
+            desk "The seeder failed on try $try (exit $rc) — not the rate limit."; exit 1 ;;
+      esac
+    done
+    stamp "still rate limited after 8 windows"
+    desk "Still rate limited after 8 windows (about two hours).  The old knowledge is still attached."; exit 1
 
 # Read-only, and safe to run any time.  The four ways the vestibule goes
 # wrong, in the order it goes wrong: no modelSpecs block on this box, enforce

@@ -25,7 +25,8 @@ single upload.  Measured, not theorized: it happened here.
 
 So: hash each rendered page, keep what already matches, upload only what
 changed, and detach the old copies only AFTER the new ones are in.  A 429
-mid-run now leaves the previous knowledge attached and working.  The hashes
+mid-run now leaves the previous knowledge attached and working, and the run
+exits 75 so `just agents-refresh` can pace the rest in the background.  The hashes
 live in `site/agents-state.json` — per box, gitignored — but the API is still
 the authority on what is *attached*; the state file only says what content a
 given file_id held, and a file_id the agent no longer carries is re-uploaded
@@ -361,7 +362,7 @@ async function syncFiles(agent) {
   const kept = agent.want.length - todo.length;
   console.log(`    ${kept} unchanged, ${uploaded} embedded, ${stale.size} retired`
               + (failed ? `, ${failed} FAILED` : '') + (limited ? ', RATE LIMITED' : ''));
-  return { state, bad: failed + (limited ? 1 : 0) };
+  return { state, bad: failed, limited };
 }
 
 // The vestibule is locked down: interface.agents.create=false is seeded into
@@ -405,7 +406,7 @@ async function seedAll() {
     for (const a of (JSON.parse(lb).data || [])) { byName.set(a.name, a); byId.set(a.id, a); }
   } catch { console.log(`  (could not read the agent list: ${lr.status} ${lb.slice(0, 100)})`); }
 
-  let made = 0, updated = 0, failed = 0;
+  let made = 0, updated = 0, failed = 0, limited = false;
   const seeded = [];
   for (const a of AGENTS) {
     const prev = (a.id && byId.get(a.id)) || byName.get(a.name);
@@ -526,15 +527,28 @@ async function seedAll() {
     }
 
     seeded.push({ slug: a.slug, name: a.name, id: out, model });
-    if (!SKIP_FILES && a.want && a.want.length) {
+    if (!SKIP_FILES && a.want && a.want.length && limited) {
+      // The window is spent.  Every 429 logs a violation against the owner,
+      // so the guides after the first refusal don't knock at all — they keep
+      // what they had, and the record of it, for the next run to finish.
+      console.log(`    knowledge waits for the next window`);
+      seeded[seeded.length - 1].files = a.known;
+    } else if (!SKIP_FILES && a.want && a.want.length) {
       const out = await syncFiles(a);
       failed += out.bad;
+      limited = limited || out.limited;
       seeded[seeded.length - 1].files = out.state;
     }
   }
   fs.writeFileSync(OUT, JSON.stringify(seeded, null, 2));
-  console.log(`\n${made} created, ${updated} updated, ${failed} failed`);
+  console.log(`\n${made} created, ${updated} updated, ${failed} failed`
+              + (limited ? ', RATE LIMITED — run again after the window' : ''));
+  // 75 is EX_TEMPFAIL: the limiter, and nothing else.  Prompts and tools are
+  // in, the old knowledge is still attached, and the same run in fifteen
+  // minutes finishes the job — so `agents-refresh` paces it rather than
+  // failing the deploy.  Any real failure outranks it.
   if (failed) process.exitCode = 1;   // exit AFTER the finally closes the window
+  else if (limited) process.exitCode = 75;
 }
 """
 

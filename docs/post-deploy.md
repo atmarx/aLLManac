@@ -133,7 +133,9 @@ just agents-seed --skip-files    # prompts only — seconds, not minutes
 
 `agents-refresh` knows a box has guides by `site/agents-state.json`, the seeder's own record of their ids.  No file, no refresh — the deploy says so and steps aside.  Delete that file and the deploy stops refreshing until the next hand seed.
 
-**So `agents-check` red after a deploy means the refresh didn't land**, not that you owe one.  The two usual causes: the box was never seeded (the deploy said so, just above the check), or the upload rate limit — 50 per user per 15 minutes — stopped the refresh partway.  The second clears itself; wait out the window and `just agents-seed`.
+**The upload rate limit doesn't turn the deploy red.**  It's 50 per user per 15 minutes, and a docs pass that touches every page goes past it.  When that's all that stopped the refresh, `agents-refresh` prints `warn  RATE LIMITED` and leaves a pacer running in the background, which retries once per window until the knowledge is all in (`site/agents-pace.log`).  Until then `agents-check` shows the guides still catching up as `warn … still landing`, and the old knowledge keeps answering.  You don't need to do anything.  If it gives up after eight windows, or hits a different failure, it tells the desk.
+
+**So `agents-check` red after a deploy means the refresh didn't land**, not that you owe one.  The usual cause is that the box was never seeded (the deploy said so, just above the check).
 
 ### 3.  `just fleet-smoke` — prove the courses answer
 
@@ -219,7 +221,7 @@ After editing anything under `site/`, bring the box up with **`just up`** — ne
 | `egress-check` Layer 5: a panel's `API_SERVER_URL` doesn't go through the edge, or a config write "reached LibreChat" | A render from before 2026-10-02: `just render`, then `just egress-check`.  Still red with a current render: the admin-config wall isn't holding — stop and read [design-walls.md](design-walls.md), "...but the admin config API does" |
 | `course-tokens-check` says a token was **accepted** where it should be refused | The per-course boundary isn't holding.  Not a render — stop and read [design-walls.md](design-walls.md), "A course's MCP token speaks for that course alone" |
 | `render-check` FAILs on the registrar not matching the tree | `just deploy` first; the check is refusing to guess |
-| `agents-check` red on knowledge or prompt (STALE) | The deploy's refresh didn't land — read the `agents-refresh` output above it.  Never seeded: `just agents-seed`.  RATE LIMITED: wait fifteen minutes, then `just agents-seed` |
+| `agents-check` red on knowledge or prompt (STALE) | The deploy's refresh didn't land — read the `agents-refresh` output above it.  Never seeded: `just agents-seed`.  A desk notice from the pacer: read `site/agents-pace.log` |
 | `agents-check` reports an orphan spec | A `modelSpecs` entry points at an agent id that no longer exists — re-seed, then paste the reprinted block ([Admin Guide](admin-guide.md)) |
 | `smoke` warns openbao is SEALED | Never red — sealed is a boot state, and chat still works on the keys already rendered.  But nothing can mint or fetch a key until `just bao-unseal`.  On a box with `just fleet-watch-install`, a reboot unseals itself; `journalctl --user -u almanac-unseal` says why it didn't |
 | `oidc-settle` FAILs on an instance | It restarted it and sign-in still isn't registered.  Check `just logs chat-<slug>` (or `librechat`) for `openidStrategy`: an issuer the container can't reach, not a boot race |
