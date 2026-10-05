@@ -179,8 +179,9 @@ async def kc_ensure_autolink(cx: httpx.AsyncClient) -> str:
         rr = await _kc(cx, "POST", "/authentication/flows",
                        json={"alias": AUTOLINK_FLOW, "providerId": "basic-flow",
                              "topLevel": True, "builtIn": False,
-                             "description": "aLLManac: link IdP logins to the "
-                                            "roster-created realm user by email"})
+                             "description": f"{PLATFORM}: create a realm user for "
+                                            "a new IdP login, or link it to the "
+                                            "roster-created one by email"})
         if rr.status_code not in (201, 409):
             rr.raise_for_status()
     path = f"/authentication/flows/{AUTOLINK_FLOW.replace(' ', '%20')}/executions"

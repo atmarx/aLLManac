@@ -25,7 +25,7 @@ That file is a list of **walls** — questions already answered the expensive wa
 - **opencode** — image org, provider shape, and the ≥16k context floor
 - **`fastmcp`** — `get_http_headers()` silently strips `authorization`
 - **`just`** — `dotenv-load` snapshots `.env` at invocation start, and it dedents recipe bodies (heredocs must stay indented)
-- **Keycloak realm import** — it runs every boot and skips only realms that already exist, so renaming a realm file mints a second realm on a live box; and its default user profile lets people edit their own email, which `just realm-lock` closes on every deploy
+- **Keycloak realm import** — it runs every boot and skips only realms that already exist, so renaming a realm file mints a second realm on a live box; and its default user profile lets people edit their own email, which `just realm-lock` closes on every deploy — and that lock is what makes the open first IdP login (create-or-link by email) safe
 - **Mounts** — never bind-mount a single file that gets rewritten; OpenBao rafts into `/openbao/file` or crash-loops, and its audit device exists only as a block in `config.hcl`
 - **The upgrade page** — `handle_errors 502 503 504` catches only errors Caddy raises, never a 5xx an upstream answers; the snippets live in the tracked Caddyfile and rendered vhosts import them (so `just render` after a deploy); `config-refresh` skips `status/`; `just` doesn't forward a SIGTERM to the running recipe; a stuck flag is `rm status/upgrading`
 - **Reboots** — `depends_on` is ignored on a reboot, so LibreChat loses its one-shot OIDC discovery race with Keycloak and sign-in 500s behind a green `smoke`; `just oidc-settle` is the probe and the repair
