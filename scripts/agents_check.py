@@ -321,6 +321,12 @@ def main() -> int:
             print(f"{BAD}{label:20} {aid}  no file_search tool — "
                   f"it cannot reach its knowledge")
             bad += 1
+        elif not n and paced:
+            # A first seed past the limiter: the pacer is filling it, and its
+            # own closing check turns this red if it never fills.
+            print(f"{MEH}{label:20} {aid}  0 files yet — a paced first seed "
+                  f"(pid {paced}) is filling it; until then it answers from "
+                  f"the base model.  site/agents-pace.log")
         elif not n:
             print(f"{BAD}{label:20} {aid}  0 files — it will answer from the "
                   f"base model, which is the failure the contract exists to stop")
