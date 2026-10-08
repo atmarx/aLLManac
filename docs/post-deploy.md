@@ -51,7 +51,7 @@ Two of those are worth knowing by name because people re-run them by hand and ge
 
 `deploy` runs each of those as its own `just`, with the upgrade page's status board written around it.  Same steps, same order, same exit code when one fails.  The next section is what that means for you.
 
-**A green deploy is a green control plane, not a green fleet.**  `smoke` proves LibreChat, Keycloak, LiteLLM and the escrow are answering.  It says nothing about whether `engr301-2026fall.<domain>` resolves, holds a cert, and returns a login page — that's `fleet-smoke`, and it is deliberately not in the deploy.
+**A green deploy is a green control plane, not a green fleet.**  `smoke` proves LibreChat, Keycloak, LiteLLM and the escrow are answering, and asks the chat model for one token.  It says nothing about whether `engr301-2026fall.<domain>` resolves, holds a cert, and returns a login page — that's `fleet-smoke`, and it is deliberately not in the deploy.
 
 ## The upgrade page
 
@@ -224,6 +224,7 @@ After editing anything under `site/`, bring the box up with **`just up`** — ne
 | `agents-check` red on knowledge or prompt (STALE) | The deploy's refresh didn't land — read the `agents-refresh` output above it.  Never seeded: `just agents-seed`.  A desk notice from the pacer: read `site/agents-pace.log` |
 | `agents-check` reports an orphan spec | A `modelSpecs` entry points at an agent id that no longer exists — re-seed, then paste the reprinted block ([Admin Guide](admin-guide.md)) |
 | `smoke` warns openbao is SEALED | Never red — sealed is a boot state, and chat still works on the keys already rendered.  But nothing can mint or fetch a key until `just bao-unseal`.  On a box with `just fleet-watch-install`, a reboot unseals itself; `journalctl --user -u almanac-unseal` says why it didn't |
+| `smoke` warns the chat model does NOT answer | Never red — inference lives outside the box, and a red `smoke` would stop the deploy before the checks after it.  But it means every chat on that model is failing right now.  Check `INFERENCE_BASE_URL`, the box's key on that endpoint, and whether the endpoint serves the model `INFERENCE_MODEL` names.  On 2026-10-07 the docker host's inference box became a hypervisor, and course chat was down for a day behind a green deploy |
 | `oidc-settle` FAILs on an instance | It restarted it and sign-in still isn't registered.  Check `just logs chat-<slug>` (or `librechat`) for `openidStrategy`: an issuer the container can't reach, not a boot race |
 | Nobody can sign in after a reboot, and `smoke` is green | `just oidc-settle`.  `smoke`'s LibreChat and Keycloak lines both pass while every sign-in 500s.  A box whose boot unit predates 2026-09-29 needs `just fleet-watch-install` once to get the boot-time settle |
 | Students see the upgrade page after the deploy finished | `ls status/upgrading` — if it's there and no deploy is running, `rm status/upgrading` ([above](#the-upgrade-page)).  If it isn't, the page is the passive one and a service is down: `just ps` |

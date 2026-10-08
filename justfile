@@ -520,6 +520,21 @@ smoke:
     check "librechat (UI)"     "http://localhost:${CHAT_PORT:-3080}/"
     check "admin panel"        "http://localhost:${ADMIN_PANEL_PORT:-3082}/"
     check "litellm (gateway)"  "http://localhost:${GATEWAY_PORT:-4000}/health/liveliness"
+    # A live gateway is not a working chat.  The docker host served 500s on
+    # every course message for a day (2026-10-07) behind a green smoke: its
+    # inference box became a hypervisor, and liveliness only asks LiteLLM
+    # about itself.  So ask the chat model for one token.  A warning, never
+    # a FAIL: inference is outside this box, a cold model can take a minute,
+    # and a red smoke would stop the deploy before the checks that matter.
+    # The key goes in as a header on stdin, never on curl's argv.
+    code=$(printf 'Authorization: Bearer %s\n' "${LITELLM_MASTER_KEY:-}" | curl -s -o /dev/null -w '%{http_code}' --max-time 90 -H @- \
+        -H 'Content-Type: application/json' "http://localhost:${GATEWAY_PORT:-4000}/v1/chat/completions" \
+        -d "{\"model\": \"${CHAT_MODEL:-almanac-chat}\", \"messages\": [{\"role\": \"user\", \"content\": \"ok\"}], \"max_tokens\": 1}" || true)
+    if [ "$code" = 200 ]; then
+        echo "  ok    ${CHAT_MODEL:-almanac-chat} answers"
+    else
+        echo "  warn  ${CHAT_MODEL:-almanac-chat} does NOT answer (HTTP ${code:-none}) — chat is down for everyone on it; check INFERENCE_BASE_URL"
+    fi
     check "usage-mcp (stats)"  "http://127.0.0.1:${USAGE_MCP_PORT:-8090}/health"
     check "registrar (rosters)" "http://127.0.0.1:${REGISTRAR_PORT:-8091}/health"
     # sealed/uninitialized read as 200 here — a sealed bao is a boot state,
