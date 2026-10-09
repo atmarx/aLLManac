@@ -154,6 +154,8 @@ That stamps `metadata.owner` and `metadata.tags: ["owner:engr301"]` into the key
 
 The recipe prints **metadata, never the key**.  The key is retrievable — that's what the escrow is for — but reading it back is a deliberate, audited act (`just key-show`), not a line of terminal scrollback you have to go find later.  Rotation preserves the remaining fuse; it is not a budget reset.
 
+**Raising the fuse reaches keys people already hold — after a reconcile.**  A key keeps the fuse it was minted with, so editing `key_fuse` in `courses.yaml` changes new keys only until `just course-reconcile <slug>` runs; then every live key in the course rises by the difference.  A key rotated after spending keeps that spend against it: $5 fuse, $2.30 spent, rotated to $2.70, fuse raised to $20 — that key now holds $17.70.  It only goes up: a lowered `key_fuse` applies to keys minted afterward, and no live key is cut below what it has spent.  The `$25` ceiling (`REGISTRAR_MAX_FUSE`) still clamps, and the course pool still stops every key at the gateway.
+
 **Lifecycle** (all verified against our pinned build):
 
 | Action | How |

@@ -102,7 +102,7 @@ GATEWAY_HOST = os.environ.get("GATEWAY_HOST", "").strip()
 # fixture resets their tickets, and notifications never go to them.
 REHEARSAL_DOMAIN = "@almanac.invalid"
 
-DEFAULT_FUSE = float(os.environ.get("REGISTRAR_DEFAULT_FUSE", "5"))
+DEFAULT_FUSE = float(os.environ.get("REGISTRAR_DEFAULT_FUSE", "20"))
 MAX_FUSE = float(os.environ.get("REGISTRAR_MAX_FUSE", "25"))
 # Below this a key can't fund a short working session, so minting one just
 # produces a credential that looks broken.  PLACEHOLDER — nobody has measured

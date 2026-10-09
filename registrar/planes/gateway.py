@@ -71,6 +71,16 @@ async def ll_update_key(cx: httpx.AsyncClient, key: str, budget: float,
     r.raise_for_status()
 
 
+async def ll_set_key_budget(cx: httpx.AsyncClient, key: str, budget: float) -> None:
+    """A student key's ceiling and nothing else — the fuse lift in
+    ensure_course.  Not ll_update_key: that also rewrites the model list, and
+    a student key's models are the course's at birth for a reason the lift
+    has no business overruling."""
+    r = await cx.post(f"{LITELLM_URL}/key/update", headers=_ll_headers(),
+                      json={"key": key, "max_budget": budget})
+    r.raise_for_status()
+
+
 async def ll_delete_key(cx: httpx.AsyncClient, key: str) -> bool:
     r = await cx.post(f"{LITELLM_URL}/key/delete", headers=_ll_headers(),
                       json={"keys": [key]})

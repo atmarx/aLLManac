@@ -893,6 +893,15 @@ course slug name +instructors:
     {{compose}} exec -T registrar python course_admin.py create "{{slug}}" "{{name}}" {{instructors}} </dev/null
     @{{just_executable()}} course-up
 
+# Re-run a course's provisioning against courses.yaml as it is now — team,
+# service key, roles, renders — and enroll everyone on `students:`.  This is
+# also what carries a raised `key_fuse` onto keys people already hold: a key
+# keeps the fuse it was born with until this runs, and then rises by the
+# difference (a rotated key keeps its debt).  Up only.  Idempotent.
+#   just course-reconcile engr301-2026fall
+course-reconcile slug:
+    {{compose}} exec -T registrar python course_admin.py reconcile "{{slug}}" </dev/null
+
 # Start newly rendered instances + reload the edge's vhosts (graceful).
 #
 # Serialized on a lock since 2026-09-22, when this got a second caller: the

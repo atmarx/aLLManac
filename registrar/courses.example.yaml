@@ -52,7 +52,7 @@ courses:
     tas: []
     budgets:
       course: 1000
-      key_fuse: 5
+      key_fuse: 20
       advisory_weekly: 2
     # models: omit it and the course gets REGISTRAR_BASE_MODELS, which is
     # CHAT_MODEL unless the site serves more than one.  List models here only
@@ -89,7 +89,7 @@ courses:
     tas: []
     budgets:
       course: 1000
-      key_fuse: 5
+      key_fuse: 20
       advisory_weekly: 2
     group: ""
     students:

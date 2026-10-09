@@ -51,6 +51,7 @@ from .gateway import (
     ll_ensure_team,
     ll_key_spend,
     ll_mint_key,
+    ll_set_key_budget,
     ll_team_census,
     ll_team_remaining,
     ll_update_key,
@@ -162,7 +163,8 @@ async def _enroll_one(cx: httpx.AsyncClient, slug: str, course: dict,
             fuse = await _fuse_for(cx, slug, course["budgets"]["key_fuse"])
             await _mint_escrowed(cx, slug, email,
                                  course_models(course, courses), fuse, email,
-                                 alias=f"{slug}:{email}")
+                                 alias=f"{slug}:{email}",
+                                 extra={"fuse": course["budgets"]["key_fuse"]})
             note = (note + " minted+escrowed").strip()
         else:
             note = (note + " already escrowed").strip()
@@ -280,7 +282,10 @@ async def rotate_student_key(slug: str, email: str) -> dict:
         fuse = course["budgets"]["key_fuse"]
         remaining = fuse
         old_key = old.get("key")
-        extra: dict = {"rotated_from": old.get("minted_at")}
+        # The fuse this key's line was born under travels with it, so a
+        # later raise of key_fuse lifts it by the difference (ensure_course).
+        extra: dict = {"rotated_from": old.get("minted_at"),
+                       "fuse": old.get("fuse", fuse) if old_key else fuse}
         if old_key:
             spent = await ll_key_spend(cx, old_key)
             if spent is None:
@@ -288,7 +293,12 @@ async def rotate_student_key(slug: str, email: str) -> dict:
                 # guessing here makes rotation a refill on demand — the exact
                 # thing this docstring says the floor was removed to stop.
                 raise MeterUnreadable(old_key)
-            remaining = round(max(0.0, fuse - spent), 2)
+            # What THIS key had left, not the course fuse minus this key's
+            # spend.  The meter is per key, so after one rotation `fuse -
+            # spent` forgot everything the first key spent: $5, spend $2.30,
+            # rotate to $2.70, spend $1, rotate — and the old sum handed
+            # back $4 where $1.70 was left.  A refill on the second rotation.
+            remaining = round(max(0.0, old.get("budget", fuse) - spent), 2)
 
         # Clamp and gate BEFORE revoking anything: a refusal has to leave the
         # caller exactly as they were, still holding a working key.
@@ -334,8 +344,45 @@ async def mint_key(slug: str, email: str, budget: float | None = None) -> dict:
             cx, slug, budget if budget else course["budgets"]["key_fuse"])
         rec = await _mint_escrowed(cx, slug, email,
                                    course_models(course, courses), fuse,
-                                   email, alias=f"{slug}:{email}")
+                                   email, alias=f"{slug}:{email}",
+                                   extra={"fuse": budget if budget else
+                                          course["budgets"]["key_fuse"]})
     return {**rec, "already": False}
+
+
+async def _lift_fuses(cx: httpx.AsyncClient, slug: str, fuse: float) -> str:
+    """Raise every live student key to a raised key_fuse — by the difference.
+
+    A key carries the fuse it was born with (ll_update_key), so before this
+    raising key_fuse in courses.yaml changed new keys only: the student who
+    ran out was still holding the old number, and a $5 fuse on a coding
+    agent is an afternoon (2026-10-08).  Now `just course-reconcile` brings
+    every key up.  By the DIFFERENCE, not to the new number, so a rotated
+    key keeps its debt: $5 fuse, $2.30 spent, rotated to $2.70 — raise the
+    fuse to $20 and that key goes to $17.70, not $20.
+
+    Up only.  A lowered fuse applies to keys minted after it; cutting a live
+    key below what it has spent would stop it dead mid-session with nothing
+    to say why.  Not clamped to the pool either — the pool still stops
+    every key at the gateway, so the lift can't overspend it.
+
+    A record from before `fuse` was kept counts its own budget as its fuse.
+    For a key never rotated that is exact; for a rotated one it forgives
+    what the earlier keys spent, once, and only on a raise.
+    """
+    lifted = 0
+    for who in await escrow_holders(slug):
+        rec = await escrow_read(slug, who)
+        if not rec or not rec.get("key") or rec.get("revoked_at"):
+            continue
+        born = float(rec.get("fuse", rec.get("budget", fuse)))
+        if fuse <= born:
+            continue
+        budget = round(float(rec.get("budget", born)) + (fuse - born), 2)
+        await ll_set_key_budget(cx, rec["key"], budget)
+        await escrow_write(slug, who, {**rec, "budget": budget, "fuse": fuse})
+        lifted += 1
+    return f"{lifted} key(s) raised to the ${fuse:g} fuse" if lifted else "none owed"
 
 
 async def ensure_course(slug: str) -> dict:
@@ -367,6 +414,8 @@ async def ensure_course(slug: str) -> dict:
             await ll_update_key(cx, svc["key"], course["budgets"]["course"],
                                 models)
             summary["service_key"] = "already escrowed (budget + models synced)"
+        summary["fuse_lift"] = await _lift_fuses(cx, slug,
+                                                 course["budgets"]["key_fuse"])
         client_uuid, client_secret = await kc_ensure_client(cx, slug)
         roles = await kc_ensure_client_roles(cx, client_uuid)
         summary["oidc_client"] = slug
