@@ -139,6 +139,22 @@ DIRECTORY = """\
 PLATFORM = (os.environ.get("PLATFORM_NAME") or os.environ.get("DOCS_PRODUCT_NAME")
             or "aLLManac").strip()
 
+# Today's date, which no model knows.  Without it a guide guesses — from its
+# training, or from the newest date in its own files — and someone in the
+# first cohort was told it was 10-02 on 10-08 (2026-10-08).  LibreChat fills
+# {{current_datetime}} in agent instructions itself (data-provider's
+# replaceSpecialVars, v0.8.7), so this is the one {{...}} that reaches the
+# seeded prompt unfilled, and fill() is never handed it.  The value is the
+# conversation's START, not this turn's: LibreChat anchors it to the
+# conversation's createdAt (agents/request.js), so a chat reopened a week
+# later still says the day it began.  So the line says "began", and tells
+# the guide what to do with that.  docs/agent-contract.md, "The date line".
+CLOCK = ("This conversation began {{current_datetime}}.  Use that as today's "
+         "date.  A conversation can be reopened days later, so when the date "
+         "matters to an answer, say it is the day this conversation began.  "
+         "Dates in your files are when something was written or decided, "
+         "never today's date.")
+
 # The chat model's public name, which a student types into a harness config.
 # CHAT_MODEL names it at the gateway (litellm/config.yaml), so the pages say
 # {{MODEL}} and get the name this deployment actually serves.
@@ -531,7 +547,7 @@ def main() -> int:
             (d / "SYSTEM-PROMPT.md").write_text(
                 f"<!-- rendered from docs/agent-contract.md by `just docs-corpus` "
                 f"— edit the source, not this -->\n\n{brand(scope)}\n\n"
-                f"{fill(preamble, block)}\n")
+                f"{fill(preamble, block)}\n\n{CLOCK}\n")
             (d / "EVALS.md").write_text(
                 f"# {guide} — eval cases\n\n"
                 "<!-- rendered from docs/agent-contract.md — edit the source -->\n\n"
@@ -545,7 +561,7 @@ def main() -> int:
     (d / "SYSTEM-PROMPT.md").write_text(
         "<!-- rendered from docs/agent-contract.md by `just docs-corpus` "
         "— edit the source, not this -->\n\n"
-        + fill(welcome(contract_body)) + "\n")
+        + fill(welcome(contract_body)) + "\n\n" + CLOCK + "\n")
 
     # A term no corpus page uses anywhere is a name the platform has stopped
     # using — or never had.  Six agents reciting it is the doc-drift failure
