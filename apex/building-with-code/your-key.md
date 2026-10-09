@@ -32,10 +32,18 @@ Copy it somewhere safe.  That conversation now contains a password, so treat it 
 
 - **Per person, per course.**  In two courses, you have two keys, and each spends against its own course.  Use the right one — the spend goes where the key belongs, not where you meant it to.
 - **It has your name on it.**  Every request made with it is recorded against you.  There is no anonymous mode, and a key you share is a key whose spending is still yours.
-- **It has a budget of its own**, called the fuse — a few dollars unless your course sets a different number.  It exists to stop a runaway loop: one script stuck retrying all weekend hits its own ceiling long before it can drain anyone else's.
+- **It has a budget of its own**, called the fuse — $20 unless your deployment or your course sets a different number.  It exists to stop a runaway loop: one script stuck retrying all weekend hits its own ceiling long before it can drain anyone else's.
 - **It can call the models your course had when it was minted.**  A model added to the course later does not appear on a key that already exists.  Rotating the key (below) picks up the current list.
 
 **Whether the fuse ever trips depends on how your deployment prices its models.**  The fuse counts dollars, and dollars only exist for a model that has a price in the gateway's config.  A model running on your institution's own hardware may be recorded at zero, in which case your key's spend reads $0 and the fuse never moves — the tokens are still counted, under your name, but they cost nothing on that meter.  A hosted model with a real price is where the fuse means something.
+
+## When it runs out
+
+**A spent fuse stays spent.  It does not reset on a schedule** — not overnight, not weekly, not at the start of a month.  Waiting will not bring the key back, and neither will rotating it (below).  What brings it back is a person: your instructor asks the course's admin to raise the fuse, and once that's applied, the key you already have works again with the difference added.  Nothing to re-paste.
+
+So if your harness starts answering with a budget error, ask the **Coder Guide** about your key: `my_key` says what it has spent and what's left, so you can tell your instructor a number, not "it stopped."  If the guide ever names a time your key will come back by itself, it is wrong — there is no such time.
+
+If the whole course stopped at once, chat included, that's the course pool, not your fuse — [teaching a course](../teaching-a-course.md) covers it, and it's your instructor's call too.
 
 ## Replacing it
 

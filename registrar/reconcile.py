@@ -98,6 +98,7 @@ from planes.verbs import (
     fleet_access,
     fleet_exposure,
     fleet_inventory,
+    key_spent,
     mint_key,
     nominate_agent,
     nominations,

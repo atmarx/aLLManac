@@ -515,10 +515,28 @@ async def my_key(course: str = "") -> str:
             "sync that mints it may still be running.  Try again in a "
             "minute, or ask your instructor to re-apply the roster."
         )
+    # Spent and left, from the gateway, so "when will my key work again"
+    # gets an answer from a fact instead of a guess.  A guide asked exactly
+    # that on 2026-10-08, invented a reset, and counted down to it from the
+    # wrong date.  Nothing resets a fuse, so the tool says so when it's out.
+    fuse = rec.get("budget")
+    spent = await reconcile.key_spent(rec["key"])
+    if spent is None or not isinstance(fuse, (int, float)):
+        meter = (f"Budget fuse: ${fuse} — I can't read what it has spent "
+                 "right now.") if fuse is not None else "Budget fuse: unknown."
+    else:
+        left = max(0.0, fuse - spent)
+        meter = f"Budget fuse: ${fuse:.2f} · spent ${spent:.2f} · left ${left:.2f}."
+        if left < 0.01:
+            meter += ("  This key's fuse is spent.  It does not reset on a "
+                      "schedule, so waiting won't bring it back and rotating "
+                      "won't either.  It works again when the course's admin "
+                      "raises the fuse — ask your instructor, and give them "
+                      "these numbers.")
     return (
         f"Your {course.get('name', slug)} API key (course: {slug}):\n\n"
         f"    {rec['key']}\n\n"
-        f"Budget fuse: ${rec.get('budget', '?')} · minted {rec.get('minted_at', '?')}\n"
+        f"{meter}  Minted {rec.get('minted_at', '?')}.\n"
         + (f"Gateway: https://{reconcile.GATEWAY_HOST}/v1\n"
            if reconcile.GATEWAY_HOST else "")
         + "Point opencode (or any OpenAI-compatible client) at the gateway "

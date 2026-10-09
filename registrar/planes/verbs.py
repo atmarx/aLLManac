@@ -322,6 +322,16 @@ async def rotate_student_key(slug: str, email: str) -> dict:
         return rec
 
 
+async def key_spent(key: str) -> float | None:
+    """What one key has spent, for a tool to say out loud — None if the
+    gateway won't say, and the caller says THAT rather than a number."""
+    async with httpx.AsyncClient(timeout=15) as cx:
+        try:
+            return await ll_key_spend(cx, key)
+        except httpx.HTTPError:
+            return None
+
+
 async def mint_key(slug: str, email: str, budget: float | None = None) -> dict:
     """The operator's mint — a staff test key, escrowed like every other.
 
