@@ -539,7 +539,7 @@ async def my_key(course: str = "") -> str:
         f"{meter}  Minted {rec.get('minted_at', '?')}.\n"
         + (f"Gateway: https://{reconcile.GATEWAY_HOST}/v1\n"
            if reconcile.GATEWAY_HOST else "")
-        + "Point opencode (or any OpenAI-compatible client) at the gateway "
+        + "Point pi, opencode, or any OpenAI-compatible client at the gateway "
         "with this key — the help site's harness page has the provider block.  This key is "
         "YOURS: it spends your course's pool under your name."
     )

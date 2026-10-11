@@ -38,7 +38,7 @@ If you have shipped things with `.env` files and they were fine, they probably w
 
 ## What broke
 
-Every student in every course gets their own API key to the gateway — for opencode, for a notebook, for anything that speaks the OpenAI protocol.  The registrar mints it when they're enrolled, and the gateway shows it exactly once, at the moment of creation.
+Every student in every course gets their own API key to the gateway — for pi or opencode, for a notebook, for anything that speaks the OpenAI protocol.  The registrar mints it when they're enrolled, and the gateway shows it exactly once, at the moment of creation.
 
 That last part is what forced the issue.  **A student has to be able to ask for their key again** — on a new laptop, a week later, after they lost the terminal it was printed in.  So the key has to be stored somewhere it can be read back.  And once you're storing minted keys, the environment file stops fitting in several ways at once:
 

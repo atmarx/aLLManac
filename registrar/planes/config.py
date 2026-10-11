@@ -94,7 +94,7 @@ SMTP_FROM = (os.environ.get("SMTP_FROM", "").strip()
 # and what validate_courses checks to refuse minting courses at
 # <slug>.localhost on a box that clearly isn't one.
 CHAT_HOST = os.environ.get("CHAT_HOST", "chat.localhost")
-# The gateway's public name — what a student points opencode at.  my_key
+# The gateway's public name — what a student points a harness at.  my_key
 # says it, so nobody has to find it on a page.
 GATEWAY_HOST = os.environ.get("GATEWAY_HOST", "").strip()
 # Evaluation identities (scripts/run_evals.py) live on the reserved .invalid

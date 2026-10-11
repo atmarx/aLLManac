@@ -1,6 +1,6 @@
 ---
 title: What is a coding harness, and how do I run one here?
-description: A harness is the program that turns a model into an agent — it runs the loop, executes the tools, and re-sends everything every step.  What that loop costs, how to point opencode at the gateway, and what a campus model will and won't do inside it.
+description: A harness is the program that turns a model into an agent — it runs the loop, executes the tools, and re-sends everything every step.  What that loop costs, how to point pi (or opencode, or Codex) at the gateway, and what a campus model will and won't do inside it.
 audience: student
 also_reaches: [faculty, builder]
 status: draft
@@ -31,12 +31,57 @@ Step 1 is the conversation-is-the-context rule from [Understanding your usage](.
 
 For you, that means:
 
-- **A harness's instructions and tool list cost you on every step before you have said anything.**  For opencode that is roughly eight thousand tokens of its own.  It needs a model served with **at least 16k of context**; with anything smaller it spends its whole window on itself.
+- **A harness's instructions and tool list cost you on every step before you have said anything.**  For pi, the first step of a small task measured about 1,600 tokens here, the task included.  For opencode it is roughly eight thousand tokens of its own, and it needs a model served with **at least 16k of context**; with anything smaller it spends its whole window on itself.
 - **"In" tokens dwarf "out" tokens.**  Your usage will show a harness reading enormously more than it writes.  That is the loop, not a bug.
+
+## pi
+
+[pi](https://pi.dev) is an open-source (MIT) harness that runs in your terminal, and the one to start with here.  It is small on purpose: four tools by default (read, write, edit, run a command), and instructions short enough that you can read everything it sends the model.  That leaves a campus model most of its window for your work, and it shows you the loop with nothing hidden.  It has been run against this platform's gateway on two campus-size models, fixing a failing test end to end.  The research doesn't crown any harness — [which one suits you](choosing-a-harness.md) depends on the model and the goal — so treat this as a place to start, not a verdict.
+
+**Install** one of these ways (the npm route needs Node 22.19 or later):
+
+```bash
+curl -fsSL https://pi.dev/install.sh | sh                          # the easy way
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent    # if you live in npm
+```
+
+The older `@mariozechner/pi-coding-agent` package is deprecated; if a tutorial names it, use the one above.
+
+**Configure** in `~/.pi/agent/models.json`:
+
+```json
+{
+  "providers": {
+    "campus": {
+      "baseUrl": "https://GATEWAY-ADDRESS/v1",
+      "api": "openai-completions",
+      "apiKey": "$CAMPUS_API_KEY",
+      "models": [
+        { "id": "{{MODEL}}", "contextWindow": 16384, "maxTokens": 4096 }
+      ]
+    }
+  }
+}
+```
+
+Three things about that config matter:
+
+- **pi never asks before it acts.**  It has no permission system: whatever command the model asks for, it runs, under your account.  Its own documentation recommends a container or a virtual machine for unattended work.  Before you trust it with a task, start it with eyes and no hands — `pi --tools read,grep,find,ls` gives the model reading and searching and nothing that writes or runs — and read [supervising an agent](supervising-an-agent.md) either way.
+- **`contextWindow`** is what pi believes the model can hold.  Set it to what the model is **served** with — ask your instructor — and never to what the model's documentation says it supports, for the same reason as [opencode's `limit.context`](#opencode) below.
+- **`$CAMPUS_API_KEY`** keeps the key out of the file.  pi reads it from your environment when it makes a request.
+
+**Prove it works:**
+
+```bash
+export CAMPUS_API_KEY=sk-...
+pi --print --model campus/{{MODEL}} "Say hello and name your model."
+```
+
+Then `cd` into a project and run `pi` for the full interface.  `pi --version` prints the version — write it down; [a pairing has a version on both sides](choosing-a-harness.md).
 
 ## opencode
 
-[opencode](https://opencode.ai) is an open-source harness that runs in your terminal, and the one set up in full below.  It is not a recommendation — [which harness to use](choosing-a-harness.md) depends on the model and the goal.  Any harness that speaks the OpenAI API works the same way: the address and the key.
+[opencode](https://opencode.ai) is a fuller open-source harness — more tools, more built in, and several thousand tokens of its own on every step.  It is also the harness inside the platform's own workbench, the container its operators use to try the gateway from code, so it is the most-run harness here.  Any harness that speaks the OpenAI API works the same way: the address and the key.
 
 **Install** one of these ways:
 
@@ -88,11 +133,11 @@ opencode run -m campus/{{MODEL}} "Say hello and name your model."
 
 Then `cd` into a project and run `opencode` for the full interface.
 
-## Codex and pi
+## Codex CLI
 
-The same two settings — address and key — in each one's own format.  Every config here was checked against the releases listed in [the versions table](choosing-a-harness.md#versions-this-page-was-checked-against); a new release can rename config formats.  Which one suits you is [a question about the pairing](choosing-a-harness.md), not about the harness alone.
+The same two settings — address and key — in its own format.  Every config here was checked against the releases listed in [the versions table](choosing-a-harness.md#versions-this-page-was-checked-against); a new release can rename config formats.  Which one suits you is [a question about the pairing](choosing-a-harness.md), not about the harness alone.
 
-**Codex CLI** (`npm install -g @openai/codex`), in `~/.codex/config.toml`:
+Install with `npm install -g @openai/codex`; configure in `~/.codex/config.toml`:
 
 ```toml
 model = "{{MODEL}}"
@@ -106,23 +151,6 @@ wire_api = "responses"
 ```
 
 Codex speaks only the Responses API — `wire_api = "chat"` has been an error since February 2026.  The gateway translates, but **Codex against campus models is untested here**: whether tool calls survive that translation is the open question.  The provider can't be named `openai`, `ollama`, or `lmstudio`; those are reserved.  Set `model_context_window` to the number the model is served with, for the same reason as opencode's `limit.context`.
-
-**pi** (`npm install -g --ignore-scripts @earendil-works/pi-coding-agent`, Node 22.19 or later — the older `@mariozechner/pi-coding-agent` package is deprecated), in `~/.pi/agent/models.json`:
-
-```json
-{
-  "providers": {
-    "campus": {
-      "baseUrl": "https://GATEWAY-ADDRESS/v1",
-      "api": "openai-completions",
-      "apiKey": "$CAMPUS_API_KEY",
-      "models": [ { "id": "{{MODEL}}" } ]
-    }
-  }
-}
-```
-
-pi has no permission system: it runs whatever the model asks.  Its own docs recommend a container or a VM.
 
 ## What to expect from a campus model
 

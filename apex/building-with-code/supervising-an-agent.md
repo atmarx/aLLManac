@@ -44,15 +44,15 @@ Having a person press "allow" on every step feels like oversight.  It isn't, on 
 
 ## Most harnesses won't ask you
 
-The approval prompt you'd exercise judgment on often doesn't exist.  Of the three harnesses [this site documents](choosing-a-harness.md#three-harnesses-one-tested-here):
+The approval prompt you'd exercise judgment on often doesn't exist.  Of the three harnesses [this site documents](choosing-a-harness.md#three-harnesses-two-tested-here):
 
+- **pi**, the one this site suggests starting with, has no permission system at all, by design, and its own documentation recommends running it in a container or a virtual machine.  You can still start it with eyes and no hands: `pi --tools read,grep,find,ls` lets the model read and search your project and nothing else.
 - **opencode** allows file edits and shell commands by default, without asking.  Adding `"permission": {"bash": "ask"}` to its config turns asking on, and its built-in Plan agent asks before it edits a file or runs a command.
-- **pi** has no permission system at all, by design, and its own documentation recommends running it in a container or a virtual machine.
 - **Codex** asks only at the edge of its sandbox: it can write inside your project without asking, and asks before going outside it or touching the network.
 
 So for two of the three, by default, the narration scrolling past *is* the checkpoint.  You have two options, and you should use at least one before you start:
 
-1. **Turn asking on**, where the harness lets you.
+1. **Turn asking on**, where the harness lets you — or, for pi, start read-only and widen its tools once you've seen how it works.
 2. **Decide where it runs before you start it.**  Work on a fresh branch, in a clean working tree, and commit first, so `git diff` afterward shows exactly what the agent did and nothing else.  New to git?  [Before the agent](before-the-agent.md) has the minimum; read it first.  Never start one from your home directory.  For a harness with no permission system, use the container its authors recommend.
 
 The behavior above was checked against each project's documentation on 2026-09-22, at the versions listed on [Choosing a harness](choosing-a-harness.md#versions-this-page-was-checked-against).  Harnesses change their defaults; check yours.
@@ -65,7 +65,7 @@ The behavior above was checked against each project's documentation on 2026-09-2
 
 ## A harness we haven't tested
 
-The three harnesses above are the ones this site documents, and only opencode has been run against this platform.  They aren't the only ones you're allowed to use.  New ones appear every week, many with good ideas, most of them young.  If you want to try one, go ahead, but read it the way you'd read an agent's plan:
+The three harnesses above are the ones this site documents, and pi and opencode have been run against this platform.  They aren't the only ones you're allowed to use.  New ones appear every week, many with good ideas, most of them young.  If you want to try one, go ahead, but read it the way you'd read an agent's plan:
 
 - **Connect it as an "OpenAI-compatible" or "custom" provider**, pointed at [the gateway](the-gateway.md) with `/v1` on the end.  A harness's built-in Anthropic, Gemini or OpenRouter adapters are untested here, however many providers its README lists; the OpenAI-compatible one is the one known to work.
 - **Find out what it does on its own, before the first run.**  Look for telemetry, cloud sync, session sharing, web search and browsing, and anything that opens a tunnel to the internet.  Turn off what you don't need.  Keep your key in an environment variable, never in a config file the harness might sync.  If the key ever left your machine, [rotate it](your-key.md#replacing-it).

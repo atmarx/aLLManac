@@ -210,7 +210,7 @@ GUIDES = [
     # every turn.  The tools take the course as an argument there; the
     # roster still decides.  One guide owns keys — the rest route here.
     ("coder-guide", "Coder Guide",
-     "Building with code — your API key, the gateway, and coding harnesses like opencode.",
+     "Building with code — your API key, the gateway, and coding harnesses like pi and opencode.",
      REPORT_TOOLS + WHERE_TOOLS + KEY_TOOLS + [_U("my_usage")]),
 ]
 

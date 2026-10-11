@@ -42,7 +42,7 @@ It does not say the model stops mattering.  The same Terminal-Bench paper that s
 
 A fair reading: **the model sets the ceiling, and the harness decides how much of it you get** — and that share can vary by more than the distance between two good models.  So the pairing is what you choose.
 
-A pairing also has a version on both sides.  Harnesses ship weekly, and a release can change the instructions the model sees, the tools it is offered, and the format it edits in — everything the research above says moves the score.  It runs the other way too: when a vendor releases a new model, it can arrive supported only by the newest release of the vendor's own harness, so last month's install can't run this month's model at all.  "opencode with model X" is not quite a pairing.  "opencode 1.18 with model X, served at a 32k context" is.
+A pairing also has a version on both sides.  Harnesses ship weekly, and a release can change the instructions the model sees, the tools it is offered, and the format it edits in — everything the research above says moves the score.  It runs the other way too: when a vendor releases a new model, it can arrive supported only by the newest release of the vendor's own harness, so last month's install can't run this month's model at all.  "pi with model X" is not quite a pairing.  "pi 1.1 with model X, served at a 32k context" is.
 
 These are also benchmarks: fixed tasks, frontier models, measured on a date.  Your task is not on any leaderboard, and the numbers will be stale by the time you read them.  What transfers is the shape, not the scores.
 
@@ -55,17 +55,17 @@ Most of that research is about frontier models.  A model small enough to run on 
 
 And neither rescues a model that's too small: a 20-billion-parameter open model scored about 3% on Terminal-Bench in each of two different harnesses.
 
-## Three harnesses, one tested here
+## Three harnesses, two tested here
 
-All three are built to speak an OpenAI-compatible API, so all three should work with the gateway and your key; setup for each is on [coding harnesses](harnesses.md).  **Only opencode has run against this platform** — it's the harness inside the platform's own workbench, the container its operators use to try the gateway from code.  Codex and pi are documented from their own sources and have not been.  Facts checked against each project's own documentation on 2026-09-22 — these projects move fast, so check again.
+All three are built to speak an OpenAI-compatible API, so all three should work with the gateway and your key; setup for each is on [coding harnesses](harnesses.md).  **pi and opencode have run against this platform's gateway.**  opencode is the harness inside the platform's own workbench, the container its operators use to try the gateway from code.  pi fixed a failing test end to end on two campus-size models — a 27-billion-parameter general model and a 9-billion-parameter coding model — on 2026-10-11.  Codex is documented from its own sources and has not been run here.  Facts checked against each project's own documentation on 2026-09-22, pi's again on 2026-10-11 — these projects move fast, so check again.
 
-| | opencode | Codex CLI | pi |
+| | pi | opencode | Codex CLI |
 |---|---|---|---|
-| **Philosophy** | Provider-agnostic, full-featured | OpenAI's own harness, tuned alongside its Codex models | Minimal by design: four tools (read, write, edit, bash), extend it yourself |
-| **Its own instructions + tools** | Several thousand tokens before you type | Several thousand tokens before you type | Under a thousand, by its author's count (Nov 2025) |
-| **What it needs from the gateway** | Chat Completions (or Responses) | **Responses API only** — Chat Completions support was removed in Feb 2026 | Chat Completions (or Responses) |
-| **Asks before running a command?** | **No** — bash and edits default to allowed; `"permission": {"bash": "ask"}` turns asking on | Only at its sandbox edge — it can write inside your project, and needs approval to go outside it or touch the network | **No** — it has no permission system, and its docs recommend a container or VM |
-| **License** | MIT | Apache-2.0 | MIT |
+| **Philosophy** | Minimal by design: four tools (read, write, edit, bash), extend it yourself | Provider-agnostic, full-featured | OpenAI's own harness, tuned alongside its Codex models |
+| **Its own instructions + tools** | About 1,600 tokens on a task's first step, task included — measured here | Roughly eight thousand tokens before you type | Several thousand tokens before you type |
+| **What it needs from the gateway** | Chat Completions (or Responses) | Chat Completions (or Responses) | **Responses API only** — Chat Completions support was removed in Feb 2026 |
+| **Asks before running a command?** | **No** — it has no permission system, and its docs recommend a container or VM; `--tools read,grep,find,ls` starts it read-only | **No** — bash and edits default to allowed; `"permission": {"bash": "ask"}` turns asking on | Only at its sandbox edge — it can write inside your project, and needs approval to go outside it or touch the network |
+| **License** | MIT | MIT | Apache-2.0 |
 
 The "asks before running a command" row matters most; [supervising an agent](supervising-an-agent.md) explains why.
 
@@ -73,18 +73,20 @@ The "asks before running a command" row matters most; [supervising an agent](sup
 
 First, the part that matters more than any row in the table: an agent needs version control, tests and a way to deploy under it before the choice of harness makes any difference.  → [Before the agent](before-the-agent.md)
 
-Then start from what you're trying to do.
+**If you don't know where to start, start with pi.**  Its instructions leave a campus model the most room, you can read everything it sends, and it is one of the two harnesses run on this platform.  The price is that it never asks before it acts — so begin read-only, or in a container, and read [supervising an agent](supervising-an-agent.md) first.
+
+After that, start from what you're trying to do.
 
 - **You want to understand how an agent works.**  Start with the smallest harness, where you can read everything it sends.  pi's instructions are short enough to read in a minute; watching a four-tool agent solve something teaches you more about the loop than a polished one that hides it.
 - **You want to get work done with a frontier model.**  Start with the harness that model's maker tunes for — it is the pairing the vendor tested — and treat that as a default, not a verdict.  The numbers above show it is often beaten.
-- **You are on a campus model.**  The pairing matters most here and is least studied.  What decides it is whether the model calls tools reliably *in that harness* — and you find that out by trying it.  A lighter harness leaves more room in a small context window; a fuller one gives a weaker model more to hold on to.  There is no general answer yet.
+- **You are on a campus model.**  The pairing matters most here and is least studied.  What decides it is whether the model calls tools reliably *in that harness* — and you find that out by trying it.  A lighter harness leaves more room in a small context window; a fuller one gives a weaker model more to hold on to.  Ours so far: pi finished a small task on both campus-size models we tried, in five and six steps.  That is two data points, not a general answer.
 - **The agent will run while you aren't watching.**  Pick where it runs before you pick what runs.  Only one of these three sandboxes itself by default.  → [Supervising an agent](supervising-an-agent.md)
 
 ## Try it yourself
 
 The benchmarks can't tell you about your task.  An afternoon can.
 
-1. Pick a small, real task in a project under git — fix a bug, add a test, rename something across files.  Commit first, so the working tree is clean.  **Write down both harnesses' versions** (`opencode --version` and `codex --version`; pi's `--help` lists its flag) and the model name.  A result without them can't be compared with anyone else's, including yours next month.
+1. Pick a small, real task in a project under git — fix a bug, add a test, rename something across files.  Commit first, so the working tree is clean.  **Write down both harnesses' versions** (`pi --version`, `opencode --version`, `codex --version`) and the model name.  A result without them can't be compared with anyone else's, including yours next month.
 2. Ask the Usage Guide in the {{PLATFORM}} chat for your usage, and note it.
 3. Run the task in harness A.  When it says it is done, run your tests yourself and read `git diff`.  Note whether it worked, how many steps it took, and your usage afterward.
 4. `git stash -u` to put the tree back — the `-u` takes the new files the agent created too, which plain `git stash` and `git checkout .` leave behind.
@@ -101,12 +103,13 @@ Then try it once with a different model in the same harness.  You will have meas
 | Codex CLI (`@openai/codex`) | 0.155.1 | 2026-09-18 |
 | opencode (`opencode-ai`) | 1.18.32 | 2026-09-21 |
 | opencode, the platform's workbench | 1.18.2 | — run here, end to end |
-| pi (`@earendil-works/pi-coding-agent`) | 0.87.0 | 2026-09-21 |
+| pi (`@earendil-works/pi-coding-agent`) | 1.1.0 | 2026-10-07 |
+| pi, run here end to end | 1.1.0 | — two campus-size models, 2026-10-11 |
 
-Checked 2026-09-22 against each project's own documentation and source.  Only the workbench row has been run against this platform's models.  The research results above used whatever versions each study ran; where a paper names its harness version, look there.  **If your version is newer than this table, the facts in the comparison table may have moved** — the permission defaults and API requirements especially.
+Checked 2026-09-22 against each project's own documentation and source, pi's again on 2026-10-11.  Only the two "run here" rows have been run against this platform's gateway.  The research results above used whatever versions each study ran; where a paper names its harness version, look there.  **If your version is newer than this table, the facts in the comparison table may have moved** — the permission defaults and API requirements especially.
 
 ## What we don't know yet
 
-- **Nobody has measured these pairings on the models this platform serves.**  The research is about frontier models on benchmark tasks.  If you run the experiment above, your result is data we don't have — tell us through the report tool in the {{PLATFORM}} chat.
+- **Beyond one small task, nobody has measured these pairings on the models this platform serves.**  The research is about frontier models on benchmark tasks.  If you run the experiment above, your result is data we don't have — tell us through the report tool in the {{PLATFORM}} chat.
 - **Codex through this gateway is untested.**  Codex speaks only the Responses API, and the gateway has to translate that for models whose servers only speak Chat Completions.  Whether tool calls survive that translation, on our models, is the kind of thing that works on paper and fails in the loop.
 - **The numbers here have a date.**  Harnesses release weekly, and every model generation reshuffles the table.  So far, every reshuffle has kept one finding intact: what performs is the pairing.

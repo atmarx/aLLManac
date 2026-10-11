@@ -24,7 +24,7 @@ Your class has its own AI service, run by your campus on campus models.  The who
 
 1. Build an agent (everyone)
 2. Build one as a group — and share it with the class (the whole point)
-3. Use the models from code with your API key (opencode)
+3. Use the models from code with your API key (pi)
 
 Faculty: [Teaching a course](teaching-a-course.md) is your playbook, and the operators keep their own guide to the machinery behind it.
 
@@ -115,11 +115,11 @@ The whole story — what the budget counts, why a model added later may not show
 
 The key works with **any OpenAI-compatible tool** pointed at the campus gateway URL.
 
-## Part 4 — The coding harness (opencode)
+## Part 4 — The coding harness (pi)
 
-[opencode](https://opencode.ai) is an open-source coding agent that runs in your terminal: it reads your project, edits files, runs commands — the agentic-coding loop, on campus models, metered to your key.
+[pi](https://pi.dev) is an open-source coding agent that runs in your terminal: it reads your project, edits files, runs commands — the agentic-coding loop, on campus models, metered to your key.  It is the one to start with here; opencode and Codex are on the same page if you'd rather.  pi never asks before it acts, so start it read-only the first time.
 
-Install, configure and test it from [Coding harnesses](building-with-code/harnesses.md#opencode) — the config is kept there, in one copy, so it can't drift out of date here.  You'll need two things: the **gateway address**, which comes with your key, and the **context size** its model is served with, which comes from whoever runs your platform — your instructor can find out.
+Install, configure and test it from [Coding harnesses](building-with-code/harnesses.md#pi) — the config is kept there, in one copy, so it can't drift out of date here.  You'll need two things: the **gateway address**, which comes with your key, and the **context size** its model is served with, which comes from whoever runs your platform — your instructor can find out.
 
 What to expect.  A small campus model runs the coding loop and teaches you the workflow, but it is not a frontier model: expect occasional stumbles — a mis-named tool, a premature "done."  That's part of the lesson — you're learning to supervise an agent, not to trust one.  When the campus gateway grows bigger models, your same config gets better for free.
 
