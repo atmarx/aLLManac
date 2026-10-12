@@ -438,7 +438,9 @@ services:
     restart: unless-stopped
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.1.5
+    # A channel pin like the rest (channels/*.env).  A minor step migrates the
+    # database at boot, one way — going back is a restore, not a re-pin.
+    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.1.5}
     container_name: alm-keycloak
     command: ["start-dev", "--import-realm"]
     # .env rides along so optional KC_* tuning (e.g. KC_PROXY_HEADERS=xforwarded
