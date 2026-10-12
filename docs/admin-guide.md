@@ -620,11 +620,28 @@ just backup-install                           # nightly at 04:30 UTC, a lingerin
 ```
 
 - **The root token, once.**  A raft snapshot needs a token that can read `sys/storage/raft/snapshot`.  The registrar's AppRole can't, and the root token isn't kept, so `bao-backup-role` mints a `backup` policy that reads that one path and nothing else, plus an AppRole whose ids land in `.env`.
-- **The passwords come from a file or a command** (`BACKUP_*_PASSWORD_FILE` / `_COMMAND`), must differ, and **must have a copy off the box**.  A password that exists only on the box dies with the box it was meant to outlive.  A password file under `site/` is left out of the secrets bundle.
+- **The passwords come from a file or a command** (`BACKUP_*_PASSWORD_FILE` / `_COMMAND`), must differ, and **must have a copy off the box**.  A password that exists only on the box dies with the box it was meant to outlive.  A password file under `site/` is left out of the secrets bundle.  The copy off the box can be paper — [below](#paper-copies).
 - **`backup` never creates a repository.**  A share that failed to mount is an empty directory, and a backup that initialised whatever it found would write the box's only copy onto its own disk and call it a success.  So `backup` refuses anything that isn't already a repository, and the first run is `backup-init`, by hand.
 - **When one part fails, the rest still goes.**  A course's vector store that's down, or an escrow with no backup role, doesn't cost the night's chats.  The snapshot is tagged `partial`, **nothing is pruned** (so a bad week can't age the last complete copy out), the desk is pinged, and the run exits 1.  A failure that stops the run pings the desk too, naming the step.  With no webhook set, the ping goes by email to `admins:`.
 - **Retention is 7 daily · 4 weekly · 6 monthly**, which is also how long a deleted chat survives.
 - `just backup-list` shows both repositories.  `just restore` isn't built yet.  It comes with the drill, and until the drill has passed, [the spec's rule](registrar-spec.md) says these are not backups yet.
+
+### Paper copies
+
+Three secrets have to outlive the box, and the box can't keep them for itself: the escrow's unseal key and the two backup passwords.  `just dr-sheet` prints them as words — 24 for the key, 12 for each password — one secret to a page, each page with a fingerprint that matches it to its box and a line to write down where that copy is kept.  The words come from BIP39's English list, the one crypto wallets use: the first four letters of a word are enough to type it, and the last word is a checksum, so a mistyped or out-of-order word is refused instead of quietly becoming a wrong key.
+
+```bash
+just dr-phrase /root/almanac/data.pass      # a new 12-word password, straight to a file (0600) — never the terminal
+just dr-sheet                               # the PDF, written to RAM — print it, then rm -r the folder it names
+just dr-words unseal                        # type a page back in: says whether it matches the box, changes nothing
+```
+
+- **Make the backup passwords phrases before the first `backup-init`.**  `dr-phrase` writes one; point `BACKUP_DATA_PASSWORD_FILE` and `BACKUP_SECRETS_PASSWORD_FILE` at two of them.  A password that isn't a phrase still prints, character for character, but with no checksum to catch a misread.  Changing a live repository's password is `restic key add` with the new one, then `key remove` for the old.
+- **Check a sheet the day you print it.**  On the live box, `just dr-words unseal` (or `data`, `secrets`) reads the words without echoing them and answers *matches* or *DOES NOT MATCH*.  Nothing is written.
+- **Keep the data page apart from the other two.**  Data and secrets together are the whole platform; data and the unseal key are every escrowed key.  Secrets and the unseal key add nothing the secrets bundle doesn't already hold.
+- **Rebuilding from paper.**  `just dr-words unseal` writes `BAO_UNSEAL_KEY` into `.env` only when `.env` has none, then `just bao-unseal` opens the escrow.  A rebuilt box that ran `bao-init` has a key of its own, and that key is **refused** once the old escrow's snapshot is restored over it — a restored escrow opens only with the key it was sealed under ([the wall](design-walls.md#container-mount-scars-phase-1-paid-in-crash-loops)).  Delete the fresh line, then type the sheet.  `just dr-words data FILE` and `dr-words secrets FILE` write a password back to a file for `site/backup.env`.
+- **The root token gets no sheet.**  `bao operator generate-root` mints a new one from the unseal key alone — proven in the same drill.
+- **Reprint when a secret changes** — the escrow initialized again, `bao operator rekey`, a restic password change.  A superseded sheet opens nothing.  Destroy it.
 
 ---
 

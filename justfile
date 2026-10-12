@@ -1632,6 +1632,35 @@ backup-install:
       echo "      sudo loginctl enable-linger $USER"
     fi
 
+# ---- On paper (docs/admin-guide.md, "Paper copies") --------------------------
+# Three secrets a rebuild can't do without and the box can't hold for itself:
+# the escrow's unseal key and the two backup passwords.  Each prints as BIP39
+# words — 24 for the key, 12 for a password — one page apart, with a checksum
+# in the last word so a mistyped word is refused instead of becoming a wrong
+# key.  scripts/dr_sheet.py is host python3 and stdlib only, on purpose: the
+# day it's needed may be a day nothing else here runs.  Nothing is printed to
+# the terminal but fingerprints.
+#
+# The paper sheets: the unseal key + both backup passwords, as a PDF in RAM
+dr-sheet out="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out="{{out}}"
+    if [ -z "$out" ]; then
+        d=$(mktemp -d "${XDG_RUNTIME_DIR:-/dev/shm}/almanac-dr.XXXXXX")
+        out="$d/dr-sheet-$(date +%F).pdf"
+    fi
+    python3 scripts/dr_sheet.py sheet "$out"
+    echo "  when it's printed:  rm -r '$(dirname "$out")'"
+
+# A new 12-word backup password, written to FILE (0600) — never to the terminal
+dr-phrase file:
+    @python3 scripts/dr_sheet.py phrase "{{file}}"
+
+# Type a sheet back: unseal (fills .env, or checks it) | data / secrets (checks, or writes FILE)
+dr-words what file="":
+    @python3 scripts/dr_sheet.py words "{{what}}" {{ if file == "" { "" } else { quote(file) } }}
+
 # ---- Keys & accounting -------------------------------------------------------
 # `owner` is REQUIRED: the org unit that answers for the spend (class/lab slug,
 # e.g. engr301 or coe-materials-vexlab).  It's stamped into the key's metadata +
