@@ -480,9 +480,10 @@ def validate_courses() -> tuple[list[str], list[str]]:
                     # (design-walls.md, corrected 2026-10-03).
                     warnings.append(f"{where}.context_tokens is {ctx} — larger than "
                                     f"anything we serve.  If the endpoint serves "
-                                    f"less, the front of the prompt (the agent's "
-                                    f"instructions) is silently dropped, not "
-                                    f"refused")
+                                    f"less, the oldest turns of a long chat are "
+                                    f"silently dropped, not refused — and one "
+                                    f"oversized paste can take the agent's "
+                                    f"instructions with them")
 
         budgets = c.get("budgets") or {}
         if not isinstance(budgets, dict):
