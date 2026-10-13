@@ -310,7 +310,7 @@ services:
   # after `just bao-init`, the once-per-box ritual).  Healthy = answering,
   # sealed or not — a sealed bao is a normal boot state, not an outage.
   openbao:
-    image: ${OPENBAO_IMAGE:-openbao/openbao:2.4.1}
+    image: ${OPENBAO_IMAGE:-openbao/openbao:2.6.3@sha256:a60afafda36337abe833c4a63894bf1095098f29abea4091e7e555a33dd52889}
     container_name: alm-openbao
     command: ["server", "-config=/openbao/conf/config.hcl"]
     cap_add:
@@ -440,7 +440,7 @@ services:
   keycloak:
     # A channel pin like the rest (channels/*.env).  A minor step migrates the
     # database at boot, one way — going back is a restore, not a re-pin.
-    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.1.5}
+    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c}
     container_name: alm-keycloak
     command: ["start-dev", "--import-realm"]
     # .env rides along so optional KC_* tuning (e.g. KC_PROXY_HEADERS=xforwarded

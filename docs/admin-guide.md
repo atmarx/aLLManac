@@ -576,6 +576,8 @@ Two traps, both loud on purpose:
 
 The datastores are in the channel too — Mongo, Meilisearch, Postgres, pgvector — because they were the gap: `mongo:7` is a floating tag and a `just pull` could move it a patch release with no commit saying so.  Moving one of those on `stable` is a data migration, not an image bump: Mongo wants its featureCompatibilityVersion stepped, Meilisearch wants a dump and restore.  `latest` already runs Mongo 8 and Meilisearch 1.35 because 0.8.8 needs them; when stable follows, it follows with a plan.
 
+The control plane joined the channel on 2026-10-12: OpenBao and Keycloak.  Until then compose pinned both itself, and OpenBao's pin rode in the `.env` template — so every box set up before then carries an `OPENBAO_IMAGE=` line, which is the first trap above: delete it, or the box never leaves 2.4.1.  Keycloak wants the datastores' care.  Each minor release migrates its database at first boot, one way, so take a dump just before the deploy that moves its pin — `docker exec alm-keycloak-db pg_dump -U keycloak keycloak > keycloak-$(date +%F).sql` — and going back means restoring that dump, not moving the pin back.
+
 Everything else is the same box.  Same `.env` shape, same `site/`, same `just deploy` — the dev playground is a full stack, not a lighter one, because the point is to find what the upgrade breaks in the plumbing, and half a stack has half the plumbing.  Inference is a URL either way: almanac only consumes an endpoint, so a dev box points at whatever the stable box points at, or at something cheaper.
 
 ## Backups

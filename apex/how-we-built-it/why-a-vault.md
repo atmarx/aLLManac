@@ -107,7 +107,7 @@ Moving the key off the box is the upgrade path.  Its price is that every reboot 
 
 ```bash
 docker run --rm -d --name bao-try --cap-add IPC_LOCK \
-  openbao/openbao:2.4.1 server -dev -dev-root-token-id=root
+  openbao/openbao:2.6.3 server -dev -dev-root-token-id=root
 b() { docker exec -e BAO_ADDR=http://127.0.0.1:8200 -e BAO_TOKEN=root bao-try bao "$@"; }
 
 b kv put -mount=secret courses/demo/students/you key=sk-first    # enrolled
