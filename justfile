@@ -1036,7 +1036,18 @@ _registrar-current:
 
 # Report (never repair) course renders the deployed templates would change
 render-check: _registrar-current
-    {{compose}} exec -T registrar python course_admin.py render --check </dev/null
+    #!/usr/bin/env bash
+    set -uo pipefail
+    {{compose}} exec -T registrar python course_admin.py render --check </dev/null && exit 0
+    rc=$?
+    # A fresh box still holds _fleet's seed, so its first deploy is red here
+    # with nothing having changed (2026-10-12, a new test box).  Same fix —
+    # but say why, and that the steps after this one never ran.
+    if head -1 fleet/fleet.yml 2>/dev/null | grep -q '^# seeded by'; then
+      echo "  This box has never rendered its fleet — every fresh box's first deploy stops here."
+      echo "  just render, then just deploy again: the steps after render-check did not run."
+    fi
+    exit $rc
 
 # Re-render every course from courses.yaml with the registrar image you just
 # deployed, then recreate what changed and reload the edge.  This is the

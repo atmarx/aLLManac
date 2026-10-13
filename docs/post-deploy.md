@@ -103,6 +103,8 @@ That re-renders every course from `courses.yaml` using the templates in the regi
 
 An **unrendered** line is not red.  A course record with no `fleet/<slug>.env` has never been provisioned on this box; that's `just course`, not `just render`.
 
+**A fresh box's first deploy stops here too,** with nothing changed: `fleet/` still holds the stubs `just up` seeded, so `_addresses.caddy` and `_panels.caddy` are *missing* and `fleet.yml` and the roster *differ*.  `render-check` says so when it sees the seed.  Same fix — `just render` — then `just deploy` again, because `docs-corpus`, `agents-refresh` and `agents-check` didn't run on that pass.  On a fresh box the render starts nothing: until `just course`, every course is unrendered.
+
 **`course-tokens-check` goes red over the same window, and runs first.**  Each course holds its own two MCP tokens, derived from `COURSE_MCP_SECRET` and accepted only with that course's `X-Course`; the check asks both tool servers, per course, whether that holds.  A course whose env predates the derived tokens — or whose secret was rotated since its last render — fails before any call is made:
 
 ```
