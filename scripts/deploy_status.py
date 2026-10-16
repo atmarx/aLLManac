@@ -47,6 +47,7 @@ LABELS = {
     "pull": "Preparing the new version",
     "build": "Preparing the new version",
     "secrets": "Preparing the new version",
+    "keycloak-dump": "Preparing the new version",
     "up": "Restarting services",
     "config-refresh": "Restarting services",
     "bao-unseal": "Restarting services",

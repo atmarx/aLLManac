@@ -60,6 +60,30 @@ channel: _fleet
         fi
     done
 
+# Keycloak migrates its database at first boot on a new minor, one way, so
+# going back is a restore of the dump taken before — and a deploy is the
+# only thing that moves the pin.  So the deploy takes it, right before `up`.
+# Nothing to do when the pin isn't moving, or on a box with no Keycloak yet.
+# Dump Keycloak's database when this deploy moves its image (rides deploy)
+keycloak-dump:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    have=$(docker inspect -f '{{{{.Config.Image}}' alm-keycloak 2>/dev/null) || exit 0
+    want=$({{compose}} config --format json 2>/dev/null \
+      | python3 -c 'import json, sys; print(json.load(sys.stdin)["services"]["keycloak"]["image"])') \
+      || { echo "  FAIL could not read Keycloak's image from compose — not moving it undumped"; exit 1; }
+    [ "$have" = "$want" ] && exit 0
+    mkdir -p site/dumps
+    f="site/dumps/keycloak-$(date +%F-%H%M).pgdump"
+    if ! (umask 077; docker exec alm-keycloak-db pg_dump -Fc -U keycloak keycloak > "$f"); then
+        rm -f "$f"
+        echo "  FAIL Keycloak's image is moving and its database would not dump — not moving it."
+        echo "       It migrates one way.  Fix the dump (just logs keycloak-db), then just deploy."
+        exit 1
+    fi
+    echo "  ok    Keycloak moves ${have%%@*} → ${want%%@*} — its database is in $f first"
+    echo "        (one-way migration; going back is that dump: admin-guide, Channels)"
+
 # First-time setup: create .env from the example + generate every secret
 setup: _env _site secrets
     @echo
@@ -311,7 +335,7 @@ build: _fleet && sbom
 deploy:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps="channel pull build secrets up config-refresh bao-unseal smoke oidc-settle realm-lock egress-check course-tokens-check render-check docs-corpus agents-refresh agents-check"
+    steps="channel pull build secrets keycloak-dump up config-refresh bao-unseal smoke oidc-settle realm-lock egress-check course-tokens-check render-check docs-corpus agents-refresh agents-check"
     # One deploy at a time.  A hand deploy and a CI one collided on the docker
     # host 2026-10-02: CI's build failed under the other's, and its EXIT trap
     # wiped the status board out from under the run still going.  The lock is
