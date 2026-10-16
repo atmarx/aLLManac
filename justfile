@@ -1345,6 +1345,24 @@ realm-lock:
             *" user "*) echo "  FAIL   $r — email is still user-editable"; bad=1 ;;
             *) echo "  ok     $r — email editable by: ${now:-nobody}" ;;
         esac
+        # Globus's token endpoint takes client_secret_basic and nothing else
+        # (its discovery document, 2026-10-16), and Keycloak's broker posts the
+        # secret in the body by default.  realm-classroom.json carries it now,
+        # but the import never touches a realm that exists — same gap as above.
+        # Matched by alias or token URL.  The GET masks the secret and a PUT
+        # of the mask keeps it — the registrar's flow wiring relies on the same.
+        for idp in $(kc get "realms/$r/identity-provider/instances" </dev/null | python3 -c '
+    import json, sys
+    for i in json.load(sys.stdin):
+        c = i.get("config", {})
+        globus = i.get("alias") == "globus" or "auth.globus.org" in c.get("tokenUrl", "")
+        if globus and c.get("clientAuthMethod") != "client_secret_basic":
+            print(i["alias"])'); do
+            kc get "realms/$r/identity-provider/instances/$idp" </dev/null \
+              | python3 -c 'import json, sys; d = json.load(sys.stdin); d["config"]["clientAuthMethod"] = "client_secret_basic"; print(json.dumps(d))' \
+              | kc update "realms/$r/identity-provider/instances/$idp" -f - >/dev/null
+            echo "  fixed  $r — $idp posted its secret in the body; Globus takes basic auth only"
+        done
     done
     exit $bad
 
