@@ -121,6 +121,7 @@
         "validateSignature": "true",
         "useJwksUrl": "true",
         "jwksUrl": "https://auth.globus.org/jwk.json",
+        "clientAuthMethod": "client_secret_basic",
         "syncMode": "IMPORT"
       }
     }
