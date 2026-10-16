@@ -21,7 +21,7 @@ Four groups can see what you write here: you, your instructor, the people who ru
 
 ## Signing in
 
-You reach {{PLATFORM}} through your institution's single sign-on.  There is no separate password to create — you authenticate with campus identity.  The platform keeps an account for you, created when you are added to a course's roster: your email and name from the campus sign-in, and which courses its own roster says you are in.
+You reach {{PLATFORM}} through your institution's single sign-on.  There is no separate password to create — you authenticate with campus identity.  The platform keeps an account for you, created when you are added to a course's roster — or the first time you sign in, if no roster has you yet: your email and name from the campus sign-in, and which courses its own roster says you are in.  Signing in without a course gets you as far as the guides in the {{PLATFORM}} chat; each course's chat still turns away anyone its roster doesn't name.
 
 The identity layer is Keycloak, and it can broker your campus identity provider — including Globus — without any of the chat software knowing the difference.
 

@@ -55,7 +55,7 @@ So for two of the three, by default, the narration scrolling past *is* the check
 1. **Turn asking on**, where the harness lets you — or, for pi, start read-only and widen its tools once you've seen how it works.
 2. **Decide where it runs before you start it.**  Work on a fresh branch, in a clean working tree, and commit first, so `git diff` afterward shows exactly what the agent did and nothing else.  New to git?  [Before the agent](before-the-agent.md) has the minimum; read it first.  Never start one from your home directory.  For a harness with no permission system, use the container its authors recommend.
 
-The behavior above was checked against each project's documentation on 2026-09-22, at the versions listed on [Choosing a harness](choosing-a-harness.md#versions-this-page-was-checked-against).  Harnesses change their defaults; check yours.
+The behavior above was checked against each project's documentation on 2026-09-22, and pi's again on 2026-10-11, at the versions listed on [Choosing a harness](choosing-a-harness.md#versions-this-page-was-checked-against).  Harnesses change their defaults; check yours.
 
 ## Check the work, not the report
 
