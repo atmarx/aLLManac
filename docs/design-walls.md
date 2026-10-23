@@ -324,9 +324,9 @@ The general shape, worth carrying to the next dependency: **a service that treat
 
 ---
 
-## LiteLLM (pin ≈ v1.91.1) — the free/Enterprise line
+## LiteLLM (pin = v1.103.2) — the free/Enterprise line
 
-Drawn empirically against the pinned build.  Vendor docs do not mark these boundaries reliably, which is why the rig exists.
+Drawn empirically against 1.91.1 and re-checked on 1.103.2 (2026-10-23): every gateway call the registrar makes answered the same on both, and `/key/regenerate` is still refused as Enterprise.  Vendor docs do not mark these boundaries reliably, which is why the rig exists.
 
 **Free — build on these:**
 
@@ -651,7 +651,7 @@ The cost of that fence is that `ollama pull` can never work from inside the cont
 
 Then the three things in the tracked stack that do reach out.
 
-**1. The cost map is not part of the pin.**  `get_model_cost_map` re-downloads the pricing table at every import unless `LITELLM_LOCAL_MODEL_COST_MAP` is set, and **falls back to a bundled backup silently on any failure**.  The two are not the same table — measured on our pin (1.91.1):
+**1. The cost map is not part of the pin.**  `get_model_cost_map` re-downloads the pricing table at every import unless `LITELLM_LOCAL_MODEL_COST_MAP` is set, and **falls back to a bundled backup silently on any failure**.  The two are not the same table — measured on 1.91.1, our pin at the time:
 
 | source | models | knows the current hosted families |
 |---|---|---|
