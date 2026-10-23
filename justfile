@@ -62,7 +62,7 @@ channel: _fleet
 
 # Keycloak and LiteLLM both migrate their databases at first boot on a new
 # release, one way — LiteLLM's is the ledger and every key, and 1.91 -> 1.103
-# was 184 Prisma migrations — so going back is a restore of the dump taken
+# was 57 Prisma migrations — so going back is a restore of the dump taken
 # before, and a deploy is the only thing that moves a pin.  So the deploy
 # takes it, right before `up`.  Nothing to do for a service whose pin isn't
 # moving, or on a box that doesn't run it yet.
