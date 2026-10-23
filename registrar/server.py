@@ -342,12 +342,34 @@ def _on_roster(email: str, course: dict) -> bool:
     return email in course.get("students", []) or _is_staff(email, course)
 
 
+def _room() -> str:
+    """The course this call came from, or "" at the front door.  Read
+    after _ident_open, whose token check is what makes it trustworthy: a
+    course's token is good only with its own X-Course."""
+    return get_http_headers().get("x-course", "").strip().lower()
+
+
+def _is_admin(email: str, courses: dict) -> bool:
+    """On the `admins:` list AND asking from the front door.  The desk is
+    every house at once, and a course's token is supposed to reach that
+    course and no further (decision 32) — but it can name any email, an
+    admin's included.  So a course chat never opens the desk, whoever it
+    says is asking."""
+    return not _room() and email in courses["admins"]
+
+
 def _admin_or_refuse(email: str) -> None:
     """The platform's `admins:` list — NOT the instance's ADMIN role.  A
     course instance makes its own staff ADMIN, and that is authority over
     one house; the fleet view is every house at once, so it answers only
-    to the list the operator keeps in courses.yaml."""
-    if email not in _courses_or_refuse()["admins"]:
+    to the list the operator keeps in courses.yaml, and only at the front
+    door (_is_admin)."""
+    if _room():
+        raise ToolError(
+            "That's the operator's desk, and it only opens in the "
+            f"{PLATFORM} chat: {_front_door()}"
+        )
+    if not _is_admin(email, _courses_or_refuse()):
         raise ToolError(
             "That's the operator's desk — it answers to the `admins:` list in "
             "registrar/courses.yaml.  Course staff: roster_show and "
@@ -365,12 +387,18 @@ def _is_dev(email: str, courses: dict) -> bool:
     chose nothing.  Those two should not share a gate merely because both
     are platform-wide, or handing someone the bug queue hands them every
     roster on the box.  Admins pass implicitly: they already see more.
+    Front door only, for the reason _is_admin gives.
     """
-    return email in courses["devs"] or email in courses["admins"]
+    return not _room() and (email in courses["devs"] or email in courses["admins"])
 
 
 def _dev_or_refuse(email: str) -> dict:
     courses = _courses_or_refuse()
+    if _room():
+        raise ToolError(
+            "Working the report queue only opens in the "
+            f"{PLATFORM} chat: {_front_door()}"
+        )
     if not _is_dev(email, courses):
         raise ToolError(
             "Working the report queue is for the platform team (the `devs:` "
@@ -648,11 +676,19 @@ async def export_my_data(course: str = "") -> str:
     return a download link that works for 24 hours.  Only ever the person
     asking; there is no way to export anyone else.  Works for closed and
     archived courses too.  `course` is its name or id (my_courses lists
-    them); in a course's own chat it defaults to that course.  Afterwards,
-    offer email_my_export if they'd like the link mailed to themselves."""
+    them); in a course's own chat it is always that course, and any other
+    course's export is made in the platform's own chat.  Afterwards, offer
+    email_my_export if they'd like the link mailed to themselves."""
     email, _role, here = _ident_open()
     courses = _courses_or_refuse()["courses"]
     slug = _course_slug(course, courses) if course.strip() else here
+    # The header wins, as in _my_course.  A course's token can name any
+    # email, so without this, course A's token + anyone's address + `course=B`
+    # packaged that person's course-B conversations.
+    if here and slug != here:
+        raise ToolError(
+            f"This chat belongs to {here}.  For {slug}, ask in the "
+            f"{PLATFORM} chat.")
     if not slug:
         mine = reconcile.courses_for(email)
         raise ToolError(
@@ -1670,7 +1706,7 @@ async def nominations() -> str:
     `nomination_decline` take."""
     email, _role, slug = _ident_open()
     courses = _courses_or_refuse()
-    if email in courses["admins"]:
+    if _is_admin(email, courses):
         rows = reconcile.nominations()
     elif not slug:
         raise ToolError("Staff see their course's nominations from inside "

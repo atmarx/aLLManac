@@ -140,7 +140,10 @@ def _service_token_or_refuse(h: dict) -> None:
         )
 
 
-def _ident() -> tuple[str, str]:
+def _ident() -> tuple[str, str, str]:
+    """(email, role, course-or-empty).  The course is the room the call
+    came from — proven by the token check, since a course's token is good
+    only with its own X-Course — and "" at the front door."""
     # include= because get_http_headers strips authorization by default
     # (it's meant for forwarding; we're the ones checking it):
     h = get_http_headers(include={"authorization"})
@@ -152,7 +155,7 @@ def _ident() -> tuple[str, str]:
             "I couldn't tell who's asking — these stats only work from inside "
             f"the {PLATFORM} chat, where signing in identifies you."
         )
-    return email, role
+    return email, role, h.get("x-course", "").strip().lower()
 
 
 # ---- the ledger ---------------------------------------------------------------
@@ -208,7 +211,8 @@ def _my_ids(email: str) -> list[str]:
     return sorted(ids)
 
 
-def _course_or_refuse(email: str, role: str, course: str) -> tuple[str, dict]:
+def _course_or_refuse(email: str, role: str, course: str,
+                      here: str = "") -> tuple[str, dict]:
     r = _load_roster()
     slug = course.strip().lower()
     if slug not in r["courses"]:
@@ -218,6 +222,13 @@ def _course_or_refuse(email: str, role: str, course: str) -> tuple[str, dict]:
                 if str(x.get("name", "")).strip().casefold()
                 == course.strip().casefold()]
         slug = hits[0] if len(hits) == 1 else slug
+    # Inside a course chat the header wins, the registrar's rule
+    # (_my_course): a course's token can name any email, so without this,
+    # course A's token + a B instructor's address + `course=B` read B's
+    # per-student numbers.
+    if here and slug != here:
+        raise ToolError(f"This chat belongs to {here}.  For any other course, "
+                        f"ask in the {PLATFORM} chat.")
     c = r["courses"].get(slug)
     if c is None:
         if _roster_cache["error"]:
@@ -251,14 +262,27 @@ def _course_or_refuse(email: str, role: str, course: str) -> tuple[str, dict]:
 @mcp.tool
 async def my_usage(days: int = 7) -> str:
     """The caller's own usage: requests, tokens, and models — chat
-    and API keys combined.  Always and only the caller's numbers.  Data
-    notes: the ledger trails live traffic by ~10 seconds, and campus-hosted
-    models carry no dollar price, so token counts are the real measure."""
-    email, _role = _ident()
+    and API keys combined.  Always and only the caller's numbers: everywhere
+    on the platform when asked in the platform's own chat, this course only
+    when asked in a course's chat.  Data notes: the ledger trails live
+    traffic by ~10 seconds, and campus-hosted models carry no dollar price,
+    so token counts are the real measure."""
+    email, _role, here = _ident()
     days = _clamp_days(days)
+    # In a course chat, this course's rows only — the same team-or-owner-tag
+    # test course_usage uses.  A course's token can name any email, and the
+    # platform-wide answer would hand that course everyone's numbers from
+    # everywhere else (decision 32: a course's token reaches that course and
+    # no further).  At the front door there's no room to scope by, and the
+    # front door's token can only come from the front door.
+    scope = ""
+    args = [email, days, _my_ids(email)]
+    if here:
+        scope = "AND (team_id = $4 OR request_tags @> $5::jsonb)"
+        args += [here, json.dumps([f"owner:{here}"])]
     pool = await _db()
     rows = await pool.fetch(
-        """
+        f"""
         SELECT COALESCE(NULLIF(model_group, ''), NULLIF(model, ''), 'unknown') AS m,
                count(*)                                     AS reqs,
                count(*) FILTER (WHERE lower(end_user) = $1) AS chat_reqs,
@@ -270,11 +294,16 @@ async def my_usage(days: int = 7) -> str:
         FROM "LiteLLM_SpendLogs"
         WHERE "startTime" >= (now() AT TIME ZONE 'utc') - make_interval(days => $2)
           AND (lower(end_user) = $1 OR lower("user") = ANY($3::text[]))
+          {scope}
         GROUP BY 1 ORDER BY toks DESC
         """,
-        email, days, _my_ids(email),
+        *args,
     )
-    head = f"Usage for {email} — last {days} days (since {_since(days)})"
+    where = ""
+    if here:
+        name = _load_roster()["courses"].get(here, {}).get("name", here)
+        where = f" in {name} (everything else you've used is in the {PLATFORM} chat)"
+    head = f"Usage for {email}{where} — last {days} days (since {_since(days)})"
     if not rows:
         return f"{head}\n\nNothing in the ledger for this window."
     reqs = sum(r["reqs"] for r in rows)
@@ -309,9 +338,9 @@ async def course_usage(course: str, days: int = 30) -> str:
     name (my_courses or list_courses when unsure).  Covers this course's chat
     and the API keys minted for it — nothing a student did in another course
     or in the platform's own chat."""
-    email, role = _ident()
+    email, role, here = _ident()
     days = _clamp_days(days)
-    slug, c = _course_or_refuse(email, role, course)
+    slug, c = _course_or_refuse(email, role, course, here)
     emails = c["students"]
     tag = json.dumps([f"owner:{slug}"])
     # The COURSE decides which rows count, never the person.  This used to
@@ -397,12 +426,15 @@ async def course_usage(course: str, days: int = 30) -> str:
 async def list_courses() -> str:
     """Which courses the caller can see usage for, and how.  Start here when
     unsure of a course slug."""
-    email, _role = _ident()
+    email, _role, here = _ident()
     r = _load_roster()
+    # A course chat sees only itself, for the reason course_usage refuses
+    # any other: its token can name anyone.
+    courses = {s: c for s, c in r["courses"].items() if not here or s == here}
     is_admin = email in r["admins"]
     out = []
     vis = sorted(
-        s for s, c in r["courses"].items() if is_admin or email in c["faculty"]
+        s for s, c in courses.items() if is_admin or email in c["faculty"]
     )
     if vis:
         out.append("Courses you can pull usage for:")
@@ -411,7 +443,7 @@ async def list_courses() -> str:
             out.append(f"- {s} — {c['name']} ({len(c['students'])} students)")
         out.append("")
         out.append("Ask course_usage with a slug, e.g. course_usage('%s')." % vis[0])
-    enrolled = sorted(s for s, c in r["courses"].items() if email in c["students"])
+    enrolled = sorted(s for s, c in courses.items() if email in c["students"])
     if enrolled:
         out.append("You're on the roster for: " + ", ".join(enrolled) + ".")
     if not r["courses"]:

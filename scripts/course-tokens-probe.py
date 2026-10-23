@@ -14,8 +14,14 @@
 # X-Course is still accepted.  And per archived course: its derived token is
 # refused, because its container is gone.
 #
-# Every call is a cheap read that writes nothing (my_courses, list_courses),
-# as an identity on the reserved .invalid TLD that no IdP can assert.
+# A token the services accept can still name any email, so the last checks
+# are about REACH — own token, own X-Course, and an argument pointing past
+# the course:
+#   reach   — the operator's desk (fleet_inventory)          -> front door only
+#             export_my_data / course_usage for another course -> header wins
+#
+# Every call writes nothing (my_courses, list_courses, and refusals), as an
+# identity on the reserved .invalid TLD that no IdP can assert.
 
 import asyncio
 import hmac
@@ -38,6 +44,10 @@ SERVICES = {
 REFUSAL = re.compile(r"only answers the .* chat itself \(missing or wrong service token\)")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 NO_SUCH = "no-such-course-probe"
+# Reach: the refusals that say the room decided, not the token.
+DESK = re.compile(r"only opens in the .* chat")
+HEADER_WINS = re.compile(r"This chat belongs to ")
+REACH = {"courses": "export_my_data", "usage": "course_usage"}
 
 failed = 0
 
@@ -60,28 +70,32 @@ def _quiet(text: str) -> str:
     return " ".join(text.split())[:160]
 
 
-async def verdict(service: str, token: str, course: str) -> tuple[str, str]:
+async def verdict(service: str, token: str, course: str,
+                  tool: str = "", args: dict | None = None,
+                  refusal: re.Pattern = REFUSAL) -> tuple[str, str]:
     """("accepted" | "refused" | "error", detail)."""
-    url, tool, _var = SERVICES[service]
+    url, default_tool, _var = SERVICES[service]
+    tool = tool or default_tool
     headers = {"Authorization": f"Bearer {token}", "X-User-Email": PROBE_EMAIL,
                "X-User-Role": "USER"}
     if course:
         headers["X-Course"] = course
     try:
         async with Client(StreamableHttpTransport(url, headers=headers), timeout=20) as c:
-            r = await c.call_tool(tool, {}, raise_on_error=False)
+            r = await c.call_tool(tool, args or {}, raise_on_error=False)
     except Exception as e:  # unreachable service, protocol failure
         return "error", type(e).__name__
     text = " ".join(getattr(b, "text", "") for b in (r.content or []))
     if not r.is_error:
         return "accepted", ""
-    if REFUSAL.search(text):
+    if refusal.search(text):
         return "refused", ""
     return "error", _quiet(text)
 
 
-async def expect(service: str, token: str, course: str, want: str, label: str) -> None:
-    got, detail = await verdict(service, token, course)
+async def expect(service: str, token: str, course: str, want: str, label: str,
+                 **call) -> None:
+    got, detail = await verdict(service, token, course, **call)
     if got == want:
         ok(f"{service:<8} {label}: {got}")
     else:
@@ -139,6 +153,15 @@ async def main() -> int:
             if front[service]:
                 await expect(service, front[service], slug, "refused",
                              "front-door token, this X-Course")
+            if service == "courses":
+                await expect(service, tok, slug, "refused",
+                             "own token, the operator's desk",
+                             tool="fleet_inventory", refusal=DESK)
+            if others:
+                await expect(service, tok, slug, "refused",
+                             f"own token, {REACH[service]} for another course",
+                             tool=REACH[service], args={"course": other},
+                             refusal=HEADER_WINS)
 
     if archived and secret_set:
         print("\narchived courses (container gone — token should be too)")
