@@ -547,13 +547,15 @@ smoke:
     # A live gateway is not a working chat.  The docker host served 500s on
     # every course message for a day (2026-10-07) behind a green smoke: its
     # inference box became a hypervisor, and liveliness only asks LiteLLM
-    # about itself.  So ask the chat model for one token.  A warning, never
+    # about itself. Ask for a tiny reply with a small, valid output budget:
+    # Responses endpoints can reject max_tokens=1, and reasoning models can
+    # exhaust it before producing text. A warning, never
     # a FAIL: inference is outside this box, a cold model can take a minute,
     # and a red smoke would stop the deploy before the checks that matter.
     # The key goes in as a header on stdin, never on curl's argv.
     code=$(printf 'Authorization: Bearer %s\n' "${LITELLM_MASTER_KEY:-}" | curl -s -o /dev/null -w '%{http_code}' --max-time 90 -H @- \
         -H 'Content-Type: application/json' "http://localhost:${GATEWAY_PORT:-4000}/v1/chat/completions" \
-        -d "{\"model\": \"${CHAT_MODEL:-almanac-chat}\", \"messages\": [{\"role\": \"user\", \"content\": \"ok\"}], \"max_tokens\": 1}" || true)
+        -d "{\"model\": \"${CHAT_MODEL:-almanac-chat}\", \"messages\": [{\"role\": \"user\", \"content\": \"Reply only OK.\"}], \"max_tokens\": 512}" || true)
     if [ "$code" = 200 ]; then
         echo "  ok    ${CHAT_MODEL:-almanac-chat} answers"
     else
