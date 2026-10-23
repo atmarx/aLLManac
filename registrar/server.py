@@ -577,10 +577,19 @@ async def rotate_my_key(course: str = "") -> str:
             f"one ({e}).  Ask your instructor about more budget; `my_usage` "
             "shows where it went."
         ) from None
+    # A revoke the gateway didn't confirm stays on the record as
+    # revoke_pending, and only the next rotation retries it — so "dead" is
+    # only true when nothing is pending.  Someone rotating a leaked key has
+    # to hear the difference.
+    old = ("The old key is dead at the gateway; update your laptop config."
+           if not new.get("revoke_pending") else
+           "The gateway didn't confirm that your old key is revoked, so it "
+           "may still work.  That's on record, and rotating again retries "
+           "it — if you rotated because the key leaked, rotate once more in "
+           "a minute.  Update your laptop config either way.")
     return (
         f"Rotated.  Your new {slug} key:\n\n    {new['key']}\n\n"
-        f"Remaining fuse carried over: ${new['budget']}.  The old key is "
-        "dead at the gateway; update your laptop config."
+        f"Remaining fuse carried over: ${new['budget']}.  {old}"
     )
 
 
