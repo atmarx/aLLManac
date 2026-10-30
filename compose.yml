@@ -51,7 +51,7 @@ services:
     restart: unless-stopped
 
   litellm:
-    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-stable@sha256:47afa74b495c802317712e5b8c8a65e7ca30c96636e9b618a5f8130eec72a8ee}
+    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-stable@sha256:f63fb81b831b170ec16851e23c36ac5bf52ef106b271406429524a2ed730bbfd}
     container_name: alm-litellm
     command: ["--config", "/app/conf/config.yaml", "--port", "4000"]
     environment:

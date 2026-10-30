@@ -51,7 +51,7 @@ Two of those are worth knowing by name because people re-run them by hand and ge
 
 `deploy` runs each of those as its own `just`, with the upgrade page's status board written around it.  Same steps, same order, same exit code when one fails.  The next section is what that means for you.
 
-**A green deploy is a green control plane, not a green fleet.**  `smoke` proves LibreChat, Keycloak, LiteLLM and the escrow are answering, and asks the chat model for one token.  It says nothing about whether `engr301-2026fall.<domain>` resolves, holds a cert, and returns a login page — that's `fleet-smoke`, and it is deliberately not in the deploy.
+**A green deploy is a green control plane, not a green fleet.**  `smoke` proves LibreChat, Keycloak, LiteLLM and the escrow are answering, and asks the chat model for a short reply.  It says nothing about whether `engr301-2026fall.<domain>` resolves, holds a cert, and returns a login page — that's `fleet-smoke`, and it is deliberately not in the deploy.
 
 ## The upgrade page
 
