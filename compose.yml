@@ -97,6 +97,15 @@ services:
   mongodb:
     image: ${MONGO_IMAGE:-mongo:7}
     container_name: alm-mongo
+    # WiredTiger holds a file per collection and per index, and every course
+    # adds a database of them.  Docker hands containers a soft limit of 1024;
+    # 0.8.8's index builds across three courses crossed it and WiredTiger
+    # panicked (2026-11-05, design-walls "Mongo dies of open files").
+    # MongoDB's documented floor is 64000.
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
     volumes:
       - mongo-data:/data/db
     healthcheck:

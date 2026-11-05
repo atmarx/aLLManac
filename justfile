@@ -760,6 +760,17 @@ sbom:
         fi
         id=$(docker image inspect --format '{{{{.Id}}' "$img")
         digest=$(docker image inspect --format '{{{{if .RepoDigests}}{{{{index .RepoDigests 0}}{{{{end}}' "$img")
+        # syft unpacks the whole image into $work/.tmp, which sits on the same
+        # disk as Mongo's data.  Filling it killed Mongo mid-deploy on the
+        # stable box (2026-11-05: a 13 GB rag_api image, 9 GB free).  An SBOM
+        # is worth less than the database, so a tight disk skips the scan.
+        size=$(docker image inspect --format '{{{{.Size}}' "$img")
+        avail=$(df --output=avail -B1 "$work" | tail -1 | tr -d ' ')
+        if [ $(( avail - 2 * size )) -lt $(( 4 * 1024 * 1024 * 1024 )) ]; then
+            echo "  skip (disk: $((avail >> 30)) GiB free, image $((size >> 30)) GiB — free space with: docker image prune)  $img" >&2
+            skipped="${skipped}${skipped:+,}\"$img\""
+            continue
+        fi
         echo "scanning  $img"
         docker run --rm --user "$(id -u):${sockgid}" -e HOME=/tmp \
             -v "$PWD/$work/.tmp":/tmp \
