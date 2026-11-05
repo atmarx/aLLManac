@@ -133,7 +133,7 @@ services:
     restart: unless-stopped
 
   rag_api:
-    image: ${RAG_API_IMAGE:-ghcr.io/danny-avila/librechat-rag-api-dev:latest@sha256:c3e1a05bdd576b5000fa0e8a84a476e9858fa9219b2b5d78432ddce12c9fcf23}
+    image: ${RAG_API_IMAGE:-ghcr.io/danny-avila/librechat-rag-api-dev:latest@sha256:13898be3c4ce9ce60d40606c426929d504fef4d89dfddeac966e12fb740cae5c}
     container_name: alm-rag
     environment:
       DB_HOST: vectordb
@@ -168,7 +168,7 @@ services:
     restart: unless-stopped
 
   librechat:
-    image: ${LIBRECHAT_IMAGE:-ghcr.io/danny-avila/librechat:v0.8.7}
+    image: ${LIBRECHAT_IMAGE:-ghcr.io/librechat-ai/librechat:v0.8.8@sha256:5b706bcee1ca154a1e2987303aaeca0eb27f97919cccee4bb604226c2f8abf61}
     container_name: alm-librechat
     ports:
       - "${PUBLISH_BIND:-127.0.0.1}:${CHAT_PORT:-3080}:3080"
