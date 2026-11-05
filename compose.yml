@@ -51,7 +51,7 @@ services:
     restart: unless-stopped
 
   litellm:
-    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-stable@sha256:f63fb81b831b170ec16851e23c36ac5bf52ef106b271406429524a2ed730bbfd}
+    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:v1.103.10@sha256:99ad434a180d21b9c4500cb22a31c8c66e5e041a651df8819adee5c957521ea6}
     container_name: alm-litellm
     command: ["--config", "/app/conf/config.yaml", "--port", "4000"]
     environment:
@@ -310,7 +310,7 @@ services:
   # after `just bao-init`, the once-per-box ritual).  Healthy = answering,
   # sealed or not — a sealed bao is a normal boot state, not an outage.
   openbao:
-    image: ${OPENBAO_IMAGE:-openbao/openbao:2.6.3@sha256:a60afafda36337abe833c4a63894bf1095098f29abea4091e7e555a33dd52889}
+    image: ${OPENBAO_IMAGE:-openbao/openbao:2.6.5@sha256:09f1eaaee351c329d75a5a89654d6e1ad4792998650c3cbf0c3513a76d9d9b6e}
     container_name: alm-openbao
     command: ["server", "-config=/openbao/conf/config.hcl"]
     cap_add:
@@ -440,7 +440,7 @@ services:
   keycloak:
     # A channel pin like the rest (channels/*.env).  A minor step migrates the
     # database at boot, one way — going back is a restore, not a re-pin.
-    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c}
+    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.7.5@sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85}
     container_name: alm-keycloak
     command: ["start-dev", "--import-realm"]
     # .env rides along so optional KC_* tuning (e.g. KC_PROXY_HEADERS=xforwarded
