@@ -85,7 +85,16 @@ model_list:
   # has to come from somewhere that cannot be talked to.
   #
   # The wording is the pedagogy lane's (docs/agent-contract.md): light
-  # decline, no backend named, hand off to the Security Guide.  Note this is
+  # decline, no backend named, crisis resources, hand off to the Security
+  # Guide.  The resources line is there because the filter that sends people
+  # here has a self-harm category: this sentence was written for jailbreaks,
+  # and to someone in crisis "I can't help with that one" alone is a
+  # brush-off (@xram's ruling, 2026-11-05).  The sentence itself lives in
+  # compose.yml's litellm environment, because os.environ/ only substitutes
+  # a whole value — the crisis line and the counseling contact come from
+  # .env (CRISIS_LINE, COUNSELING_CONTACT) and LiteLLM can't splice them in.
+  # Run this config without compose and ALMANAC_DECLINE is unset: the mock
+  # goes empty, and the fallback errors instead of answering.  Note this is
   # a canned sentence and the design wall warns that canned sentences misfire
   # — but that wall is about a script INSIDE the prompt, which a model
   # pattern-matches on.  This one is at the gateway, after the model already
@@ -94,7 +103,7 @@ model_list:
     litellm_params:
       model: openai/almanac-declined
       api_key: "unused — mock_response never dispatches"
-      mock_response: "I can't help with that one.  If you're curious how the guardrails here work, the Security Guide is the right place to ask."
+      mock_response: os.environ/ALMANAC_DECLINE
 
   # More models = more blocks, HERE, in git.  Do not add them in the admin UI:
   # STORE_MODEL_IN_DB now defaults to False, so anything added there is not

@@ -79,6 +79,12 @@ services:
       OFFICE_MODEL: "${OFFICE_MODEL:-}"
       OFFICE_BASE_URL: "${OFFICE_BASE_URL:-}"
       OFFICE_API_KEY: "${OFFICE_API_KEY:-}"
+      # What a filtered prompt gets back (almanac-declined in
+      # litellm/config.yaml).  The words are the pedagogy lane's; they live
+      # here because os.environ/ can't splice a name into a sentence.  The
+      # filter that sends people here has a self-harm category, so the
+      # resources line is never optional — only who it names is.
+      ALMANAC_DECLINE: "I can't help with that one.  If something heavy is going on for you, you don't have to carry it alone — call or text ${CRISIS_LINE:-988}, any hour, or reach ${COUNSELING_CONTACT:-your campus counseling center}.  And if you were curious how the guardrails here work, the Security Guide is the right place to ask."
     volumes:
       # Directory mount for the same reason as librechat's above.
       - ./litellm:/app/conf:ro

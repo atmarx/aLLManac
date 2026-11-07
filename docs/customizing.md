@@ -34,6 +34,7 @@ The project is called the aLLManac, and nothing a reader sees has to say so.  An
 | `DOCS_SITE_NAME` | The help site's title, when it should differ from `PLATFORM_NAME`.  Leave it unset otherwise; set to empty, it breaks the site build. | unset — `PLATFORM_NAME` | Yes. |
 | `DOCS_SITE_URL` | Where the help site lives, for its canonical links. | `http://localhost/help/` | Yes. |
 | `DOCS_COPYRIGHT` | The help site's footer (HTML allowed). | the project's CC BY 4.0 credit | Yes.  If you rewrite the pages, the license asks you to keep the attribution and say they were changed. |
+| `CRISIS_LINE`, `COUNSELING_CONTACT` | Who the gateway's decline sends a person to when a hosted model's content filter trips.  That filter has a self-harm category, so the reply always carries a crisis line and your counseling service: *"call or text `CRISIS_LINE`, any hour, or reach `COUNSELING_CONTACT`."*  Set the real name and number before students arrive. | `988`, `your campus counseling center` | Yes — at the next `just up`. |
 | `SMTP_FROM` | The sender on mail the registrar sends (export links, request updates). | unset — no mail | Yes. |
 
 `DOCS_PRODUCT_NAME` still works as an older spelling of `PLATFORM_NAME`.  `AGENT_MODEL` and `REGISTRAR_BASE_MODELS` both default to `CHAT_MODEL`; set them only when a site serves more than one model.
