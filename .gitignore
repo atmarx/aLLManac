@@ -28,6 +28,10 @@ site-dist/
 # edge.  One box's state, never anyone else's.
 status/
 
+# Month-end FOCUS bills (`just focus`) — who-pays-what by course and PI, and
+# the ledger is per box.  They go to OpenChargeback, not to git.
+billing/
+
 # SBOM artifacts — rewritten by every `just build` (sbom/latest/, served by
 # the edge at /sbom/) plus dated tarballs in sbom/archive/.  A render of the
 # images on the box; too big and too derivative for git

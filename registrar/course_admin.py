@@ -20,6 +20,7 @@
     python course_admin.py report-close <id> --note ... [--status triaged|closed]
     python course_admin.py evals-fixture    reset the eval sandbox + tickets
     python course_admin.py notify-test [EMAIL]   prove mail + the desk webhook
+    python course_admin.py focus <YYYY-MM> < ledger.csv   the month's FOCUS bill
 
 Runs INSIDE the registrar container (the credentials live there and only
 there); the justfile owns docker lifecycle around it — up the new services,
@@ -191,7 +192,29 @@ def main() -> int:
     rc.add_argument("--note", required=True, help="what was done about it")
     rc.add_argument("--status", default="closed", choices=("triaged", "closed"))
 
+    fo = sub.add_parser("focus",
+                        help="ledger rows on stdin -> the month's FOCUS CSV on stdout")
+    fo.add_argument("month", help="YYYY-MM")
+
     args = p.parse_args()
+
+    if args.cmd == "focus":
+        # stdout is the file, so everything a person reads goes to stderr.
+        # The ledger arrives on stdin (`just focus` pipes a psql COPY in):
+        # the registrar holds no database credential and shouldn't grow one
+        # for a report.
+        try:
+            reconcile.month_bounds(args.month)
+            rows = reconcile.read_ledger(sys.stdin.read())
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 1
+        out, summary = reconcile.billing_rollup(
+            rows, reconcile.load_courses()["courses"], args.month,
+            reconcile.PLATFORM)
+        sys.stdout.write(reconcile.write_focus(out))
+        print(reconcile.billing_describe(summary), file=sys.stderr)
+        return 0
 
     if args.cmd == "validate":
         errors, warnings = reconcile.validate_courses()

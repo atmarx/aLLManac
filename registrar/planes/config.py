@@ -193,4 +193,10 @@ KNOWN_CAPABILITIES = [
 # the rule — catching this at validate time beats catching it halfway through
 # a provisioning run that already minted a key.
 SLUG_RE = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
+# Who a course's spend is billed to — OpenChargeback's tag vocabulary
+# (TAG-SPECIFICATION.md in that repo; pi_email and fund_org are its required
+# pair).  A course record may carry any of these under `billing:`; the FOCUS
+# export (planes/billing) writes them into every row's Tags.
+BILLING_KEYS = ("pi_email", "fund_org", "project_id", "cost_center",
+                "account_code", "end_date", "reconciliation_end")
 EMAILISH_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$")

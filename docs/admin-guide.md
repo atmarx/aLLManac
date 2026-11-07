@@ -148,7 +148,7 @@ The model name students see is the `model_name`; where it actually runs is nobod
 just key engr301 stu.amaya@example.edu      # course, email, [budget]
 ```
 
-That stamps `metadata.owner` and `metadata.tags: ["owner:engr301"]` into the key; the tag lands in every spend row (`request_tags`), which is what `just spend` and the future FOCUS export roll up.
+That stamps `metadata.owner` and `metadata.tags: ["owner:engr301"]` into the key; the tag lands in every spend row (`request_tags`), which is what `just spend` and the month-end bill (`just focus`, below) roll up.
 
 **A whole roster is not a loop** — it's the roster upload, in chat or via `just course`.  The registrar mints and escrows one key per student as a side effect of enrollment, so the hand-mint recipe is for staff test keys and one-off repairs, not for provisioning a class.
 
@@ -199,6 +199,31 @@ Each prints a one-time onboarding link (7-day expiry) where they set a password.
 - Spend rows are batch-written (~10 s) and tag rollups aggregate a beat behind realtime.  "Empty right after a request" is lag, not loss.
 - Don't set `disable_spend_logs` — the ledger IS the product here.
 - `/global/spend/report` is Enterprise; everything `just spend` uses is free.
+
+### The month-end bill (`just focus`)
+
+```bash
+just focus            # last month
+just focus 2026-10    # any month
+```
+
+It reads the ledger straight from the gateway's database, rolls it up to one **FOCUS** row per day × course × model, and writes `billing/focus-<month>.csv` — the format OpenChargeback ingests (`openchargeback ingest billing/focus-2026-10.csv --source <platform>`).  The database does the reading and the registrar does the shaping, so neither credential leaves its container, and no student email is in the file: a bill goes to a PI and a finance office, and who in the class used what is the course's own business (`course_usage`).
+
+**Who pays is the course record.**  Add a `billing:` block to the course in `registrar/courses.yaml`:
+
+```yaml
+    billing:
+      pi_email: prof.vex@example.edu   # who the statement goes to
+      fund_org: ENGR-TEACHING-2027     # the fund/org code finance charges
+      cost_center: CC-12345            # optional, as are project_id, account_code,
+                                       # end_date and reconciliation_end
+```
+
+The names are OpenChargeback's own tags (its `TAG-SPECIFICATION.md`), so nothing gets translated on the way in.  Leave the block out and the row bills the course's first instructor, under the course slug as `project_id`, with no fund code.  OpenChargeback flags those for review instead of charging them.
+
+**The money is the ledger's.**  `ListCost` and `BilledCost` are LiteLLM's `spend`, which is whatever rate `litellm/config.yaml` sets per model.  A model with no rate bills $0 and its tokens still count, in `ConsumedQuantity`, so campus-hosted models show up as free but visible.  Subsidies ("the provost covers the first $500") are OpenChargeback's to apply.  Every row here bills what it cost.
+
+**Read the summary before you send the file.**  It prints on the terminal: the total, a line per course with who it bills, and every row that will bounce.  `NO INVOICEE` means spend from an owner the box has no course record for, or spend with no owner at all.  OpenChargeback rejects those rows for lacking a `pi_email`, so fix the record (or bill it by hand) before the import.  The same file is the answer to "what does the platform cost us?" for whoever asks, a meeting included.
 
 ### Upgrades
 

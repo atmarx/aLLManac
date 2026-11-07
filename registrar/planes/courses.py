@@ -13,6 +13,7 @@ from datetime import date, timedelta
 import yaml
 
 from .config import (
+    BILLING_KEYS,
     DEFAULT_CONTEXT_TOKENS,
     BASE_MODELS,
     COURSES_PATH,
@@ -246,8 +247,19 @@ def load_courses() -> dict:
                         if c.get("address") else None),
             "closed": _stamp(c.get("closed")),
             "archived": _stamp(c.get("archived")),
+            # Who the month-end bill goes to (planes/billing).  Only
+            # OpenChargeback's own tag names survive; with none, the bill
+            # goes to the first instructor under the course's slug.
+            "billing": _billing(c.get("billing")),
         }
     return out
+
+
+def _billing(v) -> dict:
+    if not isinstance(v, dict):
+        return {}
+    return {k: str(v[k]).strip() for k in BILLING_KEYS
+            if v.get(k) is not None and str(v[k]).strip()}
 
 
 def _stamp(v) -> str | None:
@@ -362,7 +374,8 @@ def save_courses(data: dict) -> None:
     # no address reads the way the operator typed it — not as three nulls.
     data = {**data, "courses": {
         slug: {k: v for k, v in c.items()
-               if not (k in ("address", "closed", "archived") and v is None)}
+               if not (k in ("address", "closed", "archived") and v is None)
+               and not (k == "billing" and not v)}
         for slug, c in data["courses"].items()}}
     fd, tmp = tempfile.mkstemp(dir=d, prefix=".courses.")
     try:
@@ -571,6 +584,21 @@ def validate_courses() -> tuple[list[str], list[str]]:
                 warnings.append(f"{where}: closed {rec['closed']}; its export window "
                                 f"ended {ends.isoformat()} — `just course-archive "
                                 f"{slug}` takes it down")
+        if c.get("billing") is not None:
+            b = c["billing"]
+            if not isinstance(b, dict):
+                errors.append(f"{where}.billing: must be a mapping of "
+                              f"{', '.join(BILLING_KEYS)}")
+            else:
+                for k in b:
+                    if k not in BILLING_KEYS:
+                        warnings.append(f"{where}.billing.{k}: not a billing tag, so the "
+                                        f"export never sees it and the next write drops "
+                                        f"it — known: {', '.join(BILLING_KEYS)}")
+                pi = str(b.get("pi_email") or "").strip()
+                if pi and not EMAILISH_RE.match(pi):
+                    warnings.append(f"{where}.billing.pi_email: {pi!r} doesn't look like "
+                                    "an email address — OpenChargeback mails statements to it")
         if c.get("address"):
             a = str(c["address"]).strip().lower()
             if (e := slug_error(a)):

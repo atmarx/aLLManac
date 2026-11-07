@@ -24,6 +24,7 @@ worth auditing, and one import surface means one list to read.
     planes/reports   registrar/reports.yaml — no network, no secrets
     planes/requests  registrar/requests.yaml — no network, no secrets
     planes/notify    SMTP_PASSWORD and the desk webhook URL (a credential)
+    planes/billing   ledger rows -> FOCUS rows — pure, no network, no secrets
     planes/verbs     composition — the only place the planes meet
 
 Everything in the verbs is IDEMPOTENT on purpose — a failed half-apply is
@@ -42,6 +43,13 @@ from planes.config import (
     PLATFORM,
     REHEARSAL_DOMAIN,
     SLUG_RE,
+)
+from planes.billing import (
+    describe as billing_describe,
+    month_bounds,
+    read_ledger,
+    rollup as billing_rollup,
+    write_focus,
 )
 from planes.courses import (
     CourseClosed,

@@ -15,6 +15,12 @@
 #   advisory_weekly  stored and validated, but nothing reads it yet — a pacing
 #                    number for a future "on pace" view; never blocks
 #
+# billing:  who the month-end bill (`just focus`) goes to — OpenChargeback's
+#           tag names: pi_email, fund_org, cost_center, project_id,
+#           account_code, end_date, reconciliation_end.  Omit it and the bill
+#           goes to the first instructor, under the course slug, with no fund
+#           code (OpenChargeback flags that for review).
+#
 # college:  unions that college's model pack into this course's models —
 #           a college is a MODEL PACK, not an org chart.
 #

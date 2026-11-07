@@ -1908,6 +1908,51 @@ spend:
       -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
       | python3 -m json.tool || echo "(older LiteLLM builds: use the admin UI -> Usage)"
 
+# The month's bill as FOCUS rows for OpenChargeback: one row per day × owner ×
+# model, priced from the ledger, billed to each course's `billing:` block (or
+# its first instructor).  No student appears in it.  The database reads the
+# ledger, the registrar shapes it — neither credential crosses — and the file
+# lands in billing/ (gitignored).  The summary on stderr says who pays, and
+# every row OpenChargeback would bounce.  Default: last month.
+#
+# Month-end export:  just focus [2026-10]
+focus month="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    m="{{month}}"
+    [ -n "$m" ] || m=$(date -u -d "$(date -u +%Y-%m-01) -1 day" +%Y-%m)
+    # The month goes into SQL, so it's checked before it gets there.
+    [[ "$m" =~ ^[0-9]{4}-(0[1-9]|1[0-2])$ ]] || { echo "want YYYY-MM, got '$m'" >&2; exit 1; }
+    mkdir -p billing
+    out="billing/focus-$m.csv"
+    tmp=$(mktemp billing/.focus-XXXXXX)
+    trap 'rm -f "$tmp"' EXIT
+    # Owner: the `owner:<slug>` tag every key carries, else the course team
+    # chat spends on — the same test usage-mcp's course_usage uses.
+    {{compose}} exec -T litellm-db psql -q -v ON_ERROR_STOP=1 -U litellm -d litellm -c "
+      COPY (
+        SELECT s.\"startTime\"::date AS day,
+               COALESCE(o.owner, NULLIF(s.team_id, ''), '') AS owner,
+               COALESCE(NULLIF(s.model_group, ''), NULLIF(s.model, ''), 'unknown') AS model,
+               count(*) AS requests,
+               COALESCE(sum(s.prompt_tokens), 0) AS input_tokens,
+               COALESCE(sum(s.completion_tokens), 0) AS output_tokens,
+               COALESCE(sum(s.spend), 0) AS spend
+        FROM \"LiteLLM_SpendLogs\" s
+        LEFT JOIN LATERAL (
+          SELECT substr(t, 7) AS owner
+          FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(s.request_tags) = 'array'
+                                              THEN s.request_tags ELSE '[]'::jsonb END) t
+          WHERE t LIKE 'owner:%' LIMIT 1) o ON true
+        WHERE s.\"startTime\" >= DATE '$m-01'
+          AND s.\"startTime\" <  DATE '$m-01' + INTERVAL '1 month'
+        GROUP BY 1, 2, 3 ORDER BY 1, 2, 3
+      ) TO STDOUT WITH CSV HEADER" </dev/null \
+      | {{compose}} exec -T registrar python course_admin.py focus "$m" > "$tmp"
+    mv "$tmp" "$out"
+    trap - EXIT
+    echo "wrote $out"
+
 # Roles: proxy_admin_viewer = read-only everything (the usual faculty pick);
 # internal_user = own keys/usage only.  Email+password via a one-time link is
 # the FREE path — SSO into this UI is Enterprise past 5 total DB users.

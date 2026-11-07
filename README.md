@@ -134,11 +134,12 @@ Every key is minted with an **owner** — the course that answers for the spend 
 ```bash
 just key engr301-2026fall amaya@example.edu   # course, email, [budget] — minted AND escrowed
 just spend                                    # month-to-date, grouped by owner
+just focus 2026-10                            # that month's bill, as FOCUS rows
 ```
 
 `owner` is required — no owner, no key.  It's stamped into the key's metadata and spend tags, so usage always rolls up to an organizational unit: **the owner is who gets the invoice**, even when the subsidy takes it to zero.  A class sees exactly what it used, priced at whatever rate the campus sets for its models (`input_cost_per_token` in `litellm/config.yaml`).  Free-but-visible is the point: cost consciousness without a paywall.
 
-The month-end export — LiteLLM spend → **FOCUS**-format billing rows with OpenChargeback tags, rolled up the org tree — is Root Cellar's accounting coupling, and a story for another day.  The contract that makes it possible is already in place: **no key without an owner.**
+The month-end export is `just focus`: the ledger rolled up to **FOCUS** rows — one per day, course and model — tagged the way OpenChargeback reads them, so the bill lands in the same system as the rest of the cloud spend.  Each course's `billing:` block names who pays (`pi_email`, `fund_org`); without one, the bill goes to the first instructor.  Students never appear in it.  The contract that makes it possible: **no key without an owner.**
 
 ---
 
@@ -204,7 +205,7 @@ The [`justfile`](justfile) is the deployment contract; **CI is a thin wrapper ar
 | Nightly off-box backups | **Real** — `just backup`.  **Restore is not built yet** |
 | Per-course database credentials | **Not yet** — every course's database sits in one Mongo server with no auth, so the chat never crosses courses but a compromised container could |
 | Group *sync* from rosters | **Not here** — enrolling opens the door, but share-groups are still clicks in the admin panel |
-| FOCUS/OpenChargeback billing export | **Not yet** — the owner tags are the hook it lands on |
+| FOCUS/OpenChargeback billing export | **Yes** — `just focus`, monthly, per course; subsidies are applied on the OpenChargeback side |
 
 ## License
 
