@@ -19,7 +19,9 @@
 #           tag names: pi_email, fund_org, cost_center, project_id,
 #           account_code, end_date, reconciliation_end.  Omit it and the bill
 #           goes to the first instructor, under the course slug, with no fund
-#           code (OpenChargeback flags that for review).
+#           code (OpenChargeback flags that for review).  The same block at
+#           the TOP level (beside `courses:`) bills the platform's own spend:
+#           the front door's chat, which runs on the master key.
 #
 # college:  unions that college's model pack into this course's models —
 #           a college is a MODEL PACK, not an org chart.

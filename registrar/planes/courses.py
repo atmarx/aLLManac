@@ -123,7 +123,7 @@ def load_raw_courses() -> dict:
             f"level — got {type(raw).__name__}."
         )
     for key, want in (("courses", dict), ("colleges", dict), ("admins", list),
-                      ("devs", list)):
+                      ("devs", list), ("billing", dict)):
         val = raw.get(key)
         if val is not None and not isinstance(val, want):
             raise CoursesError(
@@ -184,6 +184,10 @@ def load_courses() -> dict:
         # fleet view is everyone who chose nothing.  See registrar-spec.md,
         # "Reports".  Admins are devs implicitly (they already see more).
         "devs": [str(e).strip().lower() for e in (raw.get("devs") or [])],
+        # Who pays for the platform's own spend — the front door's chat and
+        # anything else on the master key, which no course owns.  Same tags
+        # as a course's `billing:`; planes/billing bills it as `platform`.
+        "billing": _billing(raw.get("billing")),
     }
     for slug, c in (raw.get("courses") or {}).items():
         c = c or {}
@@ -372,7 +376,8 @@ def save_courses(data: dict) -> None:
     d = os.path.dirname(COURSES_PATH) or "."
     # The lifecycle keys are written only when set, so an open course with
     # no address reads the way the operator typed it — not as three nulls.
-    data = {**data, "courses": {
+    data = {**{k: v for k, v in data.items() if not (k == "billing" and not v)},
+            "courses": {
         slug: {k: v for k, v in c.items()
                if not (k in ("address", "closed", "archived") and v is None)
                and not (k == "billing" and not v)}
@@ -437,6 +442,9 @@ def validate_courses() -> tuple[list[str], list[str]]:
         # that to take their fleet access away, it won't say so anywhere.
         warnings.append(f"devs: {e!r} is already an admin — admins triage "
                         f"reports implicitly, so this line grants nothing")
+
+    if raw.get("billing") is not None:
+        _billing_findings("billing", raw["billing"], errors, warnings)
 
     for slug, c in courses.items():
         slug = str(slug)
@@ -585,20 +593,7 @@ def validate_courses() -> tuple[list[str], list[str]]:
                                 f"ended {ends.isoformat()} — `just course-archive "
                                 f"{slug}` takes it down")
         if c.get("billing") is not None:
-            b = c["billing"]
-            if not isinstance(b, dict):
-                errors.append(f"{where}.billing: must be a mapping of "
-                              f"{', '.join(BILLING_KEYS)}")
-            else:
-                for k in b:
-                    if k not in BILLING_KEYS:
-                        warnings.append(f"{where}.billing.{k}: not a billing tag, so the "
-                                        f"export never sees it and the next write drops "
-                                        f"it — known: {', '.join(BILLING_KEYS)}")
-                pi = str(b.get("pi_email") or "").strip()
-                if pi and not EMAILISH_RE.match(pi):
-                    warnings.append(f"{where}.billing.pi_email: {pi!r} doesn't look like "
-                                    "an email address — OpenChargeback mails statements to it")
+            _billing_findings(f"{where}.billing", c["billing"], errors, warnings)
         if c.get("address"):
             a = str(c["address"]).strip().lower()
             if (e := slug_error(a)):
@@ -621,6 +616,21 @@ def validate_courses() -> tuple[list[str], list[str]]:
                           "one of them lets go")
 
     return errors, warnings
+
+
+def _billing_findings(where: str, b, errors: list, warnings: list) -> None:
+    if not isinstance(b, dict):
+        errors.append(f"{where}: must be a mapping of {', '.join(BILLING_KEYS)}")
+        return
+    for k in b:
+        if k not in BILLING_KEYS:
+            warnings.append(f"{where}.{k}: not a billing tag, so the export never "
+                            f"sees it and the next write drops it — known: "
+                            f"{', '.join(BILLING_KEYS)}")
+    pi = str(b.get("pi_email") or "").strip()
+    if pi and not EMAILISH_RE.match(pi):
+        warnings.append(f"{where}.pi_email: {pi!r} doesn't look like an email "
+                        "address — OpenChargeback mails statements to it")
 
 
 def course_models(course: dict, courses: dict) -> list[str]:

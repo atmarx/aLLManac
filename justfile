@@ -1928,11 +1928,15 @@ focus month="":
     tmp=$(mktemp billing/.focus-XXXXXX)
     trap 'rm -f "$tmp"' EXIT
     # Owner: the `owner:<slug>` tag every key carries, else the course team
-    # chat spends on — the same test usage-mcp's course_usage uses.
+    # chat spends on — the same test usage-mcp's course_usage uses — else
+    # `platform` for the master key (the front door's chat, until the office
+    # has a service key of its own).  LiteLLM logs that key by this name.
     {{compose}} exec -T litellm-db psql -q -v ON_ERROR_STOP=1 -U litellm -d litellm -c "
       COPY (
         SELECT s.\"startTime\"::date AS day,
-               COALESCE(o.owner, NULLIF(s.team_id, ''), '') AS owner,
+               COALESCE(o.owner, NULLIF(s.team_id, ''),
+                        CASE WHEN s.api_key = 'litellm_proxy_master_key' THEN 'platform' END,
+                        '') AS owner,
                COALESCE(NULLIF(s.model_group, ''), NULLIF(s.model, ''), 'unknown') AS model,
                count(*) AS requests,
                COALESCE(sum(s.prompt_tokens), 0) AS input_tokens,

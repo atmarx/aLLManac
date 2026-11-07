@@ -221,6 +221,8 @@ It reads the ledger straight from the gateway's database, rolls it up to one **F
 
 The names are OpenChargeback's own tags (its `TAG-SPECIFICATION.md`), so nothing gets translated on the way in.  Leave the block out and the row bills the course's first instructor, under the course slug as `project_id`, with no fund code.  OpenChargeback flags those for review instead of charging them.
 
+**The front door's chat bills as `platform`.**  It still spends on the master key, which no course owns (moving it to an office service key is registrar-spec Phase 2a), so the export gives master-key spend the owner `platform`.  A `billing:` block at the top level of `courses.yaml` — the same tags, beside `courses:` rather than under one — says who pays for it.  Leave it out and those rows come back `NO INVOICEE`.
+
 **The money is the ledger's.**  `ListCost` and `BilledCost` are LiteLLM's `spend`, which is whatever rate `litellm/config.yaml` sets per model.  A model with no rate bills $0 and its tokens still count, in `ConsumedQuantity`, so campus-hosted models show up as free but visible.  Subsidies ("the provost covers the first $500") are OpenChargeback's to apply.  Every row here bills what it cost.
 
 **Read the summary before you send the file.**  It prints on the terminal: the total, a line per course with who it bills, and every row that will bounce.  `NO INVOICEE` means spend from an owner the box has no course record for, or spend with no owner at all.  OpenChargeback rejects those rows for lacking a `pi_email`, so fix the record (or bill it by hand) before the import.  The same file is the answer to "what does the platform cost us?" for whoever asks, a meeting included.

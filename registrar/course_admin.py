@@ -210,7 +210,7 @@ def main() -> int:
             print(f"ERROR: {e}", file=sys.stderr)
             return 1
         out, summary = reconcile.billing_rollup(
-            rows, reconcile.load_courses()["courses"], args.month,
+            rows, reconcile.load_courses(), args.month,
             reconcile.PLATFORM)
         sys.stdout.write(reconcile.write_focus(out))
         print(reconcile.billing_describe(summary), file=sys.stderr)

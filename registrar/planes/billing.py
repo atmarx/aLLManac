@@ -4,7 +4,10 @@ OpenChargeback ingests.
 One row per day × owner × model.  The owner is the course the spend rolls
 up to (the `owner:<slug>` tag every key carries, or the course team chat
 spends on), and the course record says who gets the invoice: its
-`billing:` block, falling back to its first instructor.  Students never
+`billing:` block, falling back to its first instructor.  Spend on the
+master key is owned by `platform` — the front door's chat, until the office
+is a tenant with its own service key (registrar-spec, Phase 2a) — and the
+top-level `billing:` in courses.yaml says who pays for that.  Students never
 appear — a bill goes to a PI and a finance office, and who-in-the-class-
 used-what is the course's own business (`course_usage`), not theirs.
 
@@ -47,6 +50,10 @@ FOCUS_COLUMNS = (
     "BillingCurrency", "Tags",
 )
 
+# The owner the ledger query gives master-key spend.  Not a slug a course
+# can have: course slugs are term-suffixed, and this one is checked first.
+PLATFORM_OWNER = "platform"
+
 MONTH_RE = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])$")
 
 
@@ -79,9 +86,14 @@ def _num(v, cast):
         return cast(0)
 
 
-def rollup(ledger_rows, courses: dict, month: str, platform: str):
+def rollup(ledger_rows, records: dict, month: str, platform: str):
     """-> (focus_rows, summary).  `ledger_rows` are dicts keyed by
-    LEDGER_COLUMNS; `courses` is load_courses()["courses"]."""
+    LEDGER_COLUMNS; `records` is load_courses()."""
+    courses = records.get("courses") or {}
+    platform_bill = {k: v for k, v in (records.get("billing") or {}).items()
+                     if k in BILLING_KEYS and v}
+    if platform_bill:
+        platform_bill.setdefault("project_id", PLATFORM_OWNER)
     first, last = month_bounds(month)
     out: list[dict] = []
     summary = {
@@ -110,7 +122,10 @@ def rollup(ledger_rows, courses: dict, month: str, platform: str):
         cost = round(_num(r.get("spend"), float), 6)
 
         label = owner or "unattributed"
-        who = invoicee(owner, courses.get(owner)) if owner else {}
+        if owner == PLATFORM_OWNER:
+            who = dict(platform_bill)
+        else:
+            who = invoicee(owner, courses.get(owner)) if owner else {}
         if not who.get("pi_email"):
             summary["no_invoicee"][label] = summary["no_invoicee"].get(label, 0.0) + cost
         elif not who.get("fund_org"):
@@ -126,7 +141,7 @@ def rollup(ledger_rows, courses: dict, month: str, platform: str):
             "ChargePeriodStart": d.isoformat(),
             "ChargePeriodEnd": d.isoformat(),
             "ChargeCategory": "Usage",
-            "ChargeDescription": f"{model} — {requests} requests, {tin + tout} tokens",
+            "ChargeDescription": f"{model}: {requests} requests, {tin + tout} tokens",
             "ProviderName": platform,
             "ServiceName": platform,
             "ServiceCategory": "AI and Machine Learning",
@@ -188,6 +203,10 @@ def describe(summary: dict) -> str:
     if s["no_invoicee"]:
         lines.append("  NO INVOICEE (OpenChargeback rejects these rows — no pi_email): "
                      + ", ".join(f"{k} (${v:.2f})" for k, v in sorted(s["no_invoicee"].items())))
+        if PLATFORM_OWNER in s["no_invoicee"]:
+            lines.append("  `platform` is spend on the master key — the front door's chat "
+                         "and operator calls.  A top-level `billing:` in courses.yaml "
+                         "says who pays for it.")
     if s["no_fund_org"]:
         lines.append("  no fund_org (billed to the person; set `billing.fund_org` "
                      "in courses.yaml): " + ", ".join(sorted(s["no_fund_org"])))
