@@ -16,8 +16,9 @@ whatever rate the campus set for the model (`input_cost_per_token` in
 litellm/config.yaml), so a model with no price bills $0 with its tokens
 still counted.  That is the free-but-visible posture, not a bug, and the
 summary says which models it was so nobody mistakes it for missing data.
-Subsidies are OpenChargeback's job, applied on its side; every row here
-bills what it cost.
+Subsidies are this export's job — OpenChargeback only consumes rows that
+are already split — and aren't built yet (docs/subsidy-walk.md), so every
+row here bills what it cost.
 
 Pure: rows in, rows out.  No network, no credential, no file — the census
 reads the ledger (`just focus` pipes a psql COPY in), the caller hands us

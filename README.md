@@ -205,7 +205,8 @@ The [`justfile`](justfile) is the deployment contract; **CI is a thin wrapper ar
 | Nightly off-box backups | **Real** — `just backup`.  **Restore is not built yet** |
 | Per-course database credentials | **Not yet** — every course's database sits in one Mongo server with no auth, so the chat never crosses courses but a compromised container could |
 | Group *sync* from rosters | **Not here** — enrolling opens the door, but share-groups are still clicks in the admin panel |
-| FOCUS/OpenChargeback billing export | **Yes** — `just focus`, monthly, per course; subsidies are applied on the OpenChargeback side |
+| FOCUS/OpenChargeback billing export | **Yes** — `just focus`, monthly, per course, at full cost |
+| Subsidies down the org tree | **Not yet** — the export applies them, OpenChargeback only takes split rows; design in [docs/subsidy-walk.md](docs/subsidy-walk.md) |
 
 ## License
 
