@@ -1,6 +1,6 @@
 ---
 title: How do you keep the courses apart?
-description: The obvious answer is permissions inside one application.  We ran a separate instance per course instead — what that trade buys, what it costs, and the one shared room we did not notice we had kept.
+description: The usual answer is permission checks inside one shared application.  We run a separate instance per course instead.  What that buys, what it costs, and the shared document store we kept without noticing.
 audience: builder
 also_reaches: [student, faculty]
 status: draft
@@ -16,96 +16,88 @@ tethered_to:
 
 # How do you keep the courses apart?
 
-> *"How do you keep the courses apart?"*  *"That's the neat part — we don't."*
->
-> — whiteboard, 2026
-
 ## The question
 
-A dozen courses, a few hundred students, one platform.  Course A must not see course B's conversations, its agents, or its uploaded files.
+The platform serves a dozen courses and a few hundred students.  Course A must not see course B's conversations, agents, or uploaded files.
 
-That is the entire requirement, and it reads like a permissions problem.  It isn't one.
+Keeping courses apart looks like a permissions problem, and most software solves it that way.  This platform solves it with a separate instance for each course.
 
 ## The obvious answer, taken seriously
 
-One application.  A tenant column on every row.  A permission check at every read.
+The usual design is one application, with a tenant column on every database row and a permission check on every read.
 
-This is what most software does, and it deserves better than a strawman.  There is one deployment to patch and one database to back up.  Resource use is efficient in a way a per-tenant design will never match.  And cross-tenant features stay cheap: nothing is apart, so a report spanning every course is a query with one fewer condition on it.
+Most software works this way, and the shared design has real strengths.  There is one deployment to patch and one database to back up.  It uses resources more efficiently than any per-tenant design can.  Cross-tenant features are cheap: a report across every course is the same query with one fewer condition.
 
-What decides the argument is that in this design **every read is a place where the boundary has to be re-established** — correctly, by whoever wrote that line, on a day when they were thinking about something else.  The isolation is the sum of every check anybody remembered, and it is exactly as good as the least careful one.
+The weakness of the shared design is that **every read has to re-apply the course boundary**.  Whoever writes each query has to include the check correctly, even on a day they are focused on something else.  The isolation is only as good as the least careful check in the codebase.
 
-The failure mode makes that worse.  A missing condition does not make the feature wrong in a way a test would catch.  The page renders.  The query returns rows.  It returns somebody else's rows, and nothing anywhere reports an error.
+A missing check is also hard to detect.  The feature still appears to work, so an ordinary test does not catch it: the page renders and the query returns rows.  The rows belong to another course, and nothing reports an error.
 
 ## What broke
 
-We did not reason our way out of the shared design.  We tried to build it and hit a wall.
+The team did not reject the shared design on paper.  We tried to build it and hit a limit in the chat software.
 
-Sharing an agent with a class means putting people in a group, and the identity system already knows those groups — the roster built them.  But **LibreChat's share-groups resolve only from its own local source or from Entra.**  The Keycloak `groups` claim arrives in the token and goes nowhere: the ACL system cannot see it.  Upstream [#10006](https://github.com/LibreChat-AI/LibreChat/issues/10006) is open, and the sync PR that would fix it ([#13008](https://github.com/LibreChat-AI/LibreChat/pull/13008)) is open but unmerged.
+Sharing an agent with a class means putting the students in a group.  The identity system (Keycloak) already has those groups, because the roster created them.  But **LibreChat's share groups come only from its own local groups or from Entra.**  The Keycloak `groups` claim arrives in the sign-in token, and LibreChat's access-control system cannot see it.  Upstream [#10006](https://github.com/LibreChat-AI/LibreChat/issues/10006) is open, and the sync PR that would fix it ([#13008](https://github.com/LibreChat-AI/LibreChat/pull/13008)) is open but unmerged.
 
-So a shared instance would have meant maintaining every course's membership by hand, in a second place, forever — with the authoritative copy in the identity provider, unreadable.
+With one shared LibreChat instance, someone would have had to maintain every course's membership by hand inside LibreChat, indefinitely, while the authoritative copy sat in the identity provider where LibreChat could not read it.
 
-That shape recurs, and it is rarely the part anyone plans for: the identity system knew the answer and the application could not hear it.  Neither side would call it their bug.
+This kind of gap is common and rarely planned for: the identity system has the information, and the application cannot read it.  Neither project treats the gap as its own bug.
 
 ## What we did, and the bill
 
-**Course equals instance.**  Each course gets its own LibreChat container, its own Mongo database, its own search index, its own admin panel, and its own hostname.  The registrar renders all of it from one course record.
+**Each course is its own instance.**  Each course gets its own LibreChat container, its own Mongo database, its own search index, its own admin panel, and its own hostname.  The registrar renders all of it from one course record.
 
-The design is a shared control plane and a per-course data plane.
+The design has a shared control plane and a per-course data plane:
 
-| Plane | What lives there | How many |
+| Plane | Components | How many |
 |---|---|---|
-| Control — never fragments | Keycloak, LiteLLM and the ledger, OpenBao, the registrar, usage-mcp, the Caddy edge, the Mongo server | one each |
-| Data — per course | LibreChat, its database inside that Mongo server, its search index, its document store, its admin panel | one per course |
+| Control (shared, never split per course) | Keycloak, LiteLLM and the ledger, OpenBao, the registrar, usage-mcp, the Caddy edge, the Mongo server | one each |
+| Data (per course) | LibreChat, its database inside that Mongo server, its search index, its document store, its admin panel | one per course |
 
-What that buys is the absence of a check.  No query the chat software makes crosses courses.  Each instance is only ever told the name of its own database, so there is no shared table to write that query against.  Nobody has to remember the boundary.
+With one instance per course, the boundary between courses needs no permission check.  No query the chat software makes crosses courses.  Each instance is given only the name of its own database, so there is no shared table a cross-course query could read.  Nobody has to remember to add the boundary.
 
-Some things follow for free.  An instance has only its own course's credentials — its gateway key, its sign-in client, its encryption pair, its search and document-store secrets — so cross-course access through any of those is ruled out structurally, with no visibility toggle involved.  Each course's instructors are administrators of their own course and have no credential for anyone else's.
+Each course instance also has only its own course's credentials: its gateway key, its sign-in client, its encryption pair, and its search and document-store secrets.  None of those credentials can be used to reach another course, and no visibility setting is involved.  Each course's instructors are administrators of their own course and have no credential for any other course.
 
-**One credential is missing from that list, and it matters.**  The database server asks for none.  Every course's database sits in one Mongo server, and an instance finds its own by name, with no password.  So the chat software never crosses — but anything that gets code running on the internal network could open every course's database, and the platform's own tools are built to read across them (the census counts what is in each course; the export fetches your own work from any of them).  The blast radius of a leaked *secret* is one course.  The blast radius of a compromised *container* is, today, every course's chat history.
+**The database server is the exception: it requires no credential.**  Every course's database is on one Mongo server, and an instance finds its own database by name, with no password.  The chat software never reads another course's database.  But anything that gets code running on the internal network could open every course's database, and the platform's own tools are built to read across them (the census counts what is in each course, and the export fetches your own work from any of them).  A leaked *secret* exposes one course.  A compromised *container* exposes, today, every course's chat history.
 
-The bill:
+The costs of one instance per course:
 
-- **Five containers per course**, not one — chat, search, admin panel, and a document service with its own database.  Only the embedding model's files are shared, because those are identical for everybody and large.
-- **Upgrades are a fleet operation.**  A LibreChat CVE means rolling N containers.  The same pinned image and rendered config make that one loop instead of N snowflakes, but it is still N.
-- **Anything cross-course has to be built for the purpose.**  That is the cost of the thing that makes it safe.
-- **A rendering layer now exists**, and it is itself a thing that can break.
+- **Five containers per course** instead of one: chat, search, admin panel, and a document service with its own database.  Only the embedding model's files are shared, since they are large and identical for every course.
+- **Upgrades are a fleet operation.**  A LibreChat CVE means rolling out a new image to N containers.  Because every course uses the same pinned image and rendered config, the rollout is one loop with no per-course special cases.  It is still N containers.
+- **Any cross-course feature has to be built specifically for it.**  The same separation that keeps courses safe makes those features extra work.
+- **The platform now has a rendering layer**, and the rendering layer can break too.
 
-The rendering layer is the cost that matters most.  We did not remove complexity; we moved it somewhere we can see it: templates in git, rendered by the registrar into files on the box, rolled by one loop.  That is a better place for it.  It is not nowhere.
+The rendering layer is the largest cost.  Per-course instances do not remove complexity.  They move it into templates in git, which the registrar renders into files on the box and rolls out with one loop.  Complexity in templates is easier to see and review, but it still has to be maintained.
 
 ## What is still wrong with it
 
-Here the epigraph stops being a joke.
+For most of this platform's life, one component was still shared across courses: the storage for agent knowledge files.  Agent knowledge files were not stored in the per-course instance.  They went to a single document service and a single vector database used by the whole fleet.  Every course's uploaded documents were in one store, and the boundary between courses was an identity read from a token and compared against a database row.  That is a permission check, the design that [The obvious answer, taken seriously](#the-obvious-answer-taken-seriously) argues against, inside the platform that argues against it.
 
-For most of this platform's life, one room was still shared, and it was the one for files.  Agent knowledge files were not in the per-course instance.  They went to a single document service and a single vector database that the entire fleet used — so every course's uploaded documents sat in one store whose boundary was an identity read out of a token, compared against a row.  A permission check.  Exactly the design beat 2 argues against, sitting inside the platform that argues it.
+Nobody chose the shared document store.  It came as one service in the stack, and nobody made it per-course.  The tenancy question the team was answering at the time was about conversations.
 
-Nobody decided that.  It arrived as one service in the box, and nobody made it per-course; the question we were answering was about conversations.
+The design document had flagged the shared document store.  The tenancy decision, written in July, contained the line *"pgvector/RAG likely shared (verify file-id isolation)"* as an aside in parentheses.  The line was accurate when it was written and stayed accurate, and nobody did the verification it asked for.  **Treat every caveat in your own design notes as an open task, and verify it.**  Caveats written as asides in parentheses tend to stay unresolved the longest.
 
-The design document knew.  The tenancy decision, written in July, contained the line *"pgvector/RAG likely shared (verify file-id isolation)"* — inside a parenthesis, as an aside, in a document that was otherwise right about everything.  It was true when it was written and it stayed true, and nobody verified it.  If you take one operational habit from this essay, take that one: **the caveats you write in parentheses are the ones that outlive you.**
+The shared document store caused two problems in one week, and both were found while people were doing something else.
 
-It came due twice in one week, and nobody went looking either time.
+First, the store turned out to be readable by anything on the internal network.  When its secret is missing, the document service starts anyway with no authentication configured, instead of refusing to start.  It logs one warning line, which reads like a note about an optional feature.  The team found the problem by measuring and closed it the same day.
 
-First the store turned out to be readable by anything on the internal network.  The document service treats a missing secret as *no authentication configured*, not as a reason to refuse to start.  One warning line in its log, which reads like a note about an optional feature.  Found by measurement, closed the same day.
+Second, while someone was checking a statement in the documentation against the system, it turned out that each course signs its document requests with its own secret, and the shared service did not have those secrets.  Nothing was leaking.  Every call was being rejected.  Knowledge files had never worked on any course instance.  The health check does not use the same path as real requests, so every course reported the document service as up and then refused every real call.  The first person to notice would have been a professor uploading a syllabus.
 
-Then — while someone was checking a claim on *this page* — it turned out each course signs its requests with a secret of its own that the shared service did not have.  Nothing was leaking; every call was being rejected.  Knowledge files had never worked on any course instance, and the health check does not take the same path as real requests, so every course booted announcing the document service was up and then refused every real call.  Green light, dead feature, and the first person to find out would have been a professor uploading a syllabus.
+The fix was to remove the shared document store.  Each course now gets its own document service and its own vector database, with its own secret and its own volume, next to its own chat and search.  Only the embedding model's files are shared, and those are identical for every course.  The cost went from three containers per course to five.
 
-The fix was to stop having the shared room.  Each course now gets its own document service and its own vector database, with its own secret and its own volume, beside its own chat and search — only the embedding model's files are shared, and those are the same bytes for everyone.  The bill went from three containers per course to five.
+Inside one course, the document store still relies on a permission check.  Between courses, separate containers keep the documents apart.  The way the document service decides who may read a file has not changed: it still reads an identity from the request and compares it.  A mistake in that logic can now expose only the one course whose documents are in that container.  Separate instances do not remove permission checks, but they limit how much a wrong check can expose.
 
-Precisely: inside one course the store is still a permission check.  Between courses it is now a container wall.  Nothing about how the document service decides who may read a file has changed — it still reads an identity out of a request and compares it.  A mistake in that logic can now only expose the one course whose documents are in that container.  Buying structure doesn't eliminate checks.  It caps what a wrong one can cost.
+**Structural isolation has to be maintained across every component, and it tends to fail in a component nobody was thinking about.**  The platform got isolation right for conversations and agents, the subject of the original question.  Files got a permission check by default, without anyone deciding it, because the dependency shipped that way.  The shared document store survived a design review, a full end-to-end provision, and months of running.  It was found when somebody checked a sentence in a documentation page against the system.
 
-The lesson isn't *"instance-per-course wins."*
-
-**Structural isolation has to be kept up across every component, and the place it breaks is never the component you were thinking about.**  We got it right for conversations and agents — those were the subject of the question.  We got a permission check for files — for free, without a decision, from a dependency that came that way.  It survived a design review, a full end-to-end provision, and months of running, and what finally turned it up was somebody verifying a sentence in a documentation page.
-
-Two gaps remain: the database server that asks for no password, and the cost — five containers per course is a real ceiling on one box, and we will meet it before we meet any of the others.
+Two gaps in course isolation remain.  The Mongo database server asks for no password.  And five containers per course puts a real limit on how many courses one box can run, and we expect to reach that limit before any other.
 
 ## Try it yourself
 
-If you are in two courses, sign in to both.  No view shows you both sets of conversations — and there is no setting that would, because there is no query that could.
+If you are in two courses, sign in to both.  No view shows both sets of conversations.  No setting could add one, because no query in the chat software reads across course databases.
 
-Then notice the contrast.  **Your usage tools cross courses by design.**  Ask about your own usage and the answer spans every course you are in: it reads the ledger by your email address, and the ledger is control plane.  Separation is a choice made per surface.
+Then compare the usage tools.  **Your usage tools do cross courses.**  Ask about your own usage and the answer covers every course you are in.  The usage tool reads the ledger by your email address, and the ledger is part of the shared control plane.  Whether data is separated by course is decided separately for each part of the platform.
 
-For the last step, open `registrar/render.py` — the template every course's configuration is rendered from — and find the line that gives an instance its own database.  It is the Mongo URI, and the course's name is the last thing in it.
+Last, open `registrar/render.py`, which holds the template every course's configuration is rendered from.  Find the line that gives an instance its own database.  That line is the Mongo URI, and the course's name is at the end of it.
 
-One line.  That is the wall.  And notice what is not in it: a username or a password.  That is the gap two sections up.
+The Mongo URI line is the whole boundary between course databases.  It contains no username or password, which is the database-server gap described in [What we did, and the bill](#what-we-did-and-the-bill).
 
-Skip the rendered `librechat.yaml`, the tempting place to look.  Several lines differ per course there — the name, the model, the context size — and the one that sounds like a boundary is a header stamped on outgoing tool calls.  That is scoping.  Isolation is the Mongo line.  Telling those two apart on sight is most of the skill.
+Don't look for the boundary in the rendered `librechat.yaml`.  Several lines there differ per course (the name, the model, the context size), and the one that sounds like a boundary is a header added to outgoing tool calls.  That header is scoping: it tells a tool which course the call came from.  Isolation is the Mongo line.  Telling scoping and isolation apart on sight is most of the skill.

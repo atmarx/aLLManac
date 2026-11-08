@@ -1,6 +1,6 @@
 ---
 title: Using AI well in your coursework
-description: How to get real help from a language model without outsourcing the learning — checking what it tells you, disclosing what you used, and knowing when it will confidently mislead you.
+description: How to get help from a language model without outsourcing the learning.  Checking what it tells you, disclosing what you used, and knowing when it will confidently mislead you.
 audience: student
 also_reaches: [faculty]
 status: draft
@@ -12,83 +12,81 @@ tags: [accountability, ai-literacy, critical-evaluation, hallucination, disclosu
 
 ## The one rule everything else follows from
 
-**You are fully responsible for what you submit.  A model cannot accept blame — only a person can.**
+**You are fully responsible for what you submit.  A model cannot accept blame; only a person can.**
 
 Whatever helped you write something, the claims in it become yours the moment you put your name on it.  "The AI told me that" is not a defense here, and it will not be one in a job, a lab, or a courtroom.
 
-Your instructors and the staff who run this place use these tools every day, to write and to automate.  Nobody is pretending you should not.  What you are being asked for is the same thing everyone else is on the hook for — use what helps, and answer for the result.
+Your instructors and the staff who run this place use these tools every day, to write and to automate.  Nobody is pretending you should not use them.  You are held to the same standard as everyone else: use what helps, and answer for the result.
 
 ## The trade nobody explains
 
-Struggling with something is not a sign the tool should take over.  A lot of the time the difficulty *is* the learning — the twenty minutes of being stuck is where the understanding gets built, and a model is extremely good at removing exactly those twenty minutes.  You get a correct answer and skip the thing you were there for.
+Struggling with a problem is not a sign the AI tool should take over.  A lot of the time the difficulty *is* the learning.  The twenty minutes of being stuck is when understanding gets built, and a model is extremely good at removing exactly those twenty minutes.  You get a correct answer and skip the thing you were there to learn.
 
-The reverse is true too, and refusing help out of principle is not a virtue.  Friction that is not the point — unfamiliar jargon, a citation format, a blank page at 11pm, the syntax error you have been staring at for an hour — can go.  Nobody is assessing your ability to suffer.
+Refusing AI help out of principle is not a virtue either.  Some difficulty is not the point of the assignment: unfamiliar jargon, a citation format, a blank page at 11pm, or the syntax error you have been staring at for an hour.  Getting help with that kind of difficulty is fine.
 
-So there is one question to ask, every time:
+To decide whether to use AI on a task, ask one question every time:
 
 > **What am I supposed to be getting better at here, and does this help me get better at it or let me skip it?**
 
-You will answer that differently for a problem set than for a literature review, and differently in week two than in week ten.  That is correct.  It is your judgment, and the judgment is part of what you came here to develop.
+You will answer that question differently for a problem set than for a literature review, and differently in week two than in week ten.  Different answers are expected.  Making that judgment is part of what you came here to develop.
 
 ## Check what it tells you
 
-It will be wrong sometimes, and it will be wrong in a particular style: confidently, fluently, and in the same voice it uses when it is right.  There is no tone shift to warn you.
+The model will be wrong sometimes, and it is wrong in a particular style: confidently, fluently, and in the same voice it uses when it is right.  Nothing in its tone warns you.
 
-Where it goes wrong most:
+The model goes wrong most often in four places:
 
 - **Citations that look perfect and do not exist.**  Real journal, plausible authors, a correctly formatted DOI that resolves to nothing.
 - **Anything recent, local, or niche.**  Your university's actual deadline, last month's release, the specific instrument in your lab.
 - **Reasoning that is right until one step in the middle.**  The setup is fine and the conclusion follows, and something in between is not true.
 - **Going along with a wrong assumption you handed it.**  Ask a question built on a false premise and you get a fluent, well-organized answer built on the same false premise.
 
-The rule underneath all four: **the more confident and fluent it sounds, the less that tells you.**  Fluency is the one thing the tool is guaranteed to produce whether or not the content is any good.
+The rule behind all four: **the more confident and fluent the model sounds, the less that tells you.**  Fluency is the one thing the tool is guaranteed to produce whether or not the content is any good.
 
 ## The name is the warning
 
-Look at what it stands for.  **Large language models produce large amounts of language.**  That is the thing it is built to do, and it is also the trap.
+LLM stands for large language model.  **Large language models produce large amounts of language.**  Producing language quickly is what the tool is built to do, and it is also the main risk.
 
-It writes a page in seconds.  Reading that page properly takes minutes.  Those rates do not match, so if you take the output at the speed it shows up, you are not reading it — that is arithmetic, not a comment on your discipline.  And because the text arrives polished and confident, skimming *feels* like enough.
+A model writes a page in seconds.  Reading that page properly takes minutes.  If you take the output at the speed it shows up, you are not reading it.  That is arithmetic, and it says nothing about your discipline.  The text also arrives polished and confident, so skimming *feels* like enough.
 
-That runs straight into the one rule.  **You cannot answer for something you have not read.**  So read it — at the speed reading takes, trying to understand it rather than checking that it looks okay.
+The speed of generated text runs into the one rule: you cannot answer for something you have not read.  So read the output at the speed reading takes, and try to understand it.  Checking that it looks okay is a different activity.
 
-**Ask for less.**  Most people resist it, since it gives up the tool's apparent advantage.  But three paragraphs you read are worth more to you than five pages you scanned, and only one of those is something you can defend.
+**Ask the model for less.**  Most people resist this advice, since it gives up the tool's apparent advantage.  Three paragraphs you read are worth more to you than five pages you scanned, and only the three paragraphs are something you can defend.
 
 ## Three habits worth building
 
-**Name the assumptions.**  Generated text rests on premises it never mentions, and it will happily accept a flawed assumption baked into your question and argue brilliantly from it.  Ask what the answer is taking for granted.
+**Name the assumptions.**  Generated text rests on premises it never mentions.  A model will also accept a flawed assumption built into your question and argue well from it.  Ask what the answer is taking for granted.
 
 **Check somewhere else.**
 
 !!! warning "Asking it again is not checking"
-    "Are you sure?" gets you either the same claim restated with equal confidence or an apology and a reversal.  Neither tells you whether the original was true.  Go to something independent: the actual paper, the documentation, a person who knows.
+    Asking the model "Are you sure?" gets you either the same claim restated with equal confidence or an apology and a reversal.  Neither tells you whether the original was true.  Go to something independent: the actual paper, the documentation, a person who knows.
 
-**Question it, and question yourself.**  Do not throw out what you know because a machine sounded certain — it is easy to give up your own knowledge to a confident paragraph.  Also hold your view loosely enough to check it.  Neither you nor the model is infallible, so aim for calibration and trust neither one by default.
+**Question it, and question yourself.**  Do not throw out what you know because a machine sounded certain.  It is easy to give up your own knowledge to a confident paragraph.  Also hold your own view loosely enough to check it.  Neither you nor the model is infallible, so aim for calibration and trust neither one by default.
 
-## Check your sources — this is the part that is actually graded
+## Check your sources: this is the part that gets graded
 
-What gets assessed is increasingly not whether you used AI.  It is whether the sources you cite exist and say what you claim they say.  That is the one rule that can be checked, and the standard predates any of this by about a century.
+Increasingly, what gets assessed is whether the sources you cite exist and say what you claim they say, and not whether you used AI.  Source accuracy is the one rule that can be checked, and the standard predates AI tools by about a century.
 
 Citations go wrong three ways, and they take very different amounts of time to catch.
 
-**The paper does not exist.**  Search the exact title in quotation marks.  Nothing comes back, or nothing matching.  Fifteen seconds, and it is the rarest of the three.
+**The paper does not exist.**  Search the exact title in quotation marks.  If nothing comes back, or nothing matches, you have found the problem.  The check takes fifteen seconds, and this failure is the rarest of the three.
 
-**The paper exists but the details are wrong.**  Wrong year, wrong volume, or — most often — a DOI that is formatted correctly and resolves to a different paper or to nothing at all.  Resolve it and confirm the title that comes back is the title you cited.  It is the highest-yield check available, and it takes seconds.  A correctly formatted DOI is not a working DOI.
+**The paper exists but the details are wrong.**  The citation has the wrong year, the wrong volume, or, most often, a DOI that is formatted correctly and resolves to a different paper or to nothing at all.  Resolve the DOI and confirm that the title that comes back is the title you cited.  Resolving the DOI is the highest-yield check available, and it takes seconds.  A correctly formatted DOI is not necessarily a working DOI.
 
-**The paper exists, is cited correctly, and does not say that.**  The common one, and the only one that requires reading.  Find the specific claim in the source itself — not the abstract, which routinely overstates what the paper found.
+**The paper exists, is cited correctly, and does not say that.**  This failure is the most common, and the only one that requires reading.  Find the specific claim in the source itself.  Do not rely on the abstract, which routinely overstates what the paper found.
 
-Eyeballing does not catch any of this.  Fabricated citations *look right*: real journal, plausible author names, correct formatting, nothing suspicious, from a tool that is very good at producing exactly that.
+Looking over a citation list does not catch any of these failures.  Fabricated citations *look right*: a real journal, plausible author names, correct formatting, and nothing suspicious.  Language models are very good at producing exactly that.
 
-The version your instructors were handed, with the failure rates and the technique, is in [Verifying sources](verifying-sources.md).  Read it if you like.  Knowing what standard you are being held to is your business as much as theirs.
+The faculty version of this material, with the failure rates and the checking technique, is [Verifying sources](verifying-sources.md).  You are welcome to read it.  Knowing the standard you are held to is your business as much as your instructors'.
 
 ## If you are accused because of a detector
 
-Most students do not know this, and you should.
+**AI detectors are unreliable, and they are unreliable unevenly.**  [Stanford researchers](https://pmc.ncbi.nlm.nih.gov/articles/PMC10382961/) ran seven detectors against essays by non-native English writers: on average **61.3% were flagged as AI-generated**, and **97.8% were flagged by at least one detector**.  On essays by US eighth-graders writing in their first language, the same tools were near-perfect.
 
-**AI detectors are unreliable, and they are unreliable unevenly.**  [Stanford researchers](https://pmc.ncbi.nlm.nih.gov/articles/PMC10382961/) ran seven of them against essays by non-native English writers: on average **61.3% were flagged as AI-generated**, and **97.8% were flagged by at least one detector**.  On essays by US eighth-graders writing in their first language, the same tools were near-perfect.
+The detectors' failure on non-native writers is not a bug someone will fix.  Detectors score text as machine-generated when word choice is predictable and sentence construction is simple.  That is a fair description of machine text, and also a fair description of good second-language writing.  The bias comes from the method itself.
 
-The failure is not a bug someone will fix.  Detectors score text as machine-generated when word choice is predictable and sentence construction is simple — a fair description of machine text, and also a fair description of good second-language writing.  The bias is in the method.
-
-So if it happens to you:
+If a detector flags your work:
 
 - **A detector score is not evidence.**  It is a number from a tool with a documented, structural failure mode.
 - **Ask what the specific concern is**, and what it rests on besides the score.
@@ -101,18 +99,18 @@ Your instructors have been pointed at [the same evidence](integrity-and-detectio
 
 Where your course permits AI assistance, say what you used.  One line at the end: **what tool, what you used it for, and what you changed about the output.**
 
-Disclosure is documentation, not confession.  Under a permissive policy it is not an admission of anything and it does not cost you points — it is the same note a professional puts in a methods section.  Get comfortable writing that line now.  You will be writing some version of it for the rest of your career.
+Disclosure is documentation, not confession.  Under a permissive policy, disclosing is not an admission of anything and it does not cost you points.  It is the same note a professional puts in a methods section.  You will write some version of that line for the rest of your career, so get used to writing it now.
 
 ## Know your course's rules, and ask when they are unclear
 
-The rules will differ between your courses, and between assignments inside a single course.  That is not inconsistency.  Different assignments assess different things, so a tool that is fine in one can be corrosive in another.
+AI rules will differ between your courses, and between assignments inside a single course.  Different assignments assess different things, so a tool that is fine in one assignment can undermine the learning in another.
 
 **Asking is not an admission of anything.**  "Can I use AI for this?" is an ordinary question about an assignment, in the same category as asking about the word count.
 
-And if a rule seems arbitrary, ask what the assignment is assessing.  The answer usually makes the rule obvious.  A restriction that looks pointless from outside tends to make sense once you know what your instructor is trying to observe.
+If an AI rule seems arbitrary, ask what the assignment is assessing.  A restriction that looks pointless from outside usually makes sense once you know what your instructor is trying to observe.
 
 ## What you type here is stored
 
-A conversation with the model in your course is data, and it is stored somewhere.  Before you paste something in — a draft, a personal situation you are explaining for context, someone else's work, anything you would not hand directly to your instructor — find out who can see it and how long it stays.
+A conversation with the model in your course is data, and it is stored somewhere.  Before you paste something in, find out who can see it and how long it is kept.  That applies to a draft, a personal situation you are explaining for context, someone else's work, or anything you would not hand directly to your instructor.
 
-The answer, gaps included, is in [Your data in {{PLATFORM}}](../your-data/index.md).
+[Your data in {{PLATFORM}}](../your-data/index.md) answers both questions, and says where the answers are incomplete.

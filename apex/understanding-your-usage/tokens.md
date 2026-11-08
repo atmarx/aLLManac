@@ -1,6 +1,6 @@
 ---
 title: Why is it measured in tokens?
-description: A token is not a word and it is not a subway token — it is a piece of text, and understanding why the unit is that strange is the first step to reading any of your numbers.
+description: A token is a piece of text, often part of a word.  Knowing what a token is, and why it is not a word, is the first step to reading any of your usage numbers.
 audience: student
 also_reaches: [faculty]
 status: draft
@@ -12,55 +12,53 @@ tethered_to:
 
 # Why is it measured in tokens?
 
-The word is doing you no favors, so let us deal with it first.
+The word *token* suggests the wrong picture, so start with what it does not mean.
 
-A subway token is a unit of access.  One token, one ride, and it costs the same whether you go two stops or twenty.  That is a sensible thing to call a token, but if that is the picture you brought here, it is exactly backwards.
+A subway token is a unit of access.  One token buys one ride, and it costs the same whether you go two stops or twenty.  A language model's token does not work that way.
 
-**A language model's token is a unit of text.**  It is a piece of a word.  You pay by the yard, and the token is how the yard gets measured.
+**A language model's token is a unit of text.**  A token is a piece of text, often part of a word.  You pay by the amount of text, and tokens are how that amount is measured.
 
 ## Why not just count words?
 
-Because the model does not read words.
+The model does not read words, so a word count does not match what the model processes.
 
-Before any text reaches the model, it is chopped into pieces from a fixed list of tens of thousands to a few hundred thousand fragments, depending on the model.  Common words are usually one piece.  Longer or rarer words get broken into several.  Spaces and punctuation are in there too.  The list was built by looking at an enormous amount of text and finding which chunks repeat, so it reflects ordinary writing and anything unusual becomes a series of small parts.
+Before any text reaches the model, the text is split into pieces from a fixed list of tens of thousands to a few hundred thousand fragments, depending on the model.  Common words are usually one piece.  Longer or rarer words get broken into several.  Spaces and punctuation are in the list too.  The list was built by looking at an enormous amount of text and finding which fragments repeat.  As a result, ordinary writing splits into few pieces, and anything unusual becomes a series of small parts.
 
-Some consequences:
+Some examples of how text splits into tokens:
 
-- **`notebook`** is a common enough word to be a piece or two.
-- **`nOTEbooK`** is not a word at all, so it gets taken apart into something like `n` + `OTE` + `boo` + `K` — **roughly twice the tokens for the same eight letters**, because of the capital letters scattered through it.
-- Numbers get split in ways that have nothing to do with how you would say them.  `2026` may be one piece or two; `20260921` is several.
-- Languages other than English, and code, and anything with unusual spacing, all run token counts up relative to their length.
+- `notebook` is a common enough word to be a piece or two.
+- `nOTEbooK` is not a word at all, so it gets taken apart into something like `n` + `OTE` + `boo` + `K`.  The scattered capital letters make it roughly twice the tokens for the same eight letters.
+- Numbers get split in ways that have nothing to do with how you would say them.  `2026` may be one piece or two, and `20260921` is several.
+- Languages other than English, code, and text with unusual spacing all use more tokens relative to their length.
 
-Don't optimize around any of it.  It explains why the count never quite matches your intuition, and why "just count the words" was never going to work.
+You do not need to optimize around how text splits.  Tokenization explains why a token count never quite matches your sense of how long a text is, and why counting words does not work.
 
 ## The numbers you need
 
-Two cover everything else:
+Two rough conversions cover everything else:
 
 > **1,000 tokens is about 750 words, or roughly a page and a half of ordinary prose.**
 
 > **A ten-page syllabus is somewhere around 6,500 tokens.**
 
-That is enough precision for every decision you will make.  If you find yourself wanting a more exact figure, you are almost certainly optimizing the wrong end of the problem — [what actually costs something](what-actually-costs.md) covers which end is which.
+Those two conversions are precise enough for every decision you will make about usage.  If you want a more exact token figure, you are almost certainly focusing on the wrong part of the cost.  [What actually costs something](what-actually-costs.md) ranks which parts matter.
 
 ## The unit does two jobs, and that is the confusing part
 
-Most of the muddle starts here.
+Tokens are the **billing unit**.  For every request, the platform adds up the tokens that went in and the tokens that came out, applies the model's input and output rates, and writes a line to the ledger.  In this sense tokens measure money.
 
-**Tokens are the billing unit.**  Every request adds up what went in and what came out, applies the model's input and output rates, and writes a line to the ledger.  That is money.
+Tokens are also the **capacity unit**.  Every model has a limit on how much text it can consider at once, called its *context window*, and that limit is counted in the same tokens.  In this sense tokens measure space.
 
-**Tokens are also the capacity unit.**  Every model has a limit on how much text it can consider at once — its *context window* — and that limit is counted in the same tokens.  That is space.
+The two uses of tokens behave differently.  Spending accumulates forever: every token you spend is added to a running total that does not reset.  Capacity does not accumulate at all.  The context window is measured fresh on every request, and what fills it is the conversation you are currently in.
 
-One number, two meanings, and they behave differently.  Money accumulates forever: every token you ever spend is added to a running total that does not reset.  Space does not accumulate at all — it is measured fresh on every single request, and what fills it is the conversation you are currently in.
-
-Confusing the two is what produces the tank picture: people notice the space limit behaving like a container, notice the money number going up, and conclude that one causes the other.  They are related, but not the way it looks — and the relationship is the subject of [the next page](context-is-the-conversation.md).
+Confusing billing and capacity produces the common picture of context as a tank.  People notice the capacity limit behaving like a container, notice the spending total going up, and conclude that one causes the other.  The two are related, but not in that way.  [What context actually is](context-is-the-conversation.md) explains how they are related.
 
 ## Try it yourself
 
-Ask the **Usage Guide** in the {{PLATFORM}} chat for **your usage**.  You will get something like:
+Ask the **Usage Guide** in the {{PLATFORM}} chat for **your usage**.  The report includes a total line like this one:
 
 ```
 Total: 412 requests · 1,840,220 tokens (1,790,118 in / 50,102 out)
 ```
 
-Look at those two numbers beside each other.  **You sent thirty-five times more text than you received.**  That sounds wrong until you know why, and once you do it is the most useful thing on the page.
+Compare the "in" and "out" token figures.  In this example, you sent thirty-five times more text than you received.  The reason is that every turn re-sends the whole conversation to the model, as [What context actually is](context-is-the-conversation.md) explains.

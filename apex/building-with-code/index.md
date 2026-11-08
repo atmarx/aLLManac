@@ -1,6 +1,6 @@
 ---
 title: Building with code
-description: Chat needs nothing but a sign-in.  Code needs a key, an address, and a clear idea of what is and isn't limiting it — this section is that idea, for scripts, notebooks, and coding harnesses alike.
+description: Chat needs only a sign-in.  Code needs a key, the gateway's address, and a clear idea of what limits it and what doesn't.  These pages cover all three, for scripts, notebooks, and coding harnesses alike.
 audience: student
 also_reaches: [faculty, builder]
 status: draft
@@ -15,21 +15,21 @@ tethered_to:
 
 # Building with code
 
-The chat window is one way in.  Everything else — a Python script, a notebook, a coding agent running in your terminal — goes through the same place the chat does: the **gateway**, the one address in front of every model on the platform.  The chat window identifies you to it automatically.  Code has to identify itself with a key.
+The chat window is one way to use the models.  A Python script, a notebook, or a coding agent running in your terminal sends its requests to the same place the chat does: the **gateway**, the one address in front of every model on the platform.  The chat window identifies you to the gateway automatically.  Code has to identify itself with a key.
 
-What changes the moment you leave the chat window:
+What changes when you use code instead of the chat window:
 
-- **You need a key, and it is yours.**  One per person per course.  Everything it spends is recorded under your name, in that course.  → [Your API key](your-key.md)
-- **The limits are different.**  In chat, a long conversation gets trimmed at the course's context window.  Through a key, nothing trims your requests at the gateway — what stops you is the budget on the key.  Assume the chat rule applies to code and you'll predict a limit that does not exist.  → [The gateway](the-gateway.md)
-- **An agent needs version control, tests and a pipeline under it before it needs anything else.**  They matter more than which model or harness you pick, and without them every mistake costs you twice.  → [Before the agent](before-the-agent.md)
+- **You need a key, and it belongs to you.**  Each person gets one key per course.  Everything the key spends is recorded under your name, in that course.  → [Your API key](your-key.md)
+- **The limits are different.**  In chat, a long conversation gets trimmed at the course's context window.  Through a key, the gateway does not trim your requests.  The budget on the key is what stops you.  If you assume the chat rule applies to code, you'll expect a limit that does not exist.  → [The gateway](the-gateway.md)
+- **A coding agent needs version control, tests and a deployment pipeline before it needs anything else.**  Those three matter more than which model or harness you pick.  Without them, every mistake costs you twice: once in tokens spent checking by hand, and again in time spent finding what the code used to say.  → [Before the agent](before-the-agent.md)
 - **A harness spends differently from a person.**  A coding agent re-sends its whole working context on every step of its loop, dozens of times per task, without you watching each one.  → [Coding harnesses](harnesses.md)
 
-Which harness?  The research says that's the wrong question on its own: the same model gains or loses tens of points depending on the harness around it, and which harness wins depends on the model.  → [Choosing a harness](choosing-a-harness.md)
+Research on coding harnesses shows that choosing a harness on its own is the wrong question.  The same model gains or loses tens of points depending on the harness around it, and which harness wins depends on the model.  → [Choosing a harness](choosing-a-harness.md)
 
-When something goes wrong, the errors are rarely self-explanatory, and several of them look like a broken key when they aren't.  → [When it breaks](when-it-breaks.md)
+Errors from the gateway are rarely self-explanatory, and several of them look like a broken key when the key is fine.  → [When it breaks](when-it-breaks.md)
 
-No config file covers what it means to hand an agent your repository and your name, or how to supervise it.  → [Supervising an agent](supervising-an-agent.md)
+Running a coding agent means handing it your repository and a key with your name on it.  You are responsible for what it does, so you need to supervise it and check its work.  → [Supervising an agent](supervising-an-agent.md)
 
 ## What this section assumes
 
-That you can open a terminal, set an environment variable, and run a script.  If you're going to hand code to an agent, you'll also want git first, and [Before the agent](before-the-agent.md) has the minimum.  If you have never used an API before, start with [the gateway](the-gateway.md) — the first example there is three lines long and proves the whole chain works.
+The coding pages assume you can open a terminal, set an environment variable, and run a script.  If you're going to hand code to an agent, set up git first; [Before the agent](before-the-agent.md) has the minimum.  If you have never used an API before, start with [the gateway](the-gateway.md).  Its first example is three lines long and checks that your key, the address and the gateway all work together.

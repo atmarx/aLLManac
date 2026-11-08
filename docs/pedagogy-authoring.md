@@ -167,7 +167,9 @@ The `faculty-duty` tag is important.  It is how a professor pulls everything the
 
 ## Voice
 
-Match the surrounding docs: em dashes, double spaces after periods, concrete opening rather than a thesis statement.  Technical terms are fine when they are the right word; jargon used as a gate is not.
+Straightforward and explanatory, never clever (@xram, 2026-11-08).  Double spaces after periods, and a concrete opening instead of a thesis statement.  Technical terms are fine when they are the right word; jargon used as a gate is not.
+
+**No em dashes** in `apex/` or in the guide prompts.  Readers took them as the clearest sign of machine writing, and `just docs-corpus` now fails on one outside code.  Write two sentences, or use a comma, colon or parentheses.  Operator docs in `docs/` are not held to this yet.
 
 Early readers' main complaint about these pages was that they sound machine-written.  The tells are habits, and most of them were ours.  Counted across `apex/` on 2026-10-02, before the first cleanup:
 
@@ -194,3 +196,15 @@ Also avoid:
 - Ending a section by restating what the section just said.
 
 Land sections on something concrete — an example, a number, a consequence.
+
+## Writing for the chunker
+
+The guides don't read pages whole.  `rag_api` cuts every page into 1,500-character chunks with 100 characters of overlap, splitting on blank lines first, then newlines, then spaces.  A `file_search` call returns the 10 best chunks across all of a guide's files, and each chunk arrives alone (`docs/agent-contract.md`, "The correction nobody could cite").  So a paragraph is the unit a guide quotes from, and it has to stand on its own:
+
+- **Name the subject.**  A paragraph that opens with "This", "It" or "These" pointing back at the last paragraph means nothing in a chunk by itself.  One noun fixes it.
+- **Stay under about 1,200 characters per paragraph.**  Pages are one line per paragraph, so a longer one is split mid-sentence, at a space.
+- **Keep a caveat with its claim.**  A limit or correction in a later paragraph is a different chunk, and the guide may never see it.
+- **No "as above" or "see below".**  Link the heading, or say the thing again briefly.
+- **Lists and tables say what they're about.**  A table split across chunks loses its header row, so keep tables short and let the first column name the subject.
+
+These rules change where words sit, not how many there are.

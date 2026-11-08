@@ -30,7 +30,7 @@ CONTRACT = ROOT / "docs" / "agent-contract.md"
 # nothing else.
 SCOPE = {
     "student-guide":
-        "You are the Student Guide: using {{PLATFORM}} in their courses — "
+        "You are the Student Guide: using {{PLATFORM}} in their courses: "
         "signing in, building agents, knowledge files, getting a copy of "
         "their own data, and what the budget numbers mean.  For their API "
         "key, send them to the Coder Guide, and for their own usage "
@@ -46,13 +46,13 @@ SCOPE = {
         "my_requests shows where a request stands and what the admins wrote "
         "back; if it was returned, course_request_reply answers them.",
     "instructor-guide":
-        "You are the Instructor Guide: running a course on {{PLATFORM}} — "
+        "You are the Instructor Guide: running a course on {{PLATFORM}}: "
         "enrollment, class configuration, shared agents, what students can "
         "see, and what you are responsible for.  You can manage enrollment "
         "for a course the person teaches: who may sign in to its chat and "
-        "hold a key.  Always in two steps.  Stage it — enroll or unenroll "
+        "hold a key.  Always in two steps.  Stage it (enroll or unenroll "
         "for a few people, roster_stage for a whole class list, which "
-        "removes anyone it leaves out — then show them the staged change "
+        "removes anyone it leaves out), then show them the staged change "
         "exactly as it came back and call roster_apply only after they say "
         "yes to that change.  Never stage and apply in one turn.  If you do "
         "not know the course, call my_courses first.  Who teaches a course "
@@ -68,13 +68,13 @@ SCOPE = {
         "other courses: ask for its id, from its edit page, and a line on "
         "what it does.",
     "platform-guide":
-        "You are the Platform Guide: how {{PLATFORM}} is built and why — "
+        "You are the Platform Guide: how {{PLATFORM}} is built and why: "
         "the architecture, the decisions, and what they cost.",
     "dev-guide":
-        "You are the Operator Guide: operating {{PLATFORM}} — deployment, "
+        "You are the Operator Guide: operating {{PLATFORM}}: deployment, "
         "runbooks, verification, and what breaks.  You are also the "
-        "operator's desk: the request tickets — approve with a budget, "
-        "return with questions, or reject with a reason — creating courses, "
+        "operator's desk: the request tickets (approve with a budget, "
+        "return with questions, or reject with a reason), creating courses, "
         "changing who teaches them and their pools, and the problem reports "
         "people file: reports lists them, report_triage marks one.  Those "
         "tools answer "
@@ -82,20 +82,20 @@ SCOPE = {
         "else, and every one that changes something first describes the "
         "change.  Call it without confirm, show them the description as it "
         "came back, and call it again with confirm=true only after they say "
-        "yes to that description — never in the same turn.",
+        "yes to that description, never in the same turn.",
     "security-guide":
-        "You are the Security Guide: how {{PLATFORM}} is secured — the "
+        "You are the Security Guide: how {{PLATFORM}} is secured: the "
         "controls, the boundaries, and the blue-team and purple-team "
         "exercises that test them.",
     "usage-guide":
-        "You are the Usage Guide: what the numbers mean — tokens, context, "
+        "You are the Usage Guide: what the numbers mean: tokens, context, "
         "what makes a bill go up, and how to read your own usage, or your "
         "course's if you teach it.  You "
         "explain; you never grade.  Every figure you state came back from a "
-        "tool call verbatim, and you do no arithmetic on those figures — a "
+        "tool call verbatim, and you do no arithmetic on those figures; a "
         "number you computed is a number the reader cannot check.",
     "coder-guide":
-        "You are the Coder Guide: building with code — API keys, the "
+        "You are the Coder Guide: building with code: API keys, the "
         "gateway, coding harnesses, and what limits code that does not "
         "limit chat.  You hand out keys: my_key gives the person their key "
         "for a course, and rotate_my_key replaces one that leaked.  Each "
@@ -118,13 +118,13 @@ DIRECTORY = """\
       Student Guide      using {{PLATFORM}} in a course you are taking,
                          getting a copy of your own data, and asking for
                          a project or club room
-      Instructor Guide   running a course on it — enrollment, class setup,
+      Instructor Guide   running a course on it: enrollment, class setup,
                          shared agents, and asking for a new course
       Platform Guide     how {{PLATFORM}} is built, and why
       Operator Guide     deploying and running it, and the operator's desk
                          for courses and requests
       Security Guide     how it is secured, and the exercises that test it
-      Usage Guide        what the numbers mean — tokens, context, cost —
+      Usage Guide        what the numbers mean (tokens, context, cost)
                          and how much you or your course have used
       Coder Guide        your API key, the gateway, and coding harnesses\
 """
@@ -363,6 +363,25 @@ def unbranded(label: str, text: str) -> list[str]:
             for n, line in enumerate(text.splitlines(), 1) if BRAND.search(line)]
 
 
+def dashes(label: str, text: str) -> list[str]:
+    """Every prose line holding an em dash.  Readers and the platform's owner
+    read the em dash as the clearest sign of machine writing (2026-11-08), so
+    the pages and the guide prompts carry none.  Fenced code and inline code
+    are skipped: a dash there is data, not style.  So are HTML comments,
+    which no reader or guide sees."""
+    hits, fenced = [], False
+    blank = lambda m: "\n" * m.group(0).count("\n")
+    text = re.sub(r"<!--.*?-->", blank, text, flags=re.S)
+    for n, line in enumerate(text.splitlines(), 1):
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+            continue
+        prose = re.sub(r"`[^`]*`", "", line)
+        if not fenced and "\u2014" in prose:
+            hits.append(f"{label}:{n}: em dash in {line.strip()[:70]}")
+    return hits
+
+
 def tells(label: str, text: str) -> list[str]:
     """Every line of a page or prompt carrying a banned tell."""
     return [f"{label}:{n}: {m.group(0)!r} in {line.strip()[:70]}"
@@ -487,10 +506,17 @@ def main() -> int:
     told += tells("docs/agent-contract.md (front desk)", welcome(contract_body))
     told += tells("docs/corpus.py (SCOPE, DIRECTORY)",
                   "\n".join([*SCOPE.values(), DIRECTORY]))
+    told += [hit for rel, fm, body in pages if rel.parts[0] == "apex"
+             for hit in dashes(str(rel), "\n".join([str(fm.get("title", "")),
+                                                     str(fm.get("description", "")), body]))]
+    told += dashes("docs/agent-contract.md (preamble)", preamble)
+    told += dashes("docs/agent-contract.md (front desk)", welcome(contract_body))
+    told += dashes("docs/corpus.py (SCOPE, DIRECTORY)",
+                   "\n".join([*SCOPE.values(), DIRECTORY]))
     told += service_hits(tells)
     told += shown_hits(tells)
     if told:
-        raise SystemExit("these use a word readers flagged as machine-written "
+        raise SystemExit("these use a word or an em dash readers flagged as machine-written "
                          "(docs/pedagogy-authoring.md, \"Voice\"):\n  "
                          + "\n  ".join(told))
 
@@ -532,6 +558,12 @@ def main() -> int:
             head = f"<!-- source: {rel} | audience: {fm.get('audience')} | status: {fm.get('status')} -->\n"
             # Only apex/ is written with {{PLATFORM}}; a docs/ page that shows
             # the token is explaining it, and filling it would garble that.
+            # HTML comments are notes to authors: a page's brief, a queue of
+            # pages not yet written, a counsel boundary.  The site never shows
+            # them, so a guide shouldn't read them either.  They were reaching
+            # the knowledge files whole until 2026-11-08, where a chunk of
+            # "CANDIDATE, and a strong one" reads like a fact about the platform.
+            body = re.sub(r"\n?<!--.*?-->\n?", "\n", body, flags=re.S)
             text = f"> {fm.get('description', '')}\n\n" + body
             (d / name).write_text(head + (brand(text) if rel.parts[0] == "apex" else text))
             lines.append(f"| `{name}` | `{rel}` | {fm.get('audience')} | "
