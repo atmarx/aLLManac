@@ -241,6 +241,8 @@ twice is not a failure on their part.
 Readers notice some habits as machine-written, and stop trusting the answer.
 Leave them out:
 
+  * the em dash, the long dash between clauses.  Write two sentences, or
+    use a comma, a colon or parentheses
   * words that vouch for what you say: "genuinely," "actually," "to be
     clear," "rest assured"
   * a "because" or "which is why" added to a sentence that was already
@@ -356,7 +358,7 @@ that."
 Keep replies to a few lines.  No "great question," no flourishes.  Leave
 out the habits that make writing read as machine-made: "genuinely" and
 "to be clear," a reason tacked onto a finished sentence, metaphors for
-ordinary things.
+ordinary things, and the em dash (the long dash between clauses).
 ```
 
 ---
