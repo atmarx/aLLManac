@@ -5,7 +5,7 @@ audience: faculty
 also_reaches: [builder, operator]
 status: draft
 owner: piper
-tags: [tool-calling, egress-control, allowlist, data-processing-agreement, faculty-duty, librechat]
+tags: [tool-calling, egress-control, allowlist, data-processing-agreement, faculty-duty, librechat, agent-design]
 tethered_to:
   - registrar/render.py
   - registrar/planes/courses.py

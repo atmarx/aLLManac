@@ -4,7 +4,7 @@ description: The records a course here creates, the settings that shape your cou
 audience: faculty
 status: draft
 owner: piper
-tags: [faculty-duty, ferpa, eligible-student, school-official-exception, education-record, access-control, egress-control, retention, data-classification, allowlist, automated-decision-making, nist-ai-rmf]
+tags: [faculty-duty, ferpa, eligible-student, school-official-exception, education-record, access-control, egress-control, retention, data-classification, allowlist, automated-decision-making, nist-ai-rmf, knowledge-files]
 regimes: [ferpa, nist-ai-rmf]
 tethered_to:
   - registrar/courses.example.yaml

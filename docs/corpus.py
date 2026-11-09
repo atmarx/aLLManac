@@ -107,6 +107,31 @@ SCOPE = {
         "which harness to use, you never answer with a name alone: the "
         "answer is a pairing of model and harness for a goal, and you ask "
         "for the goal.",
+    "design-guide":
+        "You are the Agent Design Guide: you help a student or an "
+        "instructor design an agent on {{PLATFORM}}, from a first idea to a "
+        "draft they paste into the Agent Builder.  Work as an interview, one "
+        "or two questions at a time: who will use the agent, what they will "
+        "ask it, what it must not do for them, and which files it will "
+        "draw on.  Once you know those four, draft at once, filling small "
+        "gaps with a sensible choice you name, rather than asking more.  "
+        "The draft is a name, a one-line description, the instructions, "
+        "and a few conversation starters; then ask what to change.  An agent's name, description, instructions and starters "
+        "are configuration for {{PLATFORM}}, so you write them whatever the "
+        "agent's subject is.  The course material the agent draws on is "
+        "not: you never write its readings, quiz questions, worked "
+        "solutions or answers, and that work belongs in their course's own "
+        "chat.  You draft and advise.  You cannot create, save, change or "
+        "share an agent, so never say you did; the person pastes the "
+        "draft in themselves.  Say which files to attach and which never "
+        "to: anyone who can chat with an agent can get it to repeat its "
+        "files, so answer keys, solutions, unreleased exams, graded work "
+        "and anything about identifiable students stay out.  When someone "
+        "pastes a document's text to tidy, never retype it.  Say where "
+        "headings belong and what to split, and leave the words theirs, "
+        "because a retyped document can change a date or a rule without "
+        "anyone noticing.  When the draft is done, tell them how to test "
+        "it, including one question the agent should refuse.",
 }
 
 # The directory of guides, rendered into BOTH the shared preamble (as the
@@ -126,7 +151,9 @@ DIRECTORY = """\
       Security Guide     how it is secured, and the exercises that test it
       Usage Guide        what the numbers mean (tokens, context, cost)
                          and how much you or your course have used
-      Coder Guide        your API key, the gateway, and coding harnesses\
+      Coder Guide        your API key, the gateway, and coding harnesses
+      Agent Design Guide designing an agent of your own: its instructions,
+                         its files, and testing it before you share it\
 """
 
 # Deployment config, not code: a different institution names a different
@@ -311,10 +338,19 @@ CODER_TAGS = {
 }
 CODER_MIN = 2
 
+# The FOURTH cross-cut, for the Agent Design Guide (2026-11-09).  Designing
+# an agent is a subject both audiences share: a student building one for a
+# team and an instructor building one for a class want the same pages.  The
+# threshold is ONE.  Both tags are new and narrow, and a page carries one
+# only when it teaches some part of building an agent: its instructions,
+# its knowledge files, or what to keep out of them.
+DESIGN_TAGS = {"agent-design", "knowledge-files"}
+DESIGN_MIN = 1
+
 # One place that knows every cross-cut, so adding a third does not mean
 # remembering to touch the report at the bottom of this file too.
 CROSS_CUTS = {"security-guide": SECURITY_MIN, "usage-guide": USAGE_MIN,
-              "coder-guide": CODER_MIN}
+              "coder-guide": CODER_MIN, "design-guide": DESIGN_MIN}
 
 
 def welcome(body: str) -> str:
@@ -542,6 +578,8 @@ def main() -> int:
             corpora.setdefault("usage-guide", []).append((rel, fm, body))
         if len(tags & CODER_TAGS) >= CODER_MIN:
             corpora.setdefault("coder-guide", []).append((rel, fm, body))
+        if len(tags & DESIGN_TAGS) >= DESIGN_MIN:
+            corpora.setdefault("design-guide", []).append((rel, fm, body))
 
     tethers = {}
     for guide, entries in sorted(corpora.items()):

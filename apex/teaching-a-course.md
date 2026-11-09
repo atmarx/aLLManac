@@ -4,7 +4,7 @@ description: The faculty walkthrough, covering the day-zero checklist, the cours
 audience: faculty
 status: draft
 owner: piper
-tags: [sso, access-control, rbac, attribution, metering, assessment-design, ai-literacy, accountability, faculty-duty, student-right, librechat, backup, restore, retention]
+tags: [sso, access-control, rbac, attribution, metering, assessment-design, ai-literacy, accountability, faculty-duty, student-right, librechat, backup, restore, retention, agent-design]
 tethered_to:
   - apex/user-guide.md
   - apex/your-data/how-long-we-keep-it.md

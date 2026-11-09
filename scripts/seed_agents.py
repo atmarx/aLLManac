@@ -180,19 +180,28 @@ GUIDES = [
      "New here?  Start with this and it will point you at the right guide.",
      WHERE_TOOLS),
     ("student-guide", "Student Guide",
-     f"Using {PLATFORM} in your courses — agents, knowledge files, your own data, and asking for a project or club room.",
+     f"Using {PLATFORM} in your courses: agents, knowledge files, your own data, and asking for a project or club room.",
      REPORT_TOOLS + WHERE_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS + NOMINATE_TOOLS),
     ("instructor-guide", "Instructor Guide",
-     f"Running a course on {PLATFORM} — enrollment, class configuration, shared agents, and asking for a new course.",
+     f"Running a course on {PLATFORM}: enrollment, class configuration, shared agents, and asking for a new course.",
      REPORT_TOOLS + WHERE_TOOLS + ENROLL_TOOLS + REQUEST_TOOLS + EXPORT_TOOLS
      + NOMINATE_TOOLS),
+    # (2026-11-09)  Students and faculty both build agents, so this sits
+    # beside their two guides in the picker.  It drafts and never acts: no
+    # tool here can create or change an agent, and the prompt says so, so a
+    # reply of "I've set that up for you" is a fabrication the evals catch.
+    # Reports only, for a builder field that doesn't match the page.
+    # Nominating stays with the Student and Instructor Guides.
+    ("design-guide", "Agent Design Guide",
+     "Designing an agent of your own: what it's for, its instructions and files, and testing it before you share it.",
+     REPORT_TOOLS),
     ("platform-guide", "Platform Guide",
-     f"How {PLATFORM} is built and why — the architecture, the decisions, and what they cost."),
+     f"How {PLATFORM} is built and why: the architecture, the decisions, and what they cost."),
     ("dev-guide", "Operator Guide",
-     f"Operating {PLATFORM} — deployment, runbooks, what breaks, and the operator's desk for courses, requests and problem reports.",
+     f"Operating {PLATFORM}: deployment, runbooks, what breaks, and the operator's desk for courses, requests and problem reports.",
      REPORT_TOOLS + TRIAGE_TOOLS + DESK_TOOLS),
     ("security-guide", "Security Guide",
-     f"How {PLATFORM} is secured — controls, boundaries, and the blue/purple team exercises that test them."),
+     f"How {PLATFORM} is secured: controls, boundaries, and the blue/purple team exercises that test them."),
     # The one guide that needs an instrument rather than only a shelf: it
     # explains what a number means, so it has to be able to read the number.
     # The prompt forbids it doing arithmetic on what comes back — a figure it
@@ -200,7 +209,7 @@ GUIDES = [
     # because course_usage needs a course and nothing else here could name
     # one — the docstring's "call list_courses" pointed at a tool it lacked.
     ("usage-guide", "Usage Guide",
-     "What the numbers mean — tokens, context, what makes a bill go up, and how to read your own usage, or your course's if you teach it.",
+     "What the numbers mean: tokens, context, what makes a bill go up, and how to read your own usage, or your course's if you teach it.",
      REPORT_TOOLS + WHERE_TOOLS + USAGE_TOOLS),
     # my_usage and not course_usage: the question this guide gets is "what
     # did my script just cost," and the answer is the person's own ledger.
@@ -210,7 +219,7 @@ GUIDES = [
     # every turn.  The tools take the course as an argument there; the
     # roster still decides.  One guide owns keys — the rest route here.
     ("coder-guide", "Coder Guide",
-     "Building with code — your API key, the gateway, and coding harnesses like pi and opencode.",
+     "Building with code: your API key, the gateway, and coding harnesses like pi and opencode.",
      REPORT_TOOLS + WHERE_TOOLS + KEY_TOOLS + [_U("my_usage")]),
 ]
 

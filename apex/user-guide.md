@@ -5,7 +5,7 @@ audience: student
 also_reaches: [faculty]
 status: draft
 owner: piper
-tags: [sso, access-control, rbac, secrets-management, key-rotation, attribution, metering, assessment-design, ai-literacy, accountability, faculty-duty, student-right, librechat, litellm]
+tags: [sso, access-control, rbac, secrets-management, key-rotation, attribution, metering, assessment-design, ai-literacy, accountability, faculty-duty, student-right, librechat, litellm, agent-design, knowledge-files]
 tethered_to:
   - docs/design-walls.md
   - registrar/render.py

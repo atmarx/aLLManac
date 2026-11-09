@@ -36,6 +36,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Using it in a course: user-guide.md
+  - Designing an agent: designing-an-agent.md
   - Teaching a course: teaching-a-course.md
   - Your course's own tools: your-own-tools.md
   - Evaluating it: evaluating-it.md

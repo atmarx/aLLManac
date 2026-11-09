@@ -151,6 +151,8 @@ Tags are an index, so they only work if the same idea always gets the same word.
 
 **Code and harnesses** `api-key` · `openai-compatible` · `harness` · `agentic-coding` · `tool-calling` — the Coder Guide cross-cut.  **Two** or more pull a page into that guide regardless of audience — one fewer than the other cross-cuts, because none of the five new ones is a tag a page carries in passing.  The cross-cut also borrows `key-rotation` from Controls, because using a key and replacing one are the same page; `secrets-management` stays out, because a page about custody is a security page first and reaches the Coder Guide only if it is also about using a key.
 
+**Building agents** `agent-design` · `knowledge-files` — the Agent Design Guide cross-cut (2026-11-09).  **One** is enough to pull a page into that guide.  Both tags are narrow, so tag a page only when it teaches some part of building an agent: its instructions, its knowledge files, or what to keep out of them.  A page that mentions agents in passing doesn't get either one.
+
 **Engineering practice** `version-control` · `automated-testing` · `ci-cd` — what has to be under an agent before the agent, and in the build track how this platform is run.  Not a cross-cut; `deployment` stays in Lifecycle.
 
 **Stack and backends** `openbao` · `keycloak` · `litellm` · `librechat` · `mongodb` · `caddy` · `docker-compose` · `kubernetes` · `azure` · `aws` · `globus` · `vllm`
