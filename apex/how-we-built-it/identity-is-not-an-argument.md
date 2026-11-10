@@ -18,7 +18,7 @@ tethered_to:
 
 Open the Usage Guide in the {{PLATFORM}} chat and type *"how much have I used this week?"*  The answer comes back with your email address at the top of it.
 
-You never told the Usage Guide your email address, and it never asked.  The tool that answered is `my_usage` in `usage-mcp/server.py`, and its only parameter is a number of days.  There is no `user` parameter anywhere in `my_usage`, and that is intended.
+You never told the Usage Guide your email address, and it never asked.  The tool that answered is `my_usage` in `usage-mcp/server.py`, and its parameters only pick a window of time: a number of days, or a calendar month.  There is no `user` parameter anywhere in `my_usage`, and that is intended.
 
 ## The question
 
@@ -57,7 +57,7 @@ headers:
 
 The bearer token proves the call came from the chat software and not from something else on the network.  The email comes from the account that signed in through the institution's identity provider.  Neither value passes through the model.  The model decides *whether* a tool is called and with *what* arguments.  It has no control over the headers.
 
-Every tool starts the same way: check the token, read the email, and refuse if either is missing.  Then it scopes its answer by that email and nothing else.  Tools still take arguments: `my_usage` takes a number of days, and `course_usage` takes a course.  **A prompt can pick the date range, but it can never pick whose data comes back.**
+Every tool starts the same way: check the token, read the email, and refuse if either is missing.  Then it scopes its answer by that email and nothing else.  Tools still take arguments: `my_usage` takes a number of days or a month, and `course_usage` takes a course and the same window.  **A prompt can pick the date range, but it can never pick whose data comes back.**
 
 The current course can be passed the same way, in one more header.  The registrar renders each course instance's configuration and writes that course's id into it as a literal: `X-Course: "engr301-2026fall"`.  A tool called from inside that course knows which course it is serving from a header nobody in the chat can edit.  The {{PLATFORM}} chat has no course, so its configuration has no `X-Course` header.  Tools that only work on the current course refuse there, and no extra policy code is needed.
 
@@ -91,6 +91,6 @@ In the {{PLATFORM}} chat, ask the Usage Guide for a classmate's usage by their e
 
 Then ask the Usage Guide for `course_usage` on your own course.  Unless you teach it, you are refused, and the refusal cites the roster, not your role.  The course you named did the *choosing*.  Your email, which you did not type, did the *deciding*.
 
-Last, open `usage-mcp/server.py` in the repository and read the signatures: `my_usage(days: int = 7)`.  Then find `_ident()`, a short function that reads a token and two headers.  `_ident()` is why the chatbot never asks who you are: the tool already has your identity from the headers, and the model has no way to change it.
+Last, open `usage-mcp/server.py` in the repository and read the signatures: `my_usage(days: int = 7, month: str = "")`.  Then find `_ident()`, a short function that reads a token and two headers.  `_ident()` is why the chatbot never asks who you are: the tool already has your identity from the headers, and the model has no way to change it.
 
 When you build your first agent with a tool of its own, write the tool's signature first.  For every parameter, ask: *if a student typed a different value into the chat, would I mind?*  If the answer is yes, that value should not be a parameter.
