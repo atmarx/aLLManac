@@ -80,6 +80,17 @@ def invoicee(slug: str, course: dict | None) -> dict:
     return tags
 
 
+def resource_name(label: str, platform: str) -> str:
+    """The words a statement line opens with.  A course reads as its slug,
+    which is what its instructor and its finance office both know it by.
+    The front door's owner reads as "the {PLATFORM} chat" (the house name
+    for it), not `platform`, which sounds like infrastructure on a page
+    leadership reads.  ResourceId keeps `platform:` either way: it's part
+    of OpenChargeback's dedup key, so renaming the label never makes a
+    re-import look like new charges."""
+    return f"{platform} chat" if label == PLATFORM_OWNER else label
+
+
 def _num(v, cast):
     try:
         return cast(v) if v not in (None, "") else cast(0)
@@ -147,7 +158,7 @@ def rollup(ledger_rows, records: dict, month: str, platform: str):
             "ServiceName": platform,
             "ServiceCategory": "AI and Machine Learning",
             "ResourceId": f"{label}:{model}",
-            "ResourceName": f"{label} — {model}",
+            "ResourceName": f"{resource_name(label, platform)} — {model}",
             "SkuId": model,
             "ConsumedQuantity": tin + tout,
             "ConsumedUnit": "Tokens",

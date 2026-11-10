@@ -221,7 +221,7 @@ It reads the ledger straight from the gateway's database, rolls it up to one **F
 
 The names are OpenChargeback's own tags (its `TAG-SPECIFICATION.md`), so nothing gets translated on the way in.  Leave the block out and the row bills the course's first instructor, under the course slug as `project_id`, with no fund code.  OpenChargeback flags those for review instead of charging them.
 
-**The front door's chat bills as `platform`.**  It still spends on the master key, which no course owns (moving it to an office service key is registrar-spec Phase 2a), so the export gives master-key spend the owner `platform`.  A `billing:` block at the top level of `courses.yaml` — the same tags, beside `courses:` rather than under one — says who pays for it.  Leave it out and those rows come back `NO INVOICEE`.
+**The front door's chat bills as `platform`.**  It still spends on the master key, which no course owns (moving it to an office service key is registrar-spec Phase 2a), so the export gives master-key spend the owner `platform`.  A `billing:` block at the top level of `courses.yaml` — the same tags, beside `courses:` rather than under one — says who pays for it.  Leave it out and those rows come back `NO INVOICEE`.  On the statement those lines read "{PLATFORM} chat — <model>" (`PLATFORM_NAME`), not `platform`, because the statement is something leadership reads; the `ResourceId` stays `platform:<model>`, which keeps OpenChargeback's dedup key stable across re-imports.
 
 **The money is the ledger's.**  `ListCost` and `BilledCost` are LiteLLM's `spend`, which is whatever rate `litellm/config.yaml` sets per model.  A model with no rate bills $0 and its tokens still count, in `ConsumedQuantity`, so campus-hosted models show up as free but visible.  Subsidies ("the provost covers the first $500") are **this export's** job, not OpenChargeback's: OpenChargeback takes rows that are already split into what the owner pays and what each sponsor covers.  That split isn't built yet, so for now every row bills its full cost.  The design is [subsidy-walk.md](subsidy-walk.md).
 
@@ -241,6 +241,8 @@ The friendliest analytics surface isn't a dashboard — it's the chat the class 
 |---|---|---|
 | `my_usage` | everyone | "What did I burn this week?" — chat + API keys, tokens/requests/models |
 | `course_usage` | faculty of that course, admins | totals, per-student table, **who hasn't started yet**, model mix |
+
+Both take a window: the last `days` days, or `month` — `YYYY-MM`, `this` (so far) or `last`.  A month is a UTC calendar month, the same days `just focus` bills, so "what has ENGR 301 spent this month?" is one call and agrees with the statement.
 | `list_courses` | everyone | what the caller is allowed to see |
 
 No LiteLLM login, no Enterprise license, no fourth console.  Students only ever see themselves; faculty see the courses the roster grants them.

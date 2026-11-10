@@ -17,6 +17,8 @@ import hashlib
 import hmac
 import json
 import os
+import re
+from calendar import monthrange
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
@@ -176,8 +178,48 @@ def _clamp_days(days: int) -> int:
     return max(1, min(int(days), 366))
 
 
-def _since(days: int) -> str:
-    return (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+_MONTH_RE = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])$")
+_THIS = ("this", "current", "this month")
+_LAST = ("last", "previous", "last month")
+
+
+def _window(days: int, month: str = "") -> tuple[datetime, datetime, str]:
+    """-> (start, end, label): the ledger rows to count, as naive UTC (what
+    `startTime` holds), and the words the answer opens with.
+
+    `month` wins over `days` when given.  It exists because "so far this
+    month" is the question a statement makes people ask, and a window of
+    days can't say it: the Usage Guide once walked `days` from 10 down to 1
+    and called the ten-day window the month.  Calendar months in UTC, the
+    same days `just focus` bills, so the chat and the statement agree."""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    m = (month or "").strip().lower()
+    if not m:
+        d = _clamp_days(days)
+        start = now - timedelta(days=d)
+        # No row is dated in the future; the slack is clock skew, not policy.
+        return start, now + timedelta(days=1), \
+            f"last {d} days (since {start:%Y-%m-%d})"
+    if m in _THIS:
+        y, mo = now.year, now.month
+    elif m in _LAST:
+        y, mo = (now.year, now.month - 1) if now.month > 1 else (now.year - 1, 12)
+    else:
+        hit = _MONTH_RE.match(m)
+        if not hit:
+            raise ToolError(f"'{month}' isn't a month.  Use YYYY-MM (like "
+                            f"{now:%Y-%m}), or 'this' or 'last'.")
+        y, mo = int(hit.group(1)), int(hit.group(2))
+    start = datetime(y, mo, 1)
+    end = datetime(y + (mo == 12), mo % 12 + 1, 1)
+    name = f"{start:%B %Y}"
+    if start > now:
+        raise ToolError(f"{name} hasn't started yet.  It's {now:%B %Y} now.")
+    if end > now:
+        return start, now + timedelta(days=1), \
+            f"{name} so far ({start:%Y-%m-%d} to {now:%Y-%m-%d}, UTC)"
+    last_day = monthrange(y, mo)[1]
+    return start, end, f"{name} ({start:%Y-%m-%d} to {y}-{mo:02d}-{last_day:02d}, UTC)"
 
 
 
@@ -260,15 +302,17 @@ def _course_or_refuse(email: str, role: str, course: str,
 # ---- tools ---------------------------------------------------------------------
 
 @mcp.tool
-async def my_usage(days: int = 7) -> str:
+async def my_usage(days: int = 7, month: str = "") -> str:
     """The caller's own usage: requests, tokens, and models — chat
     and API keys combined.  Always and only the caller's numbers: everywhere
     on the platform when asked in the platform's own chat, this course only
-    when asked in a course's chat.  Data notes: the ledger trails live
-    traffic by ~10 seconds, and campus-hosted models carry no dollar price,
-    so token counts are the real measure."""
+    when asked in a course's chat.  The window is the last `days` days, or a
+    calendar month: `month` is YYYY-MM, or 'this' for this month so far, or
+    'last' — one call, and it overrides `days`.  Data notes: the ledger
+    trails live traffic by ~10 seconds, and campus-hosted models carry no
+    dollar price, so token counts are the real measure."""
     email, _role, here = _ident()
-    days = _clamp_days(days)
+    start, end, span = _window(days, month)
     # In a course chat, this course's rows only — the same team-or-owner-tag
     # test course_usage uses.  A course's token can name any email, and the
     # platform-wide answer would hand that course everyone's numbers from
@@ -276,9 +320,9 @@ async def my_usage(days: int = 7) -> str:
     # no further).  At the front door there's no room to scope by, and the
     # front door's token can only come from the front door.
     scope = ""
-    args = [email, days, _my_ids(email)]
+    args = [email, start, end, _my_ids(email)]
     if here:
-        scope = "AND (team_id = $4 OR request_tags @> $5::jsonb)"
+        scope = "AND (team_id = $5 OR request_tags @> $6::jsonb)"
         args += [here, json.dumps([f"owner:{here}"])]
     pool = await _db()
     rows = await pool.fetch(
@@ -292,8 +336,8 @@ async def my_usage(days: int = 7) -> str:
                COALESCE(sum(spend), 0)                      AS dollars,
                max("startTime")                             AS last_seen
         FROM "LiteLLM_SpendLogs"
-        WHERE "startTime" >= (now() AT TIME ZONE 'utc') - make_interval(days => $2)
-          AND (lower(end_user) = $1 OR lower("user") = ANY($3::text[]))
+        WHERE "startTime" >= $2 AND "startTime" < $3
+          AND (lower(end_user) = $1 OR lower("user") = ANY($4::text[]))
           {scope}
         GROUP BY 1 ORDER BY toks DESC
         """,
@@ -303,7 +347,7 @@ async def my_usage(days: int = 7) -> str:
     if here:
         name = _load_roster()["courses"].get(here, {}).get("name", here)
         where = f" in {name} (everything else you've used is in the {PLATFORM} chat)"
-    head = f"Usage for {email}{where} — last {days} days (since {_since(days)})"
+    head = f"Usage for {email}{where} — {span}"
     if not rows:
         return f"{head}\n\nNothing in the ledger for this window."
     reqs = sum(r["reqs"] for r in rows)
@@ -332,14 +376,17 @@ async def my_usage(days: int = 7) -> str:
 
 
 @mcp.tool
-async def course_usage(course: str, days: int = 30) -> str:
+async def course_usage(course: str, days: int = 30, month: str = "") -> str:
     """Course-wide usage — a faculty view: totals, per-student activity, who
     hasn't started yet, and the model mix.  `course` is the course's id or its
-    name (my_courses or list_courses when unsure).  Covers this course's chat
-    and the API keys minted for it — nothing a student did in another course
-    or in the platform's own chat."""
+    name (my_courses or list_courses when unsure).  The window is the last
+    `days` days, or a calendar month: `month` is YYYY-MM, or 'this' for this
+    month so far, or 'last' — one call, and it overrides `days`.  A month
+    here covers the same days as that month's statement.  Covers this
+    course's chat and the API keys minted for it — nothing a student did in
+    another course or in the platform's own chat."""
     email, role, here = _ident()
-    days = _clamp_days(days)
+    start, end, span = _window(days, month)
     slug, c = _course_or_refuse(email, role, course, here)
     emails = c["students"]
     tag = json.dumps([f"owner:{slug}"])
@@ -352,8 +399,8 @@ async def course_usage(course: str, days: int = 30) -> str:
     # every minted key are team-scoped, registrar/planes/gateway.py) and its
     # owner tag; the tag also catches a key minted outside the team.
     where = """
-        "startTime" >= (now() AT TIME ZONE 'utc') - make_interval(days => $1)
-          AND (team_id = $2 OR request_tags @> $3::jsonb)
+        "startTime" >= $1 AND "startTime" < $2
+          AND (team_id = $3 OR request_tags @> $4::jsonb)
     """
     pool = await _db()
     per_ident = await pool.fetch(
@@ -367,7 +414,7 @@ async def course_usage(course: str, days: int = 30) -> str:
         FROM "LiteLLM_SpendLogs" WHERE {where}
         GROUP BY 1
         """,
-        days, slug, tag,
+        start, end, slug, tag,
     )
     mix = await pool.fetch(
         f"""
@@ -376,7 +423,7 @@ async def course_usage(course: str, days: int = 30) -> str:
         FROM "LiteLLM_SpendLogs" WHERE {where}
         GROUP BY 1 ORDER BY toks DESC
         """,
-        days, slug, tag,
+        start, end, slug, tag,
     )
     # Fold key-user aliases back onto the student's email:
     rev = {a: e for e in emails for a in c["aliases"].get(e, [])}
@@ -392,7 +439,7 @@ async def course_usage(course: str, days: int = 30) -> str:
         if f["last_seen"] is None or (r["last_seen"] and r["last_seen"] > f["last_seen"]):
             f["last_seen"] = r["last_seen"]
 
-    head = (f"{c['name']} ({slug}) — last {days} days (since {_since(days)})")
+    head = f"{c['name']} ({slug}) — {span}"
     if not folded:
         started = 0
     else:
