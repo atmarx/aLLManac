@@ -327,6 +327,18 @@ Measured on the CI box: the Platform Guide and the Operator Guide both carry a `
 
 Why it stayed hidden: the seeder uploads a file again only when its text changes, so an old unchanged file is never repaired, and its record looks healthy.  **Any box that ran 0.8.7 before its uploads were a volume can have this**, one unchanged page at a time.  Eval case S1 catches it: a guide in this state fails with "returned nothing".  If one guide fails S1 that way while the others pass, grep the chat's log for `provisionFiles` before reading the prompt.  The repair is to have the seeder upload that file again.  It has not been done on the CI box, which is being retired.
 
+### A front office with no context budget set runs out inside one documentation question *(measured on 0.8.8, 2026-11-10)*
+
+A guide asked a documentation question searches its files two to eight times before it answers, and every result stays in the turn.  LibreChat budgets a model name it doesn't recognise at 32,000 tokens (`DEFAULT_MAX_CONTEXT_TOKENS = 32e3`, less a 5% reserve, in `/app/packages/api/dist/index.cjs`), and every model name on this platform is one it doesn't recognise.  The guides carry no `model_parameters` of their own, so the only place the number can come from is `maxContextTokens` on the flagship's endpoint, which lives in each box's `site/` and which the tracked config doesn't set ([post-deploy](post-deploy.md) lists it as a per-box step).
+
+Measured on the stable test box, whose flagship config had no `maxContextTokens` and whose guides answer with the local model.  The Platform Guide, asked eval case S1's question, searched seven times across five model calls, with prompts of 4,649, 12,610, 20,939, 24,813 and 28,737 tokens.  LibreChat then logged `[agents:graph] Summarization triggered` and made a sixth call to summarize the turn so far: 21,191 tokens in, 2,777 out, 7 minutes 17 seconds on that box's model.  The answer was written from the summary and landed 13 minutes after the question.  It read as consistent with the pages, on one reading of one answer.  While the summary was being written, the next guide's first call and a 102-token title call each waited more than seven minutes behind it.
+
+**This answers a question `working-in-the-chat.md` had open since September:** on the Agents endpoint, 0.8.8 summarizes when a turn outgrows the budget.  It does so in the middle of a turn, with another model call the person waits for and somebody's budget pays for, and the answer is then written from the summary and not from the pages the searches returned.
+
+What it looks like from outside: the guide sits on one question for minutes, and nothing at warn or error level says why.  On a fast hosted model the same thing would be a pause and an extra charge.  S1 fails that guide with "no reply after 180s", which the harness now words differently from "returned nothing" so a slow turn doesn't read as a silent guide.  The canary sets 64,000 on the same endpoint and answers with a hosted model.  Its log has no summarization line in 72 hours of the same guides answering the same question, and its largest prompt that day was 27,013 tokens.
+
+If S1 times out on the guides with the most pages while the short ones pass, grep the chat's log for `Summarization triggered` and check that box's `maxContextTokens` before reading the prompt.
+
 ---
 
 ## `rag_api` fails OPEN without `JWT_SECRET` *(2026-09-12)*
