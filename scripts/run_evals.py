@@ -309,7 +309,19 @@ def score(case: dict, turns: list[dict]) -> tuple[str | None, list[str]]:
     why, unreadable = [], False
     for i, e in enumerate(case["expect"], 1):
         if i > len(turns) or not turns[i - 1]["reply"]:
-            why.append(f"turn {i}: returned nothing")
+            # Two different silences.  A message that landed with no text is a
+            # guide that said nothing.  No message at all by the deadline is a
+            # turn that was still running, or one that died unsaved, and on a
+            # slow model that is latency, not the prompt.  Both fail; only the
+            # first is "returned nothing" (measured 2026-11-10: a local model
+            # whose turn outgrew its context was still summarizing at 180 s,
+            # and the run called that guide silent).
+            if i > len(turns):
+                why.append(f"turn {i}: not asked, an earlier turn got no reply")
+                continue
+            waited = turns[i - 1].get("no_reply_after")
+            why.append(f"turn {i}: no reply after {waited}s, the turn may still "
+                       f"be running" if waited else f"turn {i}: returned nothing")
             continue
         t = turns[i - 1]
         calls = [{"name": c["name"].split("_mcp_")[0], "args": c.get("args")}
@@ -497,6 +509,8 @@ def main() -> int:
                 got, parent, tools, types = reply(convo, i, args.timeout)
                 turns.append({"ask": text, "reply": got, "tools": tools,
                               "types": types,
+                              # no message id = nothing landed before the deadline
+                              **({} if parent else {"no_reply_after": args.timeout}),
                               **({"handoff_retries": waited} if waited else {})})
                 if not got:
                     break
@@ -540,6 +554,9 @@ def main() -> int:
                 lines += [""]
             lines += ["**Replied:**", "",
                       "> " + (t["reply"].replace("\n", "\n> ") if t["reply"]
+                              else f"*(no reply after {t['no_reply_after']} s; "
+                                   "the turn may still have been running — this fails)*"
+                              if t.get("no_reply_after")
                               else "*(nothing — this fails)*"), ""]
     (OUT / f"{stamp}.md").write_text("\n".join(lines) + "\n")
     print(f"\n  {len(results)} cases -> site/evals/{stamp}.md")
