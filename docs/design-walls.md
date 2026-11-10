@@ -303,6 +303,20 @@ Measured on a throwaway local stack (separate compose project; the pinned LibreC
 
 **If a person does report it:** check `docker logs alm-librechat | grep -c "Title generation timeout"` first.  The fix is the title model, or `titleConvo: false` until it's back.
 
+### An agent's `file_search` needs the *chatting person's* File Search permission — and the front office's lockdown takes it away *(measured on 0.8.8, 2026-11-10)*
+
+**The symptom.**  A guide answers a documentation question without a single `file_search` call: "I don't know that from the documentation I can see," or worse, a confident answer from the model's memory.  LibreChat logs `[FILE_SEARCH] Forbidden: Insufficient permissions for User <id>: USE` at warn level on that request, and nothing reaches the person.
+
+**What it is.**  0.8.8 loads an agent's role-gated tools (`file_search`, `execute_code`, `web_search`) only if the person chatting holds the matching role permission: `resolveToolRolePermissions` in `loadAgentTools`, which "fails closed" (`/app/packages/api/dist/index.cjs`).  On 0.8.7 the permission governed the composer's own toggle and uploads, and an agent's knowledge files were searched for whoever could use the agent: the nightly transcripts through 11-05 have two to eight `file_search` calls per run from the eval personas, whose role is `USER`.
+
+**Why the front office lost it.**  The lockdown (`1e7b2e1`) sets `interface.fileSearch: false` in `librechat/librechat.yaml`, and an explicit interface value is written into the `USER` and `ADMIN` roles at every boot.  So `FILE_SEARCH.USE` is false for everyone who signs in.  The seeder's own role, `ALMANAC_GUIDES`, was given it so the uploads would work (`scripts/seed_agents.py`).  Course instances don't set the flag and are not affected: `USER` and `ADMIN` hold the permission in every course database on all three boxes.
+
+**Why every check stayed green.**  The corpus eval cases ran as the seeder's account, the one account that can always search.  `agents-check` compares files and prompts, not what a signed-in person's request can reach.  Measured on the canary, same guides, same minute, same question ("What does the platform keep about me, and who can see it?"): asked as the seeder's account, 7 of 7 guides searched their files; asked as the `nobody` persona, 0 of 7 did.  That is eval case S1 now, and `evals-check` runs it nightly.
+
+**The fix is the plumbing lane's call** and is not made as of this writing: `interface.fileSearch: true` on the flagship gives the guides their files back and also gives people the composer's File Search option, which the lockdown turned off on purpose.  Removing the line is not a fix, because a role keeps the last value written to it.  Every box carries its own `site/librechat/librechat.yaml`, so a change to the tracked file reaches none of them without a hand edit.  Whatever is chosen, `just evals-check --case S1` going green is the proof.
+
+**On an upgrade,** read LibreChat's release notes for anything that moves a tool behind a role permission, and run S1 before the pin moves to stable.
+
 ---
 
 ## `rag_api` fails OPEN without `JWT_SECRET` *(2026-09-12)*

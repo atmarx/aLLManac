@@ -1029,7 +1029,25 @@ The small model is the reason these exist.  The Instructor Guide carries fifteen
     my_courses — and hands back what it returned once, as a password.  Fails
     if it sends them to a course chat for the key (keys moved to the front
     office, registrar-spec.md decision 31), or if it asks them to paste a key.
+
+- id: S1
+  pattern: an ordinary person reaches the files
+  guides: [student-guide, instructor-guide, platform-guide, dev-guide,
+           security-guide, usage-guide, coder-guide, design-guide]
+  as: nobody
+  breaks_at: null
+  turns:
+    - "What does {{PLATFORM}} keep about me, and who can see it?"
+  expect:
+    - calls: [file_search]
+  passes_when: >
+    Searches its files before it says anything, then answers from them or
+    hands off to the guide that holds the page.  Fails if it answers, or says
+    it doesn't know, without a file_search call: that is a guide working from
+    the model's memory, and for a privacy question that is the worst case.
 ```
+
+**S1 is there because every other corpus case runs as the account that owns the guides** *(2026-11-10)*.  The runner asks as the seeder's service account unless a case says `as:`, and that account can always search the files it uploaded.  A person signing in can't always.  LibreChat 0.8.8 gives an agent its `file_search` tool only if the person chatting holds the File Search permission, and the front office's lockdown (`interface.fileSearch: false`) takes that permission away from everyone but the seeder ([design-walls.md](design-walls.md)).  For five days every guide answered real people with no knowledge files, and every corpus case here stayed green.  The Instructor Guide told a professor "I don't know the procedure for sharing an agent with your whole class from the documentation I can see" without looking, and gave another a privacy answer from memory.  S1 asks as `nobody`, a signed-in person on no course, and scores one thing: did the guide search.  If S1 fails on every guide at once, look at the permission before the prompt.
 ---
 
 ## The case this file cannot write
