@@ -38,8 +38,15 @@ registration:
 #   - no people picker, no marketplace: nothing here is shared person-to-person,
 #     and the model picker (modelSpecs, enforced) is the whole directory.
 #   - no prompts, bookmarks, presets, memories, multi-convo, parameters, code
-#     execution, web search, composer file search, shared links or skills.
-#     A place to ask, not the full experience.
+#     execution, web search, shared links or skills.  A place to ask, not the
+#     full experience.
+#   - file search is ON, and only because 0.8.8 made it the guides' own key:
+#     an agent gets its `file_search` tool only if the PERSON chatting holds
+#     FILE_SEARCH.USE, so `fileSearch: false` left every guide answering with
+#     no knowledge (2026-11-10, design-walls.md).  The same grant opens the
+#     composer's "Upload for File Search", so `fileConfig` below narrows the
+#     agents endpoint to markdown, small, which is all the guide seeder ever
+#     uploads.  No PDFs, no decks, no dumps in the front office.
 #   - temporaryChat stays at its default (on): it is a privacy affordance, not
 #     a feature.  `mcpServers` and `remoteAgents` are OBJECTS in the schema,
 #     not booleans — `mcpServers: false` took the flagship down at boot
@@ -67,7 +74,7 @@ interface:
   modelSelect: false
   runCode: false
   webSearch: false
-  fileSearch: false
+  fileSearch: true     # see the header — the guides need it, fileConfig narrows it
   sharedLinks: false
   skills: false
 
@@ -79,6 +86,17 @@ memory:
 # Course materials are PDFs and slide decks, not disk images — cap uploads:
 fileConfig:
   endpoints:
+    # The front office's only upload door is "Upload for File Search" in a
+    # guide chat (fileSearch above).  It takes what the seeder uploads and
+    # nothing else.  The seeder's knowledge is corpus/<guide>/*.md, largest
+    # ~145 KB.  `disabled: true` would close the door, and the seeder with it:
+    # it uploads through the same /api/files route on this endpoint.
+    agents:
+      fileLimit: 10
+      fileSizeLimit: 1     # MB
+      totalSizeLimit: 10   # MB
+      supportedMimeTypes:
+        - "^text/markdown$"
     default:
       fileLimit: 10        # files per request
       fileSizeLimit: 25    # MB per file
