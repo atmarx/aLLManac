@@ -291,6 +291,18 @@ Measured on a throwaway local stack (separate compose project; the pinned LibreC
 
 **What's left: overrides saved before the wall.**  The edge stops new ones; an old one still applies on every request.  The census now reads them — `fleet_inventory` lists each as a finding, `fleet_exposure` and `fleet/inventory.md` show which principal and which sections — by section **name** only, because a value may be a header holding a secret (`chatdb.py` turns `overrides` into its key list inside Mongo, so a value never reaches the registrar).  Deleting one is the operator's call, in that course's Mongo (`db.configs` in `LibreChat_<slug>`); the panel can't do it now, by design.  `just egress-check` proves the wall on every deploy (Layer 5): writes sent with no credential must get the edge's marked 403 on both paths, and reaching LibreChat at all — any status — is red.  It also goes red when a panel's `API_SERVER_URL` doesn't go through the edge, which is what a box looks like between deploying this and running `just render`.
 
+### A follow-up turn is refused with a 500 while the previous turn hasn't drained *(measured on 0.8.8, 2026-11-09)*
+
+**The symptom.**  `POST /api/agents/chat/` on an existing conversation answers HTTP 500, `{"error":"Generation predecessor handoff could not be confirmed","generationProtocolVersion":1}`, about 30 seconds after it was sent.  LibreChat's log has `[GenerationJobManager] Replaced provider did not drain: <conversationId>/<epoch> Timed out waiting for provider execution to drain` on the line before it.
+
+**What it is.**  0.8.8 tracks one generation job per conversation (`streamId === conversationId`).  A new turn replaces the previous turn's job, and `createJob` waits for that job's provider work to be marked drained before it starts: `waitForProviderExecutionDrain`, `PROVIDER_DRAIN_TIMEOUT_MS = 3e4`, in `/app/packages/api/dist/index.cjs`.  If the mark doesn't arrive in 30 seconds the new turn is refused.  The reply being saved in Mongo is not the mark.
+
+**What holds a job open: naming the conversation, as far as the logs show.**  This is read from timing, not from the code path.  On the one box where it happens, every refused turn's predecessor logged `Title error: Title generation timeout` about 45 seconds after it started, and the title model (`titleModel`, the chat model) was not answering there.  The two boxes whose titles work logged no refusal and no undrained job in 72 hours on the same image.
+
+**Who it reaches.**  A person has to send a second message inside that window, on a box whose title model is hung, so nobody has reported it and no log shows a person hitting it.  The eval harness hit it every night: it sends turn 2 the moment turn 1's reply lands, so `guide-evals` was red for four nights, 11-06 to 11-09, the first four after the 0.8.8 pin, with the guides never scored.  `scripts/run_evals.py` now waits 20 seconds and asks again, twice at most, prints that it did, and records `handoff_retries` on the turn.  A transcript with that field means the box's title model needs looking at; the guides are not the problem.
+
+**If a person does report it:** check `docker logs alm-librechat | grep -c "Title generation timeout"` first.  The fix is the title model, or `titleConvo: false` until it's back.
+
 ---
 
 ## `rag_api` fails OPEN without `JWT_SECRET` *(2026-09-12)*

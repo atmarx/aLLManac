@@ -67,6 +67,12 @@ SLUG_BY_NAME = {
 # the whole table.
 WELCOME_ONLY = {"W1", "W2"}
 
+# What LibreChat answers (HTTP 500) when a follow-up turn arrives before the
+# previous turn's job has drained.  See the retry in main().
+HANDOFF = "predecessor handoff could not be confirmed"
+HANDOFF_RETRIES = 2
+HANDOFF_WAIT = 20
+
 
 def dc(container: str, *args: str) -> str:
     r = subprocess.run(["docker", "exec", container, *args],
@@ -380,17 +386,6 @@ def main() -> int:
     if not live:
         sys.exit("no guide agents on this box — run `just agents-seed` first")
 
-    model = live[0]["model"]
-    if not args.skip_precheck:
-        why = reachable(model)
-        if why:
-            sys.exit(
-                f"the guides answer with {model!r} and the gateway cannot reach it:\n"
-                f"  {why}\n"
-                "Every case would score as 'returned nothing', which would be a lie\n"
-                "about the prompts.  Bring inference up, or pass --skip-precheck if\n"
-                "you really mean to record a dead stack.")
-
     if args.guide:
         want = set(args.guide.split(","))
         live = [a for a in live if a["slug"] in want]
@@ -400,6 +395,41 @@ def main() -> int:
         picked = [c for c in picked if c["id"] in want]
     if args.check:
         picked = [c for c in picked if c.get("expect")]
+
+    def applies(a: dict, c: dict) -> bool:
+        if c.get("guides"):
+            return a["slug"] in c["guides"]
+        return (c["id"] in WELCOME_ONLY) if a["slug"] == "welcome" \
+            else (c["id"] not in WELCOME_ONLY)
+
+    # One probe per MODEL, not one for the run.  The guides do not all sit on
+    # the same one: a guide created on a box takes CHAT_MODEL unless
+    # AGENT_MODEL was set that day, so a box whose first guides were moved to
+    # the office model has later ones on the local model.  The probe used to
+    # ask only about the first guide's, and a guide on a dead model scored
+    # "returned nothing" on every case -- the lie this check exists to stop
+    # (measured 2026-11-09: the Coder Guide, K1, on a box whose local model
+    # answered 500).  A guide on an unreachable model is left out, named, and
+    # counted as unscored, so the rest of the run still means something.
+    live = [a for a in live if any(applies(a, c) for c in picked)]
+    down: dict[str, str] = {}
+    if not args.skip_precheck:
+        for m in sorted({a["model"] for a in live}):
+            why = reachable(m)
+            if why:
+                down[m] = why
+        if live and all(a["model"] in down for a in live):
+            sys.exit(
+                "the gateway cannot reach the model the guides answer with:\n"
+                + "".join(f"  {m!r}: {why}\n" for m, why in down.items())
+                + "Every case would score as 'returned nothing', which would be a lie\n"
+                "about the prompts.  Bring inference up, or pass --skip-precheck if\n"
+                "you really mean to record a dead stack.")
+    unscored = [a for a in live if a["model"] in down]
+    live = [a for a in live if a["model"] not in down]
+    for a in unscored:
+        print(f"  {a['slug']:<18} NOT RUN: it answers with {a['model']!r} and "
+              f"the gateway cannot reach it ({down[a['model']][:120]})", flush=True)
 
     who = personas() if any(c.get("as") for c in picked) else {}
 
@@ -415,12 +445,7 @@ def main() -> int:
 
     for a in live:
         for c in picked:
-            if c.get("guides"):
-                applies = a["slug"] in c["guides"]
-            else:
-                applies = (c["id"] in WELCOME_ONLY) if a["slug"] == "welcome" \
-                    else (c["id"] not in WELCOME_ONLY)
-            if not applies:
+            if not applies(a, c):
                 continue
             print(f"  {a['slug']:<18} {c['id']}", flush=True)
             convo = parent = None
@@ -428,6 +453,28 @@ def main() -> int:
             for i, text in enumerate(c["turns"]):
                 started = say(a["id"], a["slug"], text, convo, parent,
                               who.get(c.get("as")))
+                # LibreChat 0.8.8 keeps a turn's generation job open after the
+                # reply is saved, until the provider work behind it has drained,
+                # and that work includes naming the conversation.  A follow-up
+                # turn waits 30 seconds for the drain and is then refused with
+                # this 500.  We send the follow-up the moment the reply lands
+                # in Mongo, so a box whose title model is slow or down refuses
+                # every second turn (the nightly run was red four nights on
+                # exactly that).  The refusal says nothing about the guide, so
+                # wait and ask again.  The retry is printed and recorded: a box
+                # that needs it has a title model worth looking at.
+                waited = 0
+                while (i > 0 and waited < HANDOFF_RETRIES
+                       and started.get("status") == 500
+                       and HANDOFF in (started.get("body") or "")):
+                    waited += 1
+                    print(f"  {'':<18} turn {i + 1} refused: the previous turn "
+                          f"had not drained (is the title model slow?); "
+                          f"retry {waited}/{HANDOFF_RETRIES} in {HANDOFF_WAIT}s",
+                          flush=True)
+                    time.sleep(HANDOFF_WAIT)
+                    started = say(a["id"], a["slug"], text, convo, parent,
+                                  who.get(c.get("as")))
                 # A rejected request is NOT a failed case.  The reachability
                 # precheck guards the model being down; nothing guarded the
                 # request being refused, and an SSE `event: error` scored as
@@ -449,7 +496,8 @@ def main() -> int:
                     break
                 got, parent, tools, types = reply(convo, i, args.timeout)
                 turns.append({"ask": text, "reply": got, "tools": tools,
-                              "types": types})
+                              "types": types,
+                              **({"handoff_retries": waited} if waited else {})})
                 if not got:
                     break
             verdict, why = score(c, turns)
@@ -502,6 +550,11 @@ def main() -> int:
               + ("" if not bad else " — " + ", ".join(
                   f"{r['guide']}/{r['case']} {r['verdict']}" for r in bad)))
         if args.check and bad:
+            return 1
+    if unscored:
+        print("  not run, model unreachable: "
+              + ", ".join(f"{a['slug']} ({a['model']})" for a in unscored))
+        if args.check:
             return 1
     return 0
 
