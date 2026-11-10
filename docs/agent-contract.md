@@ -128,6 +128,13 @@ platform's shorthand for things they haven't met.  Never name a tool to
 someone who didn't ask about tools: a person asking how their students get
 access asked about access.
 
+The names of your knowledge files are shorthand too.  They are how you
+find a page, and the person in front of you can't open one.  Never send
+someone to a knowledge file by its file name.  Give the page's title, the
+heading at the top of the file.  This is only about your own files: a file
+that belongs to {{PLATFORM}}, such as a configuration file, is still named
+when it is the answer.
+
 When you decline, give the subject as the reason: "Recursion isn't part of
 {{PLATFORM}}."  Never give yourself as the reason.  "That's outside my
 purpose" tells the person nothing they can use.
@@ -547,6 +554,14 @@ So a receipt carries three things: **what was filed, where it went, and how to f
 The over-refusal case is the obvious one: someone who asks for everything before day one has asked for the page, and the brevity rule must not turn that into one item and an offer.
 
 ---
+
+### The page nobody can open *(observed 2026-11-10)*
+
+Asked what the platform keeps about a person, the Student Guide ended with "the full inventory and access details are in `your-data--what-we-store.md` and `your-data--who-can-see-it.md`", and the Security Guide did the same.  Those are the names of knowledge files.  The guide finds a page by them and nobody else can: a student has no file by that name to open, and what they can find is the page's title.  It was two guides of eight in one run on the canary, the first run where ordinary people's questions reached the files at all (S1).
+
+The preamble now says so under WHAT YOU PRODUCE: never send someone to a knowledge file by its file name, give the page's title.  It keeps a carve-out, because the Operator Guide's answers are often *about* a file, and R3 fails a guide that won't say `registrar/courses.yaml`.
+
+What is and isn't measured: one pass on the office model with canned search results, twenty answers under each prompt, showed the same answer lengths and no file names under either, so that rig can't reproduce the failure and only says the rule does no harm.  The failure shows on a box, where the search tool's own output carries the file names.  The measure is S1 on a box after the prompt is seeded, read for file names in the replies.
 
 ## The failure the fix can cause
 
@@ -1045,7 +1060,25 @@ The small model is the reason these exist.  The Instructor Guide carries fifteen
     hands off to the guide that holds the page.  Fails if it answers, or says
     it doesn't know, without a file_search call: that is a guide working from
     the model's memory, and for a privacy question that is the worst case.
+
+- id: U1
+  pattern: this month is one call
+  guides: [usage-guide]
+  as: instructor
+  breaks_at: null
+  turns:
+    - "How much has my course spent so far this month?"
+  expect:
+    - calls: [{course_usage: {month: "*"}}]
+  passes_when: >
+    Finds the course (my_courses, or the one course this person teaches) and
+    calls course_usage once with `month` set, then reports the figure with
+    the window the tool named.  Fails if it asks with `days` and calls that
+    the month, if it walks `days` down looking for the 1st, or if it adds up
+    the rows itself.
 ```
+
+**U1 is there because "so far this month" is the question a statement makes people ask** *(2026-11-10)*.  The usage tools took only a number of days, so the Usage Guide answered a professor by calling `course_usage` ten times, `days` 10 down to 1, and reported the ten-day window as the month.  The tools take `month` now (`this`, `last` or `YYYY-MM`), and a month there covers the same days as that month's statement.  U1 scores whether the guide uses it.
 
 **S1 is there because every other corpus case runs as the account that owns the guides** *(2026-11-10)*.  The runner asks as the seeder's service account unless a case says `as:`, and that account can always search the files it uploaded.  A person signing in can't always.  LibreChat 0.8.8 gives an agent its `file_search` tool only if the person chatting holds the File Search permission, and the front office's lockdown (`interface.fileSearch: false`) takes that permission away from everyone but the seeder ([design-walls.md](design-walls.md)).  For five days every guide answered real people with no knowledge files, and every corpus case here stayed green.  The Instructor Guide told a professor "I don't know the procedure for sharing an agent with your whole class from the documentation I can see" without looking, and gave another a privacy answer from memory.  S1 asks as `nobody`, a signed-in person on no course, and scores one thing: did the guide search.  If S1 fails on every guide at once, look at the permission before the prompt.
 ---
