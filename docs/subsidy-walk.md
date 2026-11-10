@@ -1,3 +1,15 @@
+---
+title: Who pays when a college or department covers part of a course's bill?
+description: The design for subsidies in the month-end export.  Units sit in a tree, each rule takes a share of what is left from the top down, caps are kept on a ledger keyed by month, and the file carries usage and subsidy row pairs for OpenChargeback.  Designed, not built.
+audience: operator
+status: proposed
+owner: marco
+tags: [metering, attribution, operator-duty]
+tethered_to:
+  - registrar/planes/billing.py
+  - docs/admin-guide.md
+---
+
 # The subsidy walk
 
 A course spends $3,000 in a month.  Its college has said it covers the first $2,000 per course, and its department has said it covers half.  What does the course pay?
