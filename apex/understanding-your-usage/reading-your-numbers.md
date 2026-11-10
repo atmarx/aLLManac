@@ -31,7 +31,17 @@ Chat: 214 requests · API keys: 198 requests
 Spend: $2.41
 ```
 
-Each part of the usage report has its own heading: Requests, Tokens in and tokens out, Chat and API keys, the per-model table, and Spend.
+Each part of the usage report has its own heading below: the dates it covers, Requests, Tokens in and tokens out, Chat and API keys, the per-model table, and Spend.
+
+## The dates it covers
+
+The first line of the usage report says which dates were counted.  If you ask only for "my usage," the usage report covers the last seven days.
+
+You can ask the Usage Guide for a different stretch of time in plain words.  "My usage for the last 30 days" works.  So do "my usage this month" and "my usage last month."  For any other month, give the year too, as in "my usage for September 2026."
+
+When you ask for a month, the first line of the usage report names the dates it used, like this: `November 2026 so far (2026-11-01 to 2026-11-10, UTC)`.  Check that line before you read the totals, so you know the numbers cover the dates you meant.
+
+A month in the usage report is a calendar month on the UTC clock, which is the clock the usage ledger keeps.  If your own clock runs behind UTC, as every clock in the Americas does, a request you send late in the evening can be counted on the next day's date.  On the last evening of a month, that request can land in the next month's total.
 
 ## Requests
 
