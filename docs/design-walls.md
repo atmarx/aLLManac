@@ -319,6 +319,14 @@ Measured on a throwaway local stack (separate compose project; the pinned LibreC
 
 **On an upgrade,** read LibreChat's release notes for anything that moves a tool behind a role permission, and run S1 before the pin moves to stable.
 
+### One knowledge file whose upload is gone aborts every search, and the guide says nothing *(measured on 0.8.8, 2026-11-10)*
+
+0.8.8 keeps a file's vectors under the agent that uses it, and records which agents have them on the file (`metadata.embeddedEntities`).  A file embedded before 0.8.8 has no such record, so the first search by each agent embeds it again, **from the upload on disk** (`provisionFiles`, `packages/api/src/agents/handlers.ts`).  If the upload is gone, the search does not run without it.  The log says `[provisionFiles] Vector DB provisioning failed ENOENT ... __ci.md`, then `[ON_TOOL_EXECUTE] Fatal error: Failed to provision 1 file(s) for search; aborting tool execution rather than searching without them`, and the turn ends in an unhandled error.  The person sees no reply at all.
+
+Measured on the CI box: the Platform Guide and the Operator Guide both carry a `ci.md` uploaded on 2026-09-23, two days before `/app/uploads` became a volume (`3ae82a9`).  Its Mongo record says `embedded: true` and the file is not on disk.  Each guide answered a documentation question with nothing, three times of three, asked as the account that owns the files.  The other guides on that box answered.  The two newer boxes have no `provisionFiles` line in 72 hours of logs.
+
+Why it stayed hidden: the seeder uploads a file again only when its text changes, so an old unchanged file is never repaired, and its record looks healthy.  **Any box that ran 0.8.7 before its uploads were a volume can have this**, one unchanged page at a time.  Eval case S1 catches it: a guide in this state fails with "returned nothing".  If one guide fails S1 that way while the others pass, grep the chat's log for `provisionFiles` before reading the prompt.  The repair is to have the seeder upload that file again.  It has not been done on the CI box, which is being retired.
+
 ---
 
 ## `rag_api` fails OPEN without `JWT_SECRET` *(2026-09-12)*

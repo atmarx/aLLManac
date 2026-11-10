@@ -561,7 +561,9 @@ Asked what the platform keeps about a person, the Student Guide ended with "the 
 
 The preamble now says so under WHAT YOU PRODUCE: never send someone to a knowledge file by its file name, give the page's title.  It keeps a carve-out, because the Operator Guide's answers are often *about* a file, and R3 fails a guide that won't say `registrar/courses.yaml`.
 
-What is and isn't measured: one pass on the office model with canned search results, twenty answers under each prompt, showed the same answer lengths and no file names under either, so that rig can't reproduce the failure and only says the rule does no harm.  The failure shows on a box, where the search tool's own output carries the file names.  The measure is S1 on a box after the prompt is seeded, read for file names in the replies.
+Measured on 2026-11-10, the same question three times, asked as the account that owns the files.  Under the old prompt, on the canary: 9 of 15 answers named a knowledge file (Student 1 of 3, Instructor 0 of 3, Platform 2 of 3, Operator 3 of 3, Security 3 of 3).  Under the new prompt, on the CI box: 0 of 6, from the Student, Instructor and Security guides.  The limits of that: two boxes, though the same model and the same pages; one of the three reports on the CI box was overwritten by the next, so six answers and not nine; and the Platform and Operator guides could not answer there at all ([design-walls.md](design-walls.md), the knowledge file that can't be read).  An earlier pass straight at the office model with canned search results showed no file names under either prompt, so that rig can't see this failure.
+
+Still open: the Operator Guide.  Its reader has the repository, and `admin-guide.md` is a real file there, so a file name can be the useful pointer for that one audience.  The rule as written takes it away, and nothing has measured what the Operator Guide says instead.  Read its replies when S1 runs on a box where it can search, and give it its own line in its scope if the titles serve operators worse.
 
 ## The failure the fix can cause
 
