@@ -55,6 +55,11 @@ FOCUS_COLUMNS = (
 # can have: course slugs are term-suffixed, and this one is checked first.
 PLATFORM_OWNER = "platform"
 
+# The gateway's canned decline for a filtered prompt (litellm/config.yaml,
+# `mock_response`).  No model runs, so it is never priced — the summary
+# names it as what it is, not as a model somebody forgot to price.
+DECLINED_MODEL = "almanac-declined"
+
 MONTH_RE = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])$")
 
 
@@ -113,7 +118,9 @@ def rollup(ledger_rows, records: dict, month: str, platform: str):
         "by_owner": {},       # owner -> {"cost", "tokens", "pi_email", "fund_org"}
         "no_invoicee": {},    # owner -> cost: no course record to bill
         "no_fund_org": set(),  # owners billed to a person with no fund code
-        "unpriced": set(),    # models that moved tokens at $0
+        "unpriced": {},       # model -> days it moved tokens at $0
+        "priced": set(),      # models with a nonzero row this month
+        "declined": 0,        # requests the content filter answered instead
         "outside": 0,         # ledger rows dated outside the month (a bad query)
     }
     for r in ledger_rows:
@@ -142,8 +149,12 @@ def rollup(ledger_rows, records: dict, month: str, platform: str):
             summary["no_invoicee"][label] = summary["no_invoicee"].get(label, 0.0) + cost
         elif not who.get("fund_org"):
             summary["no_fund_org"].add(label)
-        if cost == 0 and (tin or tout):
-            summary["unpriced"].add(model)
+        if model == DECLINED_MODEL:
+            summary["declined"] += requests
+        elif cost > 0:
+            summary["priced"].add(model)
+        elif tin or tout:
+            summary["unpriced"].setdefault(model, set()).add(d)
 
         tags = {**who, "owner": label, "model": model, "requests": requests,
                 "input_tokens": tin, "output_tokens": tout}
@@ -222,9 +233,23 @@ def describe(summary: dict) -> str:
     if s["no_fund_org"]:
         lines.append("  no fund_org (billed to the person; set `billing.fund_org` "
                      "in courses.yaml): " + ", ".join(sorted(s["no_fund_org"])))
-    if s["unpriced"]:
-        lines.append("  priced at $0 (no rate in litellm/config.yaml; tokens still "
-                     "counted): " + ", ".join(sorted(s["unpriced"])))
+    # A model with $0 rows AND priced rows got its rate mid-month: those
+    # rows are history, not a free model, and saying "free" on a statement
+    # leadership reads would be wrong.  Only a model with no priced row all
+    # month is reported as unpriced.
+    never = sorted(m for m in s["unpriced"] if m not in s["priced"])
+    since = sorted(m for m in s["unpriced"] if m in s["priced"])
+    if never:
+        lines.append("  priced at $0 all month (no rate in litellm/config.yaml; "
+                     "tokens still counted): " + ", ".join(never))
+    for m in since:
+        days = ", ".join(f"{d:%m-%d}" for d in sorted(s["unpriced"][m]))
+        lines.append(f"  {m}: $0 on {days}, priced on its other days.  It had no "
+                     "rate on those days, so they bill $0 as logged.")
+    if s["declined"]:
+        n = s["declined"]
+        lines.append(f"  {n} request{'s' * (n != 1)} declined by the content filter "
+                     f"({DECLINED_MODEL}: a canned reply, no model ran, $0)")
     if s["outside"]:
         lines.append(f"  {s['outside']} ledger rows dated outside {s['month']} were "
                      "dropped — the query and the month disagree")
