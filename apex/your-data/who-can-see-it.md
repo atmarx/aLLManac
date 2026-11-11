@@ -39,7 +39,7 @@ The reasoning behind giving each course its own copy, and what it costs us, is w
 
 **You** can see everything in your own account.
 
-**Your instructor** has some access within your course.  The chat software gives instructors no screen for reading your conversations.  A conversation can still be read through a link you share, or by an operator with access to the database.  Your instructor can see and manage the agents in their course.  Still assume your instructor can read what you write in their course, the same way you would assume it about anything you submit for a grade.
+**Your instructor** has some access within your course.  As this platform is set up, the chat software gives instructors no screen for reading your conversations.  The software does have one feature, off unless an operator turns it on, that shows a course's staff the name, email address and first message of each person's chats with an agent.  A conversation can also be read through a link you share, or by an operator with access to the database.  Your instructor can see and manage the agents in their course.  Still assume your instructor can read what you write in their course, the same way you would assume it about anything you submit for a grade.
 
 **The people who run the platform.**  Operators run the infrastructure: the servers, the databases, the backups.  Technical access follows from running the system.  What controls that access is institutional policy and professional obligation; nothing in the software stops them.  Any platform you use works this way, including the commercial ones.  Here, the people in question work for your institution and you can find out who they are.
 

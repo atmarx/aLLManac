@@ -180,6 +180,7 @@ docs-build:
     @mkdir -p site-dist
     docker run --rm --user "$(id -u):$(id -g)" \
       --env PLATFORM_NAME --env CHAT_MODEL --env DOCS_SITE_NAME --env DOCS_SITE_URL --env DOCS_PRODUCT_NAME --env DOCS_COPYRIGHT \
+      --env OPERATOR_NAME --env OPERATOR_CONTACT --env POLICY_DATE --env MODEL_NOTICE \
       --volume "$PWD:/docs" {{mkdocs}} build --clean --strict
 
 # Render the per-audience RAG corpora from front matter.  A guide is a query,
@@ -189,6 +190,7 @@ docs-build:
 docs-corpus:
     docker run --rm --user "$(id -u):$(id -g)" \
       --env PLATFORM_NAME --env CHAT_MODEL --env DOCS_PRODUCT_NAME --env ALMANAC_FALLBACK_ASSISTANT \
+      --env OPERATOR_NAME --env OPERATOR_CONTACT --env POLICY_DATE --env MODEL_NOTICE \
       --volume "$PWD:/docs" --entrypoint python3 {{mkdocs}} /docs/docs/corpus.py
     @echo "corpus/ rendered — read corpus/README.md for what landed where and why"
 

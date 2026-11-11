@@ -389,7 +389,37 @@ def contract() -> tuple[str, str]:
     return preamble, evals, body
 
 
+# The policy pages' slots (apex/terms.md, apex/privacy.md): who runs this
+# deployment, who to ask, when the pages last changed, which models it uses.
+# The same table as docs/mkdocs_hooks.py, filled before {{PLATFORM}} because a
+# deployment's contact line may itself say {{PLATFORM}}.
+POLICY_SLOTS = {
+    "{{OPERATOR}}": ("OPERATOR_NAME", "your institution"),
+    "{{CONTACT}}": ("OPERATOR_CONTACT",
+                    "Ask your instructor, or ask any guide in the {{PLATFORM}} chat to file a report.  "
+                    "It reaches the people who run the platform."),
+    "{{POLICY_DATE}}": ("POLICY_DATE", "a date this deployment has not set"),
+    "{{MODEL_NOTICE}}": ("MODEL_NOTICE",
+                         "This deployment has not published which models it uses or where they run, "
+                         "so ask your instructor."),
+}
+
+
+# A policy page can carry a box for the institution adopting it: what the
+# generic draft already does, and what is theirs to do before publishing.  It
+# sits between these two markers and is shown until the deployment dates its
+# policy (POLICY_DATE).  Dating it is the act of adopting it, and the box goes.
+_UNTIL_ADOPTED = re.compile(r"<!-- until-adopted -->.*?<!-- /until-adopted -->\n*", re.S)
+
+
+def until_adopted(text: str) -> str:
+    return _UNTIL_ADOPTED.sub("", text) if os.environ.get("POLICY_DATE", "").strip() else text
+
+
 def brand(text: str) -> str:
+    text = until_adopted(text)
+    for slot, (env, default) in POLICY_SLOTS.items():
+        text = text.replace(slot, (os.environ.get(env) or default).strip())
     return text.replace("{{PLATFORM}}", PLATFORM).replace("{{MODEL}}", MODEL)
 
 

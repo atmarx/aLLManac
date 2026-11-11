@@ -13,6 +13,10 @@ use_directory_urls: true
 
 theme:
   name: material
+  # System fonts.  Material's default loads Roboto from Google's font servers,
+  # which tells Google about every reader of every help page, and the privacy
+  # notice (apex/privacy.md) says the help pages load nothing from outside.
+  font: false
   features:
     - navigation.indexes
     - navigation.sections
@@ -77,4 +81,6 @@ nav:
       - Keeping courses apart: how-we-built-it/keeping-courses-apart.md
       - Identity is not an argument: how-we-built-it/identity-is-not-an-argument.md
       - Protecting data you cannot delete: how-we-built-it/protecting-data-you-cant-delete.md
+  - Terms of use: terms.md
+  - Privacy notice: privacy.md
   - Browse by topic: tags.md
