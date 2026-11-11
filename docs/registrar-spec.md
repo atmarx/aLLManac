@@ -117,7 +117,7 @@ courses:
       course: 1000                  # THE cap — per term, hard, chat + keys, one pool
       key_fuse: 20                  # per vAPI key hard ceiling (leak blast radius)
       advisory_weekly: 2            # what "on pace" means in usage tools; never blocks
-    college: cci                    # optional — unions the college's model pack in
+    college: natsci                 # optional — unions the college's model pack in
     models: [almanac-chat]          # what this course's keys + instance may call
     capabilities: [...]             # agent-builder powers; omit for the default,
                                     # [] for none.  `actions` is OFF by default
@@ -131,8 +131,8 @@ courses:
     closed: 2026-12-18              # set by course-close; archived: by course-archive
 
 colleges:                           # a college is a MODEL PACK, not an org chart —
-  cci:                              # the registrar needs their models, not their deans
-    models: [cci-llama]             # registered once at the gateway; see Model routing
+  natsci:                           # the registrar needs their models, not their deans
+    models: [natsci-llama]          # registered once at the gateway; see Model routing
 ```
 
 **The file is the authority, so it is never assumed.**  `load_courses()` refuses on unparseable YAML instead of degrading to an empty course set — an empty set and an unreadable file look identical to every caller, and the difference is the whole fleet.  The degrade used to reach `save_courses()` through `course_admin create`, which would write one course over every other course's roster; the file is gitignored, so nothing was behind it.  `course_admin validate` (`just course-check`) is the read-only version of the same checks, and every mutating verb runs them first and refuses on errors.
@@ -354,9 +354,9 @@ Two blocks with the same `model_name` = load-balanced group; different names (`a
 
 **College endpoints — bring your own inference.**  A college with its own GPU box for its own courses is three knobs, no new machinery:
 
-1. **Register once** at the gateway: `cci-llama` → their api_base, their key (a credential — escrow path `almanac/system/models/<name>`).
+1. **Register once** at the gateway: `natsci-llama` → their api_base, their key (a credential — escrow path `almanac/system/models/<name>`).
 2. **Scope by course**: the college's model pack unions into its courses' `models:` lists (the `college:` field above); the reconciler stamps the list onto the course **team and every key in it** — the gateway refuses the model to anyone else, which is enforcement, not visibility.
-3. **Visibility is free** — tenancy already did it.  The instance's endpoint renders its course's model list, so `cci-llama` *appears as an option* only inside CCI courses' instances.  In the shared-instance design this would have been another gating project; here it's a render detail.
+3. **Visibility is free** — tenancy already did it.  The instance's endpoint renders its course's model list, so `natsci-llama` *appears as an option* only inside NatSci courses' instances.  In the shared-instance design this would have been another gating project; here it's a render detail.
 
 The one policy question per college endpoint: **does their metal charge the pool?**  Price it $0 (their gift to their courses — the dollar cap protects the *paid* upstreams, token counts still meter) or price it real (chargeback recovery).  Per-model knob, college's call, registrar indifferent.
 

@@ -175,7 +175,7 @@ def load_courses() -> dict:
     raw = load_raw_courses()
     out = {
         # Keys lowercased like each course's `college:` is below — else
-        # `colleges: {CCI: …}` passes validate and the pack never applies.
+        # `colleges: {NATSCI: …}` passes validate and the pack never applies.
         "courses": {}, "colleges": {str(k).strip().lower(): v for k, v in
                                     (raw.get("colleges") or {}).items()},
         "admins": [str(e).strip().lower() for e in (raw.get("admins") or [])],

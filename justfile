@@ -936,7 +936,7 @@ logs svc="": _fleet
 
 # Create/update a course + provision everything:  team, service key, OIDC
 # client + door roles, instance render, vhost — then start it.  Idempotent;
-# extra flags pass through (e.g. --budget 1500 --ta ta@x.edu --college cci):
+# extra flags pass through (e.g. --budget 1500 --ta ta@x.edu --college natsci):
 #   just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@example.edu
 course slug name +instructors:
     {{compose}} exec -T registrar python course_admin.py create "{{slug}}" "{{name}}" {{instructors}} </dev/null

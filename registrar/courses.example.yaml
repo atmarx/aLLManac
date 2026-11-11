@@ -106,8 +106,8 @@ courses:
     aliases: {}
 
 # colleges:
-#   cci:
-#     models: [cci-llama]        # their endpoint, registered once at the gateway
+#   natsci:
+#     models: [natsci-llama]     # their endpoint, registered once at the gateway
 
 admins: []                       # platform folks who may pull EVERY course's usage
 

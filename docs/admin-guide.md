@@ -468,7 +468,7 @@ Initializes OpenBao, mounts the `almanac/` kv2 store, checks the audit device (i
 just course engr301-2026fall "ENGR 301 (Fall 2026)" prof.vex@example.edu
 ```
 
-That single act provisions everything the spec promises: the LiteLLM **team** (the course's $1000/term pool — override with `--budget`), the team-scoped **service key** (escrowed), the course's **OIDC client** with its `admin`/`member` door roles, staff grants, the **instance render** (chat + Meili + panel + vhost under `fleet/`), and finishes by starting the containers and gracefully reloading the edge.  Extra flags pass through: `--ta ta@x.edu`, `--college cci`, `--budget 1500`.  Run it twice — it's idempotent; that's the point.
+That single act provisions everything the spec promises: the LiteLLM **team** (the course's $1000/term pool — override with `--budget`), the team-scoped **service key** (escrowed), the course's **OIDC client** with its `admin`/`member` door roles, staff grants, the **instance render** (chat + Meili + panel + vhost under `fleet/`), and finishes by starting the containers and gracefully reloading the edge.  Extra flags pass through: `--ta ta@x.edu`, `--college natsci`, `--budget 1500`.  Run it twice — it's idempotent; that's the point.
 
 DNS: point `*.<ALMANAC_DOMAIN>` at the box once and every future course is covered (wildcard cert via the DNS-01 block in `caddy/Caddyfile` for real deployments; `*.localhost` needs nothing at all).
 
