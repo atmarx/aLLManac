@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!--
+  MOCKUP.  The review-and-assert page for an intake, mid-review.
+  Spec: docs/staff-portal-screens.md, "1. Review and assert".
+
+  Shown in one picture, every state a field can be in:
+    1  drafted, confirmed            (reads as text, an Edit button reopens it)
+    2  drafted, then changed by the person, not yet confirmed
+    3  drafted, not yet confirmed
+    4  drafted, confirmed
+    5  person-only choice: never drafted, nothing preselected, has "not sure"
+    6  never addressed: empty, dashed, says so
+  Words are placeholders until Piper writes them; the field list is research
+  compliance's, and these seven are stand-ins.
+
+  Each field is its own <form> posting to the service, so a confirmation's
+  time is the server's clock, and the page works with script off.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Review before you send · research compliance intake</title>
+<link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="invented" role="note">This is a test portal.  The people, projects and institutions on it are invented.</div>
+<main>
+  <h1>Review what you would send to research compliance</h1>
+
+  <div class="where" role="status">
+    <strong>Nothing has been sent.</strong>
+    This is a draft only you can see.  You can close this page, or the chat, and nothing goes anywhere.  The draft is deleted on 18 November if you don't send it.
+  </div>
+
+  <p class="lede">The assistant drafted some of these fields from your conversation.  Check each one.  Change anything that isn't how you would put it.  The office receives only these fields, never the conversation.</p>
+
+  <!-- 1: drafted, confirmed -->
+  <form method="post" action="/intake/d/7Kq3…/field/title">
+    <fieldset class="field">
+      <legend>Project title</legend>
+      <p>Sensor calibration for low-power field instruments</p>
+      <div class="meta">
+        <span class="chip ok">Confirmed 9:41 pm</span>
+        <span>As drafted</span>
+        <button type="submit" name="op" value="edit" class="quiet">Edit</button>
+      </div>
+    </fieldset>
+  </form>
+
+  <!-- 2: drafted, changed, not confirmed -->
+  <form method="post" action="/intake/d/7Kq3…/field/summary">
+    <fieldset class="field">
+      <legend><label for="f-summary">What the project does, in plain terms</label></legend>
+      <p class="asks">Two or three sentences a reviewer outside your field could follow.</p>
+      <textarea id="f-summary" name="value">We build and test calibration methods for small battery-powered sensors used in river monitoring.  Two partner institutions supply field data; we supply the methods and the analysis.</textarea>
+      <details class="draft">
+        <summary>Changed from the draft. Show the draft</summary>
+        <blockquote>A project developing calibration methods for low-power environmental sensors, with data contributed by two outside partners.</blockquote>
+        <button type="submit" name="op" value="restore" class="quiet">Put the draft back</button>
+      </details>
+      <div class="meta">
+        <span class="chip wait">Not confirmed</span>
+        <button type="submit" name="op" value="confirm">This is right</button>
+      </div>
+    </fieldset>
+  </form>
+
+  <!-- 3: drafted, not confirmed -->
+  <form method="post" action="/intake/d/7Kq3…/field/sponsor">
+    <fieldset class="field">
+      <legend><label for="f-sponsor">Who funds it</label></legend>
+      <p class="asks">The sponsor and, if you have one, the award number.</p>
+      <input type="text" id="f-sponsor" name="value" value="A federal agency grant, award number not yet issued">
+      <div class="meta">
+        <span class="chip wait">Not confirmed</span>
+        <span>As drafted</span>
+        <button type="submit" name="op" value="confirm">This is right</button>
+      </div>
+    </fieldset>
+  </form>
+
+  <!-- 4: drafted, confirmed -->
+  <form method="post" action="/intake/d/7Kq3…/field/partners">
+    <fieldset class="field">
+      <legend>Outside institutions involved</legend>
+      <p>Sample Polytechnic (supplies field data)<br>Fixture Water Institute (supplies field data)</p>
+      <div class="meta">
+        <span class="chip ok">Confirmed 9:43 pm</span>
+        <span>As drafted</span>
+        <button type="submit" name="op" value="edit" class="quiet">Edit</button>
+      </div>
+    </fieldset>
+  </form>
+
+  <!-- 5: person-only.  The draft service refuses any write to this field from the agent. -->
+  <form method="post" action="/intake/d/7Kq3…/field/category">
+    <fieldset class="field unanswered">
+      <legend>Which part of the rule you think applies</legend>
+      <p class="asks">Only you can answer this one.  The assistant does not fill it in or suggest an answer.  If you aren't sure, say so: deciding is the office's job, not yours.</p>
+      <ul class="choices">
+        <li><label><input type="radio" name="value" value="a"> Part A: <span class="slot">{{the rule's own wording}}</span></label></li>
+        <li><label><input type="radio" name="value" value="b"> Part B: <span class="slot">{{the rule's own wording}}</span></label></li>
+        <li><label><input type="radio" name="value" value="c"> Part C: <span class="slot">{{the rule's own wording}}</span></label></li>
+        <li><label><input type="radio" name="value" value="unsure"> I'm not sure, and I'd like the office to tell me</label></li>
+      </ul>
+      <div class="meta">
+        <span class="chip plain">Not answered</span>
+        <button type="submit" name="op" value="confirm">Save this answer</button>
+      </div>
+    </fieldset>
+  </form>
+
+  <!-- 6: never addressed -->
+  <form method="post" action="/intake/d/7Kq3…/field/start">
+    <fieldset class="field unanswered">
+      <legend><label for="f-start">When the work starts</label></legend>
+      <p class="asks">This didn't come up in your conversation.  Fill it in if you know it, or leave it.  A blank field is sent as "not answered".</p>
+      <input type="date" id="f-start" name="value">
+      <div class="meta">
+        <span class="chip plain">Not answered</span>
+        <button type="submit" name="op" value="confirm">Save this answer</button>
+      </div>
+    </fieldset>
+  </form>
+
+  <!-- the assert -->
+  <form method="post" action="/intake/d/7Kq3…/send" class="assert">
+    <h2 style="margin-top:0">Send it</h2>
+    <p class="sentence">When you send this, these six fields become a record at research compliance, with your name on it.  The office decides what happens next and will write to you.  Closing the chat afterwards does not withdraw it.</p>
+
+    <div class="outstanding" id="outstanding" role="status">
+      Before you can send: confirm <a href="#f-summary">what the project does</a> and <a href="#f-sponsor">who funds it</a>.<br>
+      Will go as "not answered": which part of the rule applies, when the work starts.
+    </div>
+
+    <label style="display:flex;gap:0.6rem;align-items:baseline;margin:1rem 0">
+      <input type="checkbox" name="assert" value="yes" disabled>
+      <span>I have read every field above.  They say what I mean, and I am sending them to research compliance.</span>
+    </label>
+
+    <div class="actions">
+      <button type="submit" class="primary" aria-disabled="true" aria-describedby="outstanding">Send to research compliance</button>
+      <a href="/">Not now: back to the chat</a>
+      <button type="submit" formaction="/intake/d/7Kq3…/discard" name="op" value="discard" class="quiet" id="discard">Delete this draft now</button>
+    </div>
+  </form>
+
+  <p class="mock-note">Mockup.  The assert box and the send button stay disabled until every field holding a value is confirmed.  Empty fields never block sending; they're listed so nothing goes blank by surprise.  "Delete this draft now" deletes on the server at once and lands on a page that says nothing was sent.</p>
+</main>
+</body>
+</html>

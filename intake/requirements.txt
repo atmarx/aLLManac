@@ -1,0 +1,4 @@
+# Pinned like everything else, and the same pins as usage-mcp.
+fastmcp==3.2.4
+PyYAML==6.0.3
+uvicorn==0.54.0

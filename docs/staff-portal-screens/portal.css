@@ -1,0 +1,141 @@
+/*
+  Staff portal screens: the shared stylesheet for every page the portal
+  serves outside the chat.  Mockup, not a build: see docs/staff-portal-screens.md.
+
+  Same tokens as the edge's own pages (caddy/nocourse, caddy/upgrade), so a
+  person who goes from the chat to a portal page and back feels one place.
+  No webfonts, no CDN, no script required to read anything.
+*/
+:root {
+  --bg: #fbfaf7; --fg: #23201c; --muted: #6a645c;
+  --rule: #e2ddd4; --accent: #7a5c2e; --panel: #f3f0e9;
+  --ok: #3f6a3a; --wait: #8a6414; --flag: #8f3b2a;
+  --focus: #2f5f8f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171614; --fg: #e8e4dd; --muted: #a09a91;
+    --rule: #322f2a; --accent: #d3ae6f; --panel: #201e1b;
+    --ok: #8fc386; --wait: #e0b663; --flag: #e79a87;
+    --focus: #8cb8e6;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 17px/1.6 ui-serif, Georgia, "Times New Roman", serif;
+  padding: 0 16px;
+}
+main { max-width: 40rem; margin: 2.5rem auto 6rem; }
+main.wide { max-width: 52rem; }
+h1 { font-size: 1.7rem; line-height: 1.25; font-weight: 600; margin: 0 0 0.8rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.2rem; line-height: 1.3; font-weight: 600; margin: 2.4rem 0 0.8rem; }
+h3 { font-size: 1rem; font-weight: 600; margin: 1.6rem 0 0.4rem; }
+p { margin: 0 0 1rem; }
+a { color: var(--accent); text-underline-offset: 2px; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2.4rem 0 1.6rem; }
+.lede { font-size: 1.05rem; }
+.fine, small { font-size: 0.9rem; color: var(--muted); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Every page on a constructed portal opens with this, above the title. */
+.invented {
+  font: 0.85rem/1.4 ui-sans-serif, system-ui, sans-serif;
+  background: var(--panel); border-bottom: 1px solid var(--rule);
+  margin: 0 -16px; padding: 0.55rem 16px; text-align: center; color: var(--muted);
+}
+
+/* The one line that says where the person stands.  Always first under the h1. */
+.where {
+  font: 0.95rem/1.45 ui-sans-serif, system-ui, sans-serif;
+  border-left: 4px solid var(--wait); background: var(--panel);
+  padding: 0.7rem 0.9rem; margin: 0 0 1.8rem;
+}
+.where.done { border-left-color: var(--ok); }
+.where strong { display: block; }
+
+/* Chips: state, never judgment.  Words carry the meaning; colour only repeats it. */
+.chip {
+  display: inline-block; font: 600 0.75rem/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.02em; padding: 0.3rem 0.5rem; border-radius: 3px;
+  border: 1px solid currentColor; vertical-align: 0.1em; white-space: nowrap;
+}
+.chip.ok { color: var(--ok); }
+.chip.wait { color: var(--wait); }
+.chip.flag { color: var(--flag); }
+.chip.plain { color: var(--muted); }
+
+/* ---- the review-and-assert page ---- */
+fieldset.field {
+  border: 1px solid var(--rule); border-radius: 6px;
+  padding: 1rem 1.1rem 1.1rem; margin: 0 0 1.2rem;
+}
+fieldset.field.unanswered { border-style: dashed; }
+fieldset.field legend { font-weight: 600; padding: 0 0.35rem; margin-left: -0.35rem; }
+.field .asks { color: var(--muted); font-size: 0.95rem; margin: 0 0 0.7rem; }
+.field .meta {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center;
+  font: 0.85rem/1.4 ui-sans-serif, system-ui, sans-serif; color: var(--muted);
+  margin: 0.7rem 0 0;
+}
+textarea, input[type=text], input[type=date] {
+  width: 100%; font: inherit; color: inherit; background: var(--bg);
+  border: 1px solid var(--muted); border-radius: 4px; padding: 0.5rem 0.6rem;
+}
+textarea { min-height: 5.5rem; resize: vertical; }
+.choices { list-style: none; padding: 0; margin: 0; }
+.choices li { margin: 0.35rem 0; }
+.choices label { display: flex; gap: 0.6rem; align-items: baseline; }
+details.draft { font-size: 0.9rem; margin: 0.6rem 0 0; }
+details.draft summary { cursor: pointer; color: var(--accent); }
+details.draft blockquote { margin: 0.4rem 0 0; padding: 0.4rem 0.8rem; border-left: 3px solid var(--rule); color: var(--muted); }
+
+button, .button {
+  font: 600 0.95rem/1 ui-sans-serif, system-ui, sans-serif;
+  padding: 0.65rem 1rem; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  text-decoration: none; display: inline-block;
+}
+button.primary { background: var(--accent); color: var(--bg); }
+button[aria-disabled=true] { opacity: 0.55; cursor: not-allowed; }
+button.quiet { border-color: transparent; padding-left: 0; padding-right: 0; text-decoration: underline; text-underline-offset: 2px; }
+
+.assert {
+  border-top: 2px solid var(--fg); margin-top: 2.4rem; padding-top: 1.4rem;
+}
+.assert .sentence { font-size: 1.05rem; }
+.assert .outstanding { font: 0.9rem/1.5 ui-sans-serif, system-ui, sans-serif; color: var(--wait); margin: 0.8rem 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; margin-top: 1rem; }
+
+/* ---- read-only records: receipt, notice history, staff tables ---- */
+dl.record { margin: 0 0 1.5rem; }
+dl.record dt { font-weight: 600; margin-top: 1rem; }
+dl.record dd { margin: 0.2rem 0 0; }
+dl.record dd .fine { display: block; }
+table { border-collapse: collapse; width: 100%; font: 0.92rem/1.45 ui-sans-serif, system-ui, sans-serif; margin: 0.5rem 0 1rem; }
+th, td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.suppressed { color: var(--muted); font-style: italic; text-align: right; }
+caption { text-align: left; font-weight: 600; padding-bottom: 0.4rem; }
+.tfoot-note { font: 0.85rem/1.45 ui-sans-serif, system-ui, sans-serif; color: var(--muted); }
+
+/* ---- a chat message, drawn so a mockup can show how a tool result reads ---- */
+.chat {
+  border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1.2rem;
+  margin: 1rem 0 1.6rem; font: 0.95rem/1.55 ui-sans-serif, system-ui, sans-serif;
+}
+.chat .who { font-weight: 600; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; }
+.chat.person { background: var(--panel); margin-left: 3rem; }
+.chat p, .chat ul { margin: 0 0 0.7rem; }
+.chat ul { padding-left: 1.2rem; }
+.chat code { font-size: 0.85em; }
+.chat h4 { margin: 1rem 0 0.3rem; font-size: 0.95rem; }
+
+/* ---- the mockup gallery's own furniture; not part of any built page ---- */
+.mock-note {
+  font: 0.85rem/1.5 ui-sans-serif, system-ui, sans-serif; color: var(--muted);
+  border: 1px dotted var(--muted); border-radius: 4px; padding: 0.6rem 0.8rem; margin: 2rem 0;
+}
+.slot { font-family: ui-monospace, monospace; font-size: 0.9em; color: var(--accent); }

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!--
+  MOCKUP.  The signed-in page that names who runs the system, linked from the
+  portal's notice and from the explainer's opening message
+  ({{ADMIN_NOTICE_LINK}}).  Spec: docs/staff-portal-screens.md, "2. Who runs the system".
+
+  SIGNED IN, not public: counsel's ruling (staff-portal-counsel.md)
+  is that a public list of who administers the system is a target, and that
+  names change with staffing and don't belong in a versioned notice.  So it
+  is not versioned; it carries its own date.  Served on the chat's own
+  host beside the intake page, signed in against the same issuer as the chat.  Anyone on the
+  roster may open it.
+
+  Roles and the count here must match the notice's sentence.  If they
+  don't, this page is the one that's true today and the notice is owed a
+  new version.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Who runs the system</title>
+<link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="invented" role="note">This is a test portal.  The people, projects and institutions on it are invented.</div>
+<main>
+  <h1>Who runs the system</h1>
+
+  <div class="where done">
+    <strong>Correct as of 2 December 2026.</strong>
+    The notice gives these roles and their number.  This page gives the names, and changes when the people do.
+  </div>
+
+  <h2>The people who keep it running</h2>
+  <p>They can read the conversations held on this system, where they are stored.  They do that to keep it working, not to review what anyone wrote.</p>
+  <table>
+    <thead><tr><th>Name</th><th>Role</th><th>Since</th></tr></thead>
+    <tbody>
+      <tr><td>Morgan Mock</td><td><span class="slot">{{ADMIN_ROLES}}</span>: platform administrator</td><td>Nov 2026</td></tr>
+      <tr><td>Jamie Fixture</td><td>Database administrator</td><td>Nov 2026</td></tr>
+    </tbody>
+  </table>
+
+  <p class="fine">Questions about this list go to <span class="slot">{{COMPLIANCE_OFFICE}}</span>, at <span class="slot">{{COMPLIANCE_CONTACT}}</span>.</p>
+
+  <p class="mock-note">Mockup.  The sentence "They can read … where they are stored" is measured (@geordi, 11-11): the admin panel and API show no one's chats and the engine refuses another person's chat to an admin, so the reading is only where the data is stored, on the box.  Insights, the one view that would show first messages, stays off.  Names are placeholders.  Served on the chat's own host, signed in against the chat's issuer.</p>
+</main>
+</body>
+</html>

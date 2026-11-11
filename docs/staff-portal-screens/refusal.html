@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!--
+  MOCKUP.  What a refusal looks like on the portal's one page outside the
+  chat.  Spec: docs/staff-portal-screens.md, "3. A refusal".
+
+  Served by the intake service when a draft's link is opened by someone
+  signed in as anyone but the draft's owner.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Mockup: a refusal</title>
+<link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="invented" role="note">This is a test portal.  The people, projects and institutions on it are invented.</div>
+<main class="wide">
+  <h1>A refusal</h1>
+  <p class="lede">A refusal is the system working, so it isn't drawn as an error.  It says what it won't do, the rule that stops it (never the person's fault), and where to go instead.</p>
+
+  <h2>A page opened by the wrong person</h2>
+  <div style="border:1px solid var(--rule);border-radius:8px;padding:1.4rem 1.6rem;margin:1rem 0 1.6rem">
+    <h1 style="font-size:1.35rem">This link isn't for your account</h1>
+    <p>Drafts can only be opened by the person who made them, signed in as themselves.  You're signed in as <strong>s.sample@example.edu</strong>.</p>
+    <p>If this is your draft, <a href="#">sign out and sign in again</a> with the account you used in the chat.  If someone sent you this link, nothing in it was shown to you.</p>
+  </div>
+  <p class="fine">The page never says whose draft it is or what it holds.  A missing draft, a deleted one and an expired one share one page: "This draft is gone.  Nothing was sent.  Start again from the chat."  A sent one always shows its receipt, to its owner.</p>
+</main>
+</body>
+</html>

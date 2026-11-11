@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+  MOCKUP.  What the person sees after they send, and every time they open the
+  same link afterwards.  Spec: docs/staff-portal-screens.md, "1. Review and assert".
+
+  It shows exactly what the office received: the fields, each one's
+  confirmation mark and time, and whether it was changed from the draft.
+  That is counsel's whole list, so the person sees their own submission the
+  way the office does.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sent · research compliance intake</title>
+<link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="invented" role="note">This is a test portal.  The people, projects and institutions on it are invented.</div>
+<main>
+  <h1>Sent to research compliance</h1>
+
+  <div class="where done" role="status">
+    <strong>Received 11 November 2026, 9:52 pm.  Reference RC-2026-0147.</strong>
+    The office will write to you at the address you signed in with.  Nothing else is needed from you now.
+  </div>
+
+  <h2>What happens next</h2>
+  <p>Someone in research compliance reads it and decides what, if anything, needs to happen.  That decision is theirs, not the assistant's and not yours.  If they need more, they'll ask you directly.</p>
+  <p>Your conversation with the assistant was not sent and is not part of this record.  If you want to change something you sent, write to <span class="slot">{{compliance contact}}</span> and quote the reference.  This page can't be edited now.</p>
+
+  <h2>What the office received</h2>
+  <dl class="record">
+    <dt>Project title</dt>
+    <dd>Sensor calibration for low-power field instruments
+      <span class="fine">Confirmed 9:41 pm · as drafted</span></dd>
+
+    <dt>What the project does, in plain terms</dt>
+    <dd>We build and test calibration methods for small battery-powered sensors used in river monitoring.  Two partner institutions supply field data; we supply the methods and the analysis.
+      <span class="fine">Confirmed 9:48 pm · you changed the draft</span></dd>
+
+    <dt>Who funds it</dt>
+    <dd>A federal agency grant, award number not yet issued
+      <span class="fine">Confirmed 9:49 pm · as drafted</span></dd>
+
+    <dt>Outside institutions involved</dt>
+    <dd>Sample Polytechnic (supplies field data)<br>Fixture Water Institute (supplies field data)
+      <span class="fine">Confirmed 9:43 pm · as drafted</span></dd>
+
+    <dt>Which part of the rule you think applies</dt>
+    <dd>I'm not sure, and I'd like the office to tell me
+      <span class="fine">Answered 9:50 pm · only you can answer this one</span></dd>
+
+    <dt>When the work starts</dt>
+    <dd><em>Not answered</em></dd>
+  </dl>
+
+  <div class="actions">
+    <button type="button" onclick="window.print()">Print or save a copy</button>
+    <a href="/">Back to the chat</a>
+  </div>
+
+  <p class="mock-note">Mockup.  A print stylesheet drops the buttons and the invented banner stays.  "Save a copy" is the browser's own print-to-file; the service writes no copy for the person.  A second visit to the link shows this same page.</p>
+</main>
+</body>
+</html>

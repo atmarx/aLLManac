@@ -1,0 +1,28 @@
+# The intake room's tool service on a portal box.  NOT part of the core
+# stack: nothing in the justfile loads this file, so no deploy of the
+# classroom runs any of it.  A portal box layers it from its own site/, and
+# its networks and egress are the plumbing lane's to settle.
+#
+#   docker compose -f compose.yml -f intake/compose.yml --profile intake up -d
+#
+# The field list and the dated table are research compliance's files, kept
+# outside this repository; the box mounts its copy read-only.
+services:
+  intake:
+    profiles: ["intake"]
+    build: ./intake
+    environment:
+      INTAKE_MCP_TOKEN: ${INTAKE_MCP_TOKEN:?}
+      INTAKE_DB: /data/intake.sqlite
+      INTAKE_FIELDS: /kb/intake-fields.yaml
+      INTAKE_OBLIGATIONS: /kb/dated-obligations.yaml
+      INTAKE_LINK_BASE: https://${CHAT_HOST:?}
+      INTAKE_DRAFT_DAYS: ${INTAKE_DRAFT_DAYS:?the office sets how long an unsent draft lives}
+      INTAKE_TZ: ${INTAKE_TZ:-UTC}
+    volumes:
+      - intake-data:/data
+      - ${INTAKE_KB:?the directory holding research compliance's field list and dated table}:/kb:ro
+    restart: unless-stopped
+
+volumes:
+  intake-data:
