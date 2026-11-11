@@ -690,7 +690,7 @@ egress-check slug="":
     echo
     if [ "$fail" = 0 ]; then
         echo "  every aLLManac instance checked: the allowlists are enforced, and every"
-        echo "  course's edge refuses admin-config writes on both ways in."
+        echo "  course's edge refuses admin-config writes on both ways in, and Insights is off."
         echo "  (Scope is this stack — containers named alm-librechat / alm-chat-*."
         echo "   A LibreChat on this box that isn't ours is not ours to vouch for.)"
     else

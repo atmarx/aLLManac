@@ -76,6 +76,16 @@ interface:
   webSearch: false
   fileSearch: true     # see the header — the guides need it, fileConfig narrows it
   sharedLinks: false
+  # The footer's two links: the help site's pages (apex/terms.md,
+  # apex/privacy.md), same origin as this chat, so they resolve on every box
+  # with no DNS.  No modalAcceptance: a click-through is a policy act, not a
+  # link, and the operator's to choose.
+  privacyPolicy:
+    externalUrl: /help/privacy/
+    openNewTab: true
+  termsOfService:
+    externalUrl: /help/terms/
+    openNewTab: true
   skills: false
 
 # The memory subsystem itself, not just its menu entry — nothing is remembered

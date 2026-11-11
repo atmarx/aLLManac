@@ -550,6 +550,10 @@ services:
       CHAT_HOST: "${CHAT_HOST:-chat.localhost}"
       AUTH_HOST: "${AUTH_HOST:-auth.localhost}"
       GATEWAY_HOST: "${GATEWAY_HOST:-gateway.localhost}"
+      # /terms and /privacy at a short name (caddy/Caddyfile, "The policy
+      # address").  Opt-in: the defaults order no certificate.
+      POLICY_HOST: "${POLICY_HOST:-policy.localhost}"
+      POLICY_TLS: "${POLICY_TLS:-internal}"
       # What the upgrade page calls the platform (caddy/upgrade/index.html).
       PLATFORM_NAME: "${PLATFORM_NAME:-aLLManac}"
       # `just secrets` fills it; the Caddyfile refuses an EMPTY one outright

@@ -256,6 +256,34 @@
     reverse_proxy litellm:4000
 }
 
+# The policy address — `/terms` and `/privacy` at a short, stable name (an app
+# registration asks for both; Globus's was the first).  One copy of each page
+# exists, on the help site (apex/terms.md, apex/privacy.md), so this host only
+# redirects there, and anything else goes to the chat.  302, not 308: if the
+# pages are ever served here directly, no browser has cached a permanent answer.
+#
+# OPT-IN, because a named site is a certificate order.  Unset, POLICY_HOST is
+# a .localhost name on the internal CA, which orders nothing.  Its TLS is its
+# OWN setting, not EDGE_TLS: measured on 2.11.4, `tls you@email` puts explicit
+# ACME issuers on a .localhost name too, so a box on real ACME would retry an
+# order for the default name forever.  An operator sets POLICY_HOST (usually
+# the bare ALMANAC_DOMAIN, which a *.<domain> wildcard does not cover) once
+# its DNS points here, and POLICY_TLS to what EDGE_TLS says.
+{$POLICY_HOST:policy.localhost} {
+    tls {$POLICY_TLS:internal}
+    @terms path /terms /terms/
+    @privacy path /privacy /privacy/
+    handle @terms {
+        redir https://{$CHAT_HOST:chat.localhost}/help/terms/ 302
+    }
+    handle @privacy {
+        redir https://{$CHAT_HOST:chat.localhost}/help/privacy/ 302
+    }
+    handle {
+        redir https://{$CHAT_HOST:chat.localhost}/ 302
+    }
+}
+
 # The course fleet — one vhost pair per course, RENDERED by the registrar
 # into fleet/caddy/ (mounted here read-only).  `just course` finishes with a
 # graceful reload; the _stub file keeps the glob non-empty on fresh boxes.

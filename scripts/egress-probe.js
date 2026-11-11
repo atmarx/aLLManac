@@ -248,6 +248,32 @@ const ok = (m) => console.log(`  ok    ${m}`);
     }
   }
 
+  // ---- Layer 6: Insights stays off ------------------------------------------
+  // ENABLE_INSIGHTS turns on /api/insights, which shows an ADMIN — or anyone
+  // granted VIEW_INSIGHTS on an agent — each person's name, email and FIRST
+  // MESSAGE in every non-temporary chat with that agent (measured on 0.8.8,
+  // design-walls.md, "A chat that is meant to keep nothing").  The privacy
+  // notice (apex/privacy.md) says nobody has a screen for reading another
+  // person's chats, and docs/customizing.md says that holds only while this
+  // is unset.  So it's checked where the engine reads it: the route calls
+  // isEnabled(process.env.ENABLE_INSIGHTS) per request (api/server/routes/
+  // insights.js), and the process env is the container's own, plus /app/.env
+  // for anything the container env doesn't already set — dotenv never
+  // overrides.  The verdict uses the image's own isEnabled.
+  {
+    console.log('\nLayer 6 — Insights (another person\'s first messages) stays off');
+    const { isEnabled } = require('/app/packages/api/dist/index.cjs');
+    let value = process.env.ENABLE_INSIGHTS;
+    let from = 'the container env';
+    if (value === undefined && fs.existsSync('/app/.env')) {
+      const parsed = require('dotenv').parse(fs.readFileSync('/app/.env'));
+      if ('ENABLE_INSIGHTS' in parsed) { value = parsed.ENABLE_INSIGHTS; from = '/app/.env'; }
+    }
+    if (value === undefined) ok('ENABLE_INSIGHTS is unset');
+    else if (!isEnabled(value)) ok(`ENABLE_INSIGHTS is set in ${from}, and reads as off`);
+    else bad(`ENABLE_INSIGHTS is ON (${from}) — admins can read each person's first message; the privacy notice is false on this box`);
+  }
+
   console.log('');
   process.exit(failed ? 1 : 0);
 })();
