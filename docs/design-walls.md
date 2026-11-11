@@ -869,6 +869,23 @@ A course's chat requires the `member` client role its roster grants (`OPENID_REQ
 
 If a later engine version passes the reason through, or changes where it redirects, this page stops appearing and nothing else breaks.  Check `redirectToAuthFailure` on each pin bump.
 
+## A chat that is meant to keep nothing *(measured on 0.8.8, 2026-11-11)*
+
+The staff portal asked whether a chat can keep nothing.  Read in the pinned image's source and measured on a throwaway stack (scratch mongo and meili, no ports).
+
+- **There is no lock.**  `interface.temporaryChat` can only remove the temporary option.  "Temporary by default" is a per-browser localStorage switch (`client/src/store/temporary.ts`), so the server cannot enforce it.  Retention is `temporaryChatRetention` / `generalChatRetention` in hours, 1 to 8760, default 720, and the yaml beats `TEMP_CHAT_RETENTION_HOURS`.
+- **`retentionMode: all` is a deadline, not temporary.**  Every chat gets `expiredAt`, but stays `isTemporary: false`: listed, titled and indexed.  A temporary chat's deadline is re-stamped on every save; under `all`, an ordinary chat's is set once, at insert (`$setOnInsert`).
+- **Deletion is a Mongo TTL index** (`expiredAt_1`, `expireAfterSeconds: 0`) on conversations and messages.  Files go by an hourly sweep in app code.  Memories have no TTL and ignore `isTemporary`, so turn memory off.
+- **A TTL delete never reaches Meili.**  Temporary chats are never indexed (`isIndexableDocument`), so they are safe.  An `all`-mode chat's text stays in the index after expiry and after a restart: the boot sync reported "fully synced" with the orphan still there.  The person's own search hides it because results are hydrated from Mongo, but the text is on disk.  If chats must leave, run with `SEARCH=false` and no search service.
+- **A temporary chat hides the landing card.**  `Landing.tsx` swaps the agent's or spec's description and greeting for the stock "This chat won't appear in your history…" line.
+- **No admin route reads another person's chat.**  `convoAccess` refuses whenever the owner differs, and neither the admin API nor the admin panel has a conversation route.  The exception is Insights (`ENABLE_INSIGHTS`): it shows an ADMIN, or an agent's `VIEW_INSIGHTS` holder, every non-temporary chat with that agent, with the person's name, email and first message.  It is unset on our boxes; keep it that way.
+- **ADMIN can always reopen agent and MCP creation.**  The boot rewrite closes `AGENTS.CREATE` and `MCP_SERVERS.CREATE` to USER, but `PUT /api/roles/:role/agents` needs only `manageRoles`, which is how the seeder opens its own window.  "Only the seeder" means nobody holds `OPENID_ADMIN_ROLE` day to day.
+- **Rendering.**  react-markdown with remark-gfm, directive, supersub and math, and no rehype-raw.  Tables and fences survive; raw HTML shows as literal text; `$…$`, `^x^`, `~x~` and `:word` are rewritten.  The only verbatim path for a server's block is an MCP UI resource with inline HTML, shown in a sandboxed iframe.  Landing descriptions are plain text, or sanitized HTML, never markdown.
+
+Check `retentionMode`, `indexSync` and `Landing.tsx` on each pin bump: any of them changing moves the portal's opening message.
+
+---
+
 ## A reboot leaves every LibreChat unable to sign anyone in — and `smoke` stays green *(measured 2026-09-29)*
 
 LibreChat discovers its OpenID issuer **once, at boot**, and never retries.  If Keycloak isn't answering at that moment, it logs `OpenID Connect configuration failed - strategy not registered`, starts listening anyway, and every sign-in returns 500 from then on.
