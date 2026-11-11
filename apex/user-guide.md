@@ -36,6 +36,8 @@ An **agent** is what other tools call a custom GPT: a system prompt, knowledge f
 
 Sign in at the chat URL your instructor gave you, using the SSO button and your campus credentials.  There's no separate account to create.  Enrolling you created your account, and your first sign-in links your campus login to it.
 
+**If the course turns you away after you sign in**, your password is not the problem.  A course opens only for the people on its roster.  The message may say "This course hasn't added you yet," or it may say "Authentication failed.  Please check your login method and try again."  Both nearly always mean the same thing: the address you signed in with isn't on the roster yet.  Ask your instructor to add you, and tell them the email address you sign in with.  If you have more than one account, sign in with the one your instructor has.  You don't need a course to use the {{PLATFORM}} chat, where the guides are.
+
 **To create an agent:**
 
 1. In the model/endpoint menu at the top of a new chat, select **My Agents**.

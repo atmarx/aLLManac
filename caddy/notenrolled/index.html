@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!--
+  The edge's page for a sign-in that a COURSE turned away.  Served by the
+  `not_on_roster` snippet in ../Caddyfile, on course hosts only.
+
+  WHY THE EDGE SERVES IT.  A course's chat requires the `member` role its
+  roster grants (OPENID_REQUIRED_ROLE, registrar/render.py).  Without it the
+  chat engine throws "You must have "member" role to log in", logs that, and
+  redirects the browser to /login?redirect=false&error=auth_failed, where its
+  own page says only "Authentication failed.  Please check your login method
+  and try again."  That sends an un-enrolled student off to fight their
+  password.  The edge sees that redirect arrive as a plain GET and answers it
+  with this page.
+
+  THE EDGE CANNOT TELL WHY THE SIGN-IN FAILED.  Every failed sign-in lands on
+  that same address.  On a course host the roster is nearly always the reason,
+  so the page leads with it, says "nearly always", and keeps one entry for
+  the rest.  Don't tighten that to "you are not on the roster": it would be a
+  guess stated as a fact.
+
+  IT NAMES NO ONE AND LISTS NOTHING.  The reader has already signed in, and
+  the page tells them only about themselves.  (Words: the pedagogy lane.
+  Route: the plumbing.)
+
+  {{env "PLATFORM_NAME"}} and {{env "CHAT_HOST"}} are filled by the
+  `templates` directive; {{.Host}} is the course address they tried.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>This course hasn't added you yet</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #23201c; --muted: #6a645c;
+    --rule: #e2ddd4; --accent: #7a5c2e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171614; --fg: #e8e4dd; --muted: #a09a91;
+      --rule: #322f2a; --accent: #d3ae6f;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 17px/1.65 ui-serif, Georgia, "Times New Roman", serif;
+    padding: 16px;
+  }
+  main { max-width: 34rem; margin: 12vh auto 6rem; }
+  h1 {
+    font-size: 1.7rem; line-height: 1.25; font-weight: 600;
+    margin: 0 0 1.4rem; letter-spacing: -0.01em;
+  }
+  p { margin: 0 0 1.15rem; }
+  .lede { font-size: 1.05rem; }
+  dl { margin: 1.8rem 0; }
+  dt { font-weight: 600; margin-top: 1.25rem; }
+  dd { margin: 0.3rem 0 0; color: var(--muted); }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 2.4rem 0 1.6rem; }
+  .fine { font-size: 0.92rem; color: var(--muted); }
+  a { color: var(--accent); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>This course hasn't added you yet</h1>
+
+  <p class="lede">Your sign-in worked.  What stopped you is the course at {{.Host | html}}: it opens only for the people on its own roster, and nearly always this page means the account you signed in with isn't on that roster yet.  Your password is fine, and there is nothing to reset.</p>
+
+  <dl>
+    <dt>If you're taking this course</dt>
+    <dd>Ask your instructor to add you.  They add people by email address, so tell them the address you sign in with.  Once they have, come back to <a href="/">this address</a> and sign in again.</dd>
+
+    <dt>If you have more than one account</dt>
+    <dd>The roster goes by email address.  If your instructor added a different address from the one you just used, you land here.  Open a private browser window, go to this address again, and sign in with the address they have.</dd>
+
+    <dt>While you wait</dt>
+    <dd>You don't need a course to use the <a href="https://{{env "CHAT_HOST" | html}}/">{{env "PLATFORM_NAME" | html}} chat</a>.  The guides there are open to anyone who can sign in, and the help pages are at <a href="https://{{env "CHAT_HOST" | html}}/help/">{{env "CHAT_HOST" | html}}/help/</a>.</dd>
+
+    <dt>If your instructor says you're already on the roster</dt>
+    <dd>Then something else went wrong with the sign-in.  <a href="/">Try once more</a>.  If you land here again, tell your instructor the time you tried and the address you signed in with, and they can pass it to the people who run {{env "PLATFORM_NAME" | html}}.</dd>
+  </dl>
+
+  <hr>
+
+  <p class="fine">This page can't show you who is on the roster.  That list belongs to the course, and it stays out of view for the same reason your own courses stay out of everyone else's.</p>
+</main>
+</body>
+</html>

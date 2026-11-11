@@ -857,6 +857,18 @@ The edge serves a "being upgraded" page in place of a bare 502 ([upgrade-page.md
 
 ---
 
+## A course turns someone away, and the engine tells them to check their login *(measured on 0.8.8, 2026-11-11)*
+
+A course's chat requires the `member` client role its roster grants (`OPENID_REQUIRED_ROLE`, rendered by `registrar/render.py`).  Someone who signs in without it is refused, correctly.  What they are told is the problem.
+
+- **The reason exists and never reaches the browser.**  `api/strategies/openidStrategy.js` throws `You must have "member" role to log in.`  The callback (`packages/api/src/oauth/callback.ts`, `redirectToAuthFailure`) logs it and redirects to `/login?redirect=false&error=auth_failed`, and the login page shows one string for every failure: "Authentication failed.  Please check your login method and try again."  An un-enrolled student reads that as a password problem.  The reason is in the course chat's log at warn: grep for `Callback authentication failed`.
+- **That redirect is a full navigation, so the edge can answer it.**  The `not_on_roster` snippet in the tracked Caddyfile matches `GET /login` with `error=auth_failed` from a browser, on course hosts only, and serves `caddy/notenrolled/index.html` with a 403 and `X-Almanac-Page: not-on-roster`.  The chat host is excluded: there is no roster to be missing from there, and the engine's page stays.
+- **The edge cannot tell why the sign-in failed.**  A bad state parameter, an IdP error and a missing role all land on the same address.  On a course host the roster is nearly always the cause, and the page says "nearly always" and keeps one entry for the rest.  Don't tighten the wording into a guess stated as fact.
+- **It rides inside `upgrade_flag`, and that is a shortcut with a trap.**  Every rendered course vhost already imports `upgrade_flag`, so importing `not_on_roster` there reaches every course on a deploy with no `just render` and no red `render-check`.  The honest home is a line of its own in the vhost template.  When `render.py` next changes that template, move the import there and delete it from `upgrade_flag` in the same commit: imported twice in one site, the matcher is defined twice and Caddy refuses the whole config.
+- **During an upgrade the upgrade page wins.**  The flag's handle comes first.  Tested with nine requests against Caddy 2.11.2 and a stand-in course: the page for a browser, the engine for everything else (a plain `/login`, a non-browser `Accept`, another `error` value, `X-Almanac-Bypass`), and the admin-config wall untouched.
+
+If a later engine version passes the reason through, or changes where it redirects, this page stops appearing and nothing else breaks.  Check `redirectToAuthFailure` on each pin bump.
+
 ## A reboot leaves every LibreChat unable to sign anyone in — and `smoke` stays green *(measured 2026-09-29)*
 
 LibreChat discovers its OpenID issuer **once, at boot**, and never retries.  If Keycloak isn't answering at that moment, it logs `OpenID Connect configuration failed - strategy not registered`, starts listening anyway, and every sign-in returns 500 from then on.

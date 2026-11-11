@@ -75,6 +75,8 @@ A student may join your section in week three, or switch in from another class. 
 2. **Add them to your course group** in the admin panel (admin panel → Groups → `engr301-all`, plus their team group if they have one).  Membership changes take effect immediately, with no overnight sync to wait for.
 3. **Tell them to fetch their key** if your course uses API keys for coding work.  Enrolling already minted the key, and the student gets it by asking the Coder Guide in the {{PLATFORM}} chat.  Nobody has to send it to them.
 
+**A student who signs in and is turned away is not on your roster under the address they used.**  They see a page that says "This course hasn't added you yet," or on some versions "Authentication failed.  Please check your login method and try again."  Their password is fine.  Ask which email address they signed in with, and enroll that one.  If you already enrolled them under a different address, they sign in with that address instead.  They can sign in again as soon as the Instructor Guide confirms the change.
+
 Removing a student who drops works the same way in reverse.  Ask the Instructor Guide to **unenroll** them, which revokes their key at once and ends their chat access the next time the chat asks them to sign in.  Then take them out of the group in the admin panel.
 
 Adding or removing a student never involves the Registrar's Office or an LMS.  The roster is your course's access list, not the university's enrollment system, and it's yours to change.

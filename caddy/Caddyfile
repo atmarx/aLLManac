@@ -65,6 +65,49 @@
     }
 }
 
+# not_on_roster — the page for a sign-in a COURSE turned away
+# (caddy/notenrolled/index.html).  A course's chat requires the `member` role
+# its roster grants (OPENID_REQUIRED_ROLE, registrar/render.py).  Without it
+# the chat engine redirects the browser to /login?redirect=false&error=auth_failed
+# and shows "Authentication failed.  Please check your login method and try
+# again", which tells an un-enrolled student to go and fight their password.
+# That redirect is a full navigation, so the edge sees the GET and answers it.
+# Measured on the pinned 0.8.8 image, 2026-11-11: packages/api
+# src/oauth/callback.ts, redirectToAuthFailure.
+#
+# Course hosts only.  On the chat host the same address means the sign-in
+# itself failed, there is no roster to be missing from, and the engine's own
+# page stays.  A browser navigation only, and never a request carrying
+# X-Almanac-Bypass, the same way an operator looks behind the upgrade page.
+# 403, not 200: the person was refused, and a probe should see that.
+# X-Almanac-Page says which of the edge's pages answered.
+#
+# The edge cannot see WHY a sign-in failed; every cause lands on this
+# address.  The page says "nearly always" for that reason.
+(not_on_roster) {
+    @not_on_roster {
+        path /login
+        query error=auth_failed
+        method GET HEAD
+        header Accept *text/html*
+        not host {$CHAT_HOST:chat.localhost}
+        not header X-Almanac-Bypass *
+    }
+    handle @not_on_roster {
+        header {
+            Cache-Control no-store
+            X-Almanac-Page not-on-roster
+        }
+        root * /etc/caddy/notenrolled
+        rewrite * /index.html
+        # Fills {{env "PLATFORM_NAME"}}, {{env "CHAT_HOST"}} and {{.Host}}.
+        templates
+        file_server {
+            status 403
+        }
+    }
+}
+
 # upgrade_flag — the ACTIVE layer, on the chat host and every course host.
 # While status/upgrading exists (`just deploy` holds it from `up` through
 # `oidc-settle`), a browser navigation gets the page on purpose.  Never
@@ -87,6 +130,13 @@
     handle @upgrade_flag {
         import upgrade_html
     }
+    # Rides here because every course's rendered vhost already imports this
+    # snippet, so the page reaches each course on a deploy with no re-render.
+    # After the flag's own handle on purpose: during an upgrade, the upgrade
+    # page wins.  When registrar/render.py next changes the vhost template,
+    # move this import there and delete it here in the SAME commit; imported
+    # twice in one site, the matcher is defined twice and the edge won't load.
+    import not_on_roster
 }
 
 # The two bodies.  503, never 200 — monitoring must see an outage as one —
