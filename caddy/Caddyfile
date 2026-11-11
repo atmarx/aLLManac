@@ -209,6 +209,14 @@
     # mkdocs is built for this prefix (site_url in mkdocs.yml), so its
     # 404.html and assets already say /help/.
     redir /help /help/ 308
+    # The short policy paths, here too (see "The policy address" below): the
+    # chat engine has no /terms or /privacy route, so without these they
+    # render a blank chat shell.  A front proxy that sends the bare domain to
+    # this host path and all lands here, and that works with no POLICY_HOST.
+    redir /terms /help/terms/ 302
+    redir /terms/ /help/terms/ 302
+    redir /privacy /help/privacy/ 302
+    redir /privacy/ /help/privacy/ 302
     handle_path /help/* {
         root * /srv/docs
         file_server
